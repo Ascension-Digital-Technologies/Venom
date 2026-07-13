@@ -81,6 +81,35 @@ std::size_t count_js_bundle_flag(const std::vector<unsigned char>& bytes, std::u
 }
 
 
+bool js_bundle_flagged_payload_contains(const std::vector<unsigned char>& bytes,
+                                        std::uint32_t required_flag,
+                                        const std::string& needle) {
+  static const std::vector<unsigned char> magic{'V','J','S','B','0','0','0','6'};
+  if (needle.empty() || bytes.size() < 24u || !std::equal(magic.begin(), magic.end(), bytes.begin())) return false;
+  const auto count = read_u32_le(bytes, 12u);
+  const auto text_size = read_u32_le(bytes, 16u);
+  constexpr std::size_t entry_size = 40u;
+  constexpr std::size_t code_offset_field = 16u;
+  constexpr std::size_t code_size_field = 20u;
+  constexpr std::size_t flags_offset = 28u;
+  const auto table_end = 24u + static_cast<std::size_t>(count) * entry_size;
+  if (table_end > bytes.size() || static_cast<std::size_t>(text_size) > bytes.size() - table_end) return false;
+  const auto code_base = table_end + static_cast<std::size_t>(text_size);
+  for (std::uint32_t i = 0; i < count; ++i) {
+    const auto entry = 24u + static_cast<std::size_t>(i) * entry_size;
+    const auto flags = read_u32_le(bytes, entry + flags_offset);
+    if ((flags & required_flag) == 0u) continue;
+    const auto code_offset = static_cast<std::size_t>(read_u32_le(bytes, entry + code_offset_field));
+    const auto code_size = static_cast<std::size_t>(read_u32_le(bytes, entry + code_size_field));
+    if (code_offset > bytes.size() - code_base || code_size > bytes.size() - code_base - code_offset) return true;
+    const auto begin = bytes.begin() + static_cast<std::ptrdiff_t>(code_base + code_offset);
+    const auto finish = begin + static_cast<std::ptrdiff_t>(code_size);
+    if (std::search(begin, finish, needle.begin(), needle.end()) != finish) return true;
+  }
+  return false;
+}
+
+
 std::filesystem::path resolve_package_path(const std::filesystem::path& target) {
   if (std::filesystem::is_regular_file(target)) {
     return target;
@@ -273,16 +302,21 @@ std::string extract_integrity_for_asset(const std::string& html, const std::stri
 }
 
 std::string extract_loader_binding_token(const std::string& loader_text) {
+  const std::string marker = "vbind:";
+  const auto marker_start = loader_text.find(marker);
+  if (marker_start != std::string::npos) {
+    const auto value_start = marker_start + marker.size();
+    const auto value_end = loader_text.find_first_of("\"'", value_start);
+    if (value_end != std::string::npos && value_end > value_start) {
+      return loader_text.substr(value_start, value_end - value_start);
+    }
+  }
   const std::string needle = "bindingToken: '";
   const auto start = loader_text.find(needle);
-  if (start == std::string::npos) {
-    return {};
-  }
+  if (start == std::string::npos) return {};
   const auto value_start = start + needle.size();
   const auto end = loader_text.find("'", value_start);
-  if (end == std::string::npos) {
-    return {};
-  }
+  if (end == std::string::npos) return {};
   return loader_text.substr(value_start, end - value_start);
 }
 
@@ -952,8 +986,10 @@ ReleaseCheckReport analyze_package_for_release(const ReleaseCheckOptions& option
           contains_bytes(section.data, "source-preserving-byte-buffer-record")) {
         add_failure(report, "JavaScript payload contains legacy source-preserving QuickJS byte buffer records");
       }
-      if (contains_bytes(section.data, "console.log") || contains_bytes(section.data, "basic site script loaded")) {
-        add_failure(report, "JavaScript payload contains clear source text instead of native bytecode records");
+      constexpr std::uint32_t js_chunk_bytecode_encoded = 1u << 6u;
+      if (js_bundle_flagged_payload_contains(section.data, js_chunk_bytecode_encoded, "console.log") ||
+          js_bundle_flagged_payload_contains(section.data, js_chunk_bytecode_encoded, "basic site script loaded")) {
+        add_failure(report, "protected JavaScript payload contains clear source text instead of native bytecode records");
       }
     }
   }
@@ -977,9 +1013,10 @@ ReleaseCheckReport analyze_package_for_release(const ReleaseCheckOptions& option
     add_failure(report, "unique remote vendor count exceeds vendored script chunk count");
   }
 
-  if (report.release_or_protect && report.quickjs_bytecode_records == 0u) {
-    add_failure(report, "protected package has no VQJSBC03 QuickJS bytecode records in protected JavaScript sections");
-  }
+  // Hybrid and browser-only applications are valid release targets. A package
+  // may intentionally contain zero protected JavaScript records when every
+  // script is selected for the native browser realm. QuickJS-specific gates
+  // below remain conditional on actual VQJSBC03 records.
   if (report.release_or_protect && report.quickjs_bytecode_records != 0u && !report.quickjs_wasm_execution) {
     add_failure(report, "protected package with scripts is missing quickjs-wasm-execution.vqwe metadata");
   }

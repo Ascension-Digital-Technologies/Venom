@@ -32,6 +32,22 @@ std::vector<unsigned char> read_all(const std::filesystem::path& path) {
   }
   return std::vector<unsigned char>(std::istreambuf_iterator<char>(in), {});
 }
+
+bool is_root_project_metadata(const std::string& relative) {
+  if (relative.find('/') != std::string::npos) return false;
+  std::string name = relative;
+  std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) {
+    return static_cast<char>(std::tolower(c));
+  });
+  static const char* const ignored[] = {
+      "readme", "readme.md", "readme.txt",
+      "changes", "changes.md", "changelog", "changelog.md",
+      "contributing", "contributing.md", "security", "security.md",
+      "license", "license.md", "license.txt",
+      "package.json", "package-lock.json", "yarn.lock", "pnpm-lock.yaml"
+  };
+  return std::find(std::begin(ignored), std::end(ignored), name) != std::end(ignored);
+}
 } // namespace
 
 std::string route_from_html_path(const std::string& relative) {
@@ -69,7 +85,7 @@ SiteGraph collect_site(const std::filesystem::path& input_root) {
       }
       continue;
     }
-    if (!entry.is_regular_file() || relative == "venom.lock") {
+    if (!entry.is_regular_file() || relative == "venom.lock" || is_root_project_metadata(relative)) {
       continue;
     }
 

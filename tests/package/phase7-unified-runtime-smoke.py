@@ -20,7 +20,7 @@ checks={
  'mandatory limits':'release runtime lacks execution-limit support' in engine,
  'mandatory compact':'compact result descriptor is required' in engine,
  'no old compatibility':'pre-v1.0.15 embedded WASM' not in engine,
- '16 function ABI':abi.count("'venom_qjs_") == 16,
+ '23 function ABI':abi.count("'venom_qjs_") == 23,
 }
 for k,v in checks.items(): print(f"[{'PASS' if v else 'FAIL'}] {k}")
 raise SystemExit(0 if all(checks.values()) else 1)

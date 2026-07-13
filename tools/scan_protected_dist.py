@@ -17,6 +17,8 @@ ALLOWED = [
     re.compile(rf"assets/runtime/rw\.{HASH}\.wasm"),
     re.compile(r"assets/(?!app/|style/|loader/|runtime/|workers/).+"),  # public site assets
     re.compile(r"assets/workers/worker\.[0-9a-f]{12}\.js"),
+    re.compile(r"build/reports/(?:execution-plan|function-plan|function-extraction-plan)\.(?:txt|json)"),
+    re.compile(r"build/reports/(?:realm-bridge-contract|bridge-rewrite-plan)\.json"),
 ]
 FORBIDDEN_TEXT = (
     "new Function", "eval(", "sourceMappingURL", "host-js-fallback",

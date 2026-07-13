@@ -5,7 +5,7 @@
     "quickjs_wasm_raw_bytes": 1300000,
     "quickjs_wasm_gzip_bytes": 500000,
     "quickjs_wasm_brotli_bytes": 420000,
-    "release_abi_exports": 16,
+    "release_abi_exports": 23,
     "distribution_javascript_bytes": 650000,
     "distribution_total_bytes": 2500000
   },

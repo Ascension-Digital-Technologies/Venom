@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <utility>
 
 #include "vm/polymorph.hpp"
 
@@ -59,6 +60,9 @@ struct JsBridge {
   std::string extraction_plan_json;
   std::string realm_bridge_contract_json;
   std::vector<std::string> bridge_candidate_ids;
+  std::vector<std::pair<std::string, std::string>> protected_exports;
+  std::vector<unsigned char> bridge_registry_bytecode;
+  std::string bridge_rewrite_report_json;
   std::string preview;
   std::vector<RemoteVendorRecord> remote_vendors;
 };
@@ -74,8 +78,19 @@ std::string make_loader_js(const std::string& runtime_asset_name,
                            const std::string& style_asset_name = std::string{},
                            const std::string& package_binding_token = std::string{},
                            const std::string& worker_asset_name = std::string{},
-                           const std::string& quickjs_runtime_wasm_sha256 = std::string{});
-std::string make_worker_runtime_js(const std::vector<std::string>& bridge_candidate_ids = {});
+                           const std::string& quickjs_runtime_wasm_sha256 = std::string{},
+                           const std::vector<std::pair<std::string, std::string>>& protected_exports = {},
+                           std::uint32_t bridge_invoke_opcode = 0x31u,
+                           std::uint32_t bridge_cancel_opcode = 0x32u,
+                           std::uint32_t bridge_result_opcode = 0x33u,
+                           std::uint32_t bridge_error_opcode = 0x34u);
+std::string make_worker_runtime_js(const std::vector<std::string>& bridge_candidate_ids = {},
+                                   const std::vector<unsigned char>& bridge_registry_bytecode = {},
+                                   std::uint32_t bridge_invoke_opcode = 0x31u,
+                                   std::uint32_t bridge_cancel_opcode = 0x32u,
+                                   std::uint32_t bridge_result_opcode = 0x33u,
+                                   std::uint32_t bridge_error_opcode = 0x34u);
+std::string make_browser_asset_runtime_js();
 std::string make_runtime_js(const SiteGraph& graph, bool protected_release = false);
 std::string make_runtime_wasm_bridge_js(const SiteGraph& graph,
                                         const std::string& wasm_asset_name,

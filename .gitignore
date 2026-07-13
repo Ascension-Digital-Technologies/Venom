@@ -1,32 +1,44 @@
-# Prerequisites
-*.d
+# Native and WASM build output
+/build/
+/build-*/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+# Generated site distributions and release archives
+/dist/
+/dist-*/
+/release/
+/releases/
+*.zip
+*.tar
+*.tar.gz
 
-# Precompiled Headers
-*.gch
-*.pch
+# Emscripten SDK and generated artifacts
+.emsdk/
+emsdk/
+*.wasm.map
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
+# PGO, coverage, sanitizer, and fuzz output
+*.profraw
+*.profdata
+*.gcda
+*.gcno
+coverage/
+crash-*
+leak-*
+timeout-*
 
-# Fortran module files
-*.mod
-*.smod
+# Python and editor caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
 
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
+# Logs and temporary files
+*.log
+*.tmp
+*.bak

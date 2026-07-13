@@ -156,7 +156,7 @@ def verify_and_embed_artifact(repo_root: Path, artifact: Path, out_dir: Path, em
         fp.write('native_object_reader=JS_ReadObject\n')
         fp.write('source_materialization=false\n')
         fp.write('release_abi_exact=true\n')
-        fp.write('release_export_count=16\n')
+        fp.write('release_export_count=23\n')
         fp.write('venom_qjs_wasm_native_stack_capacity=4194304\n')
     kv = parse_kv(manifest.read_text(encoding='utf-8'))
     if kv.get('artifact_kind') != 'upstream-quickjs-wasm' or kv.get('required_exports_satisfied') != 'true':

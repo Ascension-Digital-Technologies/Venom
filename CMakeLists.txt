@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(venom
-  VERSION 1.31.4
+  VERSION 1.34.1
   DESCRIPTION "Venom - Secure Web Runtime: protected web compiler and dual-VM browser runtime"
   LANGUAGES C CXX
 )
@@ -142,7 +142,9 @@ set(VENOM_CORE_SOURCES
   src/compiler/html.cpp
   src/compiler/css.cpp
   src/compiler/js.cpp
+  src/compiler/function_dependencies.cpp
   src/compiler/worker_runtime_js.cpp
+  src/compiler/browser_asset_runtime_js.cpp
   src/compiler/runtime_js.cpp
   src/compiler/runtime_modules.cpp
   src/compiler/wasm_runtime_js.cpp

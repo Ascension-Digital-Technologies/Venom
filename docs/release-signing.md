@@ -12,7 +12,6 @@ dist-release/
   VERSION.txt
   RELEASE_MANIFEST.txt
   RELEASE_MANIFEST.sig       # optional, present when --sign is used
-  SOURCE_MANIFEST.txt
   docs/
   examples/
   scripts/
@@ -90,4 +89,4 @@ Release signing verifies that the binary release folder/archive matches the mani
 
 ## v0.90 production signature
 
-Production releases use the Ed25519 V2 envelope, explicit key fingerprints, trusted-key rotation, and monotonic release-sequence rollback checks. See `docs/cryptographic-release-model.md`. Generic OpenSSL RSA/ECDSA manifest signing is no longer the production contract.
+Production releases use the Ed25519 V2 envelope, explicit key fingerprints, trusted-key rotation, and monotonic release-sequence rollback checks. See `docs/security-model.md`. Generic OpenSSL RSA/ECDSA manifest signing is no longer the production contract.

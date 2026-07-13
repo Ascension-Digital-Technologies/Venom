@@ -2551,12 +2551,53 @@ VENOM_QJS_PUBLIC("venom_qjs_bridge_invoke") uint32_t venom_qjs_bridge_invoke(uin
     venom_qjs_end_execution_budget();
     return 0u;
   }
-  const uint32_t copied = venom_qjs_bridge_copy_json_result(ctx, result);
-  JS_FreeValue(g_upstream_qjs_context, result);
-  if (!venom_qjs_finish_upstream_jobs(ctx, size, 0u)) {
+
+  /* Protected exports may be declared async. Resolve their Promise inside the
+   * QuickJS realm before serializing the bridge result. Serializing the raw
+   * Promise would produce an empty object and silently discard the real value. */
+  if (JS_IsPromise(result)) {
+    for (;;) {
+      const JSPromiseStateEnum state = JS_PromiseState(g_upstream_qjs_context, result);
+      if (state == JS_PROMISE_FULFILLED) {
+        JSValue settled = JS_PromiseResult(g_upstream_qjs_context, result);
+        JS_FreeValue(g_upstream_qjs_context, result);
+        result = settled;
+        break;
+      }
+      if (state == JS_PROMISE_REJECTED) {
+        JSValue reason = JS_PromiseResult(g_upstream_qjs_context, result);
+        JS_FreeValue(g_upstream_qjs_context, result);
+        JS_Throw(g_upstream_qjs_context, reason);
+        venom_qjs_copy_exception_message(g_upstream_qjs_context, ctx, size, 0u);
+        venom_qjs_end_execution_budget();
+        return 0u;
+      }
+      if (state != JS_PROMISE_PENDING) {
+        JS_FreeValue(g_upstream_qjs_context, result);
+        build_exception_json(ctx, 105u, "bridge", "invalid protected Promise state", size, 0u);
+        venom_qjs_end_execution_budget();
+        return 0u;
+      }
+      if (!venom_qjs_finish_upstream_jobs(ctx, size, 0u)) {
+        JS_FreeValue(g_upstream_qjs_context, result);
+        venom_qjs_end_execution_budget();
+        return 0u;
+      }
+      if (JS_PromiseState(g_upstream_qjs_context, result) == JS_PROMISE_PENDING) {
+        JS_FreeValue(g_upstream_qjs_context, result);
+        build_exception_json(ctx, 106u, "bridge", "protected Promise did not settle", size, 0u);
+        venom_qjs_end_execution_budget();
+        return 0u;
+      }
+    }
+  } else if (!venom_qjs_finish_upstream_jobs(ctx, size, 0u)) {
+    JS_FreeValue(g_upstream_qjs_context, result);
     venom_qjs_end_execution_budget();
     return 0u;
   }
+
+  const uint32_t copied = venom_qjs_bridge_copy_json_result(ctx, result);
+  JS_FreeValue(g_upstream_qjs_context, result);
   venom_qjs_end_execution_budget();
   return copied;
 #else

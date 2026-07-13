@@ -85,7 +85,6 @@ dist-release/
   VERSION.txt
   RELEASE_MANIFEST.txt
   RELEASE_MANIFEST.sig       # when --sign is used
-  SOURCE_MANIFEST.txt
   docs/
   examples/
   scripts/

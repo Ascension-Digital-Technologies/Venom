@@ -1,7 +1,4 @@
 @echo off
-setlocal EnableExtensions
-set "ROOT=%~dp0.."
-python "%ROOT%\tools\analyze_dist.py" --repo-root "%ROOT%" %*
-set "VENOM_EXIT=%ERRORLEVEL%"
-call "%~dp0pause-on-error.bat" %VENOM_EXIT%
-exit /b %VENOM_EXIT%
+set "VENOM_PS1=%~dp0analyze-dist.ps1"
+call "%~dp0internal\invoke-powershell.bat" %*
+exit /b %ERRORLEVEL%

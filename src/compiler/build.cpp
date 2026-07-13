@@ -8,6 +8,7 @@
 #include "compiler/html.hpp"
 #include "compiler/js.hpp"
 #include "compiler/profile.hpp"
+#include "compiler/process.hpp"
 #include "compiler/security.hpp"
 #include "compiler/site.hpp"
 #include "package/hash.hpp"
@@ -22,6 +23,8 @@
 #include "vm/encoder.hpp"
 
 #include <algorithm>
+#include <chrono>
+#include <cstdlib>
 #include <cctype>
 #include <filesystem>
 #include <fstream>
@@ -124,6 +127,23 @@ void require_real_embedded_quickjs_runtime() {
   require_value("source_materialization", "false");
   require_value("native_object_reader", "JS_ReadObject");
   require_value("bytecode_format", "VQJSBC03");
+  require_value("required_export_count", "23");
+  require_value("release_export_count", "23");
+  const auto embedded_exports = metadata_value_from_text(provenance, "exports");
+  for (const auto* required_bridge_export : {
+           "venom_qjs_bridge_abi",
+           "venom_qjs_bridge_input_alloc",
+           "venom_qjs_bridge_input_capacity",
+           "venom_qjs_bridge_invoke",
+           "venom_qjs_bridge_result_ptr",
+           "venom_qjs_bridge_result_size",
+           "venom_qjs_bridge_release"}) {
+    if (embedded_exports.find(required_bridge_export) == std::string::npos) {
+      throw std::runtime_error(
+          std::string("production browser build refused: embedded QuickJS/WASM provenance is missing protected bridge export ") +
+          required_bridge_export + "; run scripts/build-quickjs-wasm to rebuild and embed the current runtime");
+    }
+  }
   const auto artifact_kind = metadata_value_from_text(provenance, "artifact_kind");
   if (artifact_kind.empty() || artifact_kind == "contract-scaffold") {
     throw std::runtime_error(
@@ -132,6 +152,18 @@ void require_real_embedded_quickjs_runtime() {
   }
 }
 
+
+std::uint32_t bridge_protocol_opcode(const std::string& salt, const std::string& label) {
+  const auto digest = venom::package::sha256_hex(bytes_from_string(salt + "|bridge-protocol|" + label));
+  std::uint32_t value = 0;
+  for (std::size_t i = 0; i < 8 && i < digest.size(); ++i) {
+    const char c = digest[i];
+    const std::uint32_t nibble = (c >= '0' && c <= '9') ? static_cast<std::uint32_t>(c - '0') : static_cast<std::uint32_t>(10 + c - 'a');
+    value = (value << 4u) | nibble;
+  }
+  value |= 0x100u;
+  return value;
+}
 void require_embedded_quickjs_module_bundle_runtime(const JsBridge& bridge) {
   const bool needs_module_loader = !bridge.module_edges.empty();
   if (!needs_module_loader) return;
@@ -162,6 +194,98 @@ void replace_all_inplace(std::string& value, const std::string& from, const std:
   while ((pos = value.find(from, pos)) != std::string::npos) {
     value.replace(pos, from.size(), to);
     pos += to.size();
+  }
+}
+
+std::uint32_t read_wasm_uleb(const std::vector<unsigned char>& bytes, std::size_t& cursor, std::size_t limit) {
+  std::uint32_t value = 0;
+  unsigned shift = 0;
+  while (cursor < limit && shift < 35u) {
+    const auto byte = bytes[cursor++];
+    value |= static_cast<std::uint32_t>(byte & 0x7fu) << shift;
+    if ((byte & 0x80u) == 0u) return value;
+    shift += 7u;
+  }
+  throw std::runtime_error("malformed WASM ULEB128");
+}
+
+std::string compact_wasm_export_alias(const std::string& name, std::size_t ordinal, const std::string& salt) {
+  std::uint64_t hash = venom::package::fnv1a64(bytes_from_string(name + "|" + salt + "|" + std::to_string(ordinal)));
+  static constexpr char alphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$_";
+  std::string alias(name.size(), '_');
+  if (alias.empty()) return alias;
+  alias[0] = 'v';
+  for (std::size_t i = 1; i < alias.size(); ++i) {
+    hash ^= hash >> 12u; hash ^= hash << 25u; hash ^= hash >> 27u;
+    alias[i] = alphabet[hash & 63u];
+  }
+  return alias;
+}
+
+std::vector<std::pair<std::string, std::string>> compact_quickjs_wasm_exports(
+    std::vector<unsigned char>& bytes, const std::string& salt) {
+  std::vector<std::pair<std::string, std::string>> aliases;
+  if (bytes.size() < 8u || bytes[0] != 0x00u || bytes[1] != 0x61u || bytes[2] != 0x73u || bytes[3] != 0x6du)
+    throw std::runtime_error("invalid QuickJS WASM header");
+  std::size_t cursor = 8u;
+  while (cursor < bytes.size()) {
+    const auto section_id = bytes[cursor++];
+    const auto section_size = read_wasm_uleb(bytes, cursor, bytes.size());
+    const auto section_end = cursor + section_size;
+    if (section_end > bytes.size()) throw std::runtime_error("truncated QuickJS WASM section");
+    if (section_id != 7u) { cursor = section_end; continue; }
+    const auto count = read_wasm_uleb(bytes, cursor, section_end);
+    std::size_t ordinal = 0u;
+    for (std::uint32_t i = 0; i < count; ++i) {
+      const auto name_size = read_wasm_uleb(bytes, cursor, section_end);
+      if (cursor + name_size > section_end) throw std::runtime_error("truncated QuickJS WASM export name");
+      const auto name_offset = cursor;
+      const std::string name(reinterpret_cast<const char*>(bytes.data() + cursor), name_size);
+      cursor += name_size;
+      if (cursor >= section_end) throw std::runtime_error("truncated QuickJS WASM export kind");
+      ++cursor;
+      (void)read_wasm_uleb(bytes, cursor, section_end);
+      if (name.rfind("venom_qjs_", 0) == 0) {
+        const auto alias = compact_wasm_export_alias(name, ordinal++, salt);
+        std::copy(alias.begin(), alias.end(), bytes.begin() + static_cast<std::ptrdiff_t>(name_offset));
+        aliases.emplace_back(name, alias);
+      }
+    }
+    return aliases;
+  }
+  throw std::runtime_error("QuickJS WASM export section missing");
+}
+
+void apply_wasm_export_aliases(std::string& js, const std::vector<std::pair<std::string, std::string>>& aliases) {
+  for (const auto& [name, alias] : aliases) replace_all_inplace(js, name, alias);
+}
+
+void redact_unmapped_quickjs_symbols(std::string& js, const std::string& salt) {
+  std::size_t cursor = 0;
+  std::size_t ordinal = 0;
+  while ((cursor = js.find("venom_qjs_", cursor)) != std::string::npos) {
+    std::size_t end = cursor;
+    while (end < js.size()) { const unsigned char c = static_cast<unsigned char>(js[end]); if (!(std::isalnum(c) != 0 || js[end] == '_' || js[end] == '$')) break; ++end; }
+    const auto name = js.substr(cursor, end - cursor);
+    const auto alias = compact_wasm_export_alias(name, ordinal++, salt);
+    replace_all_inplace(js, name, alias);
+    cursor += alias.size();
+  }
+}
+
+void redact_quickjs_wasm_abi_table(std::vector<unsigned char>& bytes, const std::string& salt) {
+  static const std::string marker = "VENOM_QJS_RUNTIME_ABI_V12\n";
+  const auto it = std::search(bytes.begin(), bytes.end(), marker.begin(), marker.end());
+  if (it == bytes.end()) return;
+  auto cursor = static_cast<std::size_t>(std::distance(bytes.begin(), it));
+  std::uint64_t state = venom::package::fnv1a64(bytes_from_string("abi-table|" + salt));
+  static constexpr char alphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  while (cursor < bytes.size() && bytes[cursor] != 0u) {
+    if (bytes[cursor] != '\n' && bytes[cursor] != '\t' && bytes[cursor] >= 0x20u && bytes[cursor] <= 0x7eu) {
+      state ^= state >> 12u; state ^= state << 25u; state ^= state >> 27u;
+      bytes[cursor] = static_cast<unsigned char>(alphabet[state % 62u]);
+    }
+    ++cursor;
   }
 }
 
@@ -270,6 +394,56 @@ std::string harden_release_js_asset(std::string js) {
   };
   for (const auto& [from, to] : opaque_names) replace_all_inplace(js, from, to);
   return minify_release_js(js);
+}
+
+
+std::filesystem::path find_js_hardener_script() {
+  auto cursor = std::filesystem::current_path();
+  for (int depth = 0; depth < 8; ++depth) {
+    const auto candidate = cursor / "tools" / "js-hardener" / "harden.mjs";
+    if (std::filesystem::exists(candidate)) return candidate;
+    if (!cursor.has_parent_path() || cursor.parent_path() == cursor) break;
+    cursor = cursor.parent_path();
+  }
+  return {};
+}
+
+std::string ast_harden_release_js(const std::string& kind, const std::string& js) {
+  const auto script = find_js_hardener_script();
+  if (script.empty()) {
+    throw std::runtime_error(
+        "protected release JS hardener is unavailable; run scripts/setup-js-hardener and build from the repository root");
+  }
+  const auto package_dir = script.parent_path();
+  if (!std::filesystem::exists(package_dir / "node_modules" / "terser") ||
+      !std::filesystem::exists(package_dir / "node_modules" / "javascript-obfuscator")) {
+    throw std::runtime_error(
+        "protected release JS hardener dependencies are missing; run scripts/setup-js-hardener");
+  }
+
+  const auto nonce = short_hash_hex(
+      venom::package::fnv1a64(bytes_from_string(kind + "|" + js)), 16);
+  const auto temp_dir = std::filesystem::temp_directory_path() / ("venom-js-hardener-" + nonce);
+  const auto input_path = temp_dir / "input.js";
+  const auto output_path = temp_dir / "output.js";
+  std::filesystem::remove_all(temp_dir);
+  std::filesystem::create_directories(temp_dir);
+  write_text(input_path, js);
+  const auto seed = static_cast<std::uint32_t>(
+      venom::package::fnv1a64(bytes_from_string("obfuscate|" + kind + "|" + nonce)) & 0xffffffffu);
+  const int status = run_process("node", {
+      script.string(), input_path.string(), output_path.string(), kind, std::to_string(seed)});
+  if (status != 0 || !std::filesystem::exists(output_path)) {
+    std::filesystem::remove_all(temp_dir);
+    throw std::runtime_error(
+        "protected release JS hardener failed for " + kind + " (exit " + std::to_string(status) + ")");
+  }
+  const auto output_bytes = read_bytes(output_path);
+  std::filesystem::remove_all(temp_dir);
+  if (output_bytes.empty()) {
+    throw std::runtime_error("protected release JS hardener produced empty output for " + kind);
+  }
+  return std::string(output_bytes.begin(), output_bytes.end());
 }
 
 bool redact_release_metadata(const Profile& profile) {
@@ -623,18 +797,28 @@ std::vector<unsigned char> encode_route_script_bundle(const std::vector<JsChunk>
     entry.source_offset = static_cast<std::uint32_t>(text_blob.size());
     entry.source_size = static_cast<std::uint32_t>(source_label.size());
     text_blob.insert(text_blob.end(), source_label.begin(), source_label.end());
+    const bool browser_side = (chunk.flags & JsChunkBrowser) != 0u;
     const bool is_module = (chunk.flags & JsChunkModule) != 0u;
-    const auto bytecode = venom::quickjs::compile_native_quickjs_bytecode(
-        chunk.code,
-        source_label,
-        is_module,
-        opaque_metadata,
-        is_module ? &module_sources : nullptr);
+    std::vector<unsigned char> payload;
+    if (browser_side) {
+      // Browser-realm chunks must remain browser-executable source. Encoding
+      // them as QuickJS bytecode leaves chunk.code empty at runtime and causes
+      // the browser executor to silently skip the script.
+      payload.assign(chunk.code.begin(), chunk.code.end());
+    } else {
+      payload = venom::quickjs::compile_native_quickjs_bytecode(
+          chunk.code,
+          source_label,
+          is_module,
+          opaque_metadata,
+          is_module ? &module_sources : nullptr);
+    }
     entry.code_offset = static_cast<std::uint32_t>(code_blob.size());
-    entry.code_size = static_cast<std::uint32_t>(bytecode.size());
-    code_blob.insert(code_blob.end(), bytecode.begin(), bytecode.end());
+    entry.code_size = static_cast<std::uint32_t>(payload.size());
+    code_blob.insert(code_blob.end(), payload.begin(), payload.end());
     entry.order = chunk.order;
-    entry.flags = chunk.flags | JsChunkBytecodeEncoded;
+    entry.flags = browser_side ? (chunk.flags & ~JsChunkBytecodeEncoded)
+                               : (chunk.flags | JsChunkBytecodeEncoded);
     entry.kind = chunk.kind;
     entries.push_back(entry);
   }
@@ -1222,6 +1406,9 @@ std::string make_script_policy_metadata(const Profile& profile, const std::strin
 }
 
 std::string make_quickjs_chunk_metadata(const Profile& profile, const std::string& runtime_mode, const JsBridge& bridge) {
+  const auto protected_count = static_cast<std::size_t>(std::count_if(
+      bridge.chunks.begin(), bridge.chunks.end(),
+      [](const JsChunk& chunk) { return (chunk.flags & JsChunkBrowser) == 0u; }));
   std::ostringstream out;
   out << "VENOM_QUICKJS_CHUNKS_V7\n"
       << "version=7\n"
@@ -1235,8 +1422,9 @@ std::string make_quickjs_chunk_metadata(const Profile& profile, const std::strin
       << "engine_execute_host_call=quickjs.executeChunk\n"
       << "engine_fallback=deny-host-js-source-eval\n"
       << "adapter_context_lifecycle=quickjs-context-lifecycle.vqcl\n"
-      << "chunk_count=" << bridge.chunks.size() << "\n";
+      << "chunk_count=" << protected_count << "\n";
   for (const auto& chunk : bridge.chunks) {
+    if ((chunk.flags & JsChunkBrowser) != 0u) continue;
     out << "qjs_chunk\t" << chunk.order << "\t" << protected_route_label(profile, chunk) << "\t" << protected_source_label(profile, chunk)
         << "\tbytes=" << protected_source_size(profile, chunk) << "\tflags=" << js_flags_summary(chunk.flags) << "\n";
   }
@@ -1378,6 +1566,9 @@ std::string make_quickjs_wasm_execution_metadata(const Profile& profile,
                                                 const std::string& wasm_asset_name) {
   const bool wasm_real = policy.backend == "wasm-real";
   const bool host_fallback_allowed = policy.fallback_allowed && !wasm_real;
+  const auto protected_count = static_cast<std::size_t>(std::count_if(
+      bridge.chunks.begin(), bridge.chunks.end(),
+      [](const JsChunk& chunk) { return (chunk.flags & JsChunkBrowser) == 0u; }));
   std::ostringstream out;
   out << "VENOM_QJS_WASM_EXECUTION_V2\n"
       << "version=2\n"
@@ -1432,8 +1623,9 @@ std::string make_quickjs_wasm_execution_metadata(const Profile& profile,
       << "upstream_intrinsic_semantics_exports=venom_qjs_upstream_intrinsic_record_ptr|venom_qjs_upstream_property_descriptor_record_ptr|venom_qjs_upstream_prototype_chain_record_ptr|venom_qjs_upstream_call_frame_record_ptr|venom_qjs_upstream_intrinsic_semantics_score\n"
       << "semantic_record_export=venom_qjs_interpreter_semantic_record_ptr|venom_qjs_interpreter_semantic_record_size\n"
       << "global_slot_record_export=venom_qjs_global_slot_record_ptr|venom_qjs_global_slot_record_size\n"
-      << "chunk_count=" << bridge.chunks.size() << "\n";
+      << "chunk_count=" << protected_count << "\n";
   for (const auto& chunk : bridge.chunks) {
+    if ((chunk.flags & JsChunkBrowser) != 0u) continue;
     out << "wasm_chunk\t" << chunk.order << "\t" << protected_route_label(profile, chunk) << "\t" << protected_source_label(profile, chunk)
         << "\tbytes=" << protected_source_size(profile, chunk) << "\tflags=" << js_flags_summary(chunk.flags)
         << "\tbackend=" << (wasm_real ? "quickjs-wasm-real" : policy.backend) << "\n";
@@ -2102,13 +2294,14 @@ std::vector<venom::quickjs::BytecodeChunkRecord> make_quickjs_bytecode_records(c
   records.reserve(bridge.chunks.size());
   module_sources.reserve(bridge.chunks.size());
   for (const auto& chunk : bridge.chunks) {
-    if ((chunk.flags & JsChunkModule) == 0u) continue;
+    if ((chunk.flags & JsChunkBrowser) != 0u || (chunk.flags & JsChunkModule) == 0u) continue;
     const std::string compile_name = redact_metadata
         ? ("s_" + short_hash_hex(venom::package::fnv1a64(bytes_from_string("source|" + chunk.route + "|" + chunk.source + "|" + std::to_string(chunk.order))), 16))
         : chunk.source;
     module_sources.push_back({chunk.source, compile_name, chunk.code});
   }
   for (const auto& chunk : bridge.chunks) {
+    if ((chunk.flags & JsChunkBrowser) != 0u) continue;
     const auto limit = static_cast<std::size_t>(venom::quickjs::kDefaultScriptBufferLimitBytes);
     if (chunk.code.size() > limit) {
       throw std::runtime_error("QuickJS script exceeds protected transfer limit: " + chunk.source +
@@ -2666,6 +2859,15 @@ bool build_site(const BuildOptions& requested_options) {
   remote_vendor_options.lock_file = vendor_lock_path;
   remote_vendor_options.lock_present = vendor_lock.present;
   remote_vendor_options.lock_entries = vendor_lock.entries;
+  {
+    const char* reproducible_epoch = std::getenv("SOURCE_DATE_EPOCH");
+    if (reproducible_epoch && *reproducible_epoch) {
+      remote_vendor_options.bridge_id_salt = std::string{"epoch:"} + reproducible_epoch;
+    } else {
+      const auto now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+      remote_vendor_options.bridge_id_salt = std::string{"nonce:"} + std::to_string(now);
+    }
+  }
   const auto js_bridge = compile_js_bridge(graph, remote_vendor_options);
   require_embedded_quickjs_module_bundle_runtime(js_bridge);
   if (options.vendor_offline && !vendor_lock.present && !js_bridge.remote_vendors.empty()) {
@@ -2716,10 +2918,6 @@ bool build_site(const BuildOptions& requested_options) {
   const auto wasm_runtime_asset_ref = hardened_release_asset ? wasm_name : wasm_file_name;
   auto runtime = wasm_runtime ? make_runtime_wasm_bridge_js(graph, wasm_runtime_asset_ref, hardened_release_asset, &poly) : make_runtime_js(graph, hardened_release_asset);
   runtime = specialize_runtime_modules(std::move(runtime), runtime_modules);
-  if (hardened_release_asset) {
-    runtime = harden_release_js_asset(std::move(runtime));
-    validate_protected_js_asset("runtime", runtime);
-  }
   const auto js_preview = js_bridge.preview.empty() ? bundle_js_preview(graph) : js_bridge.preview;
   const auto compiled_routes = compile_html_routes(graph, poly);
 
@@ -2728,19 +2926,44 @@ bool build_site(const BuildOptions& requested_options) {
 
   const auto style_file_name = named_output(hardened_release_asset ? "s" : "style", ".css", css, options.hashed_assets);
   const auto style_name = hardened_release_asset ? "style/" + style_file_name : style_file_name;
-  const auto runtime_file_name = named_output((hardened_release_asset && wasm_runtime) ? "r" : (wasm_runtime ? "runtime-js-bridge" : "runtime"), ".js", runtime, options.hashed_assets);
-  const auto runtime_name = hardened_release_asset ? "runtime/" + runtime_file_name : runtime_file_name;
   auto quickjs_engine_module = make_quickjs_engine_module_js(hardened_release_asset);
+  auto quickjs_wasm_bytes = make_quickjs_runtime_wasm_module();
+  const auto bridge_invoke_opcode = bridge_protocol_opcode(remote_vendor_options.bridge_id_salt, "invoke");
+  const auto bridge_cancel_opcode = bridge_protocol_opcode(remote_vendor_options.bridge_id_salt, "cancel");
+  const auto bridge_result_opcode = bridge_protocol_opcode(remote_vendor_options.bridge_id_salt, "result");
+  const auto bridge_error_opcode = bridge_protocol_opcode(remote_vendor_options.bridge_id_salt, "error");
+  auto worker_runtime = hardened_release_asset ? make_worker_runtime_js(js_bridge.bridge_candidate_ids, js_bridge.bridge_registry_bytecode,
+      bridge_invoke_opcode, bridge_cancel_opcode, bridge_result_opcode, bridge_error_opcode) : std::string{};
   if (hardened_release_asset) {
+    const auto wasm_export_aliases = compact_quickjs_wasm_exports(quickjs_wasm_bytes, remote_vendor_options.bridge_id_salt);
+    redact_quickjs_wasm_abi_table(quickjs_wasm_bytes, remote_vendor_options.bridge_id_salt);
+    apply_wasm_export_aliases(runtime, wasm_export_aliases);
+    apply_wasm_export_aliases(quickjs_engine_module, wasm_export_aliases);
+    apply_wasm_export_aliases(worker_runtime, wasm_export_aliases);
+    redact_unmapped_quickjs_symbols(runtime, remote_vendor_options.bridge_id_salt);
+    redact_unmapped_quickjs_symbols(quickjs_engine_module, remote_vendor_options.bridge_id_salt);
+    redact_unmapped_quickjs_symbols(worker_runtime, remote_vendor_options.bridge_id_salt);
+    runtime = harden_release_js_asset(std::move(runtime));
+    runtime = ast_harden_release_js("runtime", runtime);
+    validate_protected_js_asset("runtime", runtime);
     quickjs_engine_module = harden_release_js_asset(std::move(quickjs_engine_module));
+    quickjs_engine_module = ast_harden_release_js("engine", quickjs_engine_module);
     validate_protected_js_asset("quickjs-engine", quickjs_engine_module);
   }
+  if (!hardened_release_asset) {
+    // Development output remains readable and uses the descriptive ABI names.
+  }
+  const auto runtime_file_name = named_output((hardened_release_asset && wasm_runtime) ? "r" : (wasm_runtime ? "runtime-js-bridge" : "runtime"), ".js", runtime, options.hashed_assets);
+  const auto runtime_name = hardened_release_asset ? "runtime/" + runtime_file_name : runtime_file_name;
   const auto quickjs_engine_file_name = named_output(hardened_release_asset ? "engine" : "quickjs-engine", ".js", quickjs_engine_module, options.hashed_assets);
   const auto quickjs_engine_name = hardened_release_asset ? "runtime/" + quickjs_engine_file_name : quickjs_engine_file_name;
-  const auto quickjs_wasm_bytes = make_quickjs_runtime_wasm_module();
   const auto quickjs_wasm_file_name = named_output(hardened_release_asset ? "runtime" : "quickjs-runtime", ".wasm", quickjs_wasm_bytes, options.hashed_assets);
   const auto quickjs_wasm_name = hardened_release_asset ? "runtime/" + quickjs_wasm_file_name : quickjs_wasm_file_name;
-  const auto worker_runtime = hardened_release_asset ? make_worker_runtime_js(js_bridge.bridge_candidate_ids) : std::string{};
+  if (hardened_release_asset) {
+    worker_runtime = harden_release_js_asset(std::move(worker_runtime));
+    worker_runtime = ast_harden_release_js("worker", worker_runtime);
+    validate_protected_js_asset("worker", worker_runtime);
+  }
   const auto worker_file_name = hardened_release_asset ? named_output("worker", ".js", worker_runtime, options.hashed_assets) : std::string{};
   const auto worker_name = hardened_release_asset ? "workers/" + worker_file_name : std::string{};
   const auto package_binding_token = make_package_binding_token(profile.deterministic, profile.name + "|" + options.runtime + "|" + runtime_name + "|" + wasm_name + "|" + quickjs_engine_name + "|" + quickjs_wasm_name + "|" + worker_name);
@@ -3060,7 +3283,13 @@ bool build_site(const BuildOptions& requested_options) {
   const auto loader_runtime_wasm_ref = hardened_release_asset ? "../" + wasm_name : wasm_name;
   const auto loader_style_ref = hardened_release_asset ? "../" + style_name : style_name;
   const auto loader_worker_ref = hardened_release_asset ? "../" + worker_name : std::string{};
-  const auto loader = make_loader_js(loader_runtime_ref, loader_package_ref, package_probe.package_hash, venom::package::sha256_hex(package_bytes), profile.runtime_hardened || profile.fail_closed, loader_engine_ref, loader_qjs_wasm_ref, loader_runtime_wasm_ref, loader_style_ref, package_binding_token, loader_worker_ref, venom::package::sha256_hex(quickjs_wasm_bytes));
+  auto loader = make_loader_js(loader_runtime_ref, loader_package_ref, package_probe.package_hash, venom::package::sha256_hex(package_bytes), profile.runtime_hardened || profile.fail_closed, loader_engine_ref, loader_qjs_wasm_ref, loader_runtime_wasm_ref, loader_style_ref, package_binding_token, loader_worker_ref, venom::package::sha256_hex(quickjs_wasm_bytes), js_bridge.protected_exports,
+      bridge_invoke_opcode, bridge_cancel_opcode, bridge_result_opcode, bridge_error_opcode);
+  if (hardened_release_asset) {
+    loader = harden_release_js_asset(std::move(loader));
+    loader = ast_harden_release_js("loader", loader);
+    validate_protected_js_asset("loader", loader);
+  }
   const auto loader_file_name = named_output("loader", ".js", loader, options.hashed_assets);
   const auto loader_name = hardened_release_asset ? "loader/" + loader_file_name : loader_file_name;
   const auto html = make_bootstrap_html(graph,
@@ -3138,8 +3367,6 @@ bool build_site(const BuildOptions& requested_options) {
              << "  \"module_graph\": {\"chunks\": " << js_bridge.chunks.size()
              << ", \"edges\": " << js_bridge.module_edges.size()
              << ", \"dynamic_literal_edges\": " << std::count_if(js_bridge.module_edges.begin(), js_bridge.module_edges.end(), [](const auto& edge) { return edge.dynamic; }) << "},\n"
-             << "  \"source_root\": \"" << json_escape(std::filesystem::absolute(options.input).generic_string()) << "\",\n"
-             << "  \"config_file\": \"" << json_escape(options.config_file.empty() ? std::string{} : options.config_file.generic_string()) << "\",\n"
              << "  \"vendor_lock_sha256\": \"" << vendor_lock_digest << "\",\n"
              << "  \"package_sha256\": \"" << venom::package::sha256_hex(package_bytes) << "\",\n"
              << "  \"package_asset\": \"assets/" << json_escape(package_name) << "\",\n"
@@ -3148,14 +3375,17 @@ bool build_site(const BuildOptions& requested_options) {
   const auto build_metadata_ref = hardened_release_asset ? std::string{"assets/app/build.json"} : std::string{"assets/build.json"};
   const auto build_metadata_path = options.output / build_metadata_ref;
   write_text(build_metadata_path, provenance.str());
-  const auto report_dir = options.output / "build" / "reports";
-  write_text(report_dir / "execution-plan.txt", js_bridge.execution_plan_text);
-  write_text(report_dir / "execution-plan.json", js_bridge.execution_plan_json);
-  write_text(report_dir / "function-plan.txt", js_bridge.function_plan_text);
-  write_text(report_dir / "function-plan.json", js_bridge.function_plan_json);
-  write_text(report_dir / "function-extraction-plan.txt", js_bridge.extraction_plan_text);
-  write_text(report_dir / "function-extraction-plan.json", js_bridge.extraction_plan_json);
-  write_text(report_dir / "realm-bridge-contract.json", js_bridge.realm_bridge_contract_json);
+  if (!hardened_release_asset) {
+    const auto report_dir = options.output / "build" / "reports";
+    write_text(report_dir / "execution-plan.txt", js_bridge.execution_plan_text);
+    write_text(report_dir / "execution-plan.json", js_bridge.execution_plan_json);
+    write_text(report_dir / "function-plan.txt", js_bridge.function_plan_text);
+    write_text(report_dir / "function-plan.json", js_bridge.function_plan_json);
+    write_text(report_dir / "function-extraction-plan.txt", js_bridge.extraction_plan_text);
+    write_text(report_dir / "function-extraction-plan.json", js_bridge.extraction_plan_json);
+    write_text(report_dir / "realm-bridge-contract.json", js_bridge.realm_bridge_contract_json);
+    write_text(report_dir / "bridge-rewrite-plan.json", js_bridge.bridge_rewrite_report_json);
+  }
 
   if (options.format != OutputFormat::Json) {
     print_build_protection_report(profile, options, package_path, package_bytes, validated_package, should_emit_external_asset_manifest(profile, options));

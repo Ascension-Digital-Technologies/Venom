@@ -10,6 +10,6 @@ for marker in [
 ]:
     assert marker in worker, marker
 assert 'bridge_candidate_ids' in header
-assert 'make_worker_runtime_js(js_bridge.bridge_candidate_ids)' in build
+assert 'make_worker_runtime_js(js_bridge.bridge_candidate_ids, js_bridge.bridge_registry_bytecode)' in build
 assert 'bridge.bridge_candidate_ids.push_back' in js
 print('realm bridge worker protocol smoke: PASS')

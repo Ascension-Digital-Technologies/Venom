@@ -315,8 +315,8 @@ void print_help() {
             << "  and pins every remote dependency in source-local venom.lock.\n"
             << "  --refresh-vendors is the only operation that updates reviewed dependency pins.\n\n"
             << "Examples:\n"
-            << "  venom build examples/basic-site --out dist\n"
-            << "  scripts\\build-site.bat examples\\basic-site dist\n"
+            << "  venom build examples/protected-chess --out dist\n"
+            << "  scripts\\build-site.bat examples\\protected-chess dist\n"
             << "  scripts\\serve-site.bat 8080 dist\n";
 }
 

@@ -136,22 +136,22 @@ jobs:
         run: |
           cmake --preset release-closure
           cmake --build --preset release-closure --parallel 2
-          ./build/release-closure/venom build examples/browser-compat-site --out build/browser-dist
-          ./build/release-closure/venom build examples/no-script-site --out build/static-dist
-          ./build/release-closure/venom build examples/production-bundle-site --out build/production-bundle-dist
-          ./build/release-closure/venom build examples/react16-umd-site --out build/react16-dist
-          ./build/release-closure/venom build examples/dom-compat-site --out build/dom-compat-dist
-          ./build/release-closure/venom build examples/dynamic-bundle-site --out build/dynamic-bundle-dist
+          ./build/release-closure/venom build tests/fixtures/sites/browser-compat-site --out build/browser-dist
+          ./build/release-closure/venom build tests/fixtures/sites/no-script-site --out build/static-dist
+          ./build/release-closure/venom build tests/fixtures/sites/production-bundle-site --out build/production-bundle-dist
+          ./build/release-closure/venom build tests/fixtures/sites/react16-umd-site --out build/react16-dist
+          ./build/release-closure/venom build tests/fixtures/sites/dom-compat-site --out build/dom-compat-dist
+          ./build/release-closure/venom build tests/fixtures/sites/dynamic-bundle-site --out build/dynamic-bundle-dist
       - name: Build compatibility evidence
         run: |
-          python tools/browser_validation.py build/browser-dist --browser all --manifest examples/browser-compat-site/venom.browser.json --json-out build/browser-validation.json
-          python tools/browser_validation.py build/static-dist --browser all --manifest examples/no-script-site/venom.browser.json --json-out build/static-browser-validation.json
-          python tools/browser_validation.py build/production-bundle-dist --browser all --manifest examples/production-bundle-site/venom.browser.json --json-out build/production-bundle-validation.json
-          python tools/browser_validation.py build/react16-dist --browser all --manifest examples/react16-umd-site/venom.browser.json --json-out build/react16-browser-validation.json
-          python tools/browser_validation.py build/dom-compat-dist --browser all --manifest examples/dom-compat-site/venom.browser.json --json-out build/dom-compat-browser-validation.json
-          python tools/browser_validation.py build/dynamic-bundle-dist --browser all --manifest examples/dynamic-bundle-site/venom.browser.json --json-out build/dynamic-bundle-browser-validation.json
+          python tools/browser_validation.py build/browser-dist --browser all --manifest tests/fixtures/sites/browser-compat-site/venom.browser.json --json-out build/browser-validation.json
+          python tools/browser_validation.py build/static-dist --browser all --manifest tests/fixtures/sites/no-script-site/venom.browser.json --json-out build/static-browser-validation.json
+          python tools/browser_validation.py build/production-bundle-dist --browser all --manifest tests/fixtures/sites/production-bundle-site/venom.browser.json --json-out build/production-bundle-validation.json
+          python tools/browser_validation.py build/react16-dist --browser all --manifest tests/fixtures/sites/react16-umd-site/venom.browser.json --json-out build/react16-browser-validation.json
+          python tools/browser_validation.py build/dom-compat-dist --browser all --manifest tests/fixtures/sites/dom-compat-site/venom.browser.json --json-out build/dom-compat-browser-validation.json
+          python tools/browser_validation.py build/dynamic-bundle-dist --browser all --manifest tests/fixtures/sites/dynamic-bundle-site/venom.browser.json --json-out build/dynamic-bundle-browser-validation.json
           python tools/compatibility_matrix.py build/browser-validation.json build/static-browser-validation.json build/production-bundle-validation.json build/react16-browser-validation.json build/dom-compat-browser-validation.json build/dynamic-bundle-browser-validation.json --json-out build/compatibility-matrix.json
-          python tools/package_compatibility_evidence.py --matrix build/compatibility-matrix.json --reports build/browser-validation.json build/static-browser-validation.json build/production-bundle-validation.json build/react16-browser-validation.json build/dom-compat-browser-validation.json build/dynamic-bundle-browser-validation.json --manifests examples/browser-compat-site/venom.browser.json examples/no-script-site/venom.browser.json examples/production-bundle-site/venom.browser.json examples/react16-umd-site/venom.browser.json examples/dom-compat-site/venom.browser.json examples/dynamic-bundle-site/venom.browser.json --out build/venom-compatibility-evidence.zip --source-revision "${GITHUB_SHA}"
+          python tools/package_compatibility_evidence.py --matrix build/compatibility-matrix.json --reports build/browser-validation.json build/static-browser-validation.json build/production-bundle-validation.json build/react16-browser-validation.json build/dom-compat-browser-validation.json build/dynamic-bundle-browser-validation.json --manifests tests/fixtures/sites/browser-compat-site/venom.browser.json tests/fixtures/sites/no-script-site/venom.browser.json tests/fixtures/sites/production-bundle-site/venom.browser.json tests/fixtures/sites/react16-umd-site/venom.browser.json tests/fixtures/sites/dom-compat-site/venom.browser.json tests/fixtures/sites/dynamic-bundle-site/venom.browser.json --out build/venom-compatibility-evidence.zip --source-revision "${GITHUB_SHA}"
           python tools/verify_compatibility_evidence.py build/venom-compatibility-evidence.zip
       - uses: actions/upload-artifact@v4
         with:

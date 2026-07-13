@@ -67,9 +67,9 @@ def main() -> int:
         text=abi_tool.read_text(encoding='utf-8')
         release_exports=re.findall(r"'((?:venom_qjs_)[A-Za-z0-9_]+)'", text)
         if set(release_exports)!=EXPECTED_EXPORTS:
-            failures.append('release ABI allowlist differs from the 16-export production contract')
-        if len(release_exports)!=16 or len(set(release_exports))!=16:
-            failures.append('release ABI must contain exactly 16 unique exports')
+            failures.append('release ABI allowlist differs from the 23-export production contract')
+        if len(release_exports)!=23 or len(set(release_exports))!=23:
+            failures.append('release ABI must contain exactly 23 unique exports')
     else: failures.append('release ABI generator is missing')
     lock={}
     if lock_path.exists():

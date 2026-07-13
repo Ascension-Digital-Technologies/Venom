@@ -4,7 +4,7 @@ from pathlib import Path
 root = Path(__file__).resolve().parents[2]
 module = (root / 'src/compiler/quickjs_engine_module.cpp').read_text(encoding='utf-8')
 harness = (root / 'tests/runtime/browser-compat-harness.mjs').read_text(encoding='utf-8')
-fixture = (root / 'examples/browser-compat-site/assets/compat.js').read_text(encoding='utf-8')
+fixture = (root / 'tests/fixtures/sites/browser-compat-site/assets/compat.js').read_text(encoding='utf-8')
 doc = (root / 'docs/host-api-expansion.md').read_text(encoding='utf-8')
 
 for needle in [
@@ -36,7 +36,7 @@ for needle in [
     'history.pushState',
     "import { extraValue } from './module-extra.js'",
 ]:
-    if needle not in fixture and needle not in (root / 'examples/browser-compat-site/assets/module-entry.js').read_text(encoding='utf-8'):
+    if needle not in fixture and needle not in (root / 'tests/fixtures/sites/browser-compat-site/assets/module-entry.js').read_text(encoding='utf-8'):
         raise SystemExit(f'missing v0.83 fixture marker: {needle}')
 
 for needle in [

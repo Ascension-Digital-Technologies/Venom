@@ -8,6 +8,15 @@ import sys
 from pathlib import Path
 
 
+def project_version(root: Path) -> str:
+    import re
+    text = (root / 'CMakeLists.txt').read_text(encoding='utf-8')
+    match = re.search(r'project\(venom VERSION ([0-9]+\.[0-9]+\.[0-9]+)', text)
+    if not match:
+        raise RuntimeError('unable to read project version')
+    return match.group(1)
+
+
 def main() -> int:
     if len(sys.argv) != 4:
         print('usage: release-packaging-smoke.py <repo-root> <venom-exe> <out-dir>', file=sys.stderr)
@@ -15,6 +24,7 @@ def main() -> int:
     root = Path(sys.argv[1]).resolve()
     venom = Path(sys.argv[2]).resolve()
     out = Path(sys.argv[3]).resolve()
+    version_value = project_version(root)
     if out.exists():
         shutil.rmtree(out)
 
@@ -39,7 +49,7 @@ def main() -> int:
         out / 'docs' / 'security-model.md',
         out / 'docs' / 'release-packaging.md',
         out / 'docs' / 'release-signing.md',
-        out / 'examples' / 'basic-site' / 'index.html',
+        out / 'examples' / 'protected-chess' / 'index.html',
         out / 'scripts' / 'build-site.sh',
         out / 'scripts' / 'package-release.sh',
         out / 'scripts' / 'verify-release.sh',
@@ -55,24 +65,24 @@ def main() -> int:
         return 1
 
     version = (out / 'VERSION.txt').read_text(encoding='utf-8')
-    if 'venom 1.0.1' not in version:
-        print('VERSION.txt did not record venom 1.0.1', file=sys.stderr)
+    if f'venom {version_value}' not in version:
+        print('VERSION.txt did not record the current project version', file=sys.stderr)
         return 1
 
     manifest = (out / 'RELEASE_MANIFEST.txt').read_text(encoding='utf-8')
-    for needle in ('VENOM_RELEASE_MANIFEST_V1', 'venom', 'docs/security-model.md', 'docs/release-signing.md', 'examples/basic-site/index.html', 'scripts/build-site.sh', 'scripts/package-release.sh', 'scripts/verify-release.sh', 'tools/verify_release.py', 'tools/quickjs_wasm_preflight.py', 'tools/quickjs_wasm_cutover.py', 'tools/setup_emscripten.py'):
+    for needle in ('VENOM_RELEASE_MANIFEST_V1', 'venom', 'docs/security-model.md', 'docs/release-signing.md', 'examples/protected-chess/index.html', 'scripts/build-site.sh', 'scripts/package-release.sh', 'scripts/verify-release.sh', 'tools/verify_release.py', 'tools/quickjs_wasm_preflight.py', 'tools/quickjs_wasm_cutover.py', 'tools/setup_emscripten.py'):
         if needle not in manifest:
             print(f'RELEASE_MANIFEST.txt missing {needle!r}', file=sys.stderr)
             return 1
 
     check = subprocess.run([str(binary), '--version'], text=True, capture_output=True, timeout=20)
-    if check.returncode != 0 or 'venom 1.0.1' not in (check.stdout + check.stderr):
+    if check.returncode != 0 or f'venom {version_value}' not in (check.stdout + check.stderr):
         print('release binary --version failed', file=sys.stderr)
         print(check.stdout)
         print(check.stderr, file=sys.stderr)
         return 1
 
-    verify = subprocess.run([sys.executable, str(root / 'tools' / 'verify_release.py'), str(out), '--expect-version', '1.0.1'], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=60)
+    verify = subprocess.run([sys.executable, str(root / 'tools' / 'verify_release.py'), str(out), '--expect-version', version_value], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=60)
     if verify.returncode != 0 or 'release verification: PASS' not in verify.stdout:
         print(verify.stdout)
         print('release verifier failed on unsigned release directory', file=sys.stderr)

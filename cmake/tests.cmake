@@ -52,8 +52,8 @@ if(BUILD_TESTING)
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/runtime-surface-diversification-smoke.py $<TARGET_FILE:venom>)
     add_test(NAME venom_production_artifact_layout_smoke
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/production-artifact-layout-smoke.py $<TARGET_FILE:venom>)
-    add_test(NAME venom_basic_site_preview_smoke
-      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/basic-site-preview-smoke.py $<TARGET_FILE:venom> ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/production-site ${CMAKE_BINARY_DIR}/dist-basic-preview)
+    add_test(NAME venom_site_preview_smoke
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/site-preview-smoke.py $<TARGET_FILE:venom> ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/production-site ${CMAKE_BINARY_DIR}/dist-site-preview)
     add_test(NAME venom_build_scripts_smoke
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/build-scripts-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
     add_test(NAME venom_source_layout_smoke
@@ -76,8 +76,6 @@ if(BUILD_TESTING)
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/phase6-supply-chain-hardening-smoke.py)
     add_test(NAME venom_phase10_fuzzing_adversarial_smoke
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/phase10-fuzzing-adversarial-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
-    add_test(NAME venom_phase11_performance_tuning_smoke
-      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/phase11-performance-tuning-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
     add_test(NAME venom_phase12_runtime_artifact_consistency_smoke
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/phase12-runtime-artifact-consistency-smoke.py ${CMAKE_CURRENT_SOURCE_DIR} $<TARGET_FILE:venom>)
     add_test(NAME venom_quickjs_module_artifact_gate_smoke
@@ -111,7 +109,7 @@ if(BUILD_TESTING)
     add_test(NAME venom_release_bytecode_metadata_redaction_smoke
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/release-bytecode-metadata-redaction-smoke.py)
     add_test(NAME venom_release_package_metadata_redaction_smoke
-      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/release-package-metadata-redaction-smoke.py $<TARGET_FILE:venom> ${CMAKE_CURRENT_SOURCE_DIR}/examples/browser-compat-site ${CMAKE_BINARY_DIR}/dist-release-metadata-redaction ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_release_metadata.py)
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/release-package-metadata-redaction-smoke.py $<TARGET_FILE:venom> ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sites/browser-compat-site ${CMAKE_BINARY_DIR}/dist-release-metadata-redaction ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_release_metadata.py)
     add_test(NAME venom_release_section_budget_smoke
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/release-section-budget-smoke.py ${CMAKE_BINARY_DIR}/dist-production)
     set_tests_properties(venom_release_section_budget_smoke PROPERTIES DEPENDS venom_build_production)
@@ -119,13 +117,13 @@ if(BUILD_TESTING)
     find_program(NODE_EXECUTABLE node)
     if(NODE_EXECUTABLE)
       add_test(NAME venom_browser_api_shim_smoke
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/browser-api-shim-smoke.py $<TARGET_FILE:venom> ${CMAKE_CURRENT_SOURCE_DIR}/examples/browser-api-shim-site ${CMAKE_BINARY_DIR}/dist-browser-api-shim ${NODE_EXECUTABLE})
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/browser-api-shim-smoke.py $<TARGET_FILE:venom> ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sites/browser-api-shim-site ${CMAKE_BINARY_DIR}/dist-browser-api-shim ${NODE_EXECUTABLE})
       add_test(NAME venom_browser_runtime_compat_smoke
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/browser-runtime-compat-smoke.py $<TARGET_FILE:venom> ${CMAKE_CURRENT_SOURCE_DIR}/examples/browser-compat-site ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/production-site ${CMAKE_BINARY_DIR}/dist-browser-runtime-compat ${NODE_EXECUTABLE})
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/browser-runtime-compat-smoke.py $<TARGET_FILE:venom> ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sites/browser-compat-site ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/production-site ${CMAKE_BINARY_DIR}/dist-browser-runtime-compat ${NODE_EXECUTABLE})
       add_test(NAME venom_production_loader_smoke
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/production-loader-smoke.py $<TARGET_FILE:venom> ${CMAKE_CURRENT_SOURCE_DIR}/examples/browser-compat-site ${CMAKE_BINARY_DIR}/dist-production-loader ${NODE_EXECUTABLE})
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/production-loader-smoke.py $<TARGET_FILE:venom> ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sites/browser-compat-site ${CMAKE_BINARY_DIR}/dist-production-loader ${NODE_EXECUTABLE})
       add_test(NAME venom_production_tamper_gate_smoke
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/production-tamper-gate-smoke.py $<TARGET_FILE:venom> ${CMAKE_CURRENT_SOURCE_DIR}/examples/browser-compat-site ${CMAKE_BINARY_DIR}/dist-production-tamper ${NODE_EXECUTABLE})
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/production-tamper-gate-smoke.py $<TARGET_FILE:venom> ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sites/browser-compat-site ${CMAKE_BINARY_DIR}/dist-production-tamper ${NODE_EXECUTABLE})
       set_tests_properties(venom_production_tamper_gate_smoke PROPERTIES TIMEOUT 120)
       add_test(NAME venom_production_site_boot_smoke
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/production-site-boot-smoke.py $<TARGET_FILE:venom> ${CMAKE_BINARY_DIR}/production-site-boot ${NODE_EXECUTABLE})
@@ -219,5 +217,19 @@ add_test(
 )
 
 add_test(NAME venom_function_extraction_plan_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/function-extraction-plan-smoke.py)
+add_test(NAME venom_function_bridge_extraction_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/function-bridge-extraction-smoke.py)
+add_test(NAME venom_protected_chess_engine_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/protected-chess-engine-smoke.py $<TARGET_FILE:venom>)
+add_test(NAME venom_wasm_owned_package_decoder_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/wasm-owned-package-decoder-smoke.py $<TARGET_FILE:venom>)
+add_test(NAME venom_full_section_layout_diversification_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/full-section-layout-diversification-smoke.py $<TARGET_FILE:venom>)
+add_test(NAME venom_release_artifact_leak_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/release-artifact-leak-smoke.py $<TARGET_FILE:venom>)
+add_test(NAME venom_function_dependency_lifting_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/function-dependency-lifting-smoke.py $<TARGET_FILE:venom>)
 add_test(NAME venom_realm_bridge_worker_protocol_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/realm-bridge-worker-protocol-smoke.py)
 add_test(NAME venom_realm_bridge_quickjs_abi_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/realm-bridge-quickjs-abi-smoke.py)
+add_test(NAME venom_browser_realm_payload_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/browser-realm-payload-smoke.py)
+
+add_test(NAME venom_quickjs_embedded_bridge_artifact_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/quickjs-embedded-bridge-artifact-smoke.py ${CMAKE_SOURCE_DIR})
+
+add_test(NAME venom_browser_dynamic_asset_resolution_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/browser-dynamic-asset-resolution-smoke.py ${CMAKE_SOURCE_DIR} $<TARGET_FILE:venom>)

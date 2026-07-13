@@ -272,7 +272,7 @@ def main() -> int:
     if root_license.exists():
         shutil.copy2(root_license, licenses / 'VENOM-LICENSE')
 
-    for rel in ('README.md', 'SOURCE_MANIFEST.txt', 'SOURCE_MANIFEST.sha256', 'toolchains.lock.json'):
+    for rel in ('README.md', 'toolchains.lock.json'):
         src = repo_root / rel
         if src.exists():
             shutil.copy2(src, out_dir / rel)

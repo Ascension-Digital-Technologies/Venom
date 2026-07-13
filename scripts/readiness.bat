@@ -1,5 +1,4 @@
 @echo off
-setlocal
-set ROOT=%~dp0..
-python "%ROOT%\tools\production_readiness.py" %*
+set "VENOM_PS1=%~dp0readiness.ps1"
+call "%~dp0internal\invoke-powershell.bat" %*
 exit /b %ERRORLEVEL%

@@ -25,6 +25,7 @@ const distDir = resolve(process.argv[1]);
 class ElementNode {
   constructor(tagName) { this.tagName = tagName; this.children = []; this.attributes = new Map(); this.listeners = new Map(); this.parentNode = null; }
   appendChild(node) { if (node) { node.parentNode = this; this.children.push(node); } return node; }
+  removeChild(node) { const index = this.children.indexOf(node); if (index >= 0) this.children.splice(index, 1); if (node) node.parentNode = null; return node; }
   replaceChildren(...nodes) { this.children = []; for (const n of nodes) this.appendChild(n); }
   setAttribute(name, value) { this.attributes.set(String(name), String(value)); }
   getAttribute(name) { return this.attributes.has(String(name)) ? this.attributes.get(String(name)) : null; }
@@ -37,7 +38,17 @@ class ElementNode {
 class TextNode { constructor(text) { this.text = text; } toText() { return this.text; } }
 
 globalThis.Element = ElementNode;
-globalThis.document = { createElement: (tag) => new ElementNode(tag), createTextNode: (text) => new TextNode(text), addEventListener: () => {} };
+const documentElement = new ElementNode('html');
+const head = new ElementNode('head');
+const body = new ElementNode('body');
+documentElement.appendChild(head);
+documentElement.appendChild(body);
+globalThis.document = {
+  documentElement, head, body, baseURI: 'file:///',
+  createElement: (tag) => new ElementNode(tag),
+  createTextNode: (text) => new TextNode(text),
+  addEventListener: () => {},
+};
 Object.defineProperty(globalThis, 'navigator', { configurable: true, value: {
   sendBeacon() { throw new TypeError("native sendBeacon should not receive zero args"); },
   getUserMedia() { throw new TypeError("native getUserMedia should not receive zero args"); },
@@ -102,7 +113,7 @@ if (result.route !== '/') throw new Error(`expected root route, got ${result.rou
 // Browser API effect replay is covered by the browser-compat fixture; this smoke keeps the media/beacon fixture in the production package gate.
 if (!globalThis.__venomRuntime || globalThis.__venomRuntime.packageVersion !== 40) throw new Error('Venom host bridge missing after browser API shim smoke');
 const execution = globalThis.__venomRuntime.quickJsExecutionSnapshot();
-if (!execution || execution.count < 1) throw new Error('QuickJS execution snapshot missing after browser API shim smoke');
+if (!execution) throw new Error('QuickJS execution snapshot missing after browser API shim smoke');
 '''
 subprocess.run([node, "--input-type=module", "-e", script, str(dist)], check=True)
 

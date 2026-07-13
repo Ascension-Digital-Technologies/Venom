@@ -564,6 +564,7 @@ function installWasmNavigation(wasmRuntime, routes, root, assetManifest, assetBa
     if (bridge && typeof bridge.teardownRoute === 'function') bridge.teardownRoute('wasm-navigation');
     const nextGeneration = bridge && typeof bridge.currentRouteGeneration === 'function' ? ((bridge.currentRouteGeneration() + 1) >>> 0) : 1;
     if (bridge && typeof bridge.activateRouteGeneration === 'function') bridge.activateRouteGeneration(nextGeneration);
+    setActiveBrowserAssetRoute(targetRoute);
     const wasmExecution = runVenomWasmExecution(wasmRuntime, pkg, targetRoute.route);
     applyWasmDomOperations(targetRoute, wasmExecution.domOps, root, assetManifest, assetBaseUrl, hostBridgePlan);
     root.setAttribute('data-venom-wasm-runtime', 'executed');
@@ -578,6 +579,7 @@ function installWasmNavigation(wasmRuntime, routes, root, assetManifest, assetBa
     if (bridge && typeof bridge.teardownRoute === 'function') bridge.teardownRoute('wasm-history-navigation');
     const nextGeneration = bridge && typeof bridge.currentRouteGeneration === 'function' ? ((bridge.currentRouteGeneration() + 1) >>> 0) : 1;
     if (bridge && typeof bridge.activateRouteGeneration === 'function') bridge.activateRouteGeneration(nextGeneration);
+    setActiveBrowserAssetRoute(targetRoute);
     const wasmExecution = runVenomWasmExecution(wasmRuntime, pkg, targetRoute.route);
     applyWasmDomOperations(targetRoute, wasmExecution.domOps, root, assetManifest, assetBaseUrl, hostBridgePlan);
     root.setAttribute('data-venom-wasm-runtime', 'executed');

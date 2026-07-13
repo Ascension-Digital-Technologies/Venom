@@ -17,9 +17,9 @@ The controller lives at:
 
 ```text
 tools/build_emscripten.py
-scripts/build-emscripten.sh
-scripts/build-emscripten.ps1
-scripts/build-emscripten.bat
+scripts/setup-emscripten.sh
+scripts/setup-emscripten.ps1
+scripts/setup-emscripten.bat
 build-emscripten.bat
 ```
 
@@ -28,7 +28,7 @@ build-emscripten.bat
 This mode never downloads Emscripten and is safe for CI machines without `emcc`:
 
 ```bash
-scripts/build-emscripten.sh --preflight-only --allow-missing
+scripts/setup-emscripten.sh --preflight-only --allow-missing
 ```
 
 PowerShell:
@@ -51,7 +51,7 @@ build/emscripten-build/preflight/quickjs-wasm-preflight.txt
 On a machine that can download or already has `emsdk`:
 
 ```bash
-scripts/build-emscripten.sh
+scripts/setup-emscripten.sh
 ```
 
 Windows:
@@ -67,13 +67,13 @@ The default mode can clone/install/activate emsdk, then runs the existing verifi
 Use this when `emsdk` already exists or network access is blocked:
 
 ```bash
-scripts/build-emscripten.sh --skip-download --emsdk-dir build/emsdk
+scripts/setup-emscripten.sh --skip-download --emsdk-dir build/emsdk
 ```
 
 or point directly at `emcc`:
 
 ```bash
-EMCC=/path/to/emcc scripts/build-emscripten.sh --skip-setup
+EMCC=/path/to/emcc scripts/setup-emscripten.sh --skip-setup
 ```
 
 ## Truth rule
@@ -136,7 +136,7 @@ If the SDK was already downloaded by an older run, this should reuse it instead 
 
 v0.88.0 fixes the generated-WASM runtime value probe on Windows/Emscripten builds. The probe now synthesizes the imported `env`/WASI objects required to instantiate the module for metadata exports, and `build-quickjs-wasm.ps1` now checks `$LASTEXITCODE` after every native command so a failed cutover cannot continue with a false success message.
 
-See `docs/emscripten-runtime-value-probe.md` for the exact failure pattern and fix.
+See `docs/emscripten-build.md` for the exact failure pattern and fix.
 
 ## v0.88.0 PowerShell external-command error fix
 
@@ -144,7 +144,7 @@ v0.88.0 fixes a Windows PowerShell parser failure in `scripts/build-quickjs-wasm
 
 ## v1.30.5 native binding closure
 
-A successful WASM cutover changes `src/compiler/quickjs_runtime_wasm_blob.hpp`. The controller now rebuilds the native compiler automatically so an older `venom.exe` cannot continue packaging the previous runtime. It then builds `examples/basic-site` and runs `verify-runtime --require-real-engine`.
+A successful WASM cutover changes `src/compiler/quickjs_runtime_wasm_blob.hpp`. The controller now rebuilds the native compiler automatically so an older `venom.exe` cannot continue packaging the previous runtime. It then builds `examples/protected-chess` and runs `verify-runtime --require-real-engine`.
 
 Targeted toolchain runs may opt out with `--skip-native-rebuild` and `--skip-runtime-smoke`; release workflows should not use those switches.
 

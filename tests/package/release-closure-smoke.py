@@ -8,6 +8,6 @@ with tempfile.TemporaryDirectory() as td:
     if p.returncode: raise SystemExit(p.stdout+p.stderr)
     data=json.loads(out.read_text())
     assert data['schema']=='VENOM_RELEASE_CLOSURE_V1'
-    assert data['release_abi_export_count']==16
+    assert data['release_abi_export_count']==23
     assert data['emscripten_version'] and data['emscripten_version']!='latest'
 print('release closure smoke: PASS')

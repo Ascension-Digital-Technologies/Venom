@@ -16,6 +16,15 @@ def run(cmd: list[str], *, expect: int = 0, timeout: int = 90) -> subprocess.Com
     return result
 
 
+def project_version(root: Path) -> str:
+    import re
+    text = (root / 'CMakeLists.txt').read_text(encoding='utf-8')
+    match = re.search(r'project\(venom VERSION ([0-9]+\.[0-9]+\.[0-9]+)', text)
+    if not match:
+        raise RuntimeError('unable to read project version')
+    return match.group(1)
+
+
 def main() -> int:
     if len(sys.argv) != 4:
         print('usage: release-signing-smoke.py <repo-root> <venom-exe> <out-dir>', file=sys.stderr)
@@ -24,11 +33,12 @@ def main() -> int:
     venom = Path(sys.argv[2]).resolve()
     out = Path(sys.argv[3]).resolve()
     key = 'venom-release-signing-smoke-key'
+    version_value = project_version(root)
     if out.exists():
         shutil.rmtree(out)
-    archive = out.with_name(f'venom-v1.0.1-{sys.platform.lower()}-{os.uname().machine.lower()}.zip') if hasattr(os, 'uname') else None
+    archive = out.with_name(f'venom-v{version_value}-{sys.platform.lower()}-{os.uname().machine.lower()}.zip') if hasattr(os, 'uname') else None
     # The packager uses platform.system().lower(), not sys.platform, so remove any old matching archive broadly.
-    for old in out.parent.glob('venom-v1.0.1-*.zip'):
+    for old in out.parent.glob(f'venom-v{version_value}-*.zip'):
         old.unlink()
 
     packager = root / 'tools' / 'package_release.py'
@@ -62,18 +72,18 @@ def main() -> int:
         if needle not in manifest:
             raise SystemExit(f'manifest missing {needle!r}')
 
-    run([sys.executable, str(verifier), str(out), '--expect-version', '1.0.1', '--strict-signature', '--dev-insecure-key', key])
+    run([sys.executable, str(verifier), str(out), '--expect-version', version_value, '--strict-signature', '--dev-insecure-key', key])
 
-    archives = sorted(out.parent.glob('venom-v1.0.1-*.zip'))
+    archives = sorted(out.parent.glob(f'venom-v{version_value}-*.zip'))
     if len(archives) != 1:
         raise SystemExit(f'expected one signed release archive, found {len(archives)}')
-    run([sys.executable, str(verifier), str(archives[0]), '--expect-version', '1.0.1', '--strict-signature', '--dev-insecure-key', key])
+    run([sys.executable, str(verifier), str(archives[0]), '--expect-version', version_value, '--strict-signature', '--dev-insecure-key', key])
 
     # Integrity verifier must catch post-manifest tampering.
     version_file = out / 'VERSION.txt'
     version_file.write_text(version_file.read_text(encoding='utf-8') + '\ntampered=true\n', encoding='utf-8')
     tampered = subprocess.run(
-        [sys.executable, str(verifier), str(out), '--expect-version', '1.0.1', '--strict-signature', '--dev-insecure-key', key],
+        [sys.executable, str(verifier), str(out), '--expect-version', version_value, '--strict-signature', '--dev-insecure-key', key],
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,

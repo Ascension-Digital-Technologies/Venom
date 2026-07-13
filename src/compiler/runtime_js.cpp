@@ -1026,6 +1026,10 @@ function parseJsBundle(section) {
     const codeBytes = data.slice(codeBase + codeOffset, codeEnd);
     const bytecodeMagic = asciiOf(codeBytes.slice(0, 8));
     const bytecodeEncoded = (flags & SCRIPT_FLAG.BYTECODE_ENCODED) !== 0 || bytecodeMagic === 'VQJSBC03';
+    const browserSide = (flags & SCRIPT_FLAG.BROWSER) !== 0;
+    if (browserSide && bytecodeEncoded) {
+      throw new Error('browser script chunk cannot contain QuickJS bytecode: ' + (source || '<script>'));
+    }
     if (bytecodeEncoded) validateQuickJsBytecodeRecord(codeBytes, source);
     chunks.push({
       route,
@@ -1696,7 +1700,7 @@ function parseQuickJsFallbackPolicyMetadata(section) {
 }
 
 function parseQuickJsRuntimeAbiMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_RUNTIME_ABI_V12', 'VENOM_QJS_RUNTIME_ABI_V11', 'VENOM_QJS_RUNTIME_ABI_V10', 'VENOM_QJS_RUNTIME_ABI_V7', 'VENOM_QJS_RUNTIME_ABI_V5', 'VENOM_QJS_RUNTIME_ABI_V4', 'VENOM_QJS_RUNTIME_ABI_V3', 'VENOM_QJS_RUNTIME_ABI_V2', 'VENOM_QJS_RUNTIME_ABI_V1']);
+  const plan = parseKeyValueMetadata(section, [['VENOM','QJS','RUNTIME','ABI','V12'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V11'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V10'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V7'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V5'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V4'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V3'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V2'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V1'].join('_')]);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, abi: Number.parseInt(plan.values.get('abi') || '12', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, entryCount: Number.parseInt(plan.values.get('entry_count') || '0', 10) >>> 0, tableHash: plan.values.get('table_hash') || plan.values.get('abi_hash') || '', table: plan.values.get('table') || '', exports: plan.values.get('exports') || '' });
 }
 
@@ -3468,7 +3472,17 @@ function injectRemoteScript(chunk) {
   });
 }
 
+function removeInjectedScript(script) {
+  if (!script) return;
+  if (typeof script.remove === 'function') { script.remove(); return; }
+  const parent = script.parentNode;
+  if (parent && typeof parent.removeChild === 'function') parent.removeChild(script);
+}
+
 async function executeBrowserScriptChunk(chunk) {
+  if (chunk && chunk.bytecodeBytes && chunk.bytecodeBytes.length) {
+    throw new Error('browser script chunk was packaged as QuickJS bytecode: ' + (chunk.source || '<script>'));
+  }
   if (!chunk || !chunk.code || !String(chunk.code).trim()) return Object.freeze({ ...chunk, executed: false, empty: true, browser: true });
   if (typeof document === 'undefined' || !document.createElement) throw new Error('browser script execution requires document.createElement');
   const script = document.createElement('script');
@@ -3482,8 +3496,8 @@ async function executeBrowserScriptChunk(chunk) {
     const blob = new Blob([source], { type: 'text/javascript' });
     const url = URL.createObjectURL(blob);
     try { await new Promise((resolve, reject) => { script.src=url; script.onload=resolve; script.onerror=()=>reject(new Error('browser module execution failed: '+chunk.source)); target.appendChild(script); }); }
-    finally { URL.revokeObjectURL(url); script.remove(); }
-  } else { script.textContent = source; target.appendChild(script); script.remove(); }
+    finally { URL.revokeObjectURL(url); removeInjectedScript(script); }
+  } else { script.textContent = source; target.appendChild(script); removeInjectedScript(script); }
   return Object.freeze({ ...chunk, executed: true, browser: true });
 }
 
@@ -3535,63 +3549,7 @@ async function executeScriptsForRoute(route, jsBundle, scriptIsolationPlan = nul
   return executed;
 }
 
-function normalizeAssetSource(value) {
-  let out = String(value || '').replace(/\\/g, '/');
-  while (out.startsWith('./')) out = out.slice(2);
-  while (out.startsWith('/')) out = out.slice(1);
-  const parts = [];
-  for (const part of out.split('/')) {
-    if (!part || part === '.') continue;
-    if (part === '..') parts.pop();
-    else parts.push(part);
-  }
-  return parts.join('/');
-}
-
-function dirname(path) {
-  const normalized = normalizeAssetSource(path);
-  const idx = normalized.lastIndexOf('/');
-  return idx < 0 ? '' : normalized.slice(0, idx + 1);
-}
-
-function resolveAssetValue(route, value, assetManifest, assetBaseUrl) {
-  if (!value || assetManifest.size === 0) return value;
-  const raw = String(value);
-  const lower = raw.toLowerCase();
-  if (lower.startsWith('http:') || lower.startsWith('https:') || lower.startsWith('//') ||
-      lower.startsWith('data:') || lower.startsWith('blob:') || lower.startsWith('#') ||
-      lower.startsWith('mailto:') || lower.startsWith('tel:') || lower.startsWith('javascript:')) {
-    return value;
-  }
-  const withoutQuery = raw.split(/[?#]/, 1)[0];
-  const suffix = raw.slice(withoutQuery.length);
-  const candidates = [];
-  candidates.push(normalizeAssetSource(withoutQuery));
-  if (!withoutQuery.startsWith('/')) {
-    candidates.push(normalizeAssetSource(dirname(route.sourcePath || '') + withoutQuery));
-  }
-  for (const candidate of candidates) {
-    const record = assetManifest.get(candidate);
-    if (record) {
-      return new URL(record.outputName + suffix, assetBaseUrl || document.baseURI).href;
-    }
-  }
-  return value;
-}
-
-function shouldRemapAttribute(name) {
-  return name === 'src' || name === 'href' || name === 'poster' || name === 'data' || name === 'srcset';
-}
-
-function resolveSrcset(route, value, assetManifest, assetBaseUrl) {
-  return String(value).split(',').map((part) => {
-    const trimmed = part.trim();
-    if (!trimmed) return trimmed;
-    const pieces = trimmed.split(/\s+/);
-    pieces[0] = resolveAssetValue(route, pieces[0], assetManifest, assetBaseUrl);
-    return pieces.join(' ');
-  }).join(', ');
-}
+__VENOM_BROWSER_ASSET_RUNTIME__
 
 function parseNumberLiteral(value) {
   const text = String(value || '').trim();
@@ -3810,6 +3768,7 @@ function installNavigation(routes, routeRuntimeLoader, strings, opcodeMap, root,
       routeRuntimeLoader.dispose();
       const runtime = routeRuntimeLoader(targetRoute);
       if (bridge && typeof bridge.activateRouteGeneration === 'function') bridge.activateRouteGeneration(runtime.routeGeneration);
+      setActiveBrowserAssetRoute(runtime.route);
       executeRoute(runtime.route, runtime.vm, strings, opcodeMap, root, assetManifest, assetBaseUrl, hostBridgePlan);
       executeScriptsForRoute(runtime.route, runtime.jsBundle, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan).catch((error) => console.error('[venom] route script failed', error));
     } catch (error) {
@@ -3825,6 +3784,7 @@ function installNavigation(routes, routeRuntimeLoader, strings, opcodeMap, root,
     routeRuntimeLoader.dispose();
     const runtime = routeRuntimeLoader(targetRoute);
     if (bridge && typeof bridge.activateRouteGeneration === 'function') bridge.activateRouteGeneration(runtime.routeGeneration);
+    setActiveBrowserAssetRoute(runtime.route);
     executeRoute(runtime.route, runtime.vm, strings, opcodeMap, root, assetManifest, assetBaseUrl, hostBridgePlan);
     executeScriptsForRoute(runtime.route, runtime.jsBundle, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan).catch((error) => console.error('[venom] route script failed', error));
   });
@@ -4002,6 +3962,7 @@ export async function bootVenom(options) {
   const route = selectRoute(routes, location.pathname);
 
   installVenomHostBridge(root, pkg, routes, assetManifest, runtimePolicy, hostBridgePlan, fetchBridgePlan, asyncQueuePlan, timerBridgePlan, eventQueuePlan, quickJsBridgePlan, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan, quickJsEngineModulePlan, quickJsEngineModuleUrl, quickJsContextLifecyclePlan, hostCapabilitiesPlan, quickJsAdapterDiagnosticsPlan, quickJsWasmRuntimePlan, quickJsWasmUrl, quickJsSourceTransferPlan, quickJsConsoleBridgePlan, quickJsExecutionRecordsPlan, quickJsResultBridgePlan, quickJsFallbackPolicyPlan, quickJsRuntimeAbiPlan, quickJsHostImportsPlan, quickJsHeapLimitsPlan, quickJsScriptBufferPlan, quickJsConsoleAbiPlan, quickJsParityProbePlan, quickJsReleaseFallbackPlan, quickJsBytecodeManifestPlan, quickJsModuleResolverPlan, quickJsExceptionAbiPlan, quickJsHostTrapPolicyPlan, quickJsExecutionLifecyclePlan, quickJsScriptBufferPolicyPlan, quickJsContextLimitPolicyPlan, quickJsHostCallDispatchPlan, quickJsParityContractPlan, quickJsReleaseFailClosedPlan, quickJsModuleGraphPlan, quickJsModuleExecutionPlan, quickJsModuleCachePlan, quickJsResolverAuditPlan, quickJsInteropFallbackPlan, quickJsExecutionJournalPlan, quickJsCheckpointPolicyPlan, quickJsReplayCursorPlan, quickJsResumeStatePlan, quickJsDeterminismAuditPlan, quickJsSnapshotPolicyPlan, quickJsSnapshotRecordsPlan, quickJsReplayValidationPlan, quickJsDeterminismLedgerPlan, quickJsAuditSealPlan, quickJsExecutionCommitPlan, quickJsRollbackPolicyPlan, quickJsHostCallReceiptsPlan, quickJsReleaseAcceptancePlan, quickJsCommitAuditPlan, quickJsCapabilityPolicyPlan, quickJsHostIoPolicyPlan, quickJsPermissionSealPlan, quickJsPolicyReceiptsPlan, quickJsReleaseGatePlan, quickJsHostIoDecisionPlan, quickJsHostIoDenyTracePlan, quickJsCapabilityLedgerPlan, quickJsPolicySealAuditPlan, quickJsRuntimeDenylistPlan);
+  installBrowserAssetResolver(route, assetManifest, assetBaseUrl);
   const initialRuntime = routeRuntimeLoader(route);
   const initialBridge = globalThis.__venomRuntime || null;
   if (initialBridge && typeof initialBridge.activateRouteGeneration === 'function') initialBridge.activateRouteGeneration(initialRuntime.routeGeneration);
@@ -4134,11 +4095,49 @@ export async function bootVenom(options) {
 }
 )JS";
 
+  if (protected_release) {
+    // Hardened browser releases must never ship the reversible JavaScript section
+    // decoder. The WASM runtime owns section authentication, decode, and
+    // decompression; absence of that decoder is a fatal boot error.
+    const std::string decoder_begin = "function fnvUpdateU64(hash, value) {";
+    const std::string decoder_end = "function hexFromBytes(bytes) {";
+    const auto begin = js.find(decoder_begin);
+    const auto end = js.find(decoder_end);
+    if (begin == std::string::npos || end == std::string::npos || end <= begin) {
+      throw std::runtime_error("protected runtime JS decoder removal markers are missing");
+    }
+    js.erase(begin, end - begin);
+
+    const std::string fallback_begin = "function decompressRleV1(input, expectedSize) {";
+    const std::string fallback_end = "let venomPackageSectionDecoder = null;";
+    const auto compression_begin = js.find(fallback_begin);
+    const auto compression_end = js.find(fallback_end);
+    if (compression_begin == std::string::npos || compression_end == std::string::npos || compression_end <= compression_begin) {
+      throw std::runtime_error("protected runtime JS decompressor removal markers are missing");
+    }
+    js.erase(compression_begin, compression_end - compression_begin);
+
+    const std::string decode_begin = "function decodeSectionData(storedData, flags, rawSize, name, type, sectionIndex, pkg) {";
+    const std::string decode_end = "function isIntegrityAuthSection(section) {";
+    const auto section_begin = js.find(decode_begin);
+    const auto section_end = js.find(decode_end);
+    if (section_begin == std::string::npos || section_end == std::string::npos || section_end <= section_begin) {
+      throw std::runtime_error("protected runtime section dispatch replacement markers are missing");
+    }
+    const std::string wasm_only_dispatch =
+        "function decodeSectionData(storedData, flags, rawSize, name, type, sectionIndex, pkg) {\n"
+        "  if (!venomPackageSectionDecoder) throw new Error('protected package decoder is unavailable');\n"
+        "  return venomPackageSectionDecoder(pkg, sectionIndex, rawSize, name, type);\n"
+        "}\n\n";
+    js.replace(section_begin, section_end - section_begin, wasm_only_dispatch);
+  }
+
   const auto emit_block = [&](const std::string& marker, const std::string& block) {
     const auto pos = js.find(marker);
     if (pos == std::string::npos) throw std::runtime_error("runtime generation marker missing: " + marker);
     js.replace(pos, marker.size(), block);
   };
+  emit_block("__VENOM_BROWSER_ASSET_RUNTIME__", venom::compiler::make_browser_asset_runtime_js());
   emit_block("__VENOM_RUNTIME_ENGINE_FALLBACK_BLOCK__", protected_release
       ? "      throw new Error('host JavaScript fallback is unavailable in protected releases');\n"
       : "      const names = Object.keys(bindings).filter((name) => !sourceDeclaresInjectedBinding(chunk.code, name));\n"

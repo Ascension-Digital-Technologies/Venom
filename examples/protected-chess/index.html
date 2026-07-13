@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Venom Protected Chess Lab demonstrates browser-native UI with a protected QuickJS chess engine.">
+  <title>Venom Protected Chess Lab</title>
+  <link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="vendor/chessboardjs/css/chessboard.min.css">
+  <link rel="stylesheet" href="css/main.css">
+  <script data-venom="browser" defer src="vendor/jquery/jquery.min.js"></script>
+  <script data-venom="browser" defer src="vendor/chessboardjs/js/chessboard.min.js"></script>
+  <script data-venom="browser" defer src="js/chess.js"></script>
+  <script data-venom="browser" defer src="vendor/bootstrap/js/bootstrap.min.js"></script>
+  <script data-venom="browser" defer src="js/ai-engine.js"></script>
+  <script data-venom="browser" defer src="js/main.js"></script>
+</head>
+<body>
+  <header class="hero-shell">
+    <div class="container-fluid lab-container">
+      <div class="hero-grid">
+        <div>
+          <div class="eyebrow"><span class="status-dot"></span> VENOM RUNTIME SHOWCASE</div>
+          <h1>Protected Chess Lab</h1>
+          <p class="hero-copy">A browser-native chess interface powered by proprietary search logic extracted into protected QuickJS bytecode and executed inside a worker-isolated WASM runtime.</p>
+        </div>
+        <div class="runtime-pill" aria-label="Runtime state">
+          <span class="runtime-pill-label">Protection state</span>
+          <strong id="runtime-state">Booting protected engine…</strong>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container-fluid lab-container app-shell">
+    <section class="board-column">
+      <div class="panel board-panel">
+        <div class="panel-heading compact-heading">
+          <div>
+            <span class="section-kicker">LIVE MATCH</span>
+            <h2 id="match-title">Human vs. Protected AI</h2>
+          </div>
+          <div class="turn-badge" id="turn-badge">White to move</div>
+        </div>
+        <div id="myBoard" aria-label="Interactive chessboard"></div>
+        <div class="board-actions">
+          <button type="button" class="control-button secondary" id="undoBtn">Undo</button>
+          <button type="button" class="control-button secondary" id="redoBtn">Redo</button>
+          <button type="button" class="control-button danger" id="resetBtn">Stop &amp; Reset</button>
+        </div>
+      </div>
+
+      <div class="panel telemetry-panel">
+        <div class="panel-heading compact-heading">
+          <div>
+            <span class="section-kicker">ENGINE TELEMETRY</span>
+            <h2>Protected search activity</h2>
+          </div>
+          <span class="engine-busy" id="engine-busy">Idle</span>
+        </div>
+        <div class="metric-grid">
+          <article class="metric-card"><span>Depth</span><strong id="metric-depth">—</strong></article>
+          <article class="metric-card"><span>Positions</span><strong id="position-count">0</strong></article>
+          <article class="metric-card"><span>Search time</span><strong><span id="time">0</span>s</strong></article>
+          <article class="metric-card"><span>Positions / sec</span><strong id="positions-per-s">0</strong></article>
+        </div>
+        <div class="evaluation-wrap">
+          <div class="evaluation-labels"><span>White</span><strong id="evaluation-text">Equal position</strong><span>Black</span></div>
+          <div class="evaluation-track"><div id="advantageBar" class="evaluation-marker" style="left:50%"></div></div>
+          <canvas id="evaluation-chart" width="900" height="180" aria-label="Evaluation history"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side-column">
+      <section class="panel protection-panel">
+        <div class="panel-heading">
+          <span class="section-kicker">PROTECTION MAP</span>
+          <h2>What Venom protects</h2>
+          <p>The interface stays compatible with the browser. High-value chess intelligence is moved behind a narrow JSON bridge.</p>
+        </div>
+        <div class="protection-list">
+          <div class="protection-row"><span>UI &amp; board rendering</span><strong class="realm browser-realm">Browser</strong></div>
+          <div class="protection-row"><span>Drag, controls &amp; charts</span><strong class="realm browser-realm">Browser</strong></div>
+          <div class="protection-row"><span>Evaluation tables</span><strong class="realm protected-realm">Protected</strong></div>
+          <div class="protection-row"><span>Minimax + alpha-beta</span><strong class="realm protected-realm">Protected</strong></div>
+          <div class="protection-row"><span>Move selection</span><strong class="realm protected-realm">Protected</strong></div>
+        </div>
+        <div class="integrity-box">
+          <div><span>Runtime</span><strong id="runtime-name">QuickJS / WASM</strong></div>
+          <div><span>Isolation</span><strong>Worker</strong></div>
+          <div><span>Bridge</span><strong>JSON value v1</strong></div>
+          <div><span>Engine source in browser JS</span><strong class="success-text">No</strong></div>
+        </div>
+      </section>
+
+      <section class="panel controls-panel">
+        <div class="panel-heading">
+          <span class="section-kicker">PLAYGROUND</span>
+          <h2>Run the protected engine</h2>
+        </div>
+        <div class="field-grid">
+          <label>White depth
+            <select id="search-depth-white"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
+          </label>
+          <label>Black depth
+            <select id="search-depth"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
+          </label>
+          <label>Move delay
+            <select id="move-delay"><option value="80">Fast</option><option value="250" selected>Normal</option><option value="700">Watch</option></select>
+          </label>
+          <label class="toggle-label"><input type="checkbox" id="showHint"> Show white hint</label>
+        </div>
+        <div class="primary-actions">
+          <button type="button" class="btn btn-success" id="compVsCompBtn">Start Game</button>
+          <button type="button" class="control-button secondary" id="analyzeBtn">Analyze Position</button>
+        </div>
+        <div class="opening-grid">
+          <button type="button" id="startBtn">Start</button>
+          <button type="button" id="ruyLopezBtn">Ruy Lopez</button>
+          <button type="button" id="italianGameBtn">Italian</button>
+          <button type="button" id="sicilianDefenseBtn">Sicilian</button>
+        </div>
+      </section>
+
+      <section class="panel status-panel">
+        <div class="panel-heading compact-heading">
+          <div><span class="section-kicker">MATCH STATE</span><h2>Status</h2></div>
+          <span class="move-count" id="move-count">0 moves</span>
+        </div>
+        <p class="status-message" id="status">Protected engine ready.</p>
+        <div class="move-log" id="move-log" aria-live="polite"><div class="empty-state">Moves will appear here.</div></div>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container-fluid lab-container"><span>Venom Protected Chess Lab</span><span>Local assets · hybrid execution · fail-closed protected logic</span></div>
+  </footer>
+</body>
+</html>

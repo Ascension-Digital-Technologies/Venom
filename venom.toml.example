@@ -1,12 +1,12 @@
 # Venom - Secure Web Runtime project configuration
 [project]
 name = "example-site"
-entry = "examples/basic-site"
+entry = "examples/protected-chess"
 output = "dist"
 
 [build]
 vendor_cache = ".venom/vendor-cache"
-vendor_lock = "examples/basic-site/venom.lock"
+vendor_lock = "examples/protected-chess/venom.lock"
 offline = false
 refresh_vendors = false
 

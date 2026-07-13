@@ -73,4 +73,4 @@ Protected browser and native release profiles now require the QuickJS/WASM runti
 
 ## v0.59.0 bytecode semantics note
 
-Protected builds now require upstream bytecode-semantics exports in addition to the object/exception/module runtime bridge exports. See `docs/quickjs-upstream-bytecode-semantics.md`.
+Protected builds now require upstream bytecode-semantics exports in addition to the object/exception/module runtime bridge exports. See `docs/release-profiles.md`.

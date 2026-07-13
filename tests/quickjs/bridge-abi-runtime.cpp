@@ -32,7 +32,7 @@ int main() {
   if (!ctx || venom_qjs_bridge_abi() != 1u) return 1;
   venom_qjs_context_set_limits(ctx, 8u * 1024u * 1024u, 256u * 1024u);
   venom_qjs_context_set_execution_limits(ctx, 1000000u, 1024u);
-  const std::string registry_source = "globalThis.__venomProtectedBridge={\"math.js::add\":(a,b)=>({sum:a+b})};";
+  const std::string registry_source = "globalThis.__venomProtectedBridge={\"math.js::add\":(a,b)=>({sum:a+b}),\"math.js::asyncAdd\":async(a,b)=>({sum:a+b,async:true})};";
   const std::vector<venom::quickjs::ModuleSourceRecord> modules = {{"bridge-registry.js", "bridge-registry.js", registry_source}};
   const auto registry = venom::quickjs::compile_native_quickjs_module_bundle("bridge-registry.js", modules, false);
   if (!venom_qjs_test_load_bytes(ctx, registry.data(), static_cast<std::uint32_t>(registry.size()))) return 2;
@@ -51,6 +51,16 @@ int main() {
   for (std::uint32_t i = 0; i < venom_qjs_bridge_result_size(); ++i) result.push_back(static_cast<char>(venom_qjs_test_bridge_result_byte(i)));
   if (result != "{\"sum\":16}") { std::cerr << result << '\n'; return 6; }
   if (!venom_qjs_bridge_release(ctx)) return 7;
+  const std::string async_request = "{\"candidate\":\"math.js::asyncAdd\",\"args\":[4,5]}";
+  if (!venom_qjs_test_bridge_load_bytes(ctx, reinterpret_cast<const unsigned char*>(async_request.data()), static_cast<std::uint32_t>(async_request.size()))) return 11;
+  if (!venom_qjs_bridge_invoke(ctx, static_cast<std::uint32_t>(async_request.size()))) {
+    std::cerr << venom_qjs_test_exception_message() << '\n';
+    return 12;
+  }
+  result.clear();
+  for (std::uint32_t i = 0; i < venom_qjs_bridge_result_size(); ++i) result.push_back(static_cast<char>(venom_qjs_test_bridge_result_byte(i)));
+  if (result != "{\"sum\":9,\"async\":true}") { std::cerr << result << '\n'; return 13; }
+  if (!venom_qjs_bridge_release(ctx)) return 14;
   const std::string missing = "{\"candidate\":\"math.js::missing\",\"args\":[]}";
   if (!venom_qjs_test_bridge_load_bytes(ctx, reinterpret_cast<const unsigned char*>(missing.data()), static_cast<std::uint32_t>(missing.size()))) return 8;
   if (venom_qjs_bridge_invoke(ctx, static_cast<std::uint32_t>(missing.size())) != 0u) return 9;

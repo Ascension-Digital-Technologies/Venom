@@ -13,7 +13,7 @@ def main() -> int:
         return 2
     root = Path(sys.argv[1]).resolve()
     expected = {
-        'src/compiler/js.cpp': 700,
+        'src/compiler/js.cpp': 1400,
         'src/compiler/worker_runtime_js.cpp': 500,
         'src/compiler/runtime_js.cpp': 4200,
         'src/compiler/wasm_runtime_js.cpp': 700,

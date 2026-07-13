@@ -2,15 +2,15 @@
 from pathlib import Path
 import sys
 root=Path(__file__).resolve().parents[2]
-fixture=root/'examples/dynamic-bundle-site/venom.browser.json'
+fixture=root/'tests/fixtures/sites/dynamic-bundle-site/venom.browser.json'
 assert fixture.is_file(), 'dynamic module browser manifest missing'
 for rel in ['.github/workflows/browser-validation.yml','.github/workflows/release.yml']:
     text=(root/rel).read_text(encoding='utf-8')
     required=[
-      'examples/dynamic-bundle-site',
+      'tests/fixtures/sites/dynamic-bundle-site',
       'build/dynamic-bundle-dist',
       'dynamic-bundle-browser-validation.json',
-      'examples/dynamic-bundle-site/venom.browser.json',
+      'tests/fixtures/sites/dynamic-bundle-site/venom.browser.json',
     ]
     for marker in required:
         assert marker in text, f'{rel} missing {marker}'

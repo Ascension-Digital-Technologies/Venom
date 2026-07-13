@@ -4,10 +4,10 @@ from pathlib import Path
 root = Path(__file__).resolve().parents[2]
 module = (root / 'src/compiler/quickjs_engine_module.cpp').read_text(encoding='utf-8')
 harness = (root / 'tests/runtime/browser-compat-harness.mjs').read_text(encoding='utf-8')
-fixture = (root / 'examples/browser-compat-site/assets/compat.js').read_text(encoding='utf-8')
-entry = (root / 'examples/browser-compat-site/assets/module-entry.js').read_text(encoding='utf-8')
-branch = (root / 'examples/browser-compat-site/assets/module-branch.js').read_text(encoding='utf-8')
-leaf = (root / 'examples/browser-compat-site/assets/module-leaf.js').read_text(encoding='utf-8')
+fixture = (root / 'tests/fixtures/sites/browser-compat-site/assets/compat.js').read_text(encoding='utf-8')
+entry = (root / 'tests/fixtures/sites/browser-compat-site/assets/module-entry.js').read_text(encoding='utf-8')
+branch = (root / 'tests/fixtures/sites/browser-compat-site/assets/module-branch.js').read_text(encoding='utf-8')
+leaf = (root / 'tests/fixtures/sites/browser-compat-site/assets/module-leaf.js').read_text(encoding='utf-8')
 doc = (root / 'docs/route-module-fetch-hardening.md').read_text(encoding='utf-8')
 
 for needle in [

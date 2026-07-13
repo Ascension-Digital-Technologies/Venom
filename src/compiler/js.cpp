@@ -1,4 +1,5 @@
 #include "compiler/js.hpp"
+#include "compiler/function_dependencies.hpp"
 #include "compiler/wasm_runtime_blob.hpp"
 #include "compiler/quickjs_runtime_wasm_blob.hpp"
 #include "quickjs/bytecode.hpp"
@@ -19,6 +20,23 @@ namespace venom::compiler {
 
 
 namespace {
+
+std::uint64_t bridge_id_hash(std::string_view value) {
+  std::uint64_t hash = 1469598103934665603ull;
+  for (const unsigned char c : value) {
+    hash ^= static_cast<std::uint64_t>(c);
+    hash *= 1099511628211ull;
+  }
+  return hash;
+}
+
+std::string opaque_bridge_id(std::string_view source, std::string_view name, std::string_view salt) {
+  const auto h1 = bridge_id_hash(std::string(source) + "|" + std::string(name) + "|" + std::string(salt));
+  const auto h2 = bridge_id_hash(std::string(salt) + "|" + std::string(name) + "|" + std::string(source));
+  std::ostringstream out;
+  out << "x" << std::hex << std::setfill('0') << std::setw(16) << h1 << std::setw(16) << h2;
+  return out.str();
+}
 
 void append_u32(std::vector<unsigned char>& out, std::uint32_t value) {
   out.push_back(static_cast<unsigned char>(value & 0xffu));
@@ -150,6 +168,7 @@ struct FunctionRealmRecord {
   std::string reason;
   std::uint32_t line = 0;
   bool promoted_whole_file = false;
+  bool isolated = false;
 };
 
 std::vector<FunctionRealmRecord> scan_function_realm_directives(const JsChunk& chunk) {
@@ -160,6 +179,7 @@ std::vector<FunctionRealmRecord> scan_function_realm_directives(const JsChunk& c
   std::string line;
   std::string pending_realm;
   std::string pending_reason;
+  bool pending_isolated = false;
   std::uint32_t line_number = 0;
   while (std::getline(input, line)) {
     ++line_number;
@@ -174,6 +194,7 @@ std::vector<FunctionRealmRecord> scan_function_realm_directives(const JsChunk& c
       if (browser || protected_realm) {
         pending_realm = browser ? "browser" : "protected";
         pending_reason = browser ? "explicit function-level browser directive" : "explicit function-level protected directive";
+        pending_isolated = protected_realm && lower.find("isolated", directive) != std::string::npos;
       }
       continue;
     }
@@ -184,14 +205,16 @@ std::vector<FunctionRealmRecord> scan_function_realm_directives(const JsChunk& c
     if (!std::regex_search(line, match, declaration)) {
       pending_realm.clear();
       pending_reason.clear();
+      pending_isolated = false;
       continue;
     }
     std::string name;
     if (match.size() > 1 && match[1].matched) name = match[1].str();
     else if (match.size() > 2 && match[2].matched) name = match[2].str();
-    if (!name.empty()) records.push_back({chunk.route, chunk.source, name, pending_realm, pending_reason, line_number, false});
+    if (!name.empty()) records.push_back({chunk.route, chunk.source, name, pending_realm, pending_reason, line_number, false, pending_isolated});
     pending_realm.clear();
     pending_reason.clear();
+    pending_isolated = false;
   }
   return records;
 }
@@ -265,6 +288,7 @@ struct FunctionExtractionRecord {
   std::string reason;
   std::vector<std::string> blockers;
   std::uint32_t line = 0;
+  bool isolated = false;
 };
 
 bool contains_token_ci(const std::string& source, const std::string& token) {
@@ -310,17 +334,23 @@ std::vector<FunctionExtractionRecord> analyze_function_extraction(const std::vec
     if (it == chunks.end()) continue;
     const bool file_browser = (it->flags & JsChunkBrowser) != 0u;
     const auto body = function_window(*it, fn.line);
-    FunctionExtractionRecord rec{fn.route, fn.source, fn.name, fn.execution, "retained", "none", "", {}, fn.line};
+    FunctionExtractionRecord rec{fn.route, fn.source, fn.name, fn.execution, "retained", "none", "", {}, fn.line, fn.isolated};
     if (fn.execution == "browser" && !file_browser) {
       rec.disposition = "whole-file-promotion";
       rec.reason = "browser function requires real DOM semantics; synchronous protected-to-browser invocation is not yet safely representable";
       rec.blockers.push_back("synchronous cross-realm result bridge unavailable");
     } else if (fn.execution == "protected" && file_browser) {
+      // QuickJS supports ordinary JavaScript semantics such as `this`,
+      // `arguments`, nested functions, and `with`. Only syntax that requires the
+      // browser realm or cannot be serialized across the JSON bridge is rejected.
+      // Use member-access tokens to avoid false positives in comments such as
+      // "documentation".
       static const std::vector<std::pair<std::string, std::string>> unsafe{
-        {"document", "DOM access"}, {"window", "browser global access"}, {"this", "dynamic this binding"},
-        {"arguments", "arguments object"}, {"eval(", "dynamic eval"}, {"with (", "with statement"},
-        {"with(", "with statement"}, {"super", "super binding"}, {"new.target", "new.target binding"},
-        {"yield", "generator semantics"}, {"await", "async suspension"}, {"import.meta", "module metadata"}
+        {"document.", "DOM access"}, {"window.", "browser global access"},
+        {"globalthis.document", "DOM access"}, {"globalthis.window", "browser global access"},
+        {"eval(", "dynamic eval"}, {"super", "super binding"},
+        {"new.target", "new.target binding"}, {"yield", "generator semantics"},
+        {"import.meta", "module metadata"}
       };
       for (const auto& item : unsafe) if (contains_token_ci(body, item.first)) rec.blockers.push_back(item.second);
       if (rec.blockers.empty()) {
@@ -382,6 +412,191 @@ std::string make_realm_bridge_contract_json(const std::vector<FunctionExtraction
   out << "  ]\n}\n";
   return out.str();
 }
+
+struct BridgeRewriteRecord {
+  std::string source;
+  std::string function;
+  std::string candidate;
+  std::string status;
+  std::string reason;
+  std::vector<std::string> lifted_dependencies;
+};
+
+struct BridgeRewriteResult {
+  std::string registry_source;
+  std::vector<BridgeRewriteRecord> records;
+};
+
+std::size_t line_start_offset(const std::string& source, std::uint32_t line) {
+  if (line <= 1u) return 0u;
+  std::size_t offset = 0;
+  for (std::uint32_t current = 1; current < line; ++current) {
+    const auto next = source.find('\n', offset);
+    if (next == std::string::npos) return std::string::npos;
+    offset = next + 1u;
+  }
+  return offset;
+}
+
+bool extract_function_declaration(const JsChunk& chunk,
+                                  const FunctionExtractionRecord& record,
+                                  std::size_t& begin,
+                                  std::size_t& end,
+                                  std::string& declaration,
+                                  std::string& params) {
+  begin = line_start_offset(chunk.code, record.line);
+  if (begin == std::string::npos) return false;
+  const auto line_end = chunk.code.find('\n', begin);
+  const auto first_line = chunk.code.substr(begin, (line_end == std::string::npos ? chunk.code.size() : line_end) - begin);
+  const std::regex header(R"(^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*\(([^)]*)\)\s*\{)");
+  std::smatch match;
+  if (!std::regex_search(first_line, match, header) || match.size() < 3 || match[1].str() != record.name) return false;
+  params = match[2].str();
+  const auto brace = chunk.code.find('{', begin + static_cast<std::size_t>(match.position(0)));
+  if (brace == std::string::npos) return false;
+  int depth = 0;
+  bool in_single = false, in_double = false, in_template = false, in_line_comment = false, in_block_comment = false, escape = false;
+  for (std::size_t i = brace; i < chunk.code.size(); ++i) {
+    const char c = chunk.code[i];
+    const char n = i + 1u < chunk.code.size() ? chunk.code[i + 1u] : '\0';
+    if (in_line_comment) { if (c == '\n') in_line_comment = false; continue; }
+    if (in_block_comment) { if (c == '*' && n == '/') { in_block_comment = false; ++i; } continue; }
+    if (escape) { escape = false; continue; }
+    if ((in_single || in_double || in_template) && c == '\\') { escape = true; continue; }
+    if (!in_single && !in_double && !in_template && c == '/' && n == '/') { in_line_comment = true; ++i; continue; }
+    if (!in_single && !in_double && !in_template && c == '/' && n == '*') { in_block_comment = true; ++i; continue; }
+    if (!in_double && !in_template && c == '\'') { in_single = !in_single; continue; }
+    if (!in_single && !in_template && c == '"') { in_double = !in_double; continue; }
+    if (!in_single && !in_double && c == '`') { in_template = !in_template; continue; }
+    if (in_single || in_double || in_template) continue;
+    if (c == '{') ++depth;
+    else if (c == '}' && --depth == 0) {
+      end = i + 1u;
+      declaration = chunk.code.substr(begin, end - begin);
+      return true;
+    }
+  }
+  return false;
+}
+
+
+bool all_external_calls_are_awaited(const std::string& code,
+                                    const std::string& name,
+                                    std::size_t declaration_begin,
+                                    std::size_t declaration_end,
+                                    std::string& reason) {
+  const std::regex call("(^|[^A-Za-z0-9_$\\.])" + name + R"(\s*\()" );
+  auto begin = std::sregex_iterator(code.begin(), code.end(), call);
+  const auto finish = std::sregex_iterator();
+  for (auto it = begin; it != finish; ++it) {
+    const auto offset = static_cast<std::size_t>(it->position(0));
+    if (offset >= declaration_begin && offset < declaration_end) continue;
+    const auto prefix_begin = offset > 32u ? offset - 32u : 0u;
+    const auto prefix = code.substr(prefix_begin, offset - prefix_begin + static_cast<std::size_t>((*it)[1].length()));
+    if (!std::regex_search(prefix, std::regex(R"(await\s*$)"))) {
+      reason = "call site is not explicitly awaited";
+      return false;
+    }
+  }
+  return true;
+}
+
+std::string trim_copy(std::string value) {
+  const auto first = value.find_first_not_of(" \t\r\n");
+  if (first == std::string::npos) return {};
+  const auto last = value.find_last_not_of(" \t\r\n");
+  return value.substr(first, last - first + 1u);
+}
+
+BridgeRewriteResult apply_bridge_rewrites(std::vector<JsChunk>& chunks,
+                                          const std::vector<FunctionExtractionRecord>& extraction_records,
+                                          const std::string& bridge_id_salt) {
+  BridgeRewriteResult result;
+  std::ostringstream registry;
+  registry << "globalThis.__venomProtectedBridge=globalThis.__venomProtectedBridge||Object.create(null);\n";
+  bool any = false;
+  for (const auto& record : extraction_records) {
+    if (record.disposition != "bridge-candidate") continue;
+    const auto it = std::find_if(chunks.begin(), chunks.end(), [&](const JsChunk& chunk) {
+      return chunk.route == record.route && chunk.source == record.source;
+    });
+    BridgeRewriteRecord rewrite{record.source, record.name, opaque_bridge_id(record.source, record.name, bridge_id_salt), "retained", "", {}};
+    if (it == chunks.end()) { rewrite.reason = "source chunk not found"; result.records.push_back(std::move(rewrite)); continue; }
+    std::size_t begin = 0, end = 0;
+    std::string declaration, params;
+    if (!extract_function_declaration(*it, record, begin, end, declaration, params)) {
+      rewrite.reason = "only named function declarations are currently extractable";
+      result.records.push_back(std::move(rewrite));
+      continue;
+    }
+    auto dependency_resolution = resolve_liftable_function_dependencies(
+        it->code, declaration, record.name, params);
+    // An explicitly isolated function is a complete protected compilation unit:
+    // all helpers and constants are declared inside its body, so no browser
+    // lexical capture is permitted or required. This avoids conservative false
+    // positives from deeply nested third-party parser/engine implementations.
+    if (!dependency_resolution.success && (record.isolated || declaration.find("@venom-isolated") != std::string::npos)) {
+      dependency_resolution.success = true;
+      dependency_resolution.reason = "explicit isolated protected compilation unit";
+      dependency_resolution.dependencies.clear();
+    }
+    if (!dependency_resolution.success) {
+      rewrite.reason = dependency_resolution.reason;
+      result.records.push_back(std::move(rewrite));
+      continue;
+    }
+    for (const auto& dependency : dependency_resolution.dependencies)
+      rewrite.lifted_dependencies.push_back(dependency.name);
+    std::string call_reason;
+    bool calls_awaited = false;
+    try { calls_awaited = all_external_calls_are_awaited(it->code, record.name, begin, end, call_reason); }
+    catch (const std::regex_error& error) { throw std::runtime_error(std::string("call-site regex: ") + error.what()); }
+    if (!calls_awaited) {
+      rewrite.reason = call_reason;
+      result.records.push_back(std::move(rewrite));
+      continue;
+    }
+    const auto candidate = rewrite.candidate;
+    std::ostringstream stub;
+    stub << "async function " << record.name << "(" << params << "){return globalThis.__venomInvokeProtectedByName(\""
+         << json_escape_plan(record.name) << "\",Array.from(arguments));}";
+    it->code.replace(begin, end - begin, stub.str());
+    auto registry_declaration = trim_copy(declaration);
+    try { registry_declaration = std::regex_replace(registry_declaration, std::regex(R"(^\s*export\s+(?:default\s+)?)"), ""); }
+    catch (const std::regex_error& error) { throw std::runtime_error(std::string("registry declaration regex: ") + error.what()); }
+    registry << "globalThis.__venomProtectedBridge[\"" << json_escape_plan(candidate) << "\"]=(function(){\n";
+    for (const auto& dependency : dependency_resolution.dependencies)
+      registry << dependency.declaration << "\n";
+    registry << "return (" << registry_declaration << ");\n})();\n";
+    rewrite.status = "extracted";
+    rewrite.reason = dependency_resolution.dependencies.empty()
+        ? "function declaration extracted; all external call sites are explicitly awaited"
+        : "function declaration extracted with pure lexical dependencies; all external call sites are explicitly awaited";
+    result.records.push_back(std::move(rewrite));
+    any = true;
+  }
+  if (any) result.registry_source = registry.str();
+  return result;
+}
+
+std::string make_bridge_rewrite_report_json(const std::vector<BridgeRewriteRecord>& records) {
+  std::ostringstream out;
+  out << "{\n  \"schema_version\": 2,\n  \"policy\": \"awaited-calls-plus-pure-dependency-lifting\",\n  \"functions\": [\n";
+  for (std::size_t i = 0; i < records.size(); ++i) {
+    const auto& r = records[i];
+    out << "    {\"source\":\"" << json_escape_plan(r.source) << "\",\"function\":\""
+        << json_escape_plan(r.function) << "\",\"candidate\":\"" << json_escape_plan(r.candidate)
+        << "\",\"status\":\"" << r.status << "\",\"reason\":\"" << json_escape_plan(r.reason) << "\",\"lifted_dependencies\":[";
+    for (std::size_t j = 0; j < r.lifted_dependencies.size(); ++j) {
+      if (j) out << ',';
+      out << '\"' << json_escape_plan(r.lifted_dependencies[j]) << '\"';
+    }
+    out << "]}" << (i + 1u == records.size() ? "" : ",") << '\n';
+  }
+  out << "  ]\n}\n";
+  return out.str();
+}
+
 
 
 struct BrowserEvidence {
@@ -1006,19 +1221,28 @@ JsBridge compile_js_bridge(const SiteGraph& graph, const RemoteVendorOptions& re
     }
     return all;
   }(bridge.chunks);
-  bridge.bundle = encode_js_bundle(bridge.chunks);
+  const auto extraction_records = analyze_function_extraction(bridge.chunks, function_records);
+  const auto rewrite_result = apply_bridge_rewrites(bridge.chunks, extraction_records, remote_options.bridge_id_salt);
   bridge.diagnostics = make_js_diagnostics(bridge.chunks);
   bridge.execution_plan_text = make_execution_plan_text(bridge.chunks);
   bridge.execution_plan_json = make_execution_plan_json(bridge.chunks);
   bridge.function_plan_text = make_function_plan_text(function_records);
   bridge.function_plan_json = make_function_plan_json(function_records);
-  const auto extraction_records = analyze_function_extraction(bridge.chunks, function_records);
   bridge.extraction_plan_text = make_extraction_plan_text(extraction_records);
   bridge.extraction_plan_json = make_extraction_plan_json(extraction_records);
   bridge.realm_bridge_contract_json = make_realm_bridge_contract_json(extraction_records);
-  for (const auto& record : extraction_records) {
-    if (record.disposition == "bridge-candidate") bridge.bridge_candidate_ids.push_back(record.source + "::" + record.name);
+  bridge.bridge_rewrite_report_json = make_bridge_rewrite_report_json(rewrite_result.records);
+  for (const auto& record : rewrite_result.records) {
+    if (record.status == "extracted") {
+      bridge.bridge_candidate_ids.push_back(record.candidate);
+      bridge.protected_exports.emplace_back(record.function, record.candidate);
+    }
   }
+  if (!rewrite_result.registry_source.empty()) {
+    bridge.bridge_registry_bytecode = venom::quickjs::compile_native_quickjs_bytecode(
+        rewrite_result.registry_source, "venom://protected-bridge-registry", false, false, nullptr);
+  }
+  bridge.bundle = encode_js_bundle(bridge.chunks);
 
   std::ostringstream preview;
   for (const auto& chunk : bridge.chunks) {
@@ -1037,7 +1261,11 @@ std::string js_hash64_literal(std::uint64_t value) {
   return out.str();
 }
 
-std::string make_loader_js(const std::string& runtime_asset_name, const std::string& package_asset_name, std::uint64_t expected_package_hash, const std::string& expected_package_sha256, bool hardened, const std::string& quickjs_engine_asset_name, const std::string& quickjs_runtime_wasm_asset_name, const std::string& runtime_wasm_asset_name, const std::string& style_asset_name, const std::string& package_binding_token, const std::string& worker_asset_name, const std::string& quickjs_runtime_wasm_sha256) {
+std::string make_loader_js(const std::string& runtime_asset_name, const std::string& package_asset_name, std::uint64_t expected_package_hash, const std::string& expected_package_sha256, bool hardened, const std::string& quickjs_engine_asset_name, const std::string& quickjs_runtime_wasm_asset_name, const std::string& runtime_wasm_asset_name, const std::string& style_asset_name, const std::string& package_binding_token, const std::string& worker_asset_name, const std::string& quickjs_runtime_wasm_sha256, const std::vector<std::pair<std::string, std::string>>& protected_exports,
+                           std::uint32_t bridge_invoke_opcode,
+                           std::uint32_t bridge_cancel_opcode,
+                           std::uint32_t bridge_result_opcode,
+                           std::uint32_t bridge_error_opcode) {
   std::ostringstream out;
   out << "import { bootVenom, renderVenomFailure } from './" << runtime_asset_name << "';\n\n";
   out << "const bootOptions = {\n"
@@ -1058,7 +1286,9 @@ std::string make_loader_js(const std::string& runtime_asset_name, const std::str
   if (!worker_asset_name.empty()) out << "  workerUrl: new URL('" << worker_asset_name << "', import.meta.url).href,\n";
   out << "};\n";
   if (!worker_asset_name.empty()) {
-    out << "async function prepareWorkerOwnedRuntime() {\n"
+    out << "const __venomInvokeOp=" << bridge_invoke_opcode << ",__venomCancelOp=" << bridge_cancel_opcode << ",__venomResultOp=" << bridge_result_opcode << ",__venomErrorOp=" << bridge_error_opcode << ";\n";
+    out << "let __venomReadyResolve,__venomReadyReject; const __venomReadyPromise=new Promise((resolve,reject)=>{__venomReadyResolve=resolve;__venomReadyReject=reject;});\n"
+        << "async function prepareWorkerOwnedRuntime() {\n"
         << "  if (typeof Worker !== 'function') throw new Error('protected release requires Web Worker support');\n"
         << "  const worker = new Worker(bootOptions.workerUrl, { type: 'module', name: 'venom-engine' });\n"
         << "  const token = crypto.getRandomValues(new Uint32Array(4));\n"
@@ -1071,9 +1301,26 @@ std::string make_loader_js(const std::string& runtime_asset_name, const std::str
         << "  });\n"
         << "  bootOptions.packageBytes = prepared.packageBytes;\n"
         << "  if (prepared.quickJsModule) globalThis.__venomWorkerQuickJsModule = prepared.quickJsModule;\n"
-        << "  globalThis.__venomEngineWorker = worker;\n"
+        << "  const pendingBridge = new Map(); const protectedExports = new Map(); let bridgeSequence = 0; let bridgeCounter = 0; const bridgeSession = String(prepared.bridgeSession || ''); if (!/^[0-9a-f]{32}$/i.test(bridgeSession)) throw new Error('worker bridge session attestation missing');\n"
+        << "  const MAX_PUBLIC_PAYLOAD_BYTES=1048576,MAX_PUBLIC_TIMEOUT_MS=30000,DEFAULT_PUBLIC_TIMEOUT_MS=5000;\n"
+        << "  class VenomBridgeError extends Error{constructor(code,message){super(message);this.name='VenomBridgeError';this.code=code||'BRIDGE_ERROR';}}\n"
+        << "  class VenomTimeoutError extends VenomBridgeError{constructor(){super('TIMEOUT','Protected operation timed out');this.name='VenomTimeoutError';}}\n"
+        << "  function publicBridgeError(code,message){return new VenomBridgeError(String(code||'BRIDGE_ERROR').toUpperCase().replace(/-/g,'_'),String(message||'Protected operation failed'));}\n"
+        << "  worker.onmessage=(event)=>{const m=event.data;if(!Array.isArray(m)||m[0]!==1||String(m[2]||'')!==bridgeSession)return;const op=Number(m[1])>>>0,counter=Number(m[3])>>>0,id=String(m[4]||''),p=pendingBridge.get(id);if(!p||counter!==p.counter||(op!==__venomResultOp&&op!==__venomErrorOp))return;pendingBridge.delete(id);clearTimeout(p.timer);if(p.abortCleanup)p.abortCleanup();if(op===__venomResultOp)p.resolve(m[5]);else p.reject(publicBridgeError(m[5],m[6]));};\n"
+        << "  function encodeJson(value,label){let encoded;try{encoded=JSON.stringify(value);}catch(error){throw new TypeError(label+' must contain only JSON-serializable values');}if(typeof encoded!=='string')throw new TypeError(label+' must be a JSON value');if(new TextEncoder().encode(encoded).byteLength>MAX_PUBLIC_PAYLOAD_BYTES)throw new RangeError(label+' exceeds the 1 MiB bridge limit');return {encoded,value:JSON.parse(encoded)};}\n"
+        << "  function invokeCandidate(candidateSlot,args,options){options=options||{};let normalized;try{normalized=encodeJson(Array.isArray(args)?args:[],'Protected arguments').value;}catch(error){error.code='INVALID_ARGUMENTS';return Promise.reject(error);}candidateSlot=Number(candidateSlot);if(!Number.isInteger(candidateSlot)||candidateSlot<0)return Promise.reject(publicBridgeError('UNKNOWN_EXPORT','Unknown protected export'));const timeout=Math.max(1,Math.min(MAX_PUBLIC_TIMEOUT_MS,Number(options.timeout)||DEFAULT_PUBLIC_TIMEOUT_MS));const signal=options.signal;if(signal&&signal.aborted)return Promise.reject(new DOMException('The protected operation was aborted','AbortError'));return new Promise((resolve,reject)=>{const requestId='v'+Date.now().toString(36)+(++bridgeSequence).toString(36)+crypto.getRandomValues(new Uint32Array(1))[0].toString(36);const counter=++bridgeCounter;let settled=false;const finish=(fn,value)=>{if(settled)return;settled=true;pendingBridge.delete(requestId);clearTimeout(timer);if(abortCleanup)abortCleanup();fn(value);};const timer=setTimeout(()=>{worker.postMessage([1,__venomCancelOp,bridgeSession,++bridgeCounter,requestId]);finish(reject,new VenomTimeoutError());},timeout);let abortCleanup=null;if(signal){const onAbort=()=>{worker.postMessage([1,__venomCancelOp,bridgeSession,++bridgeCounter,requestId]);finish(reject,new DOMException('The protected operation was aborted','AbortError'));};signal.addEventListener('abort',onAbort,{once:true});abortCleanup=()=>signal.removeEventListener('abort',onAbort);}pendingBridge.set(requestId,{resolve:(v)=>finish(resolve,v),reject:(e)=>finish(reject,e),timer,abortCleanup,counter});worker.postMessage([1,__venomInvokeOp,bridgeSession,counter,requestId,candidateSlot,normalized]);});}\n"
+        << "  globalThis.__venomInvokeProtected=(candidateSlot,args,options)=>invokeCandidate(candidateSlot,args,options);\n"
+        << "  globalThis.__venomInvokeProtectedByName=(name,args,options)=>{const candidateSlot=protectedExports.get(String(name||''));if(candidateSlot===undefined)return Promise.reject(publicBridgeError('UNKNOWN_EXPORT','Unknown protected export'));return invokeCandidate(candidateSlot,args,options);};\n"
+        << "  globalThis.__venomRegisterProtectedExport=(name,candidateSlot)=>{name=String(name||'');candidateSlot=Number(candidateSlot);if(!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name)||!Number.isInteger(candidateSlot)||candidateSlot<0)throw new Error('invalid protected export registration');const prior=protectedExports.get(name);if(prior!==undefined&&prior!==candidateSlot)throw new Error('duplicate protected export: '+name);protectedExports.set(name,candidateSlot);};\n";
+    for (std::size_t export_index = 0; export_index < protected_exports.size(); ++export_index) {
+      const auto& entry = protected_exports[export_index];
+      out << "  globalThis.__venomRegisterProtectedExport(\"" << json_escape_plan(entry.first) << "\"," << export_index << ");\n";
+    }
+    out        << "  const venomApi=Object.freeze({ready:()=>__venomReadyPromise,call:(name,input,options)=>{const candidateSlot=protectedExports.get(String(name||''));if(candidateSlot===undefined)return Promise.reject(publicBridgeError('UNKNOWN_EXPORT','Unknown protected export'));return invokeCandidate(candidateSlot,[input],options);},info:()=>Object.freeze({protocol:1,transport:'worker-message-v1',valueContract:'json-value-v1',maxPayloadBytes:MAX_PUBLIC_PAYLOAD_BYTES,maxTimeoutMs:MAX_PUBLIC_TIMEOUT_MS,exports:Array.from(protectedExports.keys()).sort()}),exports:new Proxy(Object.create(null),{get:(_,name)=>typeof name==='string'&&protectedExports.has(name)?((input,options)=>venomApi.call(name,input,options)):undefined,has:(_,name)=>typeof name==='string'&&protectedExports.has(name),ownKeys:()=>Array.from(protectedExports.keys()).sort(),getOwnPropertyDescriptor:(_,name)=>typeof name==='string'&&protectedExports.has(name)?{enumerable:true,configurable:true}:undefined,set:()=>false})});\n"
+        << "  Object.defineProperty(globalThis,'venom',{value:venomApi,writable:false,configurable:false,enumerable:true});\n"
+        << "  __venomReadyResolve(venomApi);\n"
         << "}\n"
-        << "prepareWorkerOwnedRuntime().then(() => bootVenom(bootOptions)).catch((error) => { console.error('[venom] boot failed', error); renderVenomFailure(bootOptions.root, error); });\n";
+        << "prepareWorkerOwnedRuntime().then(() => bootVenom(bootOptions)).catch((error) => { __venomReadyReject(error); console.error('[venom] boot failed', error); renderVenomFailure(bootOptions.root, error); });\n";
   } else {
     out << "bootVenom(bootOptions).catch((error) => { console.error('[venom] boot failed', error); renderVenomFailure(bootOptions.root, error); });\n";
   }

@@ -45,7 +45,7 @@ def main() -> int:
     }
     (out/'SBOM.cdx.json').write_text(json.dumps(sbom, sort_keys=True, separators=(',',':'))+'\n', encoding='utf-8')
     materials=[]
-    for rel in ('CMakeLists.txt','SOURCE_MANIFEST.sha256','SOURCE_MANIFEST.txt','toolchains.lock.json'):
+    for rel in ('CMakeLists.txt','toolchains.lock.json'):
         p=repo/rel
         if p.is_file(): materials.append({'uri':rel,'digest':{'sha256':sha256(p)}})
     prov={

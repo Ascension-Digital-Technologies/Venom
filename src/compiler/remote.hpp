@@ -30,6 +30,7 @@ struct RemoteVendorOptions {
   bool lock_present = false;
   std::vector<RemoteVendorLockEntry> lock_entries;
   std::size_t max_script_bytes = 8u * 1024u * 1024u;
+  std::string bridge_id_salt;
 };
 
 struct RemoteVendorRecord {

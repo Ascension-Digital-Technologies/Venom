@@ -4,9 +4,14 @@
 
 namespace venom::compiler {
 
-std::string make_worker_runtime_js(const std::vector<std::string>& bridge_candidate_ids) {
+std::string make_worker_runtime_js(const std::vector<std::string>& bridge_candidate_ids,
+                                   const std::vector<unsigned char>& bridge_registry_bytecode,
+                                   std::uint32_t bridge_invoke_opcode,
+                                   std::uint32_t bridge_cancel_opcode,
+                                   std::uint32_t bridge_result_opcode,
+                                   std::uint32_t bridge_error_opcode) {
   std::ostringstream generated;
-  generated << "const BRIDGE_CANDIDATES = new Set([";
+  generated << "const BRIDGE_CANDIDATES = Object.freeze([";
   for (std::size_t i = 0; i < bridge_candidate_ids.size(); ++i) {
     if (i) generated << ',';
     generated << '"';
@@ -17,11 +22,24 @@ std::string make_worker_runtime_js(const std::vector<std::string>& bridge_candid
     generated << '"';
   }
   generated << "]);\n";
+  generated << "const BRIDGE_REGISTRY_BYTECODE = new Uint8Array([";
+  for (std::size_t i = 0; i < bridge_registry_bytecode.size(); ++i) {
+    if (i) generated << ',';
+    generated << static_cast<unsigned int>(bridge_registry_bytecode[i]);
+  }
+  generated << "]);\n";
+  generated << "const BRIDGE_INVOKE_OP=" << bridge_invoke_opcode << ";\n";
+  generated << "const BRIDGE_CANCEL_OP=" << bridge_cancel_opcode << ";\n";
+  generated << "const BRIDGE_RESULT_OP=" << bridge_result_opcode << ";\n";
+  generated << "const BRIDGE_ERROR_OP=" << bridge_error_opcode << ";\n";
   generated << R"WORKER(const WORKER_PROTOCOL = 1;
 const MAX_MESSAGE_BYTES = 1024;
 let closed = false;
 let prepared = false;
 let activeInvocations = 0;
+const cancelledRequests = new Set();
+let bridgeSession = '';
+let bridgeCounter = 0;
 let quickJsInstance = null;
 let quickJsContext = 0;
 const textEncoder = new TextEncoder();
@@ -29,8 +47,9 @@ const textDecoder = new TextDecoder('utf-8', { fatal: true });
 const MAX_BRIDGE_MESSAGE_BYTES = 65536;
 const MAX_BRIDGE_ARGUMENTS = 64;
 const MAX_BRIDGE_CONCURRENCY = 8;
-function bridgeError(requestId, code, message) {
-  postMessage({ protocol: WORKER_PROTOCOL, type: 'bridge-error', requestId, code, message });
+function fnv1a32(bytes) { let hash = 2166136261 >>> 0; for (let i = 0; i < bytes.length; ++i) { hash ^= bytes[i]; hash = Math.imul(hash, 16777619) >>> 0; } return hash >>> 0; }
+function bridgeError(requestId, code, message, counter = 0) {
+  postMessage([WORKER_PROTOCOL, BRIDGE_ERROR_OP, bridgeSession, counter >>> 0, requestId, code, message]);
 }
 function isJsonValue(value, depth = 0) {
   if (depth > 32) return false;
@@ -174,36 +193,35 @@ async function probeQuickJsModule(module) {
 }
 self.onmessage = async (event) => {
   if (closed) return;
-  const m = event.data || {};
-  const encodedMessageSize = JSON.stringify(m).length;
-  if (m.type !== 'invoke' && encodedMessageSize > MAX_MESSAGE_BYTES) return fail(m.nonce || '', new Error('worker request exceeds protocol limit'));
-  if (m.type === 'dispose') {
-    if (quickJsInstance && quickJsContext) { try { quickJsInstance.exports.venom_qjs_bridge_release(quickJsContext); quickJsInstance.exports.venom_qjs_context_free(quickJsContext); } catch (_) {} }
-    quickJsInstance = null; quickJsContext = 0; closed = true; self.close(); return;
-  }
-  if (m.protocol !== WORKER_PROTOCOL) return fail(m.nonce || '', new Error('invalid worker protocol version'));
-  if (m.type === 'bridge-capabilities') {
-    postMessage({ protocol: WORKER_PROTOCOL, type: 'bridge-capabilities', requestId: String(m.requestId || ''), prepared, candidates: Array.from(BRIDGE_CANDIDATES).sort(), transport: 'worker-message-v1', valueContract: 'json-value-v1', synchronousCalls: false, executorReady: !!(quickJsInstance && quickJsContext) });
-    return;
-  }
-  if (m.type === 'invoke') {
-    const requestId = String(m.requestId || '');
-    if (!prepared) return bridgeError(requestId, 'not-prepared', 'protected bridge worker is not prepared');
-    if (!/^[A-Za-z0-9_-]{8,96}$/.test(requestId)) return bridgeError(requestId, 'invalid-request-id', 'invalid bridge request id');
-    if (JSON.stringify(m).length > MAX_BRIDGE_MESSAGE_BYTES) return bridgeError(requestId, 'message-too-large', 'bridge request exceeds protocol limit');
-    const candidate = String(m.candidate || '');
-    if (!BRIDGE_CANDIDATES.has(candidate)) return bridgeError(requestId, 'unknown-candidate', 'bridge candidate is not declared by the package');
-    if (!Array.isArray(m.args) || m.args.length > MAX_BRIDGE_ARGUMENTS || !isJsonValue(m.args)) return bridgeError(requestId, 'invalid-arguments', 'bridge arguments violate json-value-v1');
-    if (activeInvocations >= MAX_BRIDGE_CONCURRENCY) return bridgeError(requestId, 'busy', 'bridge concurrency limit reached');
+  const raw = event.data;
+  if (Array.isArray(raw)) {
+    if (raw[0] !== WORKER_PROTOCOL) return;
+    const op = Number(raw[1]) >>> 0;
+    const session = String(raw[2] || '');
+    const counter = Number(raw[3]) >>> 0;
+    const requestId = String(raw[4] || '');
+    if (!prepared || !bridgeSession || session !== bridgeSession) return;
+    if (!counter || counter <= bridgeCounter) return bridgeError(requestId, 'replay', 'stale or replayed bridge request', counter);
+    bridgeCounter = counter;
+    if (op === BRIDGE_CANCEL_OP) { if (/^[A-Za-z0-9_-]{8,96}$/.test(requestId)) cancelledRequests.add(requestId); return; }
+    if (op !== BRIDGE_INVOKE_OP) return;
+    const candidateSlot = Number(raw[5]);
+    const args = raw[6];
+    const candidate = Number.isInteger(candidateSlot) && candidateSlot >= 0 && candidateSlot < BRIDGE_CANDIDATES.length ? BRIDGE_CANDIDATES[candidateSlot] : '';
+    if (!/^[A-Za-z0-9_-]{8,96}$/.test(requestId)) return bridgeError(requestId, 'invalid-request-id', 'invalid bridge request id', counter);
+    if (JSON.stringify(raw).length > MAX_BRIDGE_MESSAGE_BYTES) return bridgeError(requestId, 'message-too-large', 'bridge request exceeds protocol limit', counter);
+    if (!candidate) return bridgeError(requestId, 'unknown-candidate', 'bridge candidate is not declared by the package', counter);
+    if (!Array.isArray(args) || args.length > MAX_BRIDGE_ARGUMENTS || !isJsonValue(args)) return bridgeError(requestId, 'invalid-arguments', 'bridge arguments violate json-value-v1', counter);
+    if (activeInvocations >= MAX_BRIDGE_CONCURRENCY) return bridgeError(requestId, 'busy', 'bridge concurrency limit reached', counter);
     activeInvocations++;
     try {
-      if (!quickJsInstance || !quickJsContext) return bridgeError(requestId, 'executor-not-ready', 'protected QuickJS bridge executor is not ready');
+      if (!quickJsInstance || !quickJsContext) return bridgeError(requestId, 'executor-not-ready', 'protected QuickJS bridge executor is not ready', counter);
       const e = quickJsInstance.exports;
-      const envelope = textEncoder.encode(JSON.stringify({ candidate, args: m.args }));
+      const envelope = textEncoder.encode(JSON.stringify({ candidate, args }));
       const capacity = e.venom_qjs_bridge_input_capacity() >>> 0;
-      if (!envelope.byteLength || envelope.byteLength > capacity) return bridgeError(requestId, 'input-too-large', 'bridge request exceeds QuickJS input capacity');
+      if (!envelope.byteLength || envelope.byteLength > capacity) return bridgeError(requestId, 'input-too-large', 'bridge request exceeds QuickJS input capacity', counter);
       const ptr = e.venom_qjs_bridge_input_alloc(quickJsContext >>> 0, envelope.byteLength >>> 0) >>> 0;
-      if (!ptr) return bridgeError(requestId, 'input-allocation-failed', 'QuickJS bridge input allocation failed');
+      if (!ptr) return bridgeError(requestId, 'input-allocation-failed', 'QuickJS bridge input allocation failed', counter);
       try {
         new Uint8Array(e.memory.buffer, ptr, envelope.byteLength).set(envelope);
         const ok = e.venom_qjs_bridge_invoke(quickJsContext >>> 0, envelope.byteLength >>> 0) >>> 0;
@@ -214,21 +232,27 @@ self.onmessage = async (event) => {
           if (ep && es && ep + es <= e.memory.buffer.byteLength) detail = textDecoder.decode(new Uint8Array(e.memory.buffer, ep, es));
           if (typeof e.venom_qjs_exception_clear === 'function') e.venom_qjs_exception_clear();
           const code = detail.includes('not registered') ? 'candidate-not-registered' : 'execution-failed';
-          return bridgeError(requestId, code, detail);
+          return bridgeError(requestId, code, detail, counter);
         }
         const resultPtr = e.venom_qjs_bridge_result_ptr() >>> 0;
         const resultSize = e.venom_qjs_bridge_result_size() >>> 0;
-        if (!resultPtr || !resultSize || resultPtr + resultSize > e.memory.buffer.byteLength) return bridgeError(requestId, 'invalid-result', 'QuickJS bridge returned an invalid result range');
+        if (!resultPtr || !resultSize || resultPtr + resultSize > e.memory.buffer.byteLength) return bridgeError(requestId, 'invalid-result', 'QuickJS bridge returned an invalid result range', counter);
         const result = JSON.parse(textDecoder.decode(new Uint8Array(e.memory.buffer, resultPtr, resultSize)));
-        if (!isJsonValue(result)) return bridgeError(requestId, 'invalid-result', 'QuickJS bridge result violates json-value-v1');
-        postMessage({ protocol: WORKER_PROTOCOL, type: 'bridge-result', requestId, result });
-      } finally {
-        e.venom_qjs_bridge_release(quickJsContext >>> 0);
-      }
-    } catch (error) {
-      return bridgeError(requestId, 'execution-failed', String(error && error.message ? error.message : error));
-    } finally { activeInvocations--; }
+        if (!isJsonValue(result)) return bridgeError(requestId, 'invalid-result', 'QuickJS bridge result violates json-value-v1', counter);
+        if (!cancelledRequests.has(requestId)) postMessage([WORKER_PROTOCOL, BRIDGE_RESULT_OP, bridgeSession, counter, requestId, result]);
+      } finally { e.venom_qjs_bridge_release(quickJsContext >>> 0); }
+    } catch (_) { return bridgeError(requestId, 'execution-failed', 'Protected operation failed', counter); }
+    finally { cancelledRequests.delete(requestId); activeInvocations--; }
+    return;
   }
+  const m = raw || {};
+  const encodedMessageSize = JSON.stringify(m).length;
+  if (encodedMessageSize > MAX_MESSAGE_BYTES) return fail(m.nonce || '', new Error('worker request exceeds protocol limit'));
+  if (m.type === 'dispose') {
+    if (quickJsInstance && quickJsContext) { try { quickJsInstance.exports.venom_qjs_bridge_release(quickJsContext); quickJsInstance.exports.venom_qjs_context_free(quickJsContext); } catch (_) {} }
+    quickJsInstance = null; quickJsContext = 0; closed = true; self.close(); return;
+  }
+  if (m.protocol !== WORKER_PROTOCOL) return fail(m.nonce || '', new Error('invalid worker protocol version'));
   if (m.type !== 'prepare' || typeof m.nonce !== 'string' || m.nonce.length !== 32) return fail(m.nonce || '', new Error('invalid worker protocol request'));
   if (!/^0x[0-9a-f]{16}$/i.test(String(m.expectedPackageHash || ''))) return fail(m.nonce, new Error('invalid expected package hash'));
   if (!/^[0-9a-f]{64}$/i.test(String(m.expectedPackageSha256 || ''))) return fail(m.nonce, new Error('invalid expected package SHA-256 digest'));
@@ -250,8 +274,27 @@ self.onmessage = async (event) => {
     const quickJsProbe = await probeQuickJsModule(quickJsModule);
     quickJsInstance = quickJsProbe.instance;
     quickJsContext = quickJsProbe.context >>> 0;
+    if (BRIDGE_REGISTRY_BYTECODE.byteLength) {
+      const e = quickJsInstance.exports;
+      const ptr = e.venom_qjs_script_buffer_alloc(quickJsContext, BRIDGE_REGISTRY_BYTECODE.byteLength >>> 0) >>> 0;
+      const cap = e.venom_qjs_script_buffer_capacity(quickJsContext) >>> 0;
+      if (!ptr || BRIDGE_REGISTRY_BYTECODE.byteLength > cap) throw new Error('protected bridge registry allocation failed');
+      try {
+        new Uint8Array(e.memory.buffer, ptr, BRIDGE_REGISTRY_BYTECODE.byteLength).set(BRIDGE_REGISTRY_BYTECODE);
+        e.venom_qjs_script_buffer_set_expected_hash(quickJsContext, fnv1a32(BRIDGE_REGISTRY_BYTECODE));
+        if ((e.venom_qjs_execute_bytecode(quickJsContext, BRIDGE_REGISTRY_BYTECODE.byteLength >>> 0) >>> 0) !== 1) {
+          const ep = e.venom_qjs_exception_message_ptr() >>> 0;
+          const es = e.venom_qjs_exception_message_size() >>> 0;
+          let detail = 'protected bridge registry execution failed';
+          if (ep && es && ep + es <= e.memory.buffer.byteLength) detail = textDecoder.decode(new Uint8Array(e.memory.buffer, ep, es));
+          throw new Error(detail);
+        }
+      } finally { e.venom_qjs_script_buffer_free(quickJsContext, ptr); }
+    }
     prepared = true;
-    postMessage({ protocol: WORKER_PROTOCOL, type: 'ready', nonce: m.nonce, bridgeCandidateCount: BRIDGE_CANDIDATES.size, packageHash: actualPackageHash, packageSha256: actualPackageSha256, quickJsWasmSha256: actualQuickJsWasmSha256, quickJsRuntimeReady: true, packageBytes, quickJsModule }, [packageBytes]);
+    bridgeSession = Array.from(crypto.getRandomValues(new Uint32Array(4)), (v) => v.toString(16).padStart(8, '0')).join('');
+    bridgeCounter = 0;
+    postMessage({ protocol: WORKER_PROTOCOL, type: 'ready', nonce: m.nonce, bridgeSession, bridgeCandidateCount: BRIDGE_CANDIDATES.length, packageHash: actualPackageHash, packageSha256: actualPackageSha256, quickJsWasmSha256: actualQuickJsWasmSha256, quickJsRuntimeReady: true, packageBytes, quickJsModule }, [packageBytes]);
   } catch (error) { fail(m.nonce, error); }
 };
 )WORKER";

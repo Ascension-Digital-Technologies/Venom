@@ -7,7 +7,7 @@ runtime = (root/'src/compiler/runtime_js.cpp').read_text()
 build = (root/'src/compiler/build.cpp').read_text()
 sh = (root/'scripts/build-quickjs-wasm.sh').read_text()
 assert 'venom_qjs_compact_result_ptr' in abi
-assert abi.count("'venom_qjs_") <= 16
+assert abi.count("'venom_qjs_") <= 23
 start = engine.index("const compactPtr = typeof e.venom_qjs_compact_result_ptr")
 protected = engine[start:engine.index('    const resultPtr = e.venom_qjs_result_ptr()', start)]
 assert 'JSON.parse' not in protected
