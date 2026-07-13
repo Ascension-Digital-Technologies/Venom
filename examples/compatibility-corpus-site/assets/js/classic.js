@@ -1,0 +1,1 @@
+(function(){const status=document.getElementById('status');const values=[1,2,3,4];globalThis.__corpusClassic=values.filter(v=>v%2===0).map(v=>v*v).reduce((a,b)=>a+b,0);if(status){status.textContent='classic:'+globalThis.__corpusClassic;status.dataset.ready='yes';}setTimeout(()=>{globalThis.__corpusTimer='ready';},0);}());

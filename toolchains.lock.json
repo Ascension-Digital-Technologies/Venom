@@ -1,0 +1,32 @@
+{
+  "schema": "VENOM_TOOLCHAIN_LOCK_V1",
+  "cmake": {
+    "minimum": "3.20",
+    "recommended": "3.31"
+  },
+  "python": {
+    "minimum": "3.10",
+    "recommended": "3.13"
+  },
+  "emscripten": {
+    "version": "4.0.10",
+    "channel": "pinned",
+    "pin_required_for_stable_release": true
+  },
+  "binaryen": {
+    "tool": "wasm-opt",
+    "minimum": "116"
+  },
+  "openssl": {
+    "minimum": "3.0",
+    "purpose": "Ed25519 release signing and verification"
+  },
+  "quickjs": {
+    "source": "third_party/quickjs",
+    "vendored": true
+  },
+  "policy": {
+    "stable_release_rejects_unpinned_emscripten": true,
+    "source_date_epoch_required": true
+  }
+}

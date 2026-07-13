@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "profile": "github-actions-cross-browser",
+  "budgets": {
+    "browser_launch_ms": 15000,
+    "context_create_ms": 5000,
+    "navigation_wall_ms": 10000,
+    "fixture_ready_ms": 5000,
+    "action_ms": 5000,
+    "scenario_total_ms": 15000,
+    "runner_total_ms": 60000
+  },
+  "notes": [
+    "These are broad CI regression ceilings, not end-user latency guarantees.",
+    "Results are meaningful only when compared on similar runners, browser versions, and fixture sets.",
+    "A passing timing report does not establish complete application performance or browser compatibility."
+  ]
+}

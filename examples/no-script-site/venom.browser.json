@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "id": "static-multi-route",
+  "description": "Static HTML, CSS, and multi-route reconstruction without JavaScript.",
+  "scenarios": [
+    {
+      "id": "home",
+      "path": "/index.html",
+      "wait_for": {
+        "selector": "h1"
+      },
+      "checks": [
+        {
+          "id": "heading",
+          "type": "text",
+          "selector": "h1",
+          "equals": "Hello from Venom"
+        },
+        {
+          "id": "about-link",
+          "type": "exists",
+          "selector": "a[href=\"about.html\"]"
+        }
+      ]
+    },
+    {
+      "id": "about",
+      "path": "/about.html",
+      "wait_for": {
+        "selector": "h1"
+      },
+      "checks": [
+        {
+          "id": "heading",
+          "type": "contains-text",
+          "selector": "h1",
+          "contains": "About"
+        }
+      ]
+    }
+  ],
+  "support_tier": "supported"
+}

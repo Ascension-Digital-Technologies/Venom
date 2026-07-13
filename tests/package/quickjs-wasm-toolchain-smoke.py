@@ -1,0 +1,61 @@
+import re
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+required = [
+    'scripts/build-quickjs-wasm.sh',
+    'scripts/build-quickjs-wasm.ps1',
+    'scripts/build-quickjs-wasm.bat',
+    'tools/embed_wasm.py',
+    'tools/quickjs_wasm_preflight.py',
+    'tools/quickjs_wasm_cutover.py',
+    'tools/setup_emscripten.py',
+    'docs/quickjs-wasm-artifact-generation.md',
+]
+for rel in required:
+    path = root / rel
+    if not path.exists():
+        raise SystemExit(f'missing {rel}')
+
+scaffold = (root / 'src/runtime/quickjs_runtime_scaffold.c').read_text(encoding='utf-8')
+for marker in (
+    'VENOM_ENABLE_UPSTREAM_QJS_WASM',
+    '#include "quickjs.h"',
+    'JS_NewRuntime',
+    'JS_Eval',
+    'JS_ExecutePendingJob',
+    'venom_qjs_execute_with_upstream',
+    'g_real_engine_candidate = 1u',
+):
+    if marker not in scaffold:
+        raise SystemExit(f'missing upstream QuickJS WASM marker {marker!r}')
+
+exports = set(re.findall(r'VENOM_QJS_PUBLIC\("([A-Za-z0-9_]+)"\)', scaffold))
+for name in (
+    'venom_qjs_engine_abi',
+    'venom_qjs_engine_version',
+    'venom_qjs_context_alloc',
+    'venom_qjs_context_free',
+    'venom_qjs_script_buffer_alloc',
+    'venom_qjs_execute_source',
+    'venom_qjs_execute_bytecode',
+    'venom_qjs_result_ptr',
+    'venom_qjs_exception_ptr',
+    'venom_qjs_real_engine_candidate',
+):
+    if name not in exports:
+        raise SystemExit(f'missing ABI12 export {name}')
+if len(exports) < 150:
+    raise SystemExit(f'expected broad ABI12 export set, found only {len(exports)} exports')
+
+script = (root / 'scripts/build-quickjs-wasm.sh').read_text(encoding='utf-8')
+for marker in ('emcc', 'VENOM_ENABLE_UPSTREAM_QJS_WASM=1', 'third_party/quickjs/quickjs.c',
+    'tools/quickjs_wasm_preflight.py', 'tools/quickjs_wasm_cutover.py', 'quickjs-runtime.wasm',
+    'quickjs_wasm_preflight.py', '--preflight-only'):
+    if marker not in script:
+        raise SystemExit(f'missing build script marker {marker!r}')
+
+doc = (root / 'docs/quickjs-wasm-artifact-generation.md').read_text(encoding='utf-8')
+if 'verify-runtime --require-real-engine' not in doc or 'Cutover rule' not in doc:
+    raise SystemExit('WASM artifact generation doc is missing the release gate/cutover rule')

@@ -1,0 +1,11 @@
+import { dependencyValue } from './module-util.js';
+import { extraValue } from './module-extra.js';
+import { branchValue } from './module-branch.js';
+export const moduleValue = 42 + dependencyValue;
+globalThis.__venomCompatModule = moduleValue;
+globalThis.__venomCompatModuleDependency = dependencyValue;
+globalThis.__venomCompatModuleExtra = extraValue;
+globalThis.__venomCompatModuleOrder = (globalThis.__venomCompatModuleOrder || []).concat('entry');
+globalThis.__venomCompatModuleBranch = branchValue;
+globalThis.__venomCompatModuleGraph = moduleValue + extraValue + branchValue;
+globalThis.__venomCompatModuleOrderText = globalThis.__venomCompatModuleOrder.join('>');

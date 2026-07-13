@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "profile": "production-balanced",
+  "budgets": {
+    "quickjs_wasm_raw_bytes": 1300000,
+    "quickjs_wasm_gzip_bytes": 500000,
+    "quickjs_wasm_brotli_bytes": 420000,
+    "release_abi_exports": 16,
+    "distribution_javascript_bytes": 650000,
+    "distribution_total_bytes": 2500000
+  },
+  "notes": [
+    "Budgets are regression ceilings, not performance guarantees.",
+    "Browser startup timing is evaluated separately because it is environment-dependent."
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "policy": "protected-browser-defaults",
+  "limits": {
+    "max_pending_host_calls": 128,
+    "max_completed_host_calls": 128,
+    "max_host_calls_per_route": 8192,
+    "max_concurrent_fetches": 16,
+    "max_fetch_request_bytes": 65536,
+    "max_fetch_response_bytes": 1048576,
+    "max_active_timers": 128,
+    "max_timers_scheduled_per_route": 512,
+    "max_timer_delay_ms": 86400000,
+    "max_event_records": 256,
+    "max_event_dispatches_per_route": 1024,
+    "max_dom_handles": 4096,
+    "max_route_lifetime_ms": 86400000
+  },
+  "enforcement": {
+    "unknown_operation": "deny",
+    "budget_exhaustion": "fail-closed",
+    "route_transition": "reset-counters-and-cancel-resources",
+    "stale_completion": "reject"
+  }
+}

@@ -1,0 +1,5 @@
+VENOM_REMOTE_VENDOR_CACHE_V1
+version=1
+url=https://cdn.jsdelivr.net/npm/ua-parser-js@0.7.19/src/ua-parser.min.js
+sha256=f8fcf026fc7e4750887a0a211abda61d3772708629349af6986b64bb57f0a035
+bytes=192

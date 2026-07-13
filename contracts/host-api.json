@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "host_bridge_abi": 3,
+  "calls": [
+    {"id": 1, "name": "dom.query", "capability": "dom.read", "max_payload": 16384},
+    {"id": 2, "name": "dom.mutate", "capability": "dom.write", "max_payload": 65536},
+    {"id": 3, "name": "events.listen", "capability": "events.listen", "max_payload": 16384},
+    {"id": 4, "name": "timer.schedule", "capability": "timers", "max_payload": 4096},
+    {"id": 5, "name": "storage.access", "capability": "storage", "max_payload": 65536},
+    {"id": 6, "name": "fetch.blocked", "capability": "network.fetch", "max_payload": 0},
+    {"id": 7, "name": "console.write", "capability": "console", "max_payload": 65536}
+  ]
+}

@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Browser Compatibility Fixture</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <main id="compat-root" class="fixture">
+    <h1>Venom Browser Compatibility</h1>
+    <p id="compat-output" class="pending">pending</p>
+    <section id="compat-inner"></section>
+    <form id="compat-form">
+      <input id="compat-input" name="bridge-input" value="initial">
+      <button id="compat-submit" type="submit">Submit</button>
+    </form>
+    <button id="compat-button" class="action">Run action</button>
+    <a id="compat-about" data-route="about" href="about.html">About</a>
+  </main>
+  <script src="assets/compat.js"></script>
+  <script type="module" src="assets/module-util.js"></script>
+  <script type="module" src="assets/module-extra.js"></script>
+  <script type="module" src="assets/module-leaf.js"></script>
+  <script type="module" src="assets/module-branch.js"></script>
+  <script type="module" src="assets/module-entry.js"></script>
+</body>
+</html>

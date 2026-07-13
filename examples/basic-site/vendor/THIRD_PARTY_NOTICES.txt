@@ -1,0 +1,16 @@
+Third-party assets bundled for offline use
+
+Bootstrap 4.3.1
+Copyright 2011-2019 The Bootstrap Authors and Twitter, Inc.
+License: MIT (https://github.com/twbs/bootstrap/blob/v4.3.1/LICENSE)
+
+jQuery 3.6.1
+Copyright OpenJS Foundation and other contributors.
+License: MIT (https://jquery.org/license/)
+
+Chess piece images
+From chessboard.js by Chris Oakman.
+License: MIT (https://github.com/oakmac/chessboardjs/blob/master/LICENSE.md)
+
+The local chessboard compatibility implementation in vendor/chessboardjs/js is part
+of this project adaptation and uses the public chessboard.js callback/class contract.

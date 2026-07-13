@@ -1,0 +1,5 @@
+VENOM_REMOTE_VENDOR_CACHE_V1
+version=1
+url=https://cdn.example.invalid/vendor.js
+sha256=8955b858b9126474dc62bb53e62a8a4038021253626557335ce2d08c72d401e9
+bytes=43

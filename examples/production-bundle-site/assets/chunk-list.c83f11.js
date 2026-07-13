@@ -1,0 +1,1 @@
+import{label as e}from"./vendor.31e42a.js";export const renderList=(t,r)=>{for(const n of[1,2,3]){const o=document.createElement("span");o.className="bundle-item",o.setAttribute("data-index",String(n)),o.textContent=r(n),t.appendChild(o)}};

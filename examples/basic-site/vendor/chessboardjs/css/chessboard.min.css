@@ -1,0 +1,14 @@
+/* Local chessboard.js-compatible board styles. */
+.clearfix-7da63::after { clear: both; content: ''; display: table; }
+.chessboard-63f37 { box-sizing: border-box; width: 100%; user-select: none; }
+.board-b72b1 { border: 2px solid #404040; box-sizing: border-box; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); grid-template-rows: repeat(8, minmax(0, 1fr)); width: 100%; aspect-ratio: 1 / 1; overflow: hidden; }
+.square-55d63 { box-sizing: border-box; min-width: 0; min-height: 0; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.white-1e1d7 { background-color: #f0d9b5; color: #b58863; }
+.black-3c85d { background-color: #b58863; color: #f0d9b5; }
+.piece-417db { display: block; width: 100%; height: 100%; object-fit: contain; cursor: grab; touch-action: none; }
+.piece-417db:active { cursor: grabbing; }
+.notation-322f9 { font-family: Arial, Helvetica, sans-serif; font-size: 11px; font-weight: 600; line-height: 1; pointer-events: none; position: absolute; }
+.alpha-d2270 { bottom: 2px; right: 3px; }
+.numeric-fc462 { left: 3px; top: 2px; }
+.square-55d63.drag-over-local { box-shadow: inset 0 0 0 4px rgba(255,255,255,.38); }
+@media (max-width: 480px) { .notation-322f9 { font-size: 9px; } }

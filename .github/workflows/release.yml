@@ -1,0 +1,192 @@
+name: publish-release-artifacts
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+
+env:
+  SOURCE_DATE_EPOCH: 1704067200
+  EMSDK_VERSION: 4.0.10
+  VENOM_QJS_ABI_MODE: release
+
+jobs:
+  verified-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: actions/cache@v4
+        with:
+          path: build/emsdk
+          key: emsdk-${{ runner.os }}-${{ env.EMSDK_VERSION }}
+      - name: Build canonical real QuickJS/WASM runtime
+        run: |
+          scripts/setup-emscripten.sh --version "$EMSDK_VERSION" --emsdk-dir build/emsdk
+          source build/emsdk/emsdk_env.sh
+          scripts/build-quickjs-wasm.sh --out-dir build/quickjs-wasm --clean --force
+          python tools/quickjs_wasm_cutover.py --repo-root . --out-dir build/quickjs-wasm --verify-embedded --require-real
+          sha256sum build/quickjs-wasm/quickjs-runtime.wasm src/compiler/quickjs_runtime_wasm_blob.hpp > build/quickjs-wasm/VERIFIED_RUNTIME_SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: venom-verified-runtime
+          path: |
+            build/quickjs-wasm/quickjs-runtime.wasm
+            build/quickjs-wasm/runtime-performance.json
+            build/quickjs-wasm/VERIFIED_RUNTIME_SHA256SUMS
+            src/compiler/quickjs_runtime_wasm_blob.hpp
+          if-no-files-found: error
+
+  release-closure:
+    needs: verified-runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: actions/download-artifact@v4
+        with:
+          name: venom-verified-runtime
+          path: verified-runtime
+      - name: Install canonical runtime and verify provenance
+        run: |
+          cp verified-runtime/src/compiler/quickjs_runtime_wasm_blob.hpp src/compiler/quickjs_runtime_wasm_blob.hpp
+          mkdir -p build/quickjs-wasm
+          cp verified-runtime/build/quickjs-wasm/* build/quickjs-wasm/
+          python tools/quickjs_wasm_cutover.py --repo-root . --out-dir build/quickjs-wasm --verify-embedded --require-real
+      - name: Build closure with sanitizers and fuzzers
+        run: |
+          cmake --preset release-closure -DVENOM_BUILD_FUZZERS=ON -DVENOM_ENABLE_SANITIZERS=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+          cmake --build --preset release-closure --parallel 2
+          ctest --preset release-closure --output-on-failure
+      - name: Fuzz and hostile-input gates
+        run: |
+          ./build/release-closure/venom_package_parser_fuzz tests/fuzz/corpus/package_parser -runs=20000 -timeout=3
+          ./build/release-closure/venom_runtime_contract_fuzz tests/fuzz/corpus/runtime_contracts -runs=20000 -timeout=3
+          ./build/release-closure/venom_package_parser_differential_fuzz tests/fuzz/corpus/package_parser -runs=20000 -timeout=3
+
+  package:
+    needs: [verified-runtime, release-closure]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: linux
+          - os: windows-latest
+            artifact: windows
+          - os: macos-latest
+            artifact: macos
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: actions/download-artifact@v4
+        with:
+          name: venom-verified-runtime
+          path: verified-runtime
+      - name: Install and verify canonical runtime
+        shell: bash
+        run: |
+          cp verified-runtime/src/compiler/quickjs_runtime_wasm_blob.hpp src/compiler/quickjs_runtime_wasm_blob.hpp
+          mkdir -p build/quickjs-wasm
+          cp verified-runtime/build/quickjs-wasm/* build/quickjs-wasm/
+          python tools/quickjs_wasm_cutover.py --repo-root . --out-dir build/quickjs-wasm --verify-embedded --require-real
+      - run: cmake --preset release -DVENOM_ENABLE_IPO=OFF
+      - run: cmake --build --preset release --parallel 2
+      - name: Package release
+        shell: bash
+        run: python tools/package_release.py --build-dir build/release --out build/package --archive zip --sign none --source-date-epoch "$SOURCE_DATE_EPOCH"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: venom-${{ matrix.artifact }}
+          path: venom-v*.zip
+          if-no-files-found: error
+
+  compatibility-evidence:
+    needs: [verified-runtime, release-closure]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: actions/download-artifact@v4
+        with:
+          name: venom-verified-runtime
+          path: verified-runtime
+      - name: Install canonical runtime
+        run: |
+          cp verified-runtime/src/compiler/quickjs_runtime_wasm_blob.hpp src/compiler/quickjs_runtime_wasm_blob.hpp
+          mkdir -p build/quickjs-wasm
+          cp verified-runtime/build/quickjs-wasm/* build/quickjs-wasm/
+          python tools/quickjs_wasm_cutover.py --repo-root . --out-dir build/quickjs-wasm --verify-embedded --require-real
+      - name: Install Playwright browsers
+        run: |
+          npm install --no-save playwright@1.52.0
+          npx playwright install --with-deps chromium firefox webkit
+      - name: Build Venom and compatibility fixtures
+        run: |
+          cmake --preset release-closure
+          cmake --build --preset release-closure --parallel 2
+          ./build/release-closure/venom build examples/browser-compat-site --out build/browser-dist
+          ./build/release-closure/venom build examples/no-script-site --out build/static-dist
+          ./build/release-closure/venom build examples/production-bundle-site --out build/production-bundle-dist
+          ./build/release-closure/venom build examples/react16-umd-site --out build/react16-dist
+          ./build/release-closure/venom build examples/dom-compat-site --out build/dom-compat-dist
+          ./build/release-closure/venom build examples/dynamic-bundle-site --out build/dynamic-bundle-dist
+      - name: Build compatibility evidence
+        run: |
+          python tools/browser_validation.py build/browser-dist --browser all --manifest examples/browser-compat-site/venom.browser.json --json-out build/browser-validation.json
+          python tools/browser_validation.py build/static-dist --browser all --manifest examples/no-script-site/venom.browser.json --json-out build/static-browser-validation.json
+          python tools/browser_validation.py build/production-bundle-dist --browser all --manifest examples/production-bundle-site/venom.browser.json --json-out build/production-bundle-validation.json
+          python tools/browser_validation.py build/react16-dist --browser all --manifest examples/react16-umd-site/venom.browser.json --json-out build/react16-browser-validation.json
+          python tools/browser_validation.py build/dom-compat-dist --browser all --manifest examples/dom-compat-site/venom.browser.json --json-out build/dom-compat-browser-validation.json
+          python tools/browser_validation.py build/dynamic-bundle-dist --browser all --manifest examples/dynamic-bundle-site/venom.browser.json --json-out build/dynamic-bundle-browser-validation.json
+          python tools/compatibility_matrix.py build/browser-validation.json build/static-browser-validation.json build/production-bundle-validation.json build/react16-browser-validation.json build/dom-compat-browser-validation.json build/dynamic-bundle-browser-validation.json --json-out build/compatibility-matrix.json
+          python tools/package_compatibility_evidence.py --matrix build/compatibility-matrix.json --reports build/browser-validation.json build/static-browser-validation.json build/production-bundle-validation.json build/react16-browser-validation.json build/dom-compat-browser-validation.json build/dynamic-bundle-browser-validation.json --manifests examples/browser-compat-site/venom.browser.json examples/no-script-site/venom.browser.json examples/production-bundle-site/venom.browser.json examples/react16-umd-site/venom.browser.json examples/dom-compat-site/venom.browser.json examples/dynamic-bundle-site/venom.browser.json --out build/venom-compatibility-evidence.zip --source-revision "${GITHUB_SHA}"
+          python tools/verify_compatibility_evidence.py build/venom-compatibility-evidence.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: venom-compatibility-evidence
+          path: build/venom-compatibility-evidence.zip
+          if-no-files-found: error
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [verified-runtime, release-closure, package, compatibility-evidence]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Verify one runtime digest across release inputs
+        run: |
+          cat artifacts/venom-verified-runtime/build/quickjs-wasm/VERIFIED_RUNTIME_SHA256SUMS
+          test -s artifacts/venom-verified-runtime/build/quickjs-wasm/quickjs-runtime.wasm
+      - name: Create and verify release publication set
+        run: |
+          mapfile -t PACKAGES < <(find artifacts -type f -name 'venom-v*.zip' | sort)
+          EVIDENCE="$(find artifacts -type f -name 'venom-compatibility-evidence.zip' | head -1)"
+          python tools/package_release_set.py --version "${GITHUB_REF_NAME#v}" --source-revision "$GITHUB_SHA" --packages "${PACKAGES[@]}" --compatibility-evidence "$EVIDENCE" --verified-runtime artifacts/venom-verified-runtime/build/quickjs-wasm/quickjs-runtime.wasm --out release-set --archive venom-release-set.zip --source-date-epoch "$SOURCE_DATE_EPOCH"
+          cp artifacts/venom-verified-runtime/build/quickjs-wasm/VERIFIED_RUNTIME_SHA256SUMS release-set/VERIFIED_RUNTIME_SHA256SUMS
+          python tools/verify_release_set.py release-set --expect-version "${GITHUB_REF_NAME#v}" --require-evidence --require-runtime
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-set/artifacts/*
+            release-set/RELEASE_SET.json
+            release-set/SHA256SUMS
+            release-set/VERIFIED_RUNTIME_SHA256SUMS
+            venom-release-set.zip
+          fail_on_unmatched_files: true

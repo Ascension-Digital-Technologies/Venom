@@ -1,0 +1,8 @@
+VENOM_VENDOR_LOCK_V1
+version=1
+entry_count=4
+url	sha256	bytes	integrity
+https://cdn.jsdelivr.net/npm/ua-parser-js@0.7.19/src/ua-parser.min.js	f8fcf026fc7e4750887a0a211abda61d3772708629349af6986b64bb57f0a035	192	not-declared
+https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js	f124f5eab19235f49f48789d539db0d4ebdc8fe05fda0646ed56b3ceba18a49b	55	not-declared
+https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.11/lodash.min.js	6d6ef064856b6c465cefd8ad3d67d210163bd47124e57551ad216e4daba3bede	67	not-declared
+https://mc.yandex.ru/metrika/tag.js	1ca29b2a7d70b4fcc9a4429d3a02556d9650ed12e0346cda46b2ce41be111b3e	39	not-declared

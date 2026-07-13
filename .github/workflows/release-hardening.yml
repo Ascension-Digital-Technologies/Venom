@@ -1,0 +1,33 @@
+name: release-closure
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+jobs:
+  browser-complete:
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_DATE_EPOCH: 1704067200
+      EMSDK_VERSION: 4.0.10
+      VENOM_QJS_ABI_MODE: release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: build/emsdk
+          key: emsdk-${{ runner.os }}-${{ env.EMSDK_VERSION }}
+      - run: scripts/setup-emscripten.sh --version "$EMSDK_VERSION" --emsdk-dir build/emsdk
+      - run: |
+          source build/emsdk/emsdk_env.sh
+          scripts/build-quickjs-wasm.sh build/quickjs-wasm
+          python3 tools/release_closure.py --repo-root . --require-real --json-out build/release-closure.json
+      - run: cmake --preset release-closure -DVENOM_BUILD_FUZZERS=ON -DVENOM_ENABLE_SANITIZERS=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+      - run: cmake --build --preset release-closure --parallel 2
+      - run: ctest --preset release-closure --output-on-failure
+      - name: Fuzz and hostile-input gates
+        run: |
+          ./build/release-closure/venom_package_parser_fuzz tests/fuzz/corpus/package_parser -runs=20000 -timeout=3
+          ./build/release-closure/venom_runtime_contract_fuzz tests/fuzz/corpus/runtime_contracts -runs=20000 -timeout=3
+          ./build/release-closure/venom_package_parser_differential_fuzz tests/fuzz/corpus/package_parser -runs=20000 -timeout=3

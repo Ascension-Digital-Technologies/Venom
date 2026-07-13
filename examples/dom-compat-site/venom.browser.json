@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "id": "dom-forms-events-observers",
+  "profile": "dom-compatibility",
+  "support_tier": "candidate",
+  "evidence_level": "behavioral",
+  "claims": ["form-property-reflection", "event-bubbling", "mutation-observer", "animation-frame"],
+  "required_browsers": ["chromium", "firefox", "webkit"],
+  "scenarios": [
+    {
+      "id": "form-and-events",
+      "path": "/index.html",
+      "wait_for": {"selector": "#status"},
+      "actions": [
+        {"type": "click", "selector": "#child"},
+        {"type": "click", "selector": "#submit"}
+      ],
+      "checks": [
+        {"id": "form-result", "type": "text", "selector": "#status", "equals": "Mario:on:safe:1"},
+        {"id": "bubble", "type": "attribute", "selector": "#status", "name": "data-clicked", "equals": "yes"},
+        {"id": "observer", "type": "attribute", "selector": "#status", "name": "data-mutations", "exists": true},
+        {"id": "raf", "type": "attribute", "selector": "#status", "name": "data-raf", "equals": "ready"}
+      ]
+    }
+  ]
+}

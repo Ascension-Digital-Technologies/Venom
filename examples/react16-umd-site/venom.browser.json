@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "id": "react16-umd-production",
+  "profile": "pinned-framework-production",
+  "evidence_level": "behavioral",
+  "claims": [
+    "react-16-umd",
+    "react-dom-render",
+    "react-class-state",
+    "react-event-update"
+  ],
+  "scenarios": [
+    {
+      "id": "react-render-and-update",
+      "path": "/index.html",
+      "wait_for": {
+        "selector": "#react-app"
+      },
+      "checks": [
+        {
+          "id": "heading",
+          "type": "text",
+          "selector": "h1",
+          "equals": "React 16 under Venom"
+        },
+        {
+          "id": "initial-count",
+          "type": "text",
+          "selector": "#count",
+          "equals": "0"
+        },
+        {
+          "id": "updated-count",
+          "type": "text",
+          "selector": "#count",
+          "equals": "1"
+        }
+      ],
+      "actions": [
+        {
+          "type": "click",
+          "selector": "#increment"
+        }
+      ]
+    }
+  ],
+  "support_tier": "probe",
+  "framework": {
+    "name": "React",
+    "version": "16.0.0 / ReactDOM 16.0.1",
+    "delivery": "production UMD"
+  }
+}

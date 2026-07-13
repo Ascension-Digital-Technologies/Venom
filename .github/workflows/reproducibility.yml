@@ -1,0 +1,31 @@
+name: reproducibility
+on:
+  pull_request:
+    paths:
+      - 'tools/package_release.py'
+      - 'tools/check_reproducibility.py'
+      - 'scripts/package-release.*'
+      - '.github/workflows/reproducibility.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  release-package:
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_DATE_EPOCH: 1704067200
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: cmake --preset release -DVENOM_ENABLE_IPO=OFF
+      - run: cmake --build --preset release --parallel 2
+      - name: Package twice from the same inputs
+        run: |
+          python tools/package_release.py --build-dir build/release --out build/repro-a --archive zip --sign none --source-date-epoch "$SOURCE_DATE_EPOCH"
+          cp venom-v*-linux-*.zip build/repro-a.zip
+          rm -f venom-v*-linux-*.zip
+          python tools/package_release.py --build-dir build/release --out build/repro-b --archive zip --sign none --source-date-epoch "$SOURCE_DATE_EPOCH"
+          cp venom-v*-linux-*.zip build/repro-b.zip
+      - name: Compare release archives
+        run: python tools/check_reproducibility.py build/repro-a.zip build/repro-b.zip --format json

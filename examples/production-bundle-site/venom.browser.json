@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "id": "production-esm-bundle",
+  "description": "Hashed production-style ES module output with a compact module graph, minified syntax, DOM hydration, events, promises, timers, CSS, and multiple routes.",
+  "profile": "production-bundler-output",
+  "evidence_level": "behavioral",
+  "claims": [
+    "hashed-static-assets",
+    "minified-es-modules",
+    "static-module-graph",
+    "dom-hydration-patterns",
+    "multi-route-output"
+  ],
+  "scenarios": [
+    {
+      "id": "home",
+      "path": "/index.html",
+      "wait_for": {
+        "selector": "#bundle-status",
+        "attribute": true,
+        "name": "data-timer",
+        "equals": "ready"
+      },
+      "checks": [
+        {
+          "id": "ready-state",
+          "type": "attribute",
+          "selector": "#app",
+          "name": "data-state",
+          "equals": "ready"
+        },
+        {
+          "id": "bundle-format",
+          "type": "attribute",
+          "selector": "#bundle-status",
+          "name": "data-bundle",
+          "equals": "esm"
+        },
+        {
+          "id": "computed-output",
+          "type": "text",
+          "selector": "#bundle-status",
+          "equals": "ready:16"
+        },
+        {
+          "id": "promise",
+          "type": "attribute",
+          "selector": "#bundle-status",
+          "name": "data-promise",
+          "equals": "microtask-ready"
+        },
+        {
+          "id": "list-item",
+          "type": "text",
+          "selector": ".bundle-item",
+          "equals": "item-01"
+        }
+      ],
+      "actions": [
+        {
+          "type": "click",
+          "selector": "#bundle-action"
+        }
+      ]
+    },
+    {
+      "id": "about",
+      "path": "/about.html",
+      "wait_for": {
+        "selector": "#about-status"
+      },
+      "checks": [
+        {
+          "id": "about-content",
+          "type": "text",
+          "selector": "#about-status",
+          "equals": "about-ready"
+        },
+        {
+          "id": "about-page",
+          "type": "attribute",
+          "selector": "#about-app",
+          "name": "data-page",
+          "equals": "about"
+        }
+      ]
+    }
+  ],
+  "support_tier": "supported"
+}

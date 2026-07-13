@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "id": "browser-api-and-modules",
+  "description": "DOM, events, promises, timers, fetch, modules, and route navigation.",
+  "scenarios": [
+    {
+      "id": "main",
+      "path": "/index.html",
+      "wait_for": {
+        "selector": "#compat-output",
+        "attribute": true,
+        "name": "data-fetch",
+        "equals": "done"
+      },
+      "checks": [
+        {
+          "id": "dom-text",
+          "type": "text",
+          "selector": "#compat-output",
+          "equals": "dom:7:20"
+        },
+        {
+          "id": "dom-class",
+          "type": "class",
+          "selector": "#compat-output",
+          "contains": "ready"
+        },
+        {
+          "id": "dataset",
+          "type": "attribute",
+          "selector": "#compat-output",
+          "name": "data-bridge",
+          "equals": "dataset-ready"
+        },
+        {
+          "id": "promise",
+          "type": "attribute",
+          "selector": "#compat-output",
+          "name": "data-promise",
+          "equals": "done"
+        },
+        {
+          "id": "timer",
+          "type": "attribute",
+          "selector": "#compat-output",
+          "name": "data-timer",
+          "equals": "done"
+        },
+        {
+          "id": "fetch",
+          "type": "attribute",
+          "selector": "#compat-output",
+          "name": "data-fetch-status",
+          "equals": "200:ok"
+        },
+        {
+          "id": "module",
+          "type": "attribute",
+          "selector": "#compat-output",
+          "name": "data-module",
+          "equals": "module-ready"
+        }
+      ],
+      "actions": [
+        {
+          "type": "click",
+          "selector": "#compat-button"
+        }
+      ]
+    },
+    {
+      "id": "about-route",
+      "path": "/about.html",
+      "wait_for": {
+        "selector": "#about-output"
+      },
+      "checks": [
+        {
+          "id": "route-content",
+          "type": "text",
+          "selector": "#about-output",
+          "equals": "about-ready"
+        },
+        {
+          "id": "route-marker",
+          "type": "attribute",
+          "selector": "#about-output",
+          "name": "data-route",
+          "equals": "about"
+        }
+      ]
+    }
+  ],
+  "support_tier": "supported"
+}

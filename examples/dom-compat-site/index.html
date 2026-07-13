@@ -1,0 +1,15 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Venom DOM compatibility</title></head>
+<body>
+  <main id="app">
+    <form id="profile-form">
+      <input id="name" name="name" value="Mario">
+      <input id="enabled" type="checkbox" checked>
+      <select id="mode"><option value="safe">Safe</option><option value="fast">Fast</option></select>
+      <button id="submit" type="submit">Save</button>
+    </form>
+    <div id="parent"><button id="child">Bubble</button></div>
+    <div id="status">pending</div>
+  </main>
+  <script src="assets/dom.js"></script>
+</body></html>

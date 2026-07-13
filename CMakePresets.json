@@ -1,0 +1,116 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "VENOM_ENABLE_FULL_QUICKJS": "ON"
+      }
+    },
+    {
+      "name": "dev",
+      "inherits": "base",
+      "displayName": "Development",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "VENOM_ENABLE_IPO": "OFF"
+      }
+    },
+    {
+      "name": "release",
+      "inherits": "base",
+      "displayName": "Production release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "VENOM_ENABLE_IPO": "ON"
+      }
+    },
+    {
+      "name": "strict",
+      "inherits": "release",
+      "displayName": "Strict release",
+      "cacheVariables": {
+        "VENOM_ENABLE_WERROR": "ON"
+      }
+    },
+    {
+      "name": "fuzz",
+      "inherits": "base",
+      "displayName": "Sanitizer fuzzing",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "VENOM_BUILD_FUZZERS": "ON",
+        "VENOM_ENABLE_SANITIZERS": "ON",
+        "VENOM_ENABLE_IPO": "OFF"
+      }
+    },
+    {
+      "name": "release-closure",
+      "inherits": "strict",
+      "displayName": "Browser-complete release closure",
+      "cacheVariables": {
+        "VENOM_REQUIRE_BROWSER_RUNTIME_TESTS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "dev",
+      "configurePreset": "dev"
+    },
+    {
+      "name": "release",
+      "configurePreset": "release"
+    },
+    {
+      "name": "strict",
+      "configurePreset": "strict"
+    },
+    {
+      "name": "fuzz",
+      "configurePreset": "fuzz"
+    },
+    {
+      "name": "release-closure",
+      "configurePreset": "release-closure"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "dev",
+      "configurePreset": "dev",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "release",
+      "configurePreset": "release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "strict",
+      "configurePreset": "strict",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "release-closure",
+      "configurePreset": "release-closure",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}
