@@ -1,4 +1,6 @@
 @echo off
 setlocal
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0setup-js-hardener.ps1" %*
-exit /b %errorlevel%
+set "SCRIPT_DIR=%~dp0"
+powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%setup-js-hardener.ps1" %*
+set "RC=%ERRORLEVEL%"
+endlocal & exit /b %RC%

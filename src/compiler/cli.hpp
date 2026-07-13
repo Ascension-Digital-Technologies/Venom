@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <string>
+#include <cstdint>
 #include <vector>
 
 namespace venom::compiler {
@@ -42,6 +43,7 @@ struct BuildOptions {
   std::filesystem::path vendor_lock;
   bool vendor_offline = false;
   bool refresh_vendors = false;
+  std::uint32_t diversification_seed = 0;
   std::filesystem::path config_file;
   OutputFormat format = OutputFormat::Text;
 };

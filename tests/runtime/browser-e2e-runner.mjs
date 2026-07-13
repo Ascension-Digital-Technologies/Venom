@@ -22,6 +22,9 @@ async function read(page, check) {
   if (check.type === 'attribute') { const value = await page.getAttribute(selector, check.name); if (check.exists === true) return value !== null; if (check.exists === false) return value === null; return value === String(check.equals ?? ''); }
   if (check.type === 'class') return (await page.getAttribute(selector, 'class') || '').split(/\s+/).includes(String(check.contains ?? ''));
   if (check.type === 'url-path') return new URL(page.url()).pathname.endsWith(String(check.equals ?? ''));
+  if (check.type === 'number-min') { const raw = (await page.textContent(selector) || '').replace(/[^0-9.-]/g, ''); const value = Number(raw); return Number.isFinite(value) && value >= Number(check.min ?? 0); }
+  if (check.type === 'not-text') return (await page.textContent(selector) || '') !== String(check.equals ?? '');
+  if (check.type === 'evaluate') return Boolean(await page.evaluate(check.expression));
   throw new Error(`unsupported check type: ${check.type}`);
 }
 let browser;
@@ -55,6 +58,10 @@ try {
       const actionStarted = performance.now();
       if (action.type === 'click') await page.click(action.selector);
       else if (action.type === 'fill') await page.fill(action.selector, String(action.value ?? ''));
+      else if (action.type === 'select') await page.selectOption(action.selector, String(action.value ?? ''));
+      else if (action.type === 'wait') await page.waitForTimeout(Number(action.ms ?? 0));
+      else if (action.type === 'wait-for-function') await page.waitForFunction(action.expression, null, {timeout: action.timeout_ms || scenario.timeout_ms || 20000});
+      else if (action.type === 'evaluate') await page.evaluate(action.expression);
       else throw new Error(`unsupported action type: ${action.type}`);
       if (action.wait_for_path) await page.waitForFunction(path => location.pathname.endsWith(path), action.wait_for_path, {timeout: scenario.timeout_ms || 20000});
       scenarioPerf.action_ms.push(Math.round((performance.now() - actionStarted) * 1000) / 1000);

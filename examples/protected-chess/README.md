@@ -160,3 +160,7 @@ Verify the embedded runtime:
 ```
 
 Protected builds intentionally fail instead of falling back to readable browser execution.
+
+## Browser qualification manifest
+
+`venom.browser.json` is the release E2E contract. It starts AI-vs-AI, requires at least four legal moves and nonzero throughput, then verifies Stop & Reset cancels the loop cleanly. The release workflow runs it in Chromium, Firefox, and WebKit.

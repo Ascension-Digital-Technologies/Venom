@@ -1,7 +1,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { minify } from 'terser';
-import JavaScriptObfuscator from 'javascript-obfuscator';
+let minify;
+let JavaScriptObfuscator;
+try {
+  ({ minify } = await import('terser'));
+  const obfuscatorModule = await import('javascript-obfuscator');
+  JavaScriptObfuscator = obfuscatorModule.default ?? obfuscatorModule;
+} catch (error) {
+  console.error('[venom] JavaScript hardener dependencies are unavailable or corrupt.');
+  console.error('[venom] Run scripts/setup-js-hardener.ps1 on Windows or scripts/setup-js-hardener.sh on Unix.');
+  console.error(`[venom] ${error?.message ?? error}`);
+  process.exit(3);
+}
 
 const [, , inputPath, outputPath, kind = 'runtime', seedText = '0'] = process.argv;
 if (!inputPath || !outputPath) {

@@ -4,8 +4,8 @@ Venom compiles supported websites into a compact, integrity-bound distribution t
 
 The project is designed to increase the cost of static source recovery and unauthorized modification. It is not a substitute for server-side authorization, secret storage, or trusted execution.
 
-> **Version:** 1.34.1  
-> **Status:** active development and controlled production evaluation  
+> **Version:** 1.36.4  
+> **Status:** public release candidate  
 > **Flagship example:** [`examples/protected-chess`](examples/protected-chess)
 
 ## Why Venom
@@ -100,6 +100,10 @@ dist/
 
 `index.html` remains stable. Generated assets are content-addressed and bound to the same build. The loader and stylesheet use Subresource Integrity.
 
+## License and availability
+
+Venom is currently **source-available under a restricted evaluation and authorized-use license**. It is not OSI-approved open-source software. See [`LICENSE`](LICENSE), [`NOTICE.md`](NOTICE.md), and [`SUPPORT.md`](SUPPORT.md) before copying, distributing, or deploying it. Third-party components remain under their own licenses.
+
 ## Requirements
 
 - CMake 3.24 or newer
@@ -132,6 +136,8 @@ Windows:
 
 ```powershell
 .\scripts\setup-js-hardener.ps1
+
+The Windows installer pauses automatically on failure. For unattended environments, add `-NoPause`.
 .\scripts\build-site.ps1 -Site examples\protected-chess -Dist dist
 .\scripts\serve-site.ps1 -Dist dist -Port 8080
 ```
@@ -186,6 +192,35 @@ Current protected builds include:
 - fail-closed runtime and release verification.
 
 These measures raise reverse-engineering cost but cannot create absolute confidentiality on an attacker-controlled client.
+
+## Release qualification
+
+The flagship release gate builds and runs the protected chess application, verifies fail-closed tamper behavior, and checks deterministic seeded builds:
+
+```powershell
+.\scripts\release.ps1 -Browser all -Seed 1350001
+```
+
+See [Release qualification](docs/RELEASE-QUALIFICATION.md).
+
+
+## Release integrity
+
+Public release packages include deterministic manifests, SBOM/provenance metadata,
+license notices, checksums, and verification tooling. Run the repository-facing gate
+before publishing:
+
+```powershell
+python .\tools\public_release_gate.py .
+```
+
+The authoritative release workflow is:
+
+```powershell
+.\scripts\release.ps1 -Browser all -Seed 1350001
+```
+
+See [`docs/RELEASE-CHECKLIST.md`](docs/RELEASE-CHECKLIST.md).
 
 ## Validation
 

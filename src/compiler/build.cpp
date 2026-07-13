@@ -2906,7 +2906,8 @@ bool build_site(const BuildOptions& requested_options) {
   if (options.runtime != "js" && options.runtime != "wasm") {
     throw std::runtime_error("unsupported runtime mode: " + options.runtime);
   }
-  const auto poly = venom::vm::make_polymorphic_plan(profile.deterministic ? 0xC0FFEEu : 0u, profile.polymorphic);
+  const auto deterministic_seed = options.diversification_seed != 0u ? options.diversification_seed : (profile.deterministic ? 0xC0FFEEu : 0u);
+  const auto poly = venom::vm::make_polymorphic_plan(deterministic_seed, profile.polymorphic);
   const auto capability_graph = analyze_capabilities(graph.root);
   const auto runtime_modules = plan_runtime_modules(graph, capability_graph);
   const auto wasm_bytes = wasm_runtime ? make_runtime_wasm_module() : std::vector<unsigned char>{};
@@ -2966,7 +2967,7 @@ bool build_site(const BuildOptions& requested_options) {
   }
   const auto worker_file_name = hardened_release_asset ? named_output("worker", ".js", worker_runtime, options.hashed_assets) : std::string{};
   const auto worker_name = hardened_release_asset ? "workers/" + worker_file_name : std::string{};
-  const auto package_binding_token = make_package_binding_token(profile.deterministic, profile.name + "|" + options.runtime + "|" + runtime_name + "|" + wasm_name + "|" + quickjs_engine_name + "|" + quickjs_wasm_name + "|" + worker_name);
+  const auto package_binding_token = make_package_binding_token(options.diversification_seed != 0u || profile.deterministic, profile.name + "|" + options.runtime + "|" + runtime_name + "|" + wasm_name + "|" + quickjs_engine_name + "|" + quickjs_wasm_name + "|" + worker_name);
   const auto package_flags = profile.package_flags |
       ((options.strict_release || profile.fail_closed) ? venom::package::PackageFlagReleaseProfile : 0u) |
       venom::package::PackageFlagTimerBridge |

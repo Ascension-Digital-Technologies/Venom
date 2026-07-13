@@ -40,3 +40,29 @@ Pass `-Artifact <path>` to `build-quickjs-wasm.ps1` when embedding a newly built
 - `verify-release.*` verifies a release archive and its manifest.
 
 Implementation logic belongs in `tools/`; wrappers should remain small and stable.
+
+## Full release qualification
+
+```powershell
+.\scripts\release.ps1 -Browser all -Seed 1350001
+```
+
+This is the authoritative release gate.
+
+## Windows build output discovery
+
+Visual Studio is a multi-config generator and writes the CLI to `build/<Config>/venom.exe` (for example, `build/Release/venom.exe`). Ninja and Make commonly write it directly under `build/`. The PowerShell workflows use `resolve-venom.ps1` to support both layouts, including Windows PowerShell 5.1 where `$IsWindows` is unavailable.
+
+### Repair the JavaScript hardener
+
+```powershell
+.\scripts\setup-js-hardener.ps1 -Force
+
+The Windows installer pauses automatically on failure so the npm/Node error remains visible. Use `-NoPause` for CI:
+
+```powershell
+.\scripts\setup-js-hardener.ps1 -Force -NoPause
+```
+```
+
+The installer removes partial dependencies, installs the pinned packages locally under `tools/js-hardener`, and runs an import and output self-test.

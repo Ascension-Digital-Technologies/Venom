@@ -1,3 +1,47 @@
+# Changes
+
+## 1.36.4
+
+- Fixed Windows PowerShell 5.1 argument binding in `setup-js-hardener.ps1`.
+- Node's `-e` flag is now passed through an explicit argument array instead of being misread as an abbreviated PowerShell common parameter.
+- All checked npm/Node invocations now use named `-Program` and `-Arguments` parameters.
+
+
+- Updated the Windows JavaScript hardener installer to keep failures visible instead of closing immediately.
+- Added `-NoPause` for CI and unattended setup.
+- Preserved the actual npm/Node failure message and PowerShell stack details.
+- Updated the batch launcher to return the installer exit code while relying on the PowerShell script to pause only on failure.
+- Kept the self-repairing dependency install and end-to-end hardener verification from 1.36.2.
+
+## 1.36.2
+
+- Fixed the JavaScript hardener installer on Windows PowerShell and Node.js 24.
+- Installer now checks npm exit codes, repairs partial installs, removes non-portable private-registry lockfiles, and verifies both imports with an end-to-end hardening self-test.
+- Hardened builds now show a direct setup command when dependencies are missing or corrupt.
+
+## 1.36.1
+
+- Fixed Windows PowerShell 5.1 executable discovery for Visual Studio multi-config builds.
+- `build-site.ps1` now resolves `build/<Config>/venom.exe`, rebuilds when needed, and resolves again after a successful build.
+- The release workflow uses the same shared executable resolver across Windows generators.
+
+## 1.36.0
+
+- Added a fail-fast public-release repository gate.
+- Added consolidated third-party notices, support guidance, code of conduct, and a public release checklist.
+- Included changelog, security, support, conduct, and notice files in packaged releases.
+- Added GitHub feature-request metadata and Dependabot coverage for GitHub Actions.
+- Updated the README and release workflow for public release-candidate status.
+
+## 1.35.0
+
+- Added deterministic per-build diversification with `--seed`.
+- Added protected-chess Playwright qualification for Chromium, Firefox, and WebKit.
+- Added autoplay, throughput, reset, and cancellation browser assertions.
+- Added fail-closed mutation tests for package, loader, runtime WASM, and missing runtime assets.
+- Added same-seed reproducibility and different-seed diversification gates.
+- Added authoritative `scripts/release.*` release qualification entry points.
+
 # Changelog
 
 ## 1.34.1

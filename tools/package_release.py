@@ -257,7 +257,7 @@ def main() -> int:
     copy_tree(repo_root / 'scripts', out_dir / 'scripts')
     tools_out = out_dir / 'tools'
     tools_out.mkdir(parents=True, exist_ok=True)
-    for tool_name in ('verify_release.py', 'release_crypto.py', 'sign_release.py', 'quickjs_wasm_preflight.py', 'quickjs_wasm_cutover.py', 'quickjs_runtime_lifecycle.py', 'setup_emscripten.py', 'build_emscripten.py', 'analyze_dist.py', 'wasm_exports.py', 'embed_wasm.py', 'generate_release_metadata.py', 'verify_release_set.py', 'install_release.py'):
+    for tool_name in ('verify_release.py', 'release_crypto.py', 'sign_release.py', 'quickjs_wasm_preflight.py', 'quickjs_wasm_cutover.py', 'quickjs_runtime_lifecycle.py', 'setup_emscripten.py', 'build_emscripten.py', 'analyze_dist.py', 'wasm_exports.py', 'embed_wasm.py', 'generate_release_metadata.py', 'verify_release_set.py', 'install_release.py', 'public_release_gate.py'):
         tool_src = repo_root / 'tools' / tool_name
         if tool_src.exists():
             shutil.copy2(tool_src, tools_out / tool_name)
@@ -272,7 +272,7 @@ def main() -> int:
     if root_license.exists():
         shutil.copy2(root_license, licenses / 'VENOM-LICENSE')
 
-    for rel in ('README.md', 'toolchains.lock.json'):
+    for rel in ('README.md', 'CHANGES.md', 'SECURITY.md', 'SUPPORT.md', 'CODE_OF_CONDUCT.md', 'NOTICE.md', 'toolchains.lock.json'):
         src = repo_root / rel
         if src.exists():
             shutil.copy2(src, out_dir / rel)

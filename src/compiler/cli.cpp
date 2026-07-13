@@ -243,6 +243,14 @@ Command parse_command(int argc, char** argv) {
       cmd.build.vendor_offline = true;
     } else if (arg == "--refresh-vendors") {
       cmd.build.refresh_vendors = true;
+    } else if (arg == "--seed") {
+      const auto value = require_value(i, argc, argv, arg);
+      std::size_t consumed = 0;
+      const auto parsed = std::stoull(value, &consumed, 0);
+      if (consumed != value.size() || parsed == 0 || parsed > 0xffffffffull) {
+        throw std::runtime_error("--seed must be an integer from 1 to 4294967295");
+      }
+      cmd.build.diversification_seed = static_cast<std::uint32_t>(parsed);
     } else {
       throw std::runtime_error("unknown build option: " + arg);
     }
@@ -300,7 +308,7 @@ Command parse_command(int argc, char** argv) {
 void print_help() {
   std::cout << VENOM_PRODUCT_NAME << " " << VENOM_VERSION_STRING << "\n\n"
             << "Usage:\n"
-            << "  venom build [site-dir] [--config venom.toml] [--out <dist>] [--format text|json]\n"
+            << "  venom build [site-dir] [--config venom.toml] [--out <dist>] [--seed <u32>] [--format text|json]\n"
             << "  venom doctor [--format text|json]\n"
             << "  venom analyze <site-dir> [--format text|json]\n"
             << "  venom compatibility check <site-dir> [--format text|json]\n"
@@ -316,6 +324,7 @@ void print_help() {
             << "  --refresh-vendors is the only operation that updates reviewed dependency pins.\n\n"
             << "Examples:\n"
             << "  venom build examples/protected-chess --out dist\n"
+            << "  venom build examples/protected-chess --out dist --seed 123456\n"
             << "  scripts\\build-site.bat examples\\protected-chess dist\n"
             << "  scripts\\serve-site.bat 8080 dist\n";
 }

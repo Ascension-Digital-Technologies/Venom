@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(venom
-  VERSION 1.34.1
+  VERSION 1.36.4
   DESCRIPTION "Venom - Secure Web Runtime: protected web compiler and dual-VM browser runtime"
   LANGUAGES C CXX
 )
