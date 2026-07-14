@@ -154,7 +154,7 @@ jobs:
           python tools/package_release_set.py --version "${GITHUB_REF_NAME#v}" --source-revision "$GITHUB_SHA" --packages "${PACKAGES[@]}" --verified-runtime artifacts/venom-verified-runtime/build/quickjs-wasm/quickjs-runtime.wasm --out release-set --archive venom-release-set.zip --source-date-epoch "$SOURCE_DATE_EPOCH" --private-key "$RUNNER_TEMP/venom-signing/private.pem" --public-key "$RUNNER_TEMP/venom-signing/public.pem" --require-signature
           cp artifacts/venom-verified-runtime/build/quickjs-wasm/VERIFIED_RUNTIME_SHA256SUMS release-set/VERIFIED_RUNTIME_SHA256SUMS
           python tools/verify_release_set.py release-set --expect-version "${GITHUB_REF_NAME#v}" --require-runtime --require-signature --public-key "$RUNNER_TEMP/venom-signing/public.pem"
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: |
             release-set/artifacts/*
