@@ -13,8 +13,6 @@ Normal users may use a prebuilt release when one is available. Building from sou
 - Visual Studio with **Desktop development with C++**
 - CMake 3.20 or newer
 - Python 3.10 or newer
-- Node.js 20 or newer
-- npm
 
 ### Linux
 
@@ -22,8 +20,6 @@ Normal users may use a prebuilt release when one is available. Building from sou
 - CMake 3.20 or newer
 - Ninja or Make
 - Python 3.10 or newer
-- Node.js 20 or newer
-- npm
 
 The normal compiler build uses the verified QuickJS/WASM runtime embedded in the source package. Emscripten is not required unless intentionally rebuilding that embedded runtime artifact.
 
@@ -32,7 +28,6 @@ The normal compiler build uses the verified QuickJS/WASM runtime embedded in the
 From a PowerShell prompt in the extracted repository:
 
 ```powershell
-.\scripts\setup-js-hardener.ps1 -NoPause
 .\scripts\build.ps1 -Config Release
 ```
 
@@ -59,7 +54,6 @@ For an explicit clean build:
 ## Linux build
 
 ```bash
-bash scripts/setup-js-hardener.sh
 bash scripts/build.sh --config Release
 ```
 
@@ -90,15 +84,8 @@ cmake --build build --config Release --parallel
 
 ## JavaScript hardener
 
-Production builds require the locked hardener dependencies under `tools/js-hardener/`. Setup uses the committed lockfile and performs a functional verification, not only a directory check.
+Production hardening is built directly into the native `venom` executable. The compiler runs pinned Terser 5.49.0 and `javascript-obfuscator` 5.4.7 bundles inside its linked QuickJS engine, so production builds do not require Node.js, npm, `node_modules`, temporary JavaScript files, or an external hardener process.
 
-A missing hardener produces a fail-closed error similar to:
-
-```text
-protected release JS hardener dependencies are missing
-```
-
-Run the platform setup script and retry the build.
 
 ## Build acceleration
 

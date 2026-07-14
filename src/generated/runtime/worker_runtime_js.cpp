@@ -77,6 +77,8 @@ const textDecoder = new TextDecoder('utf-8', { fatal: true });
 const MAX_BRIDGE_MESSAGE_BYTES = 1048576;
 const MAX_BRIDGE_ARGUMENTS = 64;
 const MAX_BRIDGE_CONCURRENCY = 8;
+const MAX_BRIDGE_JSON_DEPTH = 24;
+const MAX_BRIDGE_JSON_NODES = 16384;
 const BRIDGE_MAGIC = 0x32524256;
 const BRIDGE_HEADER_BYTES = 26;
 const BRIDGE_TAG_BYTES = 4;
@@ -123,16 +125,17 @@ function decodeBridgeFrame(raw) {
 }
 function sendBridgeFrame(op, counter, capability, requestId, value) { if (!bridgePort) return; const frame = encodeBridgeFrame(op, counter, capability, requestId, value); bridgePort.postMessage(frame, [frame]); }
 function bridgeError(requestId, code, message, counter = 0) { sendBridgeFrame(sessionErrorOp, counter, 0, requestId, { code, message }); }
-function isJsonValue(value, depth = 0) {
-  if (depth > 32) return false;
+function isJsonValue(value, depth = 0, state = { nodes: 0 }) {
+  if (++state.nodes > MAX_BRIDGE_JSON_NODES || depth > MAX_BRIDGE_JSON_DEPTH) return false;
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return true;
   if (typeof value === 'number') return Number.isFinite(value);
-  if (Array.isArray(value)) return value.length <= 4096 && value.every((item) => isJsonValue(item, depth + 1));
+  if (Array.isArray(value)) return value.length <= 4096 && value.every((item) => isJsonValue(item, depth + 1, state));
   if (typeof value === 'object') {
     const proto = Object.getPrototypeOf(value);
     if (proto !== Object.prototype && proto !== null) return false;
     const keys = Object.keys(value);
-    return keys.length <= 4096 && keys.every((key) => isJsonValue(value[key], depth + 1));
+    if (keys.length > 4096 || keys.some((key) => key === '__proto__' || key === 'prototype' || key === 'constructor')) return false;
+    return keys.every((key) => isJsonValue(value[key], depth + 1, state));
   }
   return false;
 }
@@ -327,6 +330,7 @@ self.onmessage = async (event) => {
         }
         const resultPtr = e.venom_qjs_bridge_result_ptr() >>> 0; const resultSize = e.venom_qjs_bridge_result_size() >>> 0;
         if (!resultPtr || !resultSize) return bridgeError(requestId, 'invalid-result', 'QuickJS bridge returned an invalid result range', counter);
+        if (resultSize > MAX_BRIDGE_MESSAGE_BYTES) return bridgeError(requestId, 'result-too-large', 'QuickJS bridge result exceeds the public result limit', counter);
         const resultBytes = secureMemoryRead(e, resultPtr, resultSize, 'QuickJS bridge result');
         const result = JSON.parse(textDecoder.decode(resultBytes));
         resultBytes.fill(0);

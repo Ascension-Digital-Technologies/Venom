@@ -9,7 +9,7 @@ and protected-bridge questions. Before asking, review:
 - `examples/protected-chess/README.md`
 - `docs/getting-started/installation.md`
 - `docs/guides/configuration.md`
-- `docs/PROTECTED-BRIDGE.md`
+- `docs/guides/browser-bridge.md`
 
 ## Bug reports
 

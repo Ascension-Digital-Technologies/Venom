@@ -257,27 +257,6 @@ Command parse_command(int argc, char** argv) {
     return cmd;
   }
 
-  if (first == "decompile") {
-    cmd.kind = CommandKind::Decompile;
-    if (argc < 3 || is_flag(argv[2])) {
-      throw std::runtime_error("usage: venom decompile <dist|package|javascript> [--out <directory>] [--key-file <file>] [--format text|json] [--no-js] [--no-qjs-disasm] [--force]");
-    }
-    cmd.decompile.input = argv[2];
-    for (int i = 3; i < argc; ++i) {
-      const std::string arg = argv[i];
-      if (arg == "--out") cmd.decompile.output = require_value(i, argc, argv, arg);
-      else if (arg == "--key-file") cmd.decompile.key_file = require_value(i, argc, argv, arg);
-      else if (arg == "--format") {
-        const auto value = require_value(i, argc, argv, arg);
-        if (value == "json") cmd.decompile.format = OutputFormat::Json;
-        else if (value != "text") throw std::runtime_error("--format must be text or json");
-      } else if (arg == "--no-js") cmd.decompile.recover_javascript = false;
-      else if (arg == "--no-qjs-disasm") cmd.decompile.quickjs_disassembly = false;
-      else if (arg == "--force") cmd.decompile.force = true;
-      else throw std::runtime_error("unknown decompile option: " + arg);
-    }
-    return cmd;
-  }
 
   if (first == "inspect") {
     cmd.kind = CommandKind::Inspect;
@@ -351,6 +330,8 @@ Command parse_command(int argc, char** argv) {
 
   const auto explicit_input = cmd.build.input;
   std::filesystem::path config_path;
+  bool saw_verbose = false;
+  bool saw_quiet = false;
   for (int i = option_start; i < argc; ++i) {
     const std::string arg = argv[i];
     if (arg == "--config") config_path = require_value(i, argc, argv, arg);
@@ -371,6 +352,12 @@ Command parse_command(int argc, char** argv) {
       const auto value = require_value(i, argc, argv, arg);
       if (value == "json") cmd.build.format = OutputFormat::Json;
       else if (value != "text") throw std::runtime_error("--format must be text or json");
+    } else if (arg == "--verbose" || arg == "-v") {
+      saw_verbose = true;
+      cmd.build.verbosity = 2;
+    } else if (arg == "--quiet" || arg == "-q") {
+      saw_quiet = true;
+      cmd.build.verbosity = 0;
     } else if (arg == "--out") {
       cmd.build.output = require_value(i, argc, argv, arg);
     } else if (arg == "--profile") {
@@ -433,6 +420,9 @@ Command parse_command(int argc, char** argv) {
 
   apply_profile_defaults(cmd.build);
 
+  if (saw_verbose && saw_quiet) {
+    throw std::runtime_error("--verbose and --quiet cannot be used together");
+  }
   if (cmd.build.allow_host_fallback && cmd.build.deny_host_fallback) {
     throw std::runtime_error("--allow-host-fallback and --deny-host-fallback cannot be used together");
   }
@@ -460,7 +450,7 @@ Command parse_command(int argc, char** argv) {
 void print_help() {
   std::cout << VENOM_PRODUCT_NAME << " " << VENOM_VERSION_STRING << "\n\n"
             << "Usage:\n"
-            << "  venom build [site-dir] --profile dev|prod [--protection standard|strong|maximum]\n"
+            << "  venom build [site-dir] --profile dev|prod [--protection standard|strong|maximum] [--verbose|--quiet]\n"
             << "  venom plan [site-dir] [--protect <pattern>] [--browser <pattern>] [--min-confidence N] [--format text|json]\n"
             << "  venom dev [site-dir] [--out dist-dev] [--port 8080] [--open]\n"
             << "  venom new <name-or-path> [--force]\n"
@@ -476,8 +466,11 @@ void print_help() {
             << "  venom release-check <dist-or-package> [--target browser]\n"
             << "  venom verify-runtime <dist-or-package> [--require-real-engine]\n"
             << "  venom inspect <dist/assets/app/app.<hash>.vbc>\n"
-            << "  venom decompile <dist|package|javascript> [--out recovered] [--force]\n"
             << "  venom --version\n\n"
+            << "Build output:\n"
+            << "  Default  Structured phase-by-phase progress with timings and artifact counts.\n"
+            << "  --verbose, -v  Include detailed planner, runtime, package, and hardener diagnostics.\n"
+            << "  --quiet, -q    Suppress progress output; errors and the final result remain visible.\n\n"
             << "Build profiles:\n"
             << "  dev   Readable generated runtime, diagnostics, stable asset names, real QuickJS/WASM protection.\n"
             << "  prod  Obfuscated, hashed, stripped, diversified, fail-closed deployment output.\n\n"

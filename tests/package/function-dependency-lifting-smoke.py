@@ -40,7 +40,7 @@ if venom is not None:
             encoding='utf-8',
         )
         subprocess.run(
-            [str(venom), 'build', str(site), '--out', str(dist), '--format', 'text'],
+            [str(venom), 'build', str(site), '--out', str(dist), '--format', 'text', '--profile', 'dev'],
             check=True,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE,

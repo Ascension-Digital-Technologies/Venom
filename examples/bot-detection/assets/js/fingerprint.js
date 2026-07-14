@@ -11,14 +11,6 @@
   }
 
 
-const COMMON_AUTOMATION_GLOBALS = [
-  "_phantom", "callPhantom", "__nightmare", "domAutomation", "domAutomationController",
-  "__webdriver_evaluate", "__selenium_evaluate", "__webdriver_script_function",
-  "__webdriver_script_func", "__webdriver_script_fn", "__fxdriver_evaluate",
-  "__driver_unwrapped", "__webdriver_unwrapped", "__driver_evaluate", "__selenium_unwrapped",
-  "webdriver", "__playwright", "__pw_manual", "Cypress"
-];
-
 const FONT_CANDIDATES = [
   "Arial", "Calibri", "Cambria", "Consolas", "Courier New", "Georgia", "Helvetica",
   "Menlo", "Monaco", "Roboto", "Segoe UI", "Tahoma", "Times New Roman", "Trebuchet MS", "Verdana"
@@ -31,35 +23,6 @@ function safeValue(read, fallback = null) {
   } catch {
     return fallback;
   }
-}
-
-function hashString(value) {
-  let hash = 2166136261;
-  const source = String(value ?? "");
-  for (let index = 0; index < source.length; index += 1) {
-    hash ^= source.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0).toString(16).padStart(8, "0");
-}
-
-function isNativeFunction(value) {
-  if (typeof value !== "function") return false;
-  try {
-    return /\{\s*\[native code\]\s*\}/.test(Function.prototype.toString.call(value));
-  } catch {
-    return false;
-  }
-}
-
-function browserNameFromUserAgent(userAgent) {
-  const ua = String(userAgent || "");
-  if (/Edg\//.test(ua)) return "Microsoft Edge";
-  if (/OPR\//.test(ua)) return "Opera";
-  if (/Firefox\//.test(ua)) return "Firefox";
-  if (/Chrome\//.test(ua)) return "Chrome";
-  if (/Safari\//.test(ua)) return "Safari";
-  return "Unknown";
 }
 
 async function collectUserAgentData() {
@@ -83,9 +46,7 @@ async function collectUserAgentData() {
 
 function collectBrowser(userAgentData) {
   const userAgent = String(navigator.userAgent || "");
-  const mobile = Boolean(userAgentData?.mobile || /Android|iPhone|iPad|Mobile/i.test(userAgent));
   return {
-    name: browserNameFromUserAgent(userAgent),
     userAgent,
     appVersion: String(navigator.appVersion || ""),
     appName: String(navigator.appName || ""),
@@ -96,7 +57,7 @@ function collectBrowser(userAgentData) {
     platform: String(navigator.platform || ""),
     oscpu: String(navigator.oscpu || ""),
     buildId: String(navigator.buildID || ""),
-    mobile,
+    userAgentDataMobile: Boolean(userAgentData?.mobile),
     cookieEnabled: Boolean(navigator.cookieEnabled),
     doNotTrack: String(navigator.doNotTrack ?? window.doNotTrack ?? navigator.msDoNotTrack ?? "unspecified"),
     globalPrivacyControl: Boolean(navigator.globalPrivacyControl),
@@ -399,35 +360,28 @@ async function collectNetwork() {
   };
 }
 
-function collectAutomation(browser, permissions) {
-  const userAgent = String(browser.userAgent || "").toLowerCase();
-  const automationGlobals = COMMON_AUTOMATION_GLOBALS.filter((name) => safeValue(() => name in window, false));
-  const notificationPermission = typeof Notification === "function" ? String(Notification.permission) : "unsupported";
-  const queriedNotification = String(permissions.notifications || "unsupported");
-  const normalizedNotification = notificationPermission === "default" ? "prompt" : notificationPermission;
-  const permissionsMismatch = normalizedNotification !== "unsupported" && queriedNotification !== "unsupported" && normalizedNotification !== queriedNotification;
-  const nativeSurfaceChecks = [
-    ["querySelector", document.querySelector],
-    ["getElementById", document.getElementById],
-    ["fetch", window.fetch],
-    ["setTimeout", window.setTimeout]
-  ];
-  const modifiedNativeSurfaces = nativeSurfaceChecks.filter(([, value]) => typeof value === "function" && !isNativeFunction(value)).map(([name]) => name);
+function collectIntegrityEvidence(permissions) {
+  const functionSources = {};
+  const surfaces = {
+    querySelector: document.querySelector,
+    getElementById: document.getElementById,
+    fetch: window.fetch,
+    setTimeout: window.setTimeout
+  };
+  for (const [name, value] of Object.entries(surfaces)) {
+    functionSources[name] = safeValue(() => typeof value === "function" ? Function.prototype.toString.call(value) : "", "");
+  }
   return {
     webdriver: Boolean(navigator.webdriver),
-    headlessUserAgent: /headlesschrome|phantomjs|slimerjs/.test(userAgent),
-    automationGlobals,
-    outerDimensionsMissing: !browser.mobile && (window.outerWidth === 0 || window.outerHeight === 0),
-    permissionsMismatch,
-    notificationPermission,
-    queriedNotificationPermission: queriedNotification,
-    nativeSurfaceMismatch: modifiedNativeSurfaces.length >= 2,
-    modifiedNativeSurfaces,
-    chromeObjectPresent: Boolean(window.chrome),
-    devtoolsSizeDelta: {
-      width: Math.max(0, Number(window.outerWidth || 0) - Number(window.innerWidth || 0)),
-      height: Math.max(0, Number(window.outerHeight || 0) - Number(window.innerHeight || 0))
-    }
+    globalPropertyNames: safeValue(() => Object.getOwnPropertyNames(globalThis).slice(0, 8192), []),
+    outerWidth: Number(window.outerWidth || 0),
+    outerHeight: Number(window.outerHeight || 0),
+    innerWidth: Number(window.innerWidth || 0),
+    innerHeight: Number(window.innerHeight || 0),
+    notificationPermission: typeof Notification === "function" ? String(Notification.permission) : "unsupported",
+    queriedNotificationPermission: String(permissions.notifications || "unsupported"),
+    functionSources,
+    chromeObjectPresent: Boolean(window.chrome)
   };
 }
 
@@ -477,7 +431,13 @@ function createBehaviorTracker() {
     lastPointer: null,
     lastScrollY: window.scrollY,
     focusedAt: document.hasFocus() ? performance.now() : null,
-    lastInteractionAt: null
+    lastInteractionAt: null,
+    samples: []
+  };
+
+  const pushSample = (sample) => {
+    state.samples.push(sample);
+    if (state.samples.length > 128) state.samples.splice(0, state.samples.length - 128);
   };
 
   const countTrust = (event) => {
@@ -492,16 +452,18 @@ function createBehaviorTracker() {
     const point = { x: event.clientX, y: event.clientY };
     if (state.lastPointer) state.pointerDistance += Math.hypot(point.x - state.lastPointer.x, point.y - state.lastPointer.y);
     state.lastPointer = point;
+    pushSample({ type: "pointer", t: Math.round(performance.now() - startedAt), x: Math.round(event.clientX), y: Math.round(event.clientY), trusted: event.isTrusted === true });
     if (event.pointerType && !state.pointerTypes.includes(event.pointerType)) state.pointerTypes.push(event.pointerType);
   }, { passive: true });
 
   window.addEventListener("pointerdown", (event) => countTrust(event), { passive: true });
-  window.addEventListener("click", (event) => { countTrust(event); state.clicks += 1; }, { passive: true });
-  window.addEventListener("keydown", (event) => { countTrust(event); state.keyPresses += 1; }, { passive: true });
+  window.addEventListener("click", (event) => { countTrust(event); state.clicks += 1; pushSample({ type: "click", t: Math.round(performance.now() - startedAt), trusted: event.isTrusted === true }); }, { passive: true });
+  window.addEventListener("keydown", (event) => { countTrust(event); state.keyPresses += 1; pushSample({ type: "key", t: Math.round(performance.now() - startedAt), trusted: event.isTrusted === true }); }, { passive: true });
   window.addEventListener("scroll", (event) => {
     countTrust(event);
     state.scrollDistance += Math.abs(window.scrollY - state.lastScrollY);
     state.lastScrollY = window.scrollY;
+    pushSample({ type: "scroll", t: Math.round(performance.now() - startedAt), y: Math.round(window.scrollY), trusted: event.isTrusted === true });
   }, { passive: true });
   document.addEventListener("visibilitychange", () => { state.visibilityChanges += 1; });
   window.addEventListener("focus", () => { if (state.focusedAt === null) state.focusedAt = performance.now(); });
@@ -525,6 +487,7 @@ function createBehaviorTracker() {
         visibilityChanges: state.visibilityChanges,
         focusMs: Math.round(state.focusMs + liveFocus),
         pointerTypes: [...state.pointerTypes],
+        samples: state.samples.slice(),
         idleMs: state.lastInteractionAt === null ? Math.round(now - startedAt) : Math.round(now - state.lastInteractionAt)
       };
     },
@@ -543,6 +506,7 @@ function createBehaviorTracker() {
       state.lastScrollY = window.scrollY;
       state.focusedAt = document.hasFocus() ? performance.now() : null;
       state.lastInteractionAt = null;
+      state.samples = [];
     },
     startedAt
   };
@@ -577,7 +541,7 @@ async function collectFingerprint() {
   return {
     collectedAt,
     browser,
-    automation: collectAutomation(browser, permissions),
+    integrityEvidence: collectIntegrityEvidence(permissions),
     hardware: collectHardware(),
     display: collectDisplay(),
     graphics,

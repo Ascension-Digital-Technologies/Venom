@@ -7,6 +7,7 @@
 #include "quickjs/bridge.hpp"
 #include "quickjs/engine.hpp"
 
+#include <cctype>
 #include <algorithm>
 #include <cstdint>
 #include <initializer_list>
@@ -307,12 +308,49 @@ std::string make_quickjs_context_lifecycle_metadata(const Profile& profile, cons
 }
 
 std::string make_host_capabilities_metadata(const Profile& profile, const std::string& runtime_mode, const JsBridge& bridge) {
+  auto contains_token = [](const std::string& code, const std::string& token) {
+    std::size_t pos = 0;
+    while ((pos = code.find(token, pos)) != std::string::npos) {
+      const bool left_ok = pos == 0 || !(std::isalnum(static_cast<unsigned char>(code[pos - 1])) || code[pos - 1] == '_' || code[pos - 1] == '$');
+      const std::size_t right = pos + token.size();
+      const bool right_ok = right >= code.size() || !(std::isalnum(static_cast<unsigned char>(code[right])) || code[right] == '_' || code[right] == '$');
+      if (left_ok && right_ok) return true;
+      pos = right;
+    }
+    return false;
+  };
+  auto capabilities_for = [&](const JsChunk& chunk) {
+    std::vector<std::string> caps;
+    const auto& code = chunk.code;
+    if (contains_token(code, "console")) caps.emplace_back("console");
+    if (contains_token(code, "document")) caps.emplace_back("document");
+    if (contains_token(code, "window")) caps.emplace_back("window");
+    if (contains_token(code, "navigator")) caps.emplace_back("navigator");
+    if (contains_token(code, "fetch") || contains_token(code, "XMLHttpRequest")) caps.emplace_back("fetch");
+    if (contains_token(code, "setTimeout") || contains_token(code, "clearTimeout") ||
+        contains_token(code, "setInterval") || contains_token(code, "clearInterval")) caps.emplace_back("timers");
+    if (contains_token(code, "addEventListener") || contains_token(code, "removeEventListener") ||
+        contains_token(code, "dispatchEvent")) caps.emplace_back("events");
+    caps.emplace_back("__venomRuntime");
+    return caps;
+  };
+  auto join = [](const std::vector<std::string>& values) {
+    std::ostringstream text;
+    for (std::size_t i = 0; i < values.size(); ++i) {
+      if (i) text << ',';
+      text << values[i];
+    }
+    return text.str();
+  };
+
   std::ostringstream out;
-  out << "VENOM_HOST_CAPABILITIES_V2\n"
-      << "version=2\n"
+  out << "VENOM_HOST_CAPABILITIES_V3\n"
+      << "version=3\n"
       << "profile=" << profile.name << "\n"
       << "runtime_mode=" << runtime_mode << "\n"
       << "enabled=true\n"
+      << "policy=least-privilege-per-chunk\n"
+      << "undeclared_capability=deny\n"
       << "inject_host_call=quickjs.hostCapabilityInject\n"
       << "capability\tconsole\treadonly\n"
       << "capability\tdocument\tbridge\n"
@@ -322,11 +360,13 @@ std::string make_host_capabilities_metadata(const Profile& profile, const std::s
       << "capability\ttimers\tasync-host-call\n"
       << "capability\tevents\tqueue\n"
       << "capability\t__venomRuntime\tfrozen-bridge\n"
-      << "default_capability_count=8\n"
+      << "default_capability_count=1\n"
+      << "default_capabilities=__venomRuntime\n"
       << "chunk_count=" << bridge.chunks.size() << "\n";
   for (const auto& chunk : bridge.chunks) {
+    const auto caps = capabilities_for(chunk);
     out << "chunk_capabilities\t" << chunk.order << "\t" << protected_route_label(profile, chunk) << "\t" << protected_source_label(profile, chunk)
-        << "\tconsole,document,window,navigator,fetch,timers,events,__venomRuntime\n";
+        << "\t" << join(caps) << "\n";
   }
   return out.str();
 }

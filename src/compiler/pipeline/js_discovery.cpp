@@ -24,6 +24,42 @@ std::string lower_ascii(std::string value) {
   return value;
 }
 
+
+struct ParsedRealmDirective {
+  std::string realm;
+  bool isolated = false;
+  bool module = false;
+  bool malformed = false;
+};
+
+ParsedRealmDirective parse_realm_directive(std::string text) {
+  text = lower_ascii(std::move(text));
+  const auto marker = text.find("@venom:");
+  if (marker == std::string::npos) return {};
+  text.erase(0, marker + 7u);
+  if (const auto newline = text.find_first_of("\r\n"); newline != std::string::npos) text.resize(newline);
+  while (!text.empty() && (std::isspace(static_cast<unsigned char>(text.front())) != 0 || text.front() == '*')) text.erase(text.begin());
+  std::istringstream tokens(text);
+  std::string head;
+  tokens >> head;
+  if (head != "browser" && head != "protected") {
+    if (head.find("browser") != std::string::npos || head.find("protected") != std::string::npos) return {{}, false, false, true};
+    return {};
+  }
+  ParsedRealmDirective result;
+  result.realm = head;
+  std::string modifier;
+  while (tokens >> modifier) {
+    while (!modifier.empty() && (modifier.back() == ',' || modifier.back() == ';')) modifier.pop_back();
+    if (modifier == "isolated") result.isolated = true;
+    else if (modifier == "module") result.module = true;
+    else { result.malformed = true; break; }
+  }
+  if (result.realm == "browser" && (result.isolated || result.module)) result.malformed = true;
+  if (result.isolated && result.module) result.malformed = true;
+  return result;
+}
+
 std::string normalize_slashes(std::string value) {
   std::replace(value.begin(), value.end(), '\\', '/');
   while (!value.empty() && value.front() == '/') value.erase(value.begin());
@@ -71,16 +107,18 @@ bool has_file_scope_directive(const std::string& source, std::string_view realm)
     if (i + 1 >= source.size()) break;
     if (source[i] == '/' && source[i + 1] == '/') {
       const auto end = source.find('\n', i + 2);
-      const auto text = lower_ascii(source.substr(i + 2, (end == std::string::npos ? source.size() : end) - (i + 2)));
-      if (text.find("@venom:") != std::string::npos && text.find(realm) != std::string::npos) return true;
+      const auto parsed = parse_realm_directive(source.substr(i + 2, (end == std::string::npos ? source.size() : end) - (i + 2)));
+      if (parsed.malformed) throw std::runtime_error("malformed file-scope Venom realm directive");
+      if (parsed.realm == realm) return true;
       i = end == std::string::npos ? source.size() : end + 1;
       continue;
     }
     if (source[i] == '/' && source[i + 1] == '*') {
       const auto end = source.find("*/", i + 2);
       if (end == std::string::npos) break;
-      const auto text = lower_ascii(source.substr(i + 2, end - (i + 2)));
-      if (text.find("@venom:") != std::string::npos && text.find(realm) != std::string::npos) return true;
+      const auto parsed = parse_realm_directive(source.substr(i + 2, end - (i + 2)));
+      if (parsed.malformed) throw std::runtime_error("malformed file-scope Venom realm directive");
+      if (parsed.realm == realm) return true;
       i = end + 2;
       continue;
     }
@@ -439,8 +477,18 @@ std::vector<JsChunk> collect_script_chunks(const SiteGraph& graph, const RemoteV
       const auto venom_mode = venom_it == attrs.end() ? std::string{} : lower_ascii(venom_it->second);
       const bool browser_attribute = venom_mode == "browser";
       const bool protected_attribute = venom_mode == "protected";
-      const bool explicit_browser = browser_attribute || has_file_scope_venom_browser_directive(chunk.code);
-      const bool explicit_protected = protected_attribute || has_file_scope_venom_protected_directive(chunk.code);
+      const bool file_browser_directive = has_file_scope_venom_browser_directive(chunk.code);
+      const bool file_protected_directive = has_file_scope_venom_protected_directive(chunk.code);
+      if (file_browser_directive && file_protected_directive) {
+        throw std::runtime_error("conflicting file-scope Venom directives in " + chunk.source +
+                                 "; exactly one of browser or protected may be selected");
+      }
+      if ((browser_attribute && file_protected_directive) ||
+          (protected_attribute && file_browser_directive)) {
+        throw std::runtime_error("conflicting HTML data-venom and file-scope Venom directives in " + chunk.source);
+      }
+      const bool explicit_browser = browser_attribute || file_browser_directive;
+      const bool explicit_protected = protected_attribute || file_protected_directive;
       const auto evidence = browser_runtime_evidence(chunk.code, chunk.source);
       if (explicit_browser) {
         chunk.flags |= JsChunkBrowser;

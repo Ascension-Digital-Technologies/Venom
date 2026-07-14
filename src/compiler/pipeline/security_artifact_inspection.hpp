@@ -22,6 +22,10 @@ std::vector<unsigned char> read_binary_file(const std::filesystem::path& path);
 bool contains_bytes(const std::vector<unsigned char>& haystack, const std::string& needle);
 std::size_t count_bytes(const std::vector<unsigned char>& haystack, const std::string& needle);
 std::size_t count_js_bundle_flag(const std::vector<unsigned char>& bytes, std::uint32_t flag);
+std::size_t count_js_bundle_flagged_payload_prefix(const std::vector<unsigned char>& bytes,
+                                                   std::uint32_t required_flag,
+                                                   const std::string& prefix);
+bool payload_starts_with(const std::vector<unsigned char>& bytes, const std::string& prefix);
 bool js_bundle_flagged_payload_contains(const std::vector<unsigned char>& bytes,
                                         std::uint32_t required_flag,
                                         const std::string& needle);

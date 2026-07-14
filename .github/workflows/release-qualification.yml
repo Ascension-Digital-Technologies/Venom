@@ -18,8 +18,6 @@ jobs:
         with: {python-version: '3.12'}
       - uses: actions/setup-node@v4
         with: {node-version: '22'}
-      - name: Install and verify Venom JS hardener
-        run: bash scripts/setup-js-hardener.sh
       - run: npm install --no-save playwright@1.52.0 && npx playwright install --with-deps chromium firefox webkit
       - run: cmake --preset release -DVENOM_ENABLE_IPO=OFF
       - run: cmake --build --preset release --parallel 2
@@ -42,9 +40,6 @@ jobs:
         with: {python-version: '3.12'}
       - uses: actions/setup-node@v4
         with: {node-version: '22'}
-      - name: Install and verify Venom JS hardener
-        shell: pwsh
-        run: .\scripts\setup-js-hardener.ps1 -NoPause
       - run: npm install --no-save playwright@1.52.0
       - run: npx playwright install chromium
       - run: cmake --preset release -DVENOM_ENABLE_IPO=OFF

@@ -151,7 +151,6 @@ else()
 endif()
 
 set(VENOM_CORE_SOURCES
-  src/decompiler/decompiler.cpp
   src/compiler/commands/cli.cpp
   src/compiler/core/config.cpp
   src/compiler/core/project.cpp
@@ -165,6 +164,7 @@ set(VENOM_CORE_SOURCES
   src/compiler/pipeline/capability_analysis.cpp
   src/compiler/pipeline/build.cpp
   src/compiler/pipeline/build_support.cpp
+  src/compiler/pipeline/native_js_hardener.cpp
   src/compiler/pipeline/build_package_metadata.cpp
   src/compiler/pipeline/build_runtime_metadata.cpp
   src/compiler/pipeline/build_runtime_audit_metadata.cpp
@@ -224,10 +224,16 @@ venom_apply_pgo(venom_core)
 add_executable(venom src/compiler/main.cpp)
 target_link_libraries(venom PRIVATE venom_core)
 
-add_executable(venom-decompiler src/decompiler/main.cpp)
-target_link_libraries(venom-decompiler PRIVATE venom_core)
-venom_apply_warnings(venom-decompiler)
-venom_apply_build_acceleration(venom-decompiler)
+# The embedded Terser/javascript-obfuscator pipeline executes inside QuickJS and
+# legitimately needs more native call-stack headroom than the Windows linker
+# default. JS_SetMaxStackSize() only establishes QuickJS's guard threshold; it
+# cannot enlarge the operating-system thread stack. Keep the PE stack reserve
+# above the 8 MiB QuickJS limit so QuickJS can fail safely before Windows raises
+# STATUS_STACK_OVERFLOW (0xC00000FD).
+if(MSVC)
+  target_link_options(venom PRIVATE "/STACK:16777216,1048576")
+endif()
+
 venom_apply_warnings(venom)
 venom_apply_build_acceleration(venom)
 venom_apply_pgo(venom)
@@ -297,13 +303,6 @@ endif()
 include(cmake/tests.cmake)
 
 if(BUILD_TESTING AND VENOM_ENABLE_FULL_QUICKJS)
-  add_executable(venom_decompiler_quickjs_artifact
-    tests/decompiler/quickjs-artifact.cpp)
-  target_include_directories(venom_decompiler_quickjs_artifact PRIVATE src third_party/quickjs)
-  target_link_libraries(venom_decompiler_quickjs_artifact PRIVATE venom_core qjs ${CMAKE_DL_LIBS})
-  venom_apply_warnings(venom_decompiler_quickjs_artifact)
-  venom_apply_build_acceleration(venom_decompiler_quickjs_artifact)
-  add_test(NAME venom_decompiler_quickjs_artifact COMMAND venom_decompiler_quickjs_artifact)
 
   add_executable(venom_quickjs_module_bundle_runtime
     tests/quickjs/module-bundle-runtime.cpp
@@ -340,12 +339,14 @@ if(BUILD_TESTING)
   add_test(NAME runtime_performance_budget_smoke
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/runtime-performance-budget-smoke.py
             ${CMAKE_CURRENT_SOURCE_DIR})
-  add_test(NAME venom_decompiler_package_smoke
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/decompiler/package-smoke.py
-            $<TARGET_FILE:venom> $<TARGET_FILE:venom-decompiler>
-            ${CMAKE_CURRENT_BINARY_DIR}/venom-decompiler-package-smoke)
   add_test(NAME protected_runtime_assurance_smoke
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/protected-runtime-assurance-smoke.py)
+  add_test(NAME protected_bridge_limits_smoke
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/protected-bridge-limits-smoke.py)
+  add_test(NAME bridge_frame_mutation_smoke
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/bridge-frame-mutation-smoke.py)
+  add_test(NAME bot_detection_protection_smoke
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/bot-detection-protection-smoke.py)
 endif()
 
 add_test(NAME venom_compatibility_report_smoke

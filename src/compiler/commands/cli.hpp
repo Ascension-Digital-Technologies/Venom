@@ -15,7 +15,6 @@ enum class CommandKind {
   Build,
   Dev,
   Inspect,
-  Decompile,
   Keygen,
   ReleaseCheck,
   VerifyRuntime,
@@ -60,21 +59,12 @@ struct BuildOptions {
   std::vector<std::string> force_browser;
   std::filesystem::path config_file;
   OutputFormat format = OutputFormat::Text;
+  int verbosity = 1; // 0=quiet, 1=phases, 2=verbose internals
 };
 
 struct InspectOptions {
   std::filesystem::path package;
   std::filesystem::path key_file;
-};
-
-struct DecompileOptions {
-  std::filesystem::path input;
-  std::filesystem::path output;
-  std::filesystem::path key_file;
-  OutputFormat format = OutputFormat::Text;
-  bool recover_javascript = true;
-  bool quickjs_disassembly = true;
-  bool force = false;
 };
 
 struct KeygenOptions {
@@ -118,7 +108,6 @@ struct Command {
   BuildOptions build;
   DevOptions dev;
   InspectOptions inspect;
-  DecompileOptions decompile;
   KeygenOptions keygen;
   ReleaseCheckOptions release_check;
   DoctorOptions doctor;

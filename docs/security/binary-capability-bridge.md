@@ -22,3 +22,19 @@ Arguments and results still use the `json-value-v1` semantic contract for compat
 ## Security boundary
 
 This design raises interception and automation cost and provides replay/tamper detection. It does not make browser-delivered values secret from an analyst who controls the page, browser process, or JavaScript engine. The session key is an integrity mechanism, not a server-held secret. Truly sensitive authorization and long-lived secrets must remain server-side.
+
+## Public bridge resource limits
+
+Production bridge calls are bounded before they reach QuickJS and are validated again inside the worker trust domain.
+
+- At most 32 public calls may be pending in the browser bridge.
+- The worker executes at most 8 protected calls concurrently.
+- Public payloads and protected results are limited to 1 MiB.
+- JSON graphs are limited to depth 24 and 16,384 visited nodes.
+- Only finite numbers, strings, booleans, null, arrays, and plain objects are accepted.
+- `__proto__`, `prototype`, and `constructor` object keys are rejected.
+- Non-plain objects, cyclic graphs, functions, symbols, BigInt values, and non-finite numbers are rejected.
+
+These checks are intentionally duplicated across the browser and worker boundaries. Browser-side validation improves behavior for legitimate callers; worker-side validation is authoritative.
+
+The CTest suite includes `protected_bridge_limits_smoke` and `bridge_frame_mutation_smoke`. The mutation test corrupts frame headers, session fields, lengths, payload bytes, integrity tags, counters, and truncation boundaries and requires every mutated frame to be rejected.

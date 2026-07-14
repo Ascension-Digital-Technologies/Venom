@@ -1,7 +1,8 @@
 // @venom: browser
+"use strict";
+
 // @venom: protected isolated
 function runChessEngine(request) {
-  "use strict";
 /*
  * Copyright (c) 2020, Jeff Hlywa (jhlywa@gmail.com)
  * All rights reserved.
@@ -1917,70 +1918,85 @@ var Chess = function(fen) {
     define(function() {
       return Chess
     })
-var weights = { p: 100, n: 280, b: 320, r: 479, q: 929, k: 60000, k_e: 60000 };
-var pst_w = {
+/*
+ * Venom Protected Chess Engine 2.0
+ *
+ * The browser owns presentation only. Evaluation and search are derived from
+ * the authoritative protected board state on every request.
+ */
+var ENGINE_VERSION = '2.0.0';
+var MATE_SCORE = 1000000;
+var MATE_THRESHOLD = 990000;
+var INFINITY_SCORE = 2000000;
+var DEFAULT_TT_LIMIT = 60000;
+var SEARCH_TIMEOUT = {};
+var MOVE_BITS = { NORMAL: 1, CAPTURE: 2, BIG_PAWN: 4, EP_CAPTURE: 8, PROMOTION: 16, KSIDE_CASTLE: 32, QSIDE_CASTLE: 64 };
+
+var pieceValues = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 0 };
+var phaseValues = { p: 0, n: 1, b: 1, r: 2, q: 4, k: 0 };
+var maxPhase = 24;
+
+var pstWhite = {
   p: [
-    [100, 100, 100, 100, 105, 100, 100, 100],
-    [78, 83, 86, 73, 102, 82, 85, 90],
-    [7, 29, 21, 44, 40, 31, 44, 7],
-    [-17, 16, -2, 15, 14, 0, 15, -13],
-    [-26, 3, 10, 9, 6, 1, 0, -23],
-    [-22, 9, 5, -11, -10, -2, 3, -19],
-    [-31, 8, -7, -37, -36, -14, 3, -31],
     [0, 0, 0, 0, 0, 0, 0, 0],
+    [50, 50, 50, 50, 50, 50, 50, 50],
+    [10, 10, 20, 30, 30, 20, 10, 10],
+    [5, 5, 10, 25, 25, 10, 5, 5],
+    [0, 0, 0, 20, 20, 0, 0, 0],
+    [5, -5, -10, 0, 0, -10, -5, 5],
+    [5, 10, 10, -20, -20, 10, 10, 5],
+    [0, 0, 0, 0, 0, 0, 0, 0]
   ],
   n: [
-    [-66, -53, -75, -75, -10, -55, -58, -70],
-    [-3, -6, 100, -36, 4, 62, -4, -14],
-    [10, 67, 1, 74, 73, 27, 62, -2],
-    [24, 24, 45, 37, 33, 41, 25, 17],
-    [-1, 5, 31, 21, 22, 35, 2, 0],
-    [-18, 10, 13, 22, 18, 15, 11, -14],
-    [-23, -15, 2, 0, 2, 0, -23, -20],
-    [-74, -23, -26, -24, -19, -35, -22, -69],
+    [-50, -40, -30, -30, -30, -30, -40, -50],
+    [-40, -20, 0, 5, 5, 0, -20, -40],
+    [-30, 5, 10, 15, 15, 10, 5, -30],
+    [-30, 0, 15, 20, 20, 15, 0, -30],
+    [-30, 5, 15, 20, 20, 15, 5, -30],
+    [-30, 0, 10, 15, 15, 10, 0, -30],
+    [-40, -20, 0, 0, 0, 0, -20, -40],
+    [-50, -40, -30, -30, -30, -30, -40, -50]
   ],
   b: [
-    [-59, -78, -82, -76, -23, -107, -37, -50],
-    [-11, 20, 35, -42, -39, 31, 2, -22],
-    [-9, 39, -32, 41, 52, -10, 28, -14],
-    [25, 17, 20, 34, 26, 25, 15, 10],
-    [13, 10, 17, 23, 17, 16, 0, 7],
-    [14, 25, 24, 15, 8, 25, 20, 15],
-    [19, 20, 11, 6, 7, 6, 20, 16],
-    [-7, 2, -15, -12, -14, -15, -10, -10],
+    [-20, -10, -10, -10, -10, -10, -10, -20],
+    [-10, 5, 0, 0, 0, 0, 5, -10],
+    [-10, 10, 10, 10, 10, 10, 10, -10],
+    [-10, 0, 10, 10, 10, 10, 0, -10],
+    [-10, 5, 5, 10, 10, 5, 5, -10],
+    [-10, 0, 5, 10, 10, 5, 0, -10],
+    [-10, 0, 0, 0, 0, 0, 0, -10],
+    [-20, -10, -10, -10, -10, -10, -10, -20]
   ],
   r: [
-    [35, 29, 33, 4, 37, 33, 56, 50],
-    [55, 29, 56, 67, 55, 62, 34, 60],
-    [19, 35, 28, 33, 45, 27, 25, 15],
-    [0, 5, 16, 13, 18, -4, -9, -6],
-    [-28, -35, -16, -21, -13, -29, -46, -30],
-    [-42, -28, -42, -25, -25, -35, -26, -46],
-    [-53, -38, -31, -26, -29, -43, -44, -53],
-    [-30, -24, -18, 5, -2, -18, -31, -32],
+    [0, 0, 0, 5, 5, 0, 0, 0],
+    [5, 10, 10, 10, 10, 10, 10, 5],
+    [-5, 0, 0, 0, 0, 0, 0, -5],
+    [-5, 0, 0, 0, 0, 0, 0, -5],
+    [-5, 0, 0, 0, 0, 0, 0, -5],
+    [-5, 0, 0, 0, 0, 0, 0, -5],
+    [-5, 0, 0, 0, 0, 0, 0, -5],
+    [0, 0, 0, 5, 5, 0, 0, 0]
   ],
   q: [
-    [6, 1, -8, -104, 69, 24, 88, 26],
-    [14, 32, 60, -10, 20, 76, 57, 24],
-    [-2, 43, 32, 60, 72, 63, 43, 2],
-    [1, -16, 22, 17, 25, 20, -13, -6],
-    [-14, -15, -2, -5, -1, -10, -20, -22],
-    [-30, -6, -13, -11, -16, -11, -16, -27],
-    [-36, -18, 0, -19, -15, -15, -21, -38],
-    [-39, -30, -31, -13, -31, -36, -34, -42],
+    [-20, -10, -10, -5, -5, -10, -10, -20],
+    [-10, 0, 5, 0, 0, 0, 0, -10],
+    [-10, 5, 5, 5, 5, 5, 0, -10],
+    [0, 0, 5, 5, 5, 5, 0, -5],
+    [-5, 0, 5, 5, 5, 5, 0, -5],
+    [-10, 0, 5, 5, 5, 5, 0, -10],
+    [-10, 0, 0, 0, 0, 0, 0, -10],
+    [-20, -10, -10, -5, -5, -10, -10, -20]
   ],
   k: [
-    [4, 54, 47, -99, -99, 60, 83, -62],
-    [-32, 10, 55, 56, 56, 55, 10, 3],
-    [-62, 12, -57, 44, -67, 28, 37, -31],
-    [-55, 50, 11, -4, -19, 13, 0, -49],
-    [-55, -43, -52, -28, -51, -47, -8, -50],
-    [-47, -42, -43, -79, -64, -32, -29, -32],
-    [-4, 3, -14, -50, -57, -18, 13, 4],
-    [17, 30, -3, -14, 6, -1, 40, 18],
+    [-30, -40, -40, -50, -50, -40, -40, -30],
+    [-30, -40, -40, -50, -50, -40, -40, -30],
+    [-30, -40, -40, -50, -50, -40, -40, -30],
+    [-30, -40, -40, -50, -50, -40, -40, -30],
+    [-20, -30, -30, -40, -40, -30, -30, -20],
+    [-10, -20, -20, -20, -20, -20, -20, -10],
+    [20, 20, 0, 0, 0, 0, 20, 20],
+    [20, 30, 10, 0, 0, 10, 30, 20]
   ],
-
-  // Endgame King Table
   k_e: [
     [-50, -40, -30, -20, -20, -30, -40, -50],
     [-30, -20, -10, 0, 0, -10, -20, -30],
@@ -1988,267 +2004,619 @@ var pst_w = {
     [-30, -10, 30, 40, 40, 30, -10, -30],
     [-30, -10, 30, 40, 40, 30, -10, -30],
     [-30, -10, 20, 30, 30, 20, -10, -30],
-    [-30, -30, 0, 0, 0, 0, -30, -30],
-    [-50, -30, -30, -30, -30, -30, -30, -50],
-  ],
-};
-var pst_b = {
-  p: pst_w['p'].slice().reverse(),
-  n: pst_w['n'].slice().reverse(),
-  b: pst_w['b'].slice().reverse(),
-  r: pst_w['r'].slice().reverse(),
-  q: pst_w['q'].slice().reverse(),
-  k: pst_w['k'].slice().reverse(),
-  k_e: pst_w['k_e'].slice().reverse(),
+    [-30, -20, -10, 0, 0, -10, -20, -30],
+    [-50, -40, -30, -20, -20, -30, -40, -50]
+  ]
 };
 
-var pstOpponent = { w: pst_b, b: pst_w };
-var pstSelf = { w: pst_w, b: pst_b };
-
-/*
- * Evaluates the board at this point in time,
- * using the material weights and piece square tables.
- */
-function evaluateBoard(game, move, prevSum, color) {
-
-  if (game.in_checkmate()) {
-
-    // Opponent is in checkmate (good for us)
-    if (move.color === color) {
-      return 10 ** 10;
-    }
-    // Our king's in checkmate (bad for us)
-    else {
-      return -(10 ** 10);
-    }
-  }
-
-  if (game.in_draw() || game.in_threefold_repetition() || game.in_stalemate())
-  {
-    return 0;
-  }
-
-  if (game.in_check()) {
-    // Opponent is in check (good for us)
-    if (move.color === color) {
-      prevSum += 50;
-    }
-    // Our king's in check (bad for us)
-    else {
-      prevSum -= 50;
-    }
-  }
-
-  var from = [
-    8 - parseInt(move.from[1]),
-    move.from.charCodeAt(0) - 'a'.charCodeAt(0),
-  ];
-  var to = [
-    8 - parseInt(move.to[1]),
-    move.to.charCodeAt(0) - 'a'.charCodeAt(0),
-  ];
-
-  // Change endgame behavior for kings
-  if (prevSum < -1500) {
-    if (move.piece === 'k') {
-      move.piece = 'k_e';
-    }
-    // Kings can never be captured
-    // else if (move.captured === 'k') {
-    //   move.captured = 'k_e';
-    // }
-  }
-
-  if ('captured' in move) {
-    // Opponent piece was captured (good for us)
-    if (move.color === color) {
-      prevSum +=
-        weights[move.captured] +
-        pstOpponent[move.color][move.captured][to[0]][to[1]];
-    }
-    // Our piece was captured (bad for us)
-    else {
-      prevSum -=
-        weights[move.captured] +
-        pstSelf[move.color][move.captured][to[0]][to[1]];
-    }
-  }
-
-  if (move.flags.includes('p')) {
-    // NOTE: promote to queen for simplicity
-    move.promotion = 'q';
-
-    // Our piece was promoted (good for us)
-    if (move.color === color) {
-      prevSum -=
-        weights[move.piece] + pstSelf[move.color][move.piece][from[0]][from[1]];
-      prevSum +=
-        weights[move.promotion] +
-        pstSelf[move.color][move.promotion][to[0]][to[1]];
-    }
-    // Opponent piece was promoted (bad for us)
-    else {
-      prevSum +=
-        weights[move.piece] + pstSelf[move.color][move.piece][from[0]][from[1]];
-      prevSum -=
-        weights[move.promotion] +
-        pstSelf[move.color][move.promotion][to[0]][to[1]];
-    }
-  } else {
-    // The moved piece still exists on the updated board, so we only need to update the position value
-    if (move.color !== color) {
-      prevSum += pstSelf[move.color][move.piece][from[0]][from[1]];
-      prevSum -= pstSelf[move.color][move.piece][to[0]][to[1]];
-    } else {
-      prevSum -= pstSelf[move.color][move.piece][from[0]][from[1]];
-      prevSum += pstSelf[move.color][move.piece][to[0]][to[1]];
-    }
-  }
-
-  return prevSum;
+function reverseTable(table) {
+  var reversed = [];
+  for (var i = table.length - 1; i >= 0; i--) reversed.push(table[i].slice());
+  return reversed;
 }
 
-/*
- * Performs the minimax algorithm to choose the best move: https://en.wikipedia.org/wiki/Minimax (pseudocode provided)
- * Recursively explores all possible moves up to a given depth, and evaluates the game board at the leaves.
- *
- * Basic idea: maximize the minimum value of the position resulting from the opponent's possible following moves.
- * Optimization: alpha-beta pruning: https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning (pseudocode provided)
- *
- * Inputs:
- *  - game:                 the game object.
- *  - depth:                the depth of the recursive tree of all possible moves (i.e. height limit).
- *  - isMaximizingPlayer:   true if the current layer is maximizing, false otherwise.
- *  - sum:                  the sum (evaluation) so far at the current layer.
- *  - color:                the color of the current player.
- *
- * Output:
- *  the best move at the root of the current subtree.
- */
-function minimax(game, depth, alpha, beta, isMaximizingPlayer, sum, color) {
-  positionCount++;
-  var children = game.ugly_moves({ verbose: true });
+var pstBlack = {
+  p: reverseTable(pstWhite.p),
+  n: reverseTable(pstWhite.n),
+  b: reverseTable(pstWhite.b),
+  r: reverseTable(pstWhite.r),
+  q: reverseTable(pstWhite.q),
+  k: reverseTable(pstWhite.k),
+  k_e: reverseTable(pstWhite.k_e)
+};
 
-  // Sort moves randomly, so the same move isn't always picked on ties
-  children.sort(function (a, b) {
-    return 0.5 - Math.random();
-  });
+function getEngineCache() {
+  var root = globalThis.__venomProtectedChessEngineV2;
+  if (!root || root.version !== ENGINE_VERSION) {
+    root = {
+      version: ENGINE_VERSION,
+      generation: 0,
+      table: Object.create(null),
+      tableSize: 0,
+      tableLimit: DEFAULT_TT_LIMIT
+    };
+    globalThis.__venomProtectedChessEngineV2 = root;
+  }
+  root.generation += 1;
+  if (root.tableSize > root.tableLimit) {
+    root.table = Object.create(null);
+    root.tableSize = 0;
+  }
+  return root;
+}
 
-  var currMove;
-  // Maximum depth exceeded or node is a terminal node (no children)
-  if (depth === 0 || children.length === 0) {
-    return [null, sum];
+function canonicalPositionKey(game) {
+  var tokens = game.fen().split(/\s+/);
+  return tokens.slice(0, 5).join(' ');
+}
+
+function moveKey(move) {
+  if (!move) return '';
+  return String(move.from) + ':' + String(move.to) + ':' + String(move.promotion || '');
+}
+
+function copyUglyMove(move) {
+  if (!move) return null;
+  return {
+    color: move.color,
+    from: move.from,
+    to: move.to,
+    flags: move.flags,
+    piece: move.piece,
+    captured: move.captured,
+    promotion: move.promotion
+  };
+}
+
+function sameMove(a, b) {
+  return Boolean(a && b && a.from === b.from && a.to === b.to && (a.promotion || '') === (b.promotion || ''));
+}
+
+function tableScoreToSearch(score, ply) {
+  if (score > MATE_THRESHOLD) return score - ply;
+  if (score < -MATE_THRESHOLD) return score + ply;
+  return score;
+}
+
+function searchScoreToTable(score, ply) {
+  if (score > MATE_THRESHOLD) return score + ply;
+  if (score < -MATE_THRESHOLD) return score - ply;
+  return score;
+}
+
+function evaluatePawnStructure(board, color, pawnFiles) {
+  var score = 0;
+  var enemy = color === 'w' ? 'b' : 'w';
+  for (var file = 0; file < 8; file++) {
+    var count = pawnFiles[color][file];
+    if (count > 1) score -= (count - 1) * 14;
+    if (count > 0 && (file === 0 || pawnFiles[color][file - 1] === 0) && (file === 7 || pawnFiles[color][file + 1] === 0)) {
+      score -= count * 11;
+    }
   }
 
-  // Find maximum/minimum from list of 'children' (possible moves)
-  var maxValue = Number.NEGATIVE_INFINITY;
-  var minValue = Number.POSITIVE_INFINITY;
-  var bestMove;
-  for (var i = 0; i < children.length; i++) {
-    currMove = children[i];
-
-    // Note: in our case, the 'children' are simply modified game states
-    var currPrettyMove = game.ugly_move(currMove);
-    var newSum = evaluateBoard(game, currPrettyMove, sum, color);
-    var [childBestMove, childValue] = minimax(
-      game,
-      depth - 1,
-      alpha,
-      beta,
-      !isMaximizingPlayer,
-      newSum,
-      color
-    );
-
-    game.undo();
-
-    if (isMaximizingPlayer) {
-      if (childValue > maxValue) {
-        maxValue = childValue;
-        bestMove = currPrettyMove;
+  for (var row = 0; row < 8; row++) {
+    for (var col = 0; col < 8; col++) {
+      var piece = board[row][col];
+      if (!piece || piece.color !== color || piece.type !== 'p') continue;
+      var passed = true;
+      var start = Math.max(0, col - 1);
+      var end = Math.min(7, col + 1);
+      var scanRow;
+      var scanFile;
+      if (color === 'w') {
+        for (scanRow = row - 1; scanRow >= 0 && passed; scanRow--) {
+          for (scanFile = start; scanFile <= end; scanFile++) {
+            var targetW = board[scanRow][scanFile];
+            if (targetW && targetW.color === enemy && targetW.type === 'p') { passed = false; break; }
+          }
+        }
+      } else {
+        for (scanRow = row + 1; scanRow < 8 && passed; scanRow++) {
+          for (scanFile = start; scanFile <= end; scanFile++) {
+            var targetB = board[scanRow][scanFile];
+            if (targetB && targetB.color === enemy && targetB.type === 'p') { passed = false; break; }
+          }
+        }
       }
-      if (childValue > alpha) {
-        alpha = childValue;
+      if (passed) {
+        var advance = color === 'w' ? 6 - row : row - 1;
+        var passedBonus = [0, 8, 16, 28, 45, 70, 0][Math.max(0, Math.min(6, advance))];
+        score += passedBonus;
       }
-    } else {
-      if (childValue < minValue) {
-        minValue = childValue;
-        bestMove = currPrettyMove;
-      }
-      if (childValue < beta) {
-        beta = childValue;
+      var supportRow = color === 'w' ? row + 1 : row - 1;
+      if (supportRow >= 0 && supportRow < 8) {
+        var left = col > 0 ? board[supportRow][col - 1] : null;
+        var right = col < 7 ? board[supportRow][col + 1] : null;
+        if ((left && left.color === color && left.type === 'p') || (right && right.color === color && right.type === 'p')) score += 6;
       }
     }
+  }
+  return score;
+}
 
-    // Alpha-beta pruning
+function evaluateKingSafety(board, color, kingSquare, pawnFiles, phase) {
+  if (!kingSquare) return 0;
+  var row = kingSquare.row;
+  var col = kingSquare.col;
+  var direction = color === 'w' ? -1 : 1;
+  var shieldRow = row + direction;
+  var score = 0;
+  if (phase > 8 && shieldRow >= 0 && shieldRow < 8) {
+    for (var file = Math.max(0, col - 1); file <= Math.min(7, col + 1); file++) {
+      var shield = board[shieldRow][file];
+      score += shield && shield.color === color && shield.type === 'p' ? 9 : -7;
+    }
+    for (var kingFile = Math.max(0, col - 1); kingFile <= Math.min(7, col + 1); kingFile++) {
+      if (pawnFiles[color][kingFile] === 0) score -= 8;
+    }
+  }
+  return score;
+}
+
+/* Returns centipawns from White's perspective. */
+function evaluatePosition(game) {
+  if (game.in_checkmate()) return game.turn() === 'w' ? -MATE_SCORE : MATE_SCORE;
+  if (game.in_draw() || game.in_stalemate() || game.insufficient_material() || game.in_threefold_repetition()) return 0;
+
+  var board = game.board();
+  var score = 0;
+  var phase = 0;
+  var bishops = { w: 0, b: 0 };
+  var pawnFiles = { w: [0,0,0,0,0,0,0,0], b: [0,0,0,0,0,0,0,0] };
+  var kings = { w: null, b: null };
+
+  for (var row = 0; row < 8; row++) {
+    for (var col = 0; col < 8; col++) {
+      var piece = board[row][col];
+      if (!piece) continue;
+      var sign = piece.color === 'w' ? 1 : -1;
+      var tables = piece.color === 'w' ? pstWhite : pstBlack;
+      var positional;
+      phase += phaseValues[piece.type] || 0;
+      if (piece.type === 'k') {
+        kings[piece.color] = { row: row, col: col };
+        positional = 0;
+      } else {
+        positional = tables[piece.type][row][col];
+      }
+      score += sign * (pieceValues[piece.type] + positional);
+      if (piece.type === 'b') bishops[piece.color] += 1;
+      if (piece.type === 'p') pawnFiles[piece.color][col] += 1;
+    }
+  }
+
+  phase = Math.max(0, Math.min(maxPhase, phase));
+  var endgameWeight = (maxPhase - phase) / maxPhase;
+  ['w', 'b'].forEach(function (color) {
+    var king = kings[color];
+    if (!king) return;
+    var tables = color === 'w' ? pstWhite : pstBlack;
+    var kingScore = Math.round(tables.k[king.row][king.col] * (1 - endgameWeight) + tables.k_e[king.row][king.col] * endgameWeight);
+    score += (color === 'w' ? 1 : -1) * kingScore;
+  });
+
+  if (bishops.w >= 2) score += 30;
+  if (bishops.b >= 2) score -= 30;
+  score += evaluatePawnStructure(board, 'w', pawnFiles);
+  score -= evaluatePawnStructure(board, 'b', pawnFiles);
+
+  for (var r = 0; r < 8; r++) {
+    for (var c = 0; c < 8; c++) {
+      var rook = board[r][c];
+      if (!rook || rook.type !== 'r') continue;
+      var ownPawns = pawnFiles[rook.color][c];
+      var enemyPawns = pawnFiles[rook.color === 'w' ? 'b' : 'w'][c];
+      var rookBonus = ownPawns === 0 ? (enemyPawns === 0 ? 18 : 10) : 0;
+      if ((rook.color === 'w' && r === 1) || (rook.color === 'b' && r === 6)) rookBonus += 18;
+      score += (rook.color === 'w' ? 1 : -1) * rookBonus;
+    }
+  }
+
+  score += evaluateKingSafety(board, 'w', kings.w, pawnFiles, phase);
+  score -= evaluateKingSafety(board, 'b', kings.b, pawnFiles, phase);
+  score += game.turn() === 'w' ? 8 : -8;
+  if (game.in_check()) score += game.turn() === 'w' ? -24 : 24;
+  return Math.round(score);
+}
+
+function evaluateForSideToMove(game) {
+  var whiteScore = evaluatePosition(game);
+  return game.turn() === 'w' ? whiteScore : -whiteScore;
+}
+
+function terminalScore(game, ply) {
+  if (game.in_checkmate()) return -MATE_SCORE + ply;
+  if (game.in_draw() || game.in_stalemate() || game.insufficient_material() || game.in_threefold_repetition()) return 0;
+  return null;
+}
+
+function checkDeadline(context) {
+  if ((context.nodes & 255) === 0 && Date.now() >= context.deadline) throw SEARCH_TIMEOUT;
+}
+
+function historyKey(move) {
+  return String(move.piece || '') + ':' + moveKey(move);
+}
+
+function scoreMove(move, ttMove, context, ply) {
+  if (ttMove && sameMove(move, ttMove)) return 2000000000;
+  var score = 0;
+  if (move.promotion) score += 1200000 + (pieceValues[move.promotion] || 0) * 16;
+  if (move.captured) score += 1000000 + (pieceValues[move.captured] || 0) * 16 - (pieceValues[move.piece] || 0);
+  if (!move.captured) {
+    var key = moveKey(move);
+    var killers = context.killers[ply];
+    if (killers && key === killers[0]) score += 900000;
+    else if (killers && key === killers[1]) score += 800000;
+    score += context.history[historyKey(move)] || 0;
+  }
+  if (move.flags & MOVE_BITS.KSIDE_CASTLE || move.flags & MOVE_BITS.QSIDE_CASTLE) score += 4000;
+  return score;
+}
+
+function orderedMoves(game, moves, ttMove, context, ply) {
+  var scored = [];
+  for (var i = 0; i < moves.length; i++) scored.push({ move: moves[i], score: scoreMove(moves[i], ttMove, context, ply), index: i });
+  scored.sort(function (a, b) {
+    if (a.score !== b.score) return b.score - a.score;
+    var ak = moveKey(a.move);
+    var bk = moveKey(b.move);
+    if (ak < bk) return -1;
+    if (ak > bk) return 1;
+    return a.index - b.index;
+  });
+  var result = [];
+  for (var j = 0; j < scored.length; j++) result.push(scored[j].move);
+  return result;
+}
+
+function rememberKiller(context, move, ply) {
+  if (move.captured || move.promotion) return;
+  var key = moveKey(move);
+  var killers = context.killers[ply] || ['', ''];
+  if (killers[0] !== key) {
+    killers[1] = killers[0];
+    killers[0] = key;
+  }
+  context.killers[ply] = killers;
+}
+
+function quiescence(game, alpha, beta, ply, context) {
+  context.nodes += 1;
+  context.qnodes += 1;
+  checkDeadline(context);
+  var terminal = terminalScore(game, ply);
+  if (terminal !== null) return terminal;
+  if (ply >= context.maxPly) return evaluateForSideToMove(game);
+
+  var inCheck = game.in_check();
+  var standPat = evaluateForSideToMove(game);
+  if (!inCheck) {
+    if (standPat >= beta) return beta;
+    if (standPat > alpha) alpha = standPat;
+  }
+
+  var allMoves = game.ugly_moves();
+  var tactical = [];
+  for (var i = 0; i < allMoves.length; i++) {
+    if (inCheck || allMoves[i].captured || allMoves[i].promotion || (allMoves[i].flags & MOVE_BITS.EP_CAPTURE)) tactical.push(allMoves[i]);
+  }
+  tactical = orderedMoves(game, tactical, null, context, ply);
+
+  for (var j = 0; j < tactical.length; j++) {
+    var move = tactical[j];
+    if (!inCheck && move.captured && !move.promotion) {
+      var optimistic = standPat + (pieceValues[move.captured] || 0) + 120;
+      if (optimistic < alpha) continue;
+    }
+    game.ugly_move(move);
+    var score;
+    try {
+      score = -quiescence(game, -beta, -alpha, ply + 1, context);
+    } finally {
+      game.undo();
+    }
+    if (score >= beta) return beta;
+    if (score > alpha) alpha = score;
+  }
+  return alpha;
+}
+
+function storeTable(context, key, depth, score, flag, bestMove, ply) {
+  var table = context.cache.table;
+  var existing = table[key];
+  if (!existing) context.cache.tableSize += 1;
+  if (!existing || depth >= existing.depth || existing.generation !== context.cache.generation) {
+    table[key] = {
+      depth: depth,
+      score: searchScoreToTable(score, ply),
+      flag: flag,
+      move: copyUglyMove(bestMove),
+      generation: context.cache.generation
+    };
+    context.ttStores += 1;
+  }
+}
+
+function negamax(game, depth, alpha, beta, ply, context) {
+  context.nodes += 1;
+  checkDeadline(context);
+  var terminal = terminalScore(game, ply);
+  if (terminal !== null) return terminal;
+  if (depth <= 0) return quiescence(game, alpha, beta, ply, context);
+  if (ply >= context.maxPly) return evaluateForSideToMove(game);
+
+  var originalAlpha = alpha;
+  var key = canonicalPositionKey(game);
+  var entry = context.cache.table[key];
+  var ttMove = entry ? entry.move : null;
+  if (entry && entry.depth >= depth) {
+    var ttScore = tableScoreToSearch(entry.score, ply);
+    context.ttHits += 1;
+    if (entry.flag === 'exact') return ttScore;
+    if (entry.flag === 'lower' && ttScore > alpha) alpha = ttScore;
+    if (entry.flag === 'upper' && ttScore < beta) beta = ttScore;
+    if (alpha >= beta) return ttScore;
+  }
+
+  var moves = orderedMoves(game, game.ugly_moves(), ttMove, context, ply);
+  if (!moves.length) return terminalScore(game, ply) || 0;
+  var bestScore = -INFINITY_SCORE;
+  var bestMove = null;
+
+  for (var i = 0; i < moves.length; i++) {
+    var move = moves[i];
+    game.ugly_move(move);
+    var score;
+    try {
+      score = -negamax(game, depth - 1, -beta, -alpha, ply + 1, context);
+    } finally {
+      game.undo();
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestMove = move;
+    }
+    if (score > alpha) alpha = score;
     if (alpha >= beta) {
+      context.cutoffs += 1;
+      rememberKiller(context, move, ply);
+      var hkey = historyKey(move);
+      context.history[hkey] = Math.min(2000000, (context.history[hkey] || 0) + depth * depth * 32);
       break;
     }
   }
 
-  if (isMaximizingPlayer) {
-    return [bestMove, maxValue];
-  } else {
-    return [bestMove, minValue];
+  var flag = bestScore <= originalAlpha ? 'upper' : (bestScore >= beta ? 'lower' : 'exact');
+  storeTable(context, key, depth, bestScore, flag, bestMove, ply);
+  return bestScore;
+}
+
+function searchRoot(game, depth, alpha, beta, context, preferredMove) {
+  var moves = orderedMoves(game, game.ugly_moves(), preferredMove, context, 0);
+  var bestScore = -INFINITY_SCORE;
+  var bestMove = null;
+  for (var i = 0; i < moves.length; i++) {
+    checkDeadline(context);
+    var move = moves[i];
+    game.ugly_move(move);
+    var score;
+    try {
+      score = -negamax(game, depth - 1, -beta, -alpha, 1, context);
+    } finally {
+      game.undo();
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestMove = copyUglyMove(move);
+    }
+    if (score > alpha) alpha = score;
+  }
+  if (bestMove) storeTable(context, canonicalPositionKey(game), depth, bestScore, 'exact', bestMove, 0);
+  return { move: bestMove, score: bestScore };
+}
+
+function findLegalMove(game, storedMove) {
+  if (!storedMove) return null;
+  var moves = game.ugly_moves();
+  for (var i = 0; i < moves.length; i++) if (sameMove(moves[i], storedMove)) return moves[i];
+  return null;
+}
+
+function buildPrincipalVariation(fen, cache, maxLength) {
+  var lineGame = new Chess(fen);
+  var pv = [];
+  for (var ply = 0; ply < maxLength; ply++) {
+    var entry = cache.table[canonicalPositionKey(lineGame)];
+    var legal = entry ? findLegalMove(lineGame, entry.move) : null;
+    if (!legal) break;
+    var pretty = lineGame.ugly_move(legal);
+    pv.push(pretty.san || (pretty.from + pretty.to + (pretty.promotion || '')));
+    if (lineGame.game_over()) break;
+  }
+  return pv;
+}
+
+function runSearch(state, request) {
+  var maxDepthRequested = Number(request.maxDepth || request.depth || 4);
+  var maxDepth = Math.max(1, Math.min(12, Number.isFinite(maxDepthRequested) ? Math.floor(maxDepthRequested) : 4));
+  var timeRequested = Number(request.timeMs || 1500);
+  var timeMs = Math.max(50, Math.min(30000, Number.isFinite(timeRequested) ? Math.floor(timeRequested) : 1500));
+  var started = Date.now();
+  var context = {
+    cache: getEngineCache(),
+    deadline: started + timeMs,
+    nodes: 0,
+    qnodes: 0,
+    ttHits: 0,
+    ttStores: 0,
+    cutoffs: 0,
+    killers: [],
+    history: Object.create(null),
+    maxPly: 96
+  };
+  var completedDepth = 0;
+  var bestMove = null;
+  var bestScore = evaluateForSideToMove(state);
+  var timedOut = false;
+
+  for (var depth = 1; depth <= maxDepth; depth++) {
+    try {
+      var iteration = searchRoot(state, depth, -INFINITY_SCORE, INFINITY_SCORE, context, bestMove);
+      if (iteration.move) {
+        bestMove = iteration.move;
+        bestScore = iteration.score;
+        completedDepth = depth;
+      }
+      if (Math.abs(bestScore) >= MATE_THRESHOLD) break;
+    } catch (error) {
+      if (error !== SEARCH_TIMEOUT) throw error;
+      timedOut = true;
+      break;
+    }
+  }
+
+  if (!bestMove) {
+    var fallbackMoves = state.ugly_moves();
+    if (fallbackMoves.length) bestMove = copyUglyMove(orderedMoves(state, fallbackMoves, null, context, 0)[0]);
+  }
+  var elapsed = Math.max(1, Date.now() - started);
+  var whiteValue = state.turn() === 'w' ? bestScore : -bestScore;
+  return {
+    bestMove: bestMove,
+    value: whiteValue,
+    rootScore: bestScore,
+    completedDepth: completedDepth,
+    requestedDepth: maxDepth,
+    timedOut: timedOut,
+    elapsedMs: elapsed,
+    positions: context.nodes,
+    qnodes: context.qnodes,
+    ttHits: context.ttHits,
+    ttStores: context.ttStores,
+    cutoffs: context.cutoffs,
+    positionsPerSecond: Math.round((context.nodes * 1000) / elapsed),
+    pv: buildPrincipalVariation(state.fen(), context.cache, Math.max(1, completedDepth))
+  };
+}
+
+function snapshot(state, history, evaluation) {
+  return {
+    fen: state.fen(),
+    turn: state.turn(),
+    gameOver: state.game_over(),
+    inCheck: state.in_check(),
+    checkmate: state.in_checkmate(),
+    stalemate: state.in_stalemate(),
+    draw: state.in_draw(),
+    insufficientMaterial: state.insufficient_material(),
+    threefoldRepetition: state.in_threefold_repetition(),
+    evaluation: typeof evaluation === 'number' ? evaluation : evaluatePosition(state),
+    history: Array.isArray(history) ? history.slice(0, 512) : []
+  };
+}
+
+function publicMove(move) {
+  return move ? {
+    from: move.from,
+    to: move.to,
+    promotion: move.promotion || null,
+    san: move.san || ''
+  } : null;
+}
+
+var action = request && request.action;
+if (action === 'identity') {
+  return {
+    name: 'Venom Protected Chess Engine',
+    version: ENGINE_VERSION,
+    runtime: 'QuickJS / WASM',
+    isolation: 'worker',
+    bridge: 'json-value-v1',
+    protected: true,
+    scoreConvention: 'positive-white-centipawns',
+    capabilities: [
+      'rules', 'validation', 'legal-moves', 'full-board-evaluation',
+      'tapered-evaluation', 'negamax', 'alpha-beta', 'iterative-deepening',
+      'quiescence-search', 'transposition-table', 'killer-history-ordering',
+      'time-management', 'principal-variation', 'perft'
+    ]
+  };
+}
+
+var state = new Chess(request && request.fen ? request.fen : undefined);
+var history = Array.isArray(request && request.history) ? request.history.slice(0, 511) : [];
+
+if (action === 'state') return { state: snapshot(state, history) };
+if (action === 'moves') {
+  var legal = state.moves({ square: String(request.square || ''), verbose: true });
+  return { moves: legal.map(function (move) { return publicMove(move); }) };
+}
+if (action === 'perft') {
+  var perftDepth = Math.max(0, Math.min(6, Math.floor(Number(request.depth) || 0)));
+  var perftStarted = Date.now();
+  var perftNodes = state.perft(perftDepth);
+  return { depth: perftDepth, nodes: perftNodes, elapsedMs: Math.max(0, Date.now() - perftStarted) };
+}
+if (action === 'evaluate') {
+  var evaluation = evaluatePosition(state);
+  return { value: evaluation, state: snapshot(state, history, evaluation) };
+}
+if (action === 'move') {
+  var played = state.move(request.move);
+  if (!played) throw new Error('engine received an illegal move');
+  history.push(played.san || (played.from + '-' + played.to));
+  var moveEvaluation = evaluatePosition(state);
+  return {
+    move: publicMove(played),
+    value: moveEvaluation,
+    state: snapshot(state, history, moveEvaluation)
+  };
+}
+if (action !== 'search') throw new Error('unsupported chess engine action');
+
+var searchResult = runSearch(state, request || {});
+var rootTurn = state.turn();
+var returnedMove = null;
+var returnedState = null;
+var staticValue = evaluatePosition(state);
+
+if (searchResult.bestMove) {
+  var legalBest = findLegalMove(state, searchResult.bestMove);
+  if (legalBest) {
+    var prettyBest;
+    if (request && request.play) {
+      prettyBest = state.ugly_move(legalBest);
+      history.push(prettyBest.san || (prettyBest.from + '-' + prettyBest.to));
+      returnedMove = publicMove(prettyBest);
+      staticValue = evaluatePosition(state);
+      returnedState = snapshot(state, history, searchResult.value);
+    } else {
+      prettyBest = state.ugly_move(legalBest);
+      returnedMove = publicMove(prettyBest);
+      state.undo();
+    }
   }
 }
 
-
-  function snapshot(state, history) {
-    return {
-      fen: state.fen(),
-      turn: state.turn(),
-      gameOver: state.game_over(),
-      inCheck: state.in_check(),
-      checkmate: state.in_checkmate(),
-      stalemate: state.in_stalemate(),
-      draw: state.in_draw(),
-      insufficientMaterial: state.insufficient_material(),
-      threefoldRepetition: state.in_threefold_repetition(),
-      history: Array.isArray(history) ? history.slice(0, 512) : []
-    };
-  }
-
-  var action = request && request.action;
-  if (action === 'identity') {
-    return {
-      name: 'Venom Protected Chess Engine',
-      runtime: 'QuickJS / WASM',
-      isolation: 'worker',
-      bridge: 'json-value-v1',
-      protected: true,
-      capabilities: ['rules', 'validation', 'legal-moves', 'evaluation', 'minimax', 'alpha-beta', 'piece-square-tables']
-    };
-  }
-  var state = new Chess(request && request.fen ? request.fen : undefined);
-  var positionCount = 0;
-  if (action === 'state') return { state: snapshot(state, request.history) };
-  if (action === 'moves') {
-    var legal = state.moves({ square: String(request.square || ''), verbose: true });
-    return { moves: legal.map(function (move) { return { from: move.from, to: move.to, promotion: move.promotion || null, san: move.san || '' }; }) };
-  }
-  if (action === 'move' || action === 'evaluate') {
-    var played = state.move(request.move);
-    if (!played) throw new Error('engine received an illegal move');
-    var history = Array.isArray(request.history) ? request.history.slice(0, 511) : [];
-    history.push(played.san || (played.from + '-' + played.to));
-    var value = evaluateBoard(state, played, Number(request.sum) || 0, request.color || 'b');
-    return {
-      move: { from: played.from, to: played.to, promotion: played.promotion || 'q', san: played.san || '' },
-      value: value,
-      state: snapshot(state, history)
-    };
-  }
-  if (action !== 'search') throw new Error('unsupported chess engine action');
-  var started = Date.now();
-  var result = minimax(state, Math.max(1, Math.min(5, Number(request.depth) || 1)), Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, true, Number(request.sum) || 0, request.color || 'b');
-  var elapsed = Math.max(1, Date.now() - started);
-  var move = result[0];
-  return {
-    move: move ? { from: move.from, to: move.to, promotion: move.promotion || 'q' } : null,
-    value: result[1], depth: Math.max(1, Math.min(5, Number(request.depth) || 1)),
-    positions: positionCount, elapsedMs: elapsed,
-    positionsPerSecond: Math.round((positionCount * 1000) / elapsed),
-    engine: 'quickjs-protected'
-  };
+return {
+  move: returnedMove,
+  value: searchResult.value,
+  staticValue: staticValue,
+  depth: searchResult.completedDepth,
+  requestedDepth: searchResult.requestedDepth,
+  timedOut: searchResult.timedOut,
+  positions: searchResult.positions,
+  qnodes: searchResult.qnodes,
+  ttHits: searchResult.ttHits,
+  ttStores: searchResult.ttStores,
+  cutoffs: searchResult.cutoffs,
+  elapsedMs: searchResult.elapsedMs,
+  positionsPerSecond: searchResult.positionsPerSecond,
+  pv: searchResult.pv,
+  state: returnedState,
+  engine: 'quickjs-protected-v2',
+  rootTurn: rootTurn
+};
 }

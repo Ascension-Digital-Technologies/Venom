@@ -38,6 +38,7 @@
 #include <unordered_map>
 
 #include "compiler/pipeline/build_support.hpp"
+#include "compiler/pipeline/native_js_hardener.hpp"
 
 namespace venom::compiler::build_detail {
 std::string json_escape(const std::string& value) {
@@ -397,53 +398,16 @@ std::string harden_release_js_asset(std::string js) {
 }
 
 
-std::filesystem::path find_js_hardener_script() {
-  auto cursor = std::filesystem::current_path();
-  for (int depth = 0; depth < 8; ++depth) {
-    const auto candidate = cursor / "tools" / "js-hardener" / "harden.mjs";
-    if (std::filesystem::exists(candidate)) return candidate;
-    if (!cursor.has_parent_path() || cursor.parent_path() == cursor) break;
-    cursor = cursor.parent_path();
-  }
-  return {};
-}
-
 std::string ast_harden_release_js(const std::string& kind, const std::string& js) {
-  const auto script = find_js_hardener_script();
-  if (script.empty()) {
-    throw std::runtime_error(
-        "protected release JS hardener is unavailable; run scripts/setup-js-hardener and build from the repository root");
-  }
-  const auto package_dir = script.parent_path();
-  if (!std::filesystem::exists(package_dir / "node_modules" / "terser") ||
-      !std::filesystem::exists(package_dir / "node_modules" / "javascript-obfuscator")) {
-    throw std::runtime_error(
-        "protected release JS hardener dependencies are missing; run scripts/setup-js-hardener");
-  }
-
   const auto nonce = short_hash_hex(
       venom::package::fnv1a64(bytes_from_string(kind + "|" + js)), 16);
-  const auto temp_dir = std::filesystem::temp_directory_path() / ("venom-js-hardener-" + nonce);
-  const auto input_path = temp_dir / "input.js";
-  const auto output_path = temp_dir / "output.js";
-  std::filesystem::remove_all(temp_dir);
-  std::filesystem::create_directories(temp_dir);
-  write_text(input_path, js);
   const auto seed = static_cast<std::uint32_t>(
       venom::package::fnv1a64(bytes_from_string("obfuscate|" + kind + "|" + nonce)) & 0xffffffffu);
-  const int status = run_process("node", {
-      script.string(), input_path.string(), output_path.string(), kind, std::to_string(seed)});
-  if (status != 0 || !std::filesystem::exists(output_path)) {
-    std::filesystem::remove_all(temp_dir);
-    throw std::runtime_error(
-        "protected release JS hardener failed for " + kind + " (exit " + std::to_string(status) + ")");
+  const auto output = native_js_hardener::harden(kind, js, seed);
+  if (output.empty()) {
+    throw std::runtime_error("embedded protected release JS hardener produced empty output for " + kind);
   }
-  const auto output_bytes = read_bytes(output_path);
-  std::filesystem::remove_all(temp_dir);
-  if (output_bytes.empty()) {
-    throw std::runtime_error("protected release JS hardener produced empty output for " + kind);
-  }
-  return std::string(output_bytes.begin(), output_bytes.end());
+  return output;
 }
 
 bool redact_release_metadata(const Profile& profile) {

@@ -14,7 +14,7 @@ That does not prevent behavioral reconstruction. An analyst can instrument the b
 
 ## Browser-visible JavaScript hardening
 
-Production JavaScript passes through Terser and `javascript-obfuscator` using the committed, reproducible hardener toolchain. Depending on asset role, the pipeline applies top-level mangling, multi-pass compression, encoded and shuffled string arrays, hexadecimal identifiers, split strings, control-flow transformation, dead-code injection, numeric expression transformation, transformed object keys, and self-defending output. Source-map emission is disabled.
+Production JavaScript passes through embedded, pinned Terser 5.49.0 and `javascript-obfuscator` 5.4.7 bundles executed in-process by Venom’s linked QuickJS engine. Depending on asset role, the pipeline applies top-level mangling, multi-pass compression, encoded and shuffled string arrays, hexadecimal identifiers, split strings, control-flow transformation, dead-code injection, numeric expression transformation, transformed object keys, and self-defending output. Source-map emission is disabled.
 
 The worker intentionally uses a more conservative transformation set where aggressive transformations would threaten runtime compatibility.
 

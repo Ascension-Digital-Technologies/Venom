@@ -11,6 +11,11 @@
       "actions": [
         {
           "type": "select",
+          "selector": "#search-time",
+          "value": "250"
+        },
+        {
+          "type": "select",
           "selector": "#move-delay",
           "value": "80"
         },

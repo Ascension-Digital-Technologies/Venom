@@ -1,10 +1,10 @@
+# Scripts
 
-## One-command examples
+The `scripts/` directory contains Venom's supported command-line entry points. PowerShell is the primary Windows interface, `.bat` files are thin double-click-friendly launchers, and `.sh` files provide Linux/macOS equivalents. Implementation logic belongs in `tools/`; wrappers in this directory should remain small and stable.
 
-> Stable release entrypoints fail closed. Set `VENOM_RELEASE_PRIVATE_KEY_FILE` and `VENOM_RELEASE_PUBLIC_KEY_FILE` to Ed25519 PEM file paths before running `release.ps1` or `release.sh`. Unsigned stable archives are not supported.
+## Fast paths
 
-
-Build a hardened production distribution and serve it immediately:
+Build and serve a hardened example:
 
 ```powershell
 .\scripts\protected-chess.bat
@@ -12,19 +12,15 @@ Build a hardened production distribution and serve it immediately:
 .\scripts\bot-detection.bat
 ```
 
-Optional development profile and custom port:
+Use a readable development profile or another port:
 
 ```powershell
 .\scripts\nova-trade.bat -Profile dev -Port 8090
 ```
 
-Unix equivalents are `scripts/protected-chess.sh`, `scripts/nova-trade.sh`, and `scripts/bot-detection.sh`.
+Unix equivalents use the matching `.sh` filename.
 
-Running `build-quickjs-wasm` without arguments now verifies and accepts the real runtime already embedded in a release. `-Artifact` is only needed when replacing the embedded runtime as a contributor.
-
-# Scripts
-
-The `scripts/` directory contains the supported command-line entry points for building, validating, serving, and releasing Venom. PowerShell is the primary Windows interface, `.bat` files are thin launchers, and `.sh` files provide Linux/macOS equivalents.
+> Stable release entrypoints fail closed. Set `VENOM_RELEASE_PRIVATE_KEY_FILE` and `VENOM_RELEASE_PUBLIC_KEY_FILE` to Ed25519 PEM file paths before running `release.ps1` or `release.sh`. Unsigned stable archives are not supported.
 
 ## Initial setup
 
@@ -33,7 +29,6 @@ The `scripts/` directory contains the supported command-line entry points for bu
 ```powershell
 .\scripts\setup-emscripten.ps1
 .\scripts\build-quickjs-wasm.ps1
-.\scripts\setup-js-hardener.ps1 -Force
 .\scripts\build.ps1 -Config Release
 ```
 
@@ -42,7 +37,6 @@ The `scripts/` directory contains the supported command-line entry points for bu
 ```bash
 ./scripts/setup-emscripten.sh
 ./scripts/build-quickjs-wasm.sh
-./scripts/setup-js-hardener.sh
 ./scripts/build.sh Release
 ```
 
@@ -81,19 +75,6 @@ Venom exposes only:
 .\scripts\clean.ps1
 ```
 
-## JavaScript hardener repair
-
-```powershell
-.\scripts\setup-js-hardener.ps1 -Force
-```
-
-The Windows installer pauses automatically when installation fails so the npm or Node error remains visible. CI can disable the pause:
-
-```powershell
-.\scripts\setup-js-hardener.ps1 -Force -NoPause
-```
-
-Dependencies are installed locally under `tools/js-hardener`, followed by module-import, obfuscation, and generated-syntax self-tests.
 
 ## Windows build output discovery
 
@@ -127,7 +108,6 @@ python .\scripts\check-production-leaks.py dist
 
 The release workflow builds the CLI and protected chess distribution, runs runtime and leak verification, checks tamper rejection and seeded reproducibility, performs browser qualification, and creates release archives.
 
-Implementation logic belongs in `tools/`; script wrappers should remain small and stable.
 
 ## Live development
 
@@ -201,3 +181,7 @@ set VENOM_NO_PAUSE=1
 CI environments are detected automatically and never pause. PowerShell and shell scripts do not pause by themselves, so they remain suitable for terminals and automation.
 
 Console output uses consistent `STEP`, `INFO`, `SUCCESS`, `WARNING`, and `ERROR` labels.
+
+### Production compiler freshness and protection gates
+
+`build-site.ps1` and `build-site.sh` now refresh the native compiler incrementally before building a site, clean the destination directory, print the exact compiler path and SHA-256 fingerprint, and run the production leak scan, `release-check`, and real-engine verification. PowerShell callers may pass `-SkipCompilerBuild` only when intentionally reusing an existing compiler; shell callers may set `VENOM_SKIP_COMPILER_BUILD=1`.

@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <strong>Version 2.0.0</strong> · <strong>Alpha 2</strong> · <strong>Static-host compatible</strong>
+  <strong>Version 2.0.0</strong> · <strong>Alpha 30</strong> · <strong>Static-host compatible</strong>
 </p>
 
 ---
@@ -233,6 +233,21 @@ venom release-check dist
 
 The generated application remains a static distribution and can be served by a conventional web server, object store, or CDN.
 
+### Build progress output
+
+Protected builds print structured progress by default. Each phase identifies the work being performed and reports the elapsed time of the preceding phase, making long production builds easier to diagnose.
+
+```powershell
+venom build . --profile prod --out dist
+venom build . --profile prod --out dist --verbose
+venom build . --profile prod --out dist --quiet
+```
+
+- Default output shows major compiler phases, artifact counts, timings, and the final protection report.
+- `--verbose` (`-v`) adds planner, module-graph, polymorphism, runtime, and package details.
+- `--quiet` (`-q`) emits only errors and the final output location.
+- `--format json` remains machine-readable and never mixes human progress lines into JSON output.
+
 ## Hybrid execution
 
 Venom protects JavaScript by default. Source annotations allow compatibility-sensitive code to remain in the browser while explicitly marking important logic for protected execution.
@@ -395,14 +410,11 @@ A browser-intelligence dashboard that collects browser-exposed fingerprint, capa
 - Visual Studio with **Desktop development with C++**
 - CMake 3.20 or newer
 - Python 3.10 or newer
-- Node.js 20 or newer
-- npm
 
 ```powershell
-git clone <repository-url>
-cd venom-secure-web-runtime
+git clone https://github.com/Ascension-Digital-Technologies/Venom.git
+cd Venom
 
-.\scripts\setup-js-hardener.ps1
 .\scripts\build.ps1 -Config Release
 
 .\build\Release\venom.exe doctor --profile production
@@ -414,10 +426,9 @@ Windows `.bat` launchers remain open after both success and failure when double-
 ### Linux and macOS
 
 ```bash
-git clone <repository-url>
-cd venom-secure-web-runtime
+git clone https://github.com/Ascension-Digital-Technologies/Venom.git
+cd Venom
 
-bash scripts/setup-js-hardener.sh
 bash scripts/build.sh --config Release
 
 ./build/venom doctor --profile production
@@ -437,12 +448,12 @@ Detailed setup documentation:
 |---|---|
 | Install and build Venom | [Installation](docs/getting-started/installation.md) |
 | Protect an existing website | [Existing-site integration](docs/getting-started/existing-project.md) |
-| Learn annotations and public APIs | [Guides](docs/README.md#use-venom) |
+| Learn annotations and public APIs | [Guides](docs/README.md#integrate-venom) |
 | Understand the architecture | [Architecture overview](docs/architecture/overview.md) |
 | Review the security model | [Security model](docs/security/security-model.md) |
 | Verify a production release | [Production hardening](docs/security/production-hardening.md) |
 | Measure runtime performance | [Runtime benchmarking](docs/operations/runtime-performance.md) |
-| Contribute to the runtime | [Production operations](docs/README.md#operate-and-verify) |
+| Contribute to the runtime | [Contribution guide](CONTRIBUTING.md) |
 | Find CLI commands and options | [CLI reference](docs/reference/cli.md) |
 
 ## Security model
@@ -475,6 +486,8 @@ Report suspected vulnerabilities privately through [SECURITY.md](SECURITY.md). D
 | [SUPPORT.md](SUPPORT.md) | Supported usage, diagnostics, and assistance guidance |
 | [SECURITY.md](SECURITY.md) | Private vulnerability reporting policy |
 | [CHANGES.md](CHANGES.md) | Public release history |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Development workflow, review expectations, and documentation standards |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community participation and enforcement standards |
 
 ## License
 

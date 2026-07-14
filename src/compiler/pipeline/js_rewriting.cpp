@@ -636,8 +636,8 @@ ProtectedModuleRewriteResult apply_protected_module_rewrites(std::vector<JsChunk
                << "globalThis.__venomProtectedBridge[\"" << json_escape_plan(candidate) << "\"]=" << wrapped << ";\n";
       facade << "export async function " << entry.name << "(" << entry.params << "){";
       if (development) facade << contract_validator_js(entry.input_contract, "arguments[0]", "input");
-      facade << "const __r=await globalThis.__venomInvokeProtectedByName(\""
-             << json_escape_plan(entry.name) << "\",Array.from(arguments));";
+      facade << "const __r=await globalThis.__venomInvokeProtectedById(\""
+             << json_escape_plan(candidate) << "\",Array.from(arguments));";
       if (development) facade << contract_validator_js(entry.output_contract, "__r", "output");
       facade << "return __r;}\n";
       dts << "export function " << entry.name << "(input: " << typescript_object_type(entry.input_contract)
@@ -669,27 +669,30 @@ std::size_t line_start_offset(const std::string& source, std::uint32_t line) {
   return offset;
 }
 
-bool extract_function_declaration(const JsChunk& chunk,
-                                  const detail::FunctionExtractionRecord& record,
-                                  std::size_t& begin,
-                                  std::size_t& end,
-                                  std::string& declaration,
-                                  std::string& params) {
-  begin = line_start_offset(chunk.code, record.line);
-  if (begin == std::string::npos) return false;
-  const auto line_end = chunk.code.find('\n', begin);
-  const auto first_line = chunk.code.substr(begin, (line_end == std::string::npos ? chunk.code.size() : line_end) - begin);
-  const std::regex header(R"(^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*\(([^)]*)\)\s*\{)");
-  std::smatch match;
-  if (!std::regex_search(first_line, match, header) || match.size() < 3 || match[1].str() != record.name) return false;
-  params = match[2].str();
-  const auto brace = chunk.code.find('{', begin + static_cast<std::size_t>(match.position(0)));
-  if (brace == std::string::npos) return false;
+std::string trim_copy(std::string value);
+
+struct ExtractedProtectedFunction {
+  std::size_t begin = 0;
+  std::size_t end = 0;
+  std::string declaration;
+  std::string callable_expression;
+  std::string params;
+  std::string syntax_kind;
+  bool exported = false;
+};
+
+std::size_t skip_js_space(const std::string& source, std::size_t i) {
+  while (i < source.size() && std::isspace(static_cast<unsigned char>(source[i])) != 0) ++i;
+  return i;
+}
+
+std::size_t find_balanced_js_end(const std::string& source, std::size_t open, char left, char right) {
   int depth = 0;
-  bool in_single = false, in_double = false, in_template = false, in_line_comment = false, in_block_comment = false, escape = false;
-  for (std::size_t i = brace; i < chunk.code.size(); ++i) {
-    const char c = chunk.code[i];
-    const char n = i + 1u < chunk.code.size() ? chunk.code[i + 1u] : '\0';
+  bool in_single = false, in_double = false, in_template = false;
+  bool in_line_comment = false, in_block_comment = false, escape = false;
+  for (std::size_t i = open; i < source.size(); ++i) {
+    const char c = source[i];
+    const char n = i + 1u < source.size() ? source[i + 1u] : '\0';
     if (in_line_comment) { if (c == '\n') in_line_comment = false; continue; }
     if (in_block_comment) { if (c == '*' && n == '/') { in_block_comment = false; ++i; } continue; }
     if (escape) { escape = false; continue; }
@@ -700,14 +703,116 @@ bool extract_function_declaration(const JsChunk& chunk,
     if (!in_single && !in_template && c == '"') { in_double = !in_double; continue; }
     if (!in_single && !in_double && c == '`') { in_template = !in_template; continue; }
     if (in_single || in_double || in_template) continue;
-    if (c == '{') ++depth;
-    else if (c == '}' && --depth == 0) {
-      end = i + 1u;
-      declaration = chunk.code.substr(begin, end - begin);
-      return true;
-    }
+    if (c == left) ++depth;
+    else if (c == right && --depth == 0) return i + 1u;
   }
-  return false;
+  return std::string::npos;
+}
+
+std::size_t find_arrow_expression_end(const std::string& source, std::size_t begin) {
+  int paren = 0, bracket = 0, brace = 0;
+  bool in_single = false, in_double = false, in_template = false, escape = false;
+  for (std::size_t i = begin; i < source.size(); ++i) {
+    const char c = source[i];
+    if (escape) { escape = false; continue; }
+    if ((in_single || in_double || in_template) && c == '\\') { escape = true; continue; }
+    if (!in_double && !in_template && c == '\'') { in_single = !in_single; continue; }
+    if (!in_single && !in_template && c == '"') { in_double = !in_double; continue; }
+    if (!in_single && !in_double && c == '`') { in_template = !in_template; continue; }
+    if (in_single || in_double || in_template) continue;
+    if (c == '(') ++paren; else if (c == ')') --paren;
+    else if (c == '[') ++bracket; else if (c == ']') --bracket;
+    else if (c == '{') ++brace; else if (c == '}') --brace;
+    else if ((c == ';' || c == '\n') && paren == 0 && bracket == 0 && brace == 0) return c == ';' ? i + 1u : i;
+  }
+  return source.size();
+}
+
+bool extract_protected_function(const JsChunk& chunk,
+                                const detail::FunctionExtractionRecord& record,
+                                ExtractedProtectedFunction& out) {
+  out = {};
+  out.begin = line_start_offset(chunk.code, record.line);
+  if (out.begin == std::string::npos) return false;
+
+  // Named declaration: export/default/async function name(...){...}. Parse the
+  // parameter range structurally so nested defaults and destructuring are safe.
+  const auto header_limit = std::min(chunk.code.size(), out.begin + 8192u);
+  const auto first_line = chunk.code.substr(out.begin, header_limit - out.begin);
+  const std::regex declaration_prefix(
+      R"(^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*)");
+  std::smatch declaration_match;
+  if (std::regex_search(first_line, declaration_match, declaration_prefix) && declaration_match.size() >= 2 &&
+      declaration_match[1].str() == record.name) {
+    std::size_t cursor = out.begin + static_cast<std::size_t>(declaration_match.position(0) + declaration_match.length(0));
+    cursor = skip_js_space(chunk.code, cursor);
+    if (cursor >= chunk.code.size() || chunk.code[cursor] != '(') return false;
+    const auto params_end = find_balanced_js_end(chunk.code, cursor, '(', ')');
+    if (params_end == std::string::npos) return false;
+    out.params = chunk.code.substr(cursor + 1u, params_end - cursor - 2u);
+    const auto brace = skip_js_space(chunk.code, params_end);
+    if (brace >= chunk.code.size() || chunk.code[brace] != '{') return false;
+    out.end = find_balanced_js_end(chunk.code, brace, '{', '}');
+    if (out.end == std::string::npos) return false;
+    out.declaration = chunk.code.substr(out.begin, out.end - out.begin);
+    out.callable_expression = out.declaration;
+    out.syntax_kind = "function-declaration";
+    out.exported = std::regex_search(out.declaration, std::regex(R"(^\s*export\s+)"));
+    return true;
+  }
+
+  // Variable-bound arrow: export? const|let|var name = async? params => body.
+  // Parse the parameter range structurally so nested defaults and destructuring
+  // do not terminate at the first ')' or '{'.
+  const std::regex arrow_prefix(R"(^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*(async\s+)?)");
+  std::smatch arrow_match;
+  if (!std::regex_search(first_line, arrow_match, arrow_prefix) || arrow_match.size() < 3 || arrow_match[1].str() != record.name)
+    return false;
+  std::size_t cursor = out.begin + static_cast<std::size_t>(arrow_match.position(0) + arrow_match.length(0));
+  cursor = skip_js_space(chunk.code, cursor);
+  std::string param_text;
+  if (cursor < chunk.code.size() && chunk.code[cursor] == '(') {
+    const auto params_end = find_balanced_js_end(chunk.code, cursor, '(', ')');
+    if (params_end == std::string::npos) return false;
+    param_text = chunk.code.substr(cursor, params_end - cursor);
+    cursor = params_end;
+  } else {
+    const auto start = cursor;
+    if (start >= chunk.code.size() ||
+        !(std::isalpha(static_cast<unsigned char>(chunk.code[start])) != 0 || chunk.code[start] == '_' || chunk.code[start] == '$'))
+      return false;
+    ++cursor;
+    while (cursor < chunk.code.size() &&
+           (std::isalnum(static_cast<unsigned char>(chunk.code[cursor])) != 0 || chunk.code[cursor] == '_' || chunk.code[cursor] == '$'))
+      ++cursor;
+    param_text = chunk.code.substr(start, cursor - start);
+  }
+  cursor = skip_js_space(chunk.code, cursor);
+  if (cursor + 1u >= chunk.code.size() || chunk.code.compare(cursor, 2u, "=>") != 0) return false;
+  const auto arrow = cursor;
+  if (param_text.size() >= 2u && param_text.front() == '(' && param_text.back() == ')')
+    out.params = param_text.substr(1u, param_text.size() - 2u);
+  else
+    out.params = param_text;
+  const auto body = skip_js_space(chunk.code, arrow + 2u);
+  if (body >= chunk.code.size()) return false;
+  if (chunk.code[body] == '{') {
+    out.end = find_balanced_js_end(chunk.code, body, '{', '}');
+    if (out.end == std::string::npos) return false;
+    auto semi = skip_js_space(chunk.code, out.end);
+    if (semi < chunk.code.size() && chunk.code[semi] == ';') out.end = semi + 1u;
+  } else {
+    out.end = find_arrow_expression_end(chunk.code, body);
+  }
+  out.declaration = chunk.code.substr(out.begin, out.end - out.begin);
+  const auto equals = out.declaration.find('=');
+  if (equals == std::string::npos) return false;
+  out.callable_expression = trim_copy(out.declaration.substr(equals + 1u));
+  if (!out.callable_expression.empty() && out.callable_expression.back() == ';') out.callable_expression.pop_back();
+  out.callable_expression = trim_copy(out.callable_expression);
+  out.syntax_kind = arrow_match[2].matched ? "async-arrow-function" : "arrow-function";
+  out.exported = std::regex_search(out.declaration, std::regex(R"(^\s*export\s+)"));
+  return !out.callable_expression.empty();
 }
 
 
@@ -753,23 +858,30 @@ BridgeRewriteResult apply_bridge_rewrites(std::vector<JsChunk>& chunks,
     });
     BridgeRewriteRecord rewrite{record.source, record.name, opaque_bridge_id(record.source, record.name, bridge_id_salt), "retained", "", {}};
     if (it == chunks.end()) { rewrite.reason = "source chunk not found"; result.records.push_back(std::move(rewrite)); continue; }
-    std::size_t begin = 0, end = 0;
-    std::string declaration, params;
-    if (!extract_function_declaration(*it, record, begin, end, declaration, params)) {
-      rewrite.reason = "only named function declarations are currently extractable";
+    ExtractedProtectedFunction extracted;
+    if (!extract_protected_function(*it, record, extracted)) {
+      rewrite.reason = "supported protected forms are named function declarations and variable-bound arrow functions";
       result.records.push_back(std::move(rewrite));
       continue;
     }
+    auto dependency_declaration = extracted.declaration;
+    try { dependency_declaration = std::regex_replace(dependency_declaration, std::regex(R"(^\s*export\s+(?:default\s+)?)"), ""); }
+    catch (const std::regex_error& error) { throw std::runtime_error(std::string("dependency declaration regex: ") + error.what()); }
     auto dependency_resolution = resolve_liftable_function_dependencies(
-        it->code, declaration, record.name, params);
-    // An explicitly isolated function is a complete protected compilation unit:
-    // all helpers and constants are declared inside its body, so no browser
-    // lexical capture is permitted or required. This avoids conservative false
-    // positives from deeply nested third-party parser/engine implementations.
-    if (!dependency_resolution.success && (record.isolated || declaration.find("@venom-isolated") != std::string::npos)) {
-      dependency_resolution.success = true;
-      dependency_resolution.reason = "explicit isolated protected compilation unit";
-      dependency_resolution.dependencies.clear();
+        it->code, dependency_declaration, record.name, extracted.params);
+    // Large explicitly isolated compilation units may contain deeply nested
+    // scopes that the lightweight analyzer cannot fully resolve. They are
+    // accepted only after a separate realm-safety verification rejects browser
+    // globals and unsupported dynamic semantics.
+    if (!dependency_resolution.success && record.isolated) {
+      std::string isolated_reason;
+      if (verify_isolated_protected_unit(dependency_declaration, isolated_reason)) {
+        dependency_resolution.success = true;
+        dependency_resolution.reason = isolated_reason;
+        dependency_resolution.dependencies.clear();
+      } else {
+        dependency_resolution.reason = "isolated verification failed: " + isolated_reason;
+      }
     }
     if (!dependency_resolution.success) {
       rewrite.reason = dependency_resolution.reason;
@@ -780,7 +892,7 @@ BridgeRewriteResult apply_bridge_rewrites(std::vector<JsChunk>& chunks,
       rewrite.lifted_dependencies.push_back(dependency.name);
     std::string call_reason;
     bool calls_awaited = false;
-    try { calls_awaited = all_external_calls_are_awaited(it->code, record.name, begin, end, call_reason); }
+    try { calls_awaited = all_external_calls_are_awaited(it->code, record.name, extracted.begin, extracted.end, call_reason); }
     catch (const std::regex_error& error) { throw std::runtime_error(std::string("call-site regex: ") + error.what()); }
     if (!calls_awaited) {
       rewrite.reason = call_reason;
@@ -789,13 +901,14 @@ BridgeRewriteResult apply_bridge_rewrites(std::vector<JsChunk>& chunks,
     }
     const auto candidate = rewrite.candidate;
     std::ostringstream stub;
-    stub << "async function " << record.name << "(" << params << "){return globalThis.__venomInvokeProtectedByName(\""
-         << json_escape_plan(record.name) << "\",Array.from(arguments));}";
-    it->code.replace(begin, end - begin, stub.str());
-    if (it->code.find(declaration) != std::string::npos) {
+    if (extracted.exported) stub << "export ";
+    stub << "async function " << record.name << "(" << extracted.params << "){return globalThis.__venomInvokeProtectedById(\""
+         << json_escape_plan(candidate) << "\",Array.from(arguments));}";
+    it->code.replace(extracted.begin, extracted.end - extracted.begin, stub.str());
+    if (it->code.find(extracted.declaration) != std::string::npos) {
       throw std::runtime_error("protected function source remained in browser chunk after extraction: " + record.source + "::" + record.name);
     }
-    auto registry_declaration = trim_copy(declaration);
+    auto registry_declaration = trim_copy(extracted.callable_expression);
     try { registry_declaration = std::regex_replace(registry_declaration, std::regex(R"(^\s*export\s+(?:default\s+)?)"), ""); }
     catch (const std::regex_error& error) { throw std::runtime_error(std::string("registry declaration regex: ") + error.what()); }
     registry << "globalThis.__venomProtectedBridge[\"" << json_escape_plan(candidate) << "\"]=(function(){\n";
@@ -804,8 +917,8 @@ BridgeRewriteResult apply_bridge_rewrites(std::vector<JsChunk>& chunks,
     registry << "return (" << registry_declaration << ");\n})();\n";
     rewrite.status = "extracted";
     rewrite.reason = dependency_resolution.dependencies.empty()
-        ? "function declaration extracted; all external call sites are explicitly awaited"
-        : "function declaration extracted with pure lexical dependencies; all external call sites are explicitly awaited";
+        ? extracted.syntax_kind + " extracted; all external call sites are explicitly awaited"
+        : extracted.syntax_kind + " extracted with pure lexical dependencies; all external call sites are explicitly awaited";
     result.records.push_back(std::move(rewrite));
     any = true;
   }

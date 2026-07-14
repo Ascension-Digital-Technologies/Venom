@@ -49,13 +49,13 @@ def main() -> int:
     version = m.group(1)
     forbidden_doc_paths = [
         ROOT / "docs/development", ROOT / "docs/MAINTENANCE.md", ROOT / "docs/STYLE-GUIDE.md",
-        ROOT / "CONTRIBUTING.md", ROOT / "CODE_OF_CONDUCT.md", ROOT / "GOVERNANCE.md",
+        ROOT / "GOVERNANCE.md",
         ROOT / "ROADMAP.md", ROOT / "CITATION.cff",
     ]
     present_forbidden = [str(p.relative_to(ROOT)) for p in forbidden_doc_paths if p.exists()]
     if present_forbidden:
         fail("production source package contains development-process documentation: " + ", ".join(present_forbidden))
-    allowed_doc_dirs = {"getting-started", "guides", "architecture", "security", "operations", "reference", "generated", "assets"}
+    allowed_doc_dirs = {"getting-started", "guides", "architecture", "security", "operations", "reference", "generated", "assets", "audit"}
     unexpected = []
     for child in (ROOT / "docs").iterdir():
         if child.name == "README.md":

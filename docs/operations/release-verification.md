@@ -81,7 +81,6 @@ The exact command names exposed by the installed binary are documented in [CLI r
 Before publication, extract the produced source archive into a new directory and repeat:
 
 ```powershell
-.\scripts\setup-js-hardener.ps1 -NoPause
 .\scripts\build.ps1 -Config Release
 ctest --test-dir build -C Release --output-on-failure -j 1
 ```

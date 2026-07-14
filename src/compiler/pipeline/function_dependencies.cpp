@@ -11,7 +11,7 @@ namespace venom::compiler {
 namespace {
 
 struct Declaration {
-  enum class Kind { Function, PrimitiveConstant };
+  enum class Kind { Function, PrimitiveConstant, MutableBinding, UnsupportedConstant, ImportBinding };
   Kind kind = Kind::Function;
   std::string name;
   std::string declaration;
@@ -35,10 +35,30 @@ std::string trim_copy(std::string value) {
 std::string mask_literals_and_comments(const std::string& source) {
   std::string out = source;
   bool single=false, dbl=false, templ=false, line=false, block=false, escape=false;
+  bool regex=false, regex_class=false;
+  auto regex_can_start = [&](std::size_t at) {
+    std::size_t p = at;
+    while (p > 0u && std::isspace(static_cast<unsigned char>(source[p - 1u]))) --p;
+    if (p == 0u) return true;
+    const char prev = source[p - 1u];
+    return std::string_view("(=:[,!&|?{};").find(prev) != std::string_view::npos;
+  };
   for (std::size_t i=0;i<out.size();++i) {
     const char c=out[i]; const char n=i+1u<out.size()?out[i+1u]:'\0';
     if (line) { if (c=='\n') line=false; else out[i]=' '; continue; }
     if (block) { out[i]=' '; if(c=='*'&&n=='/'){out[i+1u]=' ';++i;block=false;} continue; }
+    if (regex) {
+      out[i] = ' ';
+      if (escape) { escape=false; continue; }
+      if (c=='\\') { escape=true; continue; }
+      if (c=='[') { regex_class=true; continue; }
+      if (c==']') { regex_class=false; continue; }
+      if (c=='/' && !regex_class) {
+        regex=false;
+        while (i+1u<out.size() && std::isalpha(static_cast<unsigned char>(out[i+1u]))) out[++i]=' ';
+      }
+      continue;
+    }
     if (escape) { out[i]=' '; escape=false; continue; }
     if ((single||dbl||templ)&&c=='\\') { out[i]=' '; escape=true; continue; }
     if (single) { out[i]=' '; if(c=='\'') single=false; continue; }
@@ -46,6 +66,7 @@ std::string mask_literals_and_comments(const std::string& source) {
     if (templ) { out[i]=' '; if(c=='`') templ=false; continue; }
     if(c=='/'&&n=='/'){out[i]=out[i+1u]=' ';++i;line=true;continue;}
     if(c=='/'&&n=='*'){out[i]=out[i+1u]=' ';++i;block=true;continue;}
+    if(c=='/' && regex_can_start(i)){out[i]=' ';regex=true;regex_class=false;continue;}
     if(c=='\''){out[i]=' ';single=true;continue;}
     if(c=='"'){out[i]=' ';dbl=true;continue;}
     if(c=='`'){out[i]=' ';templ=true;continue;}
@@ -96,6 +117,9 @@ std::unordered_map<std::string,Declaration> index_declarations(const std::string
   const auto masked=mask_literals_and_comments(source);
   const std::regex function_line(R"(^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+)");
   const std::regex primitive(R"(^\s*const\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*((?:true|false|null)|(?:[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)|(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'))\s*;)");
+  const std::regex mutable_binding(R"(^\s*(?:let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)\b)");
+  const std::regex const_binding(R"(^\s*const\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=)");
+  const std::regex import_binding(R"(^\s*import\s+(?:\{[^}]*\}|\*\s+as\s+[A-Za-z_$][A-Za-z0-9_$]*|[A-Za-z_$][A-Za-z0-9_$]*)\s+from\s+)");
   std::size_t offset=0;
   while(offset<=source.size()){
     const auto end=source.find('\n',offset);
@@ -112,6 +136,23 @@ std::unordered_map<std::string,Declaration> index_declarations(const std::string
       if(std::regex_search(original,match,primitive)&&match.size()>=3){
         const auto name=match[1].str();
         out[name]={Declaration::Kind::PrimitiveConstant,name,"const "+name+"="+match[2].str()+";",{}};
+      } else if (std::regex_search(original, match, mutable_binding) && match.size() >= 2) {
+        const auto name = match[1].str();
+        out[name] = {Declaration::Kind::MutableBinding, name, original, {}};
+      } else if (std::regex_search(original, match, const_binding) && match.size() >= 2) {
+        const auto name = match[1].str();
+        out[name] = {Declaration::Kind::UnsupportedConstant, name, original, {}};
+      }
+      // Imports are deliberately not lifted yet. Record simple imported names
+      // so capture failures are precise rather than reported as unknown globals.
+      if (std::regex_search(original, import_binding)) {
+        const std::regex imported_name(R"([A-Za-z_$][A-Za-z0-9_$]*)");
+        for (auto it = std::sregex_iterator(original.begin(), original.end(), imported_name);
+             it != std::sregex_iterator(); ++it) {
+          const auto candidate = it->str();
+          if (candidate != "import" && candidate != "from" && candidate != "as")
+            out.emplace(candidate, Declaration{Declaration::Kind::ImportBinding, candidate, original, {}});
+        }
       }
     }
     if(end==std::string::npos)break;
@@ -140,10 +181,23 @@ std::vector<std::string> free_identifiers(const std::string& declaration,
   for(auto it=std::sregex_iterator(masked.begin(),masked.end(),local);it!=std::sregex_iterator();++it)allowed.insert((*it)[1].str());
   const std::regex caught(R"(\bcatch\s*\(\s*([A-Za-z_$][A-Za-z0-9_$]*))");
   for(auto it=std::sregex_iterator(masked.begin(),masked.end(),caught);it!=std::sregex_iterator();++it)allowed.insert((*it)[1].str());
+  const std::regex nested_function_params(R"(\bfunction(?:\s+[A-Za-z_$][A-Za-z0-9_$]*)?\s*\(([^)]*)\))");
+  for (auto it = std::sregex_iterator(masked.begin(), masked.end(), nested_function_params);
+       it != std::sregex_iterator(); ++it) {
+    const auto nested = identifiers((*it)[1].str());
+    allowed.insert(nested.begin(), nested.end());
+  }
+  const std::regex arrow_params(R"(\(([^)]*)\)\s*=>|\b([A-Za-z_$][A-Za-z0-9_$]*)\s*=>)");
+  for (auto it = std::sregex_iterator(masked.begin(), masked.end(), arrow_params);
+       it != std::sregex_iterator(); ++it) {
+    const auto nested = identifiers((*it)[1].matched ? (*it)[1].str() : (*it)[2].str());
+    allowed.insert(nested.begin(), nested.end());
+  }
   const std::regex ident(R"([A-Za-z_$][A-Za-z0-9_$]*)");
   std::vector<std::string> out; std::unordered_set<std::string> seen;
   for(auto it=std::sregex_iterator(masked.begin(),masked.end(),ident);it!=std::sregex_iterator();++it){
     const auto name=it->str(); const auto at=static_cast<std::size_t>(it->position());
+    if (at > 0u && std::isdigit(static_cast<unsigned char>(masked[at - 1u]))) continue;
     std::size_t prev=at;while(prev>0u&&std::isspace(static_cast<unsigned char>(masked[prev-1u])))--prev;
     if(prev>0u&&masked[prev-1u]=='.')continue;
     std::size_t next=at+name.size();while(next<masked.size()&&std::isspace(static_cast<unsigned char>(masked[next])))++next;
@@ -155,11 +209,10 @@ std::vector<std::string> free_identifiers(const std::string& declaration,
 
 bool realm_bound(const std::string& declaration,std::string& reason){
   static const std::pair<std::string_view,std::string_view> unsafe[]={
-    {"document","DOM access"},{"window","browser global access"},{"this","dynamic this binding"},
-    {"arguments","arguments object"},{"eval(","dynamic eval"},{"with (","with statement"},
-    {"with(","with statement"},{"super","super binding"},{"new.target","new.target binding"},
-    {"yield","generator semantics"},{"await","async suspension"},{"import.meta","module metadata"}};
-  const auto lower=lower_ascii(declaration);
+    {"document","DOM access"},{"window","browser global access"},
+    {"eval(","dynamic eval"},{"super","super binding"},{"new.target","new.target binding"},
+    {"yield","generator semantics"},{"import.meta","module metadata"}};
+  const auto lower=lower_ascii(mask_literals_and_comments(declaration));
   for(const auto& item:unsafe)if(lower.find(item.first)!=std::string::npos){reason=std::string(item.second);return true;}
   return false;
 }
@@ -172,11 +225,32 @@ bool collect(const std::string& declaration,const std::string& name,const std::s
              std::string& reason){
   for(const auto& capture:free_identifiers(declaration,name,params)){
     if(resolved.count(capture))continue;
+    static const std::unordered_set<std::string> browser_globals = {
+      "window", "document", "navigator", "location", "history", "localStorage",
+      "sessionStorage", "fetch", "XMLHttpRequest", "WebSocket", "Worker",
+      "HTMLElement", "customElements", "requestAnimationFrame"
+    };
+    if (browser_globals.count(capture)) {
+      reason = "browser-only lexical capture requires an explicit capability: " + capture;
+      return false;
+    }
     const auto found=declarations.find(capture);
-    if(found==declarations.end()){reason="unsupported lexical capture: "+capture;return false;}
+    if(found==declarations.end()){reason="unresolved lexical capture: "+capture;return false;}
     if(visiting.count(capture))continue;
     visiting.insert(capture);
     const auto& dep=found->second;
+    if (dep.kind == Declaration::Kind::MutableBinding) {
+      reason = "mutable lexical capture is not safe to lift: " + capture;
+      return false;
+    }
+    if (dep.kind == Declaration::Kind::UnsupportedConstant) {
+      reason = "constant capture is not a supported immutable literal: " + capture;
+      return false;
+    }
+    if (dep.kind == Declaration::Kind::ImportBinding) {
+      reason = "imported lexical capture requires module dependency lowering: " + capture;
+      return false;
+    }
     if(dep.kind==Declaration::Kind::Function){
       std::string blocker;
       if(realm_bound(dep.declaration,blocker)){reason="helper "+capture+" is realm-bound: "+blocker;return false;}
@@ -200,6 +274,33 @@ FunctionDependencyResolution resolve_liftable_function_dependencies(
   result.success=collect(target_declaration,target_name,target_params,declarations,
                          result.dependencies,resolved,visiting,result.reason);
   return result;
+}
+
+bool verify_isolated_protected_unit(const std::string& declaration, std::string& reason) {
+  if (declaration.size() < 16384u) {
+    reason = "isolated fallback is reserved for large self-contained compilation units";
+    return false;
+  }
+  std::string blocker;
+  if (realm_bound(declaration, blocker)) {
+    reason = "isolated unit is realm-bound: " + blocker;
+    return false;
+  }
+  const auto masked = lower_ascii(mask_literals_and_comments(declaration));
+  static const std::pair<std::string_view, std::string_view> browser_access[] = {
+    {"document.", "document"}, {"window.", "window"},
+    {"globalthis.document", "document"}, {"globalthis.window", "window"},
+    {"navigator.", "navigator"}, {"localstorage.", "localStorage"},
+    {"sessionstorage.", "sessionStorage"}
+  };
+  for (const auto& item : browser_access) {
+    if (masked.find(item.first) != std::string::npos) {
+      reason = "isolated unit captures browser-only global: " + std::string(item.second);
+      return false;
+    }
+  }
+  reason = "verified isolated protected compilation unit";
+  return true;
 }
 
 } // namespace venom::compiler

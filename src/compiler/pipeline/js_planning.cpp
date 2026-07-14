@@ -42,6 +42,78 @@ bool has_file_scope_venom_protected_directive(const std::string& source) {
   return false;
 }
 
+
+
+struct ParsedFunctionDirective {
+  std::string realm;
+  bool isolated = false;
+  bool module = false;
+  bool malformed = false;
+};
+
+ParsedFunctionDirective parse_function_realm_directive(std::string text) {
+  text = lower_ascii(std::move(text));
+  const auto marker = text.find("@venom:");
+  if (marker == std::string::npos) return {};
+  text.erase(0, marker + 7u);
+  while (!text.empty() && (std::isspace(static_cast<unsigned char>(text.front())) != 0 || text.front() == '*')) text.erase(text.begin());
+  std::istringstream tokens(text);
+  std::string head;
+  tokens >> head;
+  if (head != "browser" && head != "protected") {
+    if (head.find("browser") != std::string::npos || head.find("protected") != std::string::npos) return {{}, false, false, true};
+    return {};
+  }
+  ParsedFunctionDirective result;
+  result.realm = head;
+  std::string modifier;
+  while (tokens >> modifier) {
+    while (!modifier.empty() && (modifier.back() == ',' || modifier.back() == ';')) modifier.pop_back();
+    if (modifier == "isolated") result.isolated = true;
+    else if (modifier == "module") result.module = true;
+    else { result.malformed = true; break; }
+  }
+  if (result.realm == "browser" && (result.isolated || result.module)) result.malformed = true;
+  if (result.isolated && result.module) result.malformed = true;
+  return result;
+}
+
+std::vector<std::string> js_comment_fragments(const std::string& line, bool& in_block_comment) {
+  std::vector<std::string> fragments;
+  std::string current;
+  bool in_single = false, in_double = false, in_template = false, escape = false;
+  for (std::size_t i = 0; i < line.size(); ++i) {
+    const char c = line[i];
+    const char n = i + 1u < line.size() ? line[i + 1u] : '\0';
+    if (in_block_comment) {
+      if (c == '*' && n == '/') {
+        fragments.push_back(current);
+        current.clear();
+        in_block_comment = false;
+        ++i;
+      } else current.push_back(c);
+      continue;
+    }
+    if (escape) { escape = false; continue; }
+    if ((in_single || in_double || in_template) && c == '\\') { escape = true; continue; }
+    if (!in_double && !in_template && c == '\'') { in_single = !in_single; continue; }
+    if (!in_single && !in_template && c == '"') { in_double = !in_double; continue; }
+    if (!in_single && !in_double && c == '`') { in_template = !in_template; continue; }
+    if (in_single || in_double || in_template) continue;
+    if (c == '/' && n == '/') {
+      fragments.push_back(line.substr(i + 2u));
+      break;
+    }
+    if (c == '/' && n == '*') {
+      in_block_comment = true;
+      current.clear();
+      ++i;
+    }
+  }
+  if (in_block_comment && !current.empty()) fragments.push_back(current);
+  return fragments;
+}
+
 std::string json_escape_plan(const std::string& value) {
   std::ostringstream out;
   for (const unsigned char c : value) {
@@ -65,48 +137,96 @@ std::string json_escape_plan(const std::string& value) {
 
 std::vector<FunctionRealmRecord> scan_function_realm_directives(const JsChunk& chunk) {
   std::vector<FunctionRealmRecord> records;
-  const std::regex declaration(
-      R"(^\s*(?:(?:export\s+)?(?:default\s+)?)?(?:async\s+)?function\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*\(|^\s*(?:const|let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=.*=>)");
+  const std::regex function_declaration(
+      R"(^\s*(?:(?:export\s+)?(?:default\s+)?)?(?:async\s+)?function\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*\()");
+  const std::regex arrow_declaration_prefix(
+      R"(^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*(?:async\s+)?)");
   std::istringstream input(chunk.code);
+  std::vector<std::string> lines;
   std::string line;
+  while (std::getline(input, line)) lines.push_back(line);
+
   std::string pending_realm;
   std::string pending_reason;
   bool pending_isolated = false;
-  std::uint32_t line_number = 0;
-  while (std::getline(input, line)) {
-    ++line_number;
-    const auto lower = lower_ascii(line);
-    const auto directive = lower.find("@venom:");
-    if (directive != std::string::npos) {
-      const bool browser = lower.find("browser", directive) != std::string::npos;
-      const bool protected_realm = lower.find("protected", directive) != std::string::npos;
-      if (browser && protected_realm) {
-        throw std::runtime_error("conflicting function-level Venom directive in " + chunk.source + ":" + std::to_string(line_number));
+  std::uint32_t pending_line = 0;
+  bool in_block_comment = false;
+  bool saw_noncomment_code = false;
+  for (std::size_t index = 0; index < lines.size(); ++index) {
+    line = lines[index];
+    const auto line_number = static_cast<std::uint32_t>(index + 1u);
+    bool saw_directive_comment = false;
+    for (const auto& fragment : js_comment_fragments(line, in_block_comment)) {
+      const auto parsed = parse_function_realm_directive(fragment);
+      if (parsed.realm.empty() && !parsed.malformed) continue;
+      saw_directive_comment = true;
+      if (parsed.module && !saw_noncomment_code && pending_realm.empty() &&
+          parsed.realm == "protected" && (chunk.flags & JsChunkBrowser) == 0u) {
+        continue;
       }
+      if (parsed.module) {
+        throw std::runtime_error("protected module directive is only valid at file scope in " + chunk.source + ":" + std::to_string(line_number));
+      }
+      if (parsed.malformed) {
+        throw std::runtime_error("malformed function-level Venom realm directive in " + chunk.source + ":" + std::to_string(line_number));
+      }
+      const bool browser = parsed.realm == "browser";
+      const bool protected_realm = parsed.realm == "protected";
       if (browser || protected_realm) {
-        pending_realm = browser ? "browser" : "protected";
+        const std::string next_realm = parsed.realm;
+        const bool matches_file_realm = (next_realm == "browser") == ((chunk.flags & JsChunkBrowser) != 0u);
+        if (!saw_noncomment_code && pending_realm.empty() && matches_file_realm) {
+          // The leading realm annotation belongs to the file, not the next declaration.
+          continue;
+        }
+        if (!pending_realm.empty()) {
+          throw std::runtime_error("ambiguous consecutive function-level Venom directives in " + chunk.source + ":" +
+                                   std::to_string(pending_line) + " and " + std::to_string(line_number));
+        }
+        pending_realm = next_realm;
         pending_reason = browser ? "explicit function-level browser directive" : "explicit function-level protected directive";
-        pending_isolated = protected_realm && lower.find("isolated", directive) != std::string::npos;
+        pending_isolated = protected_realm && parsed.isolated;
+        pending_line = line_number;
       }
-      continue;
     }
+    if (saw_directive_comment) continue;
+    const auto first_nonspace = line.find_first_not_of(" \t\r");
+    if (first_nonspace != std::string::npos && line.compare(first_nonspace, 2, "//") != 0 &&
+        line.compare(first_nonspace, 2, "/*") != 0 && line[first_nonspace] != '*') saw_noncomment_code = true;
     if (pending_realm.empty()) continue;
-    const auto trimmed = lower_ascii(line);
-    if (trimmed.find_first_not_of(" \t\r") == std::string::npos || trimmed.rfind("//", 0) == 0 || trimmed.rfind("/*", 0) == 0 || trimmed.rfind("*", 0) == 0) continue;
-    std::smatch match;
-    if (!std::regex_search(line, match, declaration)) {
-      pending_realm.clear();
-      pending_reason.clear();
-      pending_isolated = false;
-      continue;
+    if (first_nonspace == std::string::npos || line.compare(first_nonspace, 2, "//") == 0 ||
+        line.compare(first_nonspace, 2, "/*") == 0 || line[first_nonspace] == '*') continue;
+
+    // Build a bounded declaration header so multiline arrow parameters are recognized
+    // without consuming a function body or a following statement.
+    std::string header = line;
+    std::size_t last = index;
+    for (; last + 1u < lines.size() && last < index + 31u && header.find("=>") == std::string::npos &&
+           header.find(';') == std::string::npos; ++last) {
+      header.push_back('\n');
+      header += lines[last + 1u];
     }
+    std::smatch match;
     std::string name;
-    if (match.size() > 1 && match[1].matched) name = match[1].str();
-    else if (match.size() > 2 && match[2].matched) name = match[2].str();
+    if (std::regex_search(header, match, function_declaration) && match.size() > 1 && match[1].matched) {
+      name = match[1].str();
+    } else if (header.find("=>") != std::string::npos &&
+               std::regex_search(header, match, arrow_declaration_prefix) && match.size() > 1 && match[1].matched) {
+      name = match[1].str();
+    } else {
+      throw std::runtime_error("orphaned function-level Venom directive in " + chunk.source + ":" +
+                               std::to_string(pending_line) +
+                               "; directive must bind to the immediately following supported declaration");
+    }
     if (!name.empty()) records.push_back({chunk.route, chunk.source, name, pending_realm, pending_reason, line_number, false, pending_isolated});
     pending_realm.clear();
     pending_reason.clear();
     pending_isolated = false;
+    pending_line = 0;
+  }
+  if (!pending_realm.empty()) {
+    throw std::runtime_error("orphaned function-level Venom directive at end of file in " + chunk.source + ":" +
+                             std::to_string(pending_line));
   }
   return records;
 }
@@ -238,8 +358,6 @@ std::vector<FunctionExtractionRecord> analyze_function_extraction(const std::vec
       // Use member-access tokens to avoid false positives in comments such as
       // "documentation".
       static const std::vector<std::pair<std::string, std::string>> unsafe{
-        {"document.", "DOM access"}, {"window.", "browser global access"},
-        {"globalthis.document", "DOM access"}, {"globalthis.window", "browser global access"},
         {"eval(", "dynamic eval"}, {"super", "super binding"},
         {"new.target", "new.target binding"}, {"yield", "generator semantics"},
         {"import.meta", "module metadata"}

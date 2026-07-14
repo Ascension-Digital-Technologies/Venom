@@ -29,7 +29,7 @@ if 'BRIDGE_CANDIDATES[candidateSlot]' not in worker:
     raise SystemExit('worker does not resolve numeric candidate slots')
 if 'counter <= bridgeCounter' not in worker:
     raise SystemExit('worker replay counter enforcement missing')
-if '__venomInvokeProtectedByName' not in loader:
+if '__venomInvokeProtectedById' not in loader:
     raise SystemExit('generated protected stubs are not name-routed')
 
 legacy = ["type: 'invoke'", "type:'invoke'", "type: 'cancel'", "type:'cancel'", "type: 'bridge-result'", "type:'bridge-result'", "type: 'bridge-error'", "type:'bridge-error'"]

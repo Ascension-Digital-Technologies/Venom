@@ -1,5 +1,155 @@
 // @venom: protected module
 
+
+var COMMON_AUTOMATION_GLOBALS = [
+  "_phantom", "callPhantom", "__nightmare", "domAutomation", "domAutomationController",
+  "__webdriver_evaluate", "__selenium_evaluate", "__webdriver_script_function",
+  "__webdriver_script_func", "__webdriver_script_fn", "__fxdriver_evaluate",
+  "__driver_unwrapped", "__webdriver_unwrapped", "__driver_evaluate", "__selenium_unwrapped",
+  "webdriver", "__playwright", "__pw_manual", "Cypress"
+];
+
+var TELEMETRY_SCHEMA_VERSION = 2;
+var SESSION_TTL_MS = 120000;
+var MAX_ACTIVE_SESSIONS = 64;
+var protectedSessions = Object.create(null);
+var protectedSessionOrder = [];
+
+function telemetryError(code) { var error = new Error(code); error.code = code; return error; }
+function makeOpaqueToken(prefix) { return prefix + "-" + fnv1a(String(Date.now()) + "|" + String(Math.random()) + "|" + String(protectedSessionOrder.length)); }
+function pruneSessions(now) {
+  while (protectedSessionOrder.length > 0) {
+    var id = protectedSessionOrder[0]; var item = protectedSessions[id];
+    if (item && item.expiresAt > now && protectedSessionOrder.length <= MAX_ACTIVE_SESSIONS) break;
+    protectedSessionOrder.shift(); delete protectedSessions[id];
+  }
+}
+
+export function beginAssessmentSession() {
+  var now = Date.now(); pruneSessions(now);
+  var sessionId = makeOpaqueToken("s") + makeOpaqueToken("i");
+  var nonce = makeOpaqueToken("n") + makeOpaqueToken("c");
+  var expiresAt = now + SESSION_TTL_MS;
+  protectedSessions[sessionId] = { nonce: nonce, lastSequence: 0, lastCapturedAtMs: 0, expiresAt: expiresAt };
+  protectedSessionOrder.push(sessionId); pruneSessions(now);
+  return { schemaVersion: TELEMETRY_SCHEMA_VERSION, sessionId: sessionId, nonce: nonce, expiresAtMs: expiresAt, nextSequence: 1 };
+}
+
+function validateTelemetryEnvelope(envelope) {
+  if (!envelope || typeof envelope !== "object" || Array.isArray(envelope)) throw telemetryError("invalid-envelope");
+  var allowed = ["schemaVersion","sessionId","nonce","sequence","capturedAtMs","telemetry"];
+  var keys = Object.keys(envelope);
+  if (keys.length !== allowed.length || keys.some(function (key) { return allowed.indexOf(key) === -1; })) throw telemetryError("invalid-envelope-schema");
+  if (finite(envelope.schemaVersion) !== TELEMETRY_SCHEMA_VERSION) throw telemetryError("unsupported-schema");
+  var now = Date.now(); pruneSessions(now);
+  var session = protectedSessions[text(envelope.sessionId)];
+  if (!session) throw telemetryError("unknown-session");
+  if (session.expiresAt <= now) throw telemetryError("expired-session");
+  if (text(envelope.nonce) !== session.nonce) throw telemetryError("nonce-mismatch");
+  var sequence = finite(envelope.sequence, -1);
+  if (!Number.isInteger(sequence) || sequence !== session.lastSequence + 1) throw telemetryError("replayed-or-out-of-order");
+  var capturedAt = finite(envelope.capturedAtMs, -1);
+  if (!Number.isInteger(capturedAt) || capturedAt <= 0) throw telemetryError("invalid-capture-time");
+  // Browser and protected QuickJS clocks are separate trust domains. Some WASM
+  // hosts expose a non-advancing wall clock, so absolute skew checks can reject
+  // fresh telemetry after the page has been open for 30 seconds. Sequence, nonce,
+  // and session binding already prevent replay; require capture time to advance
+  // monotonically within the authenticated session instead.
+  if (session.lastCapturedAtMs > 0 && capturedAt < session.lastCapturedAtMs) throw telemetryError("stale-telemetry");
+  if (!envelope.telemetry || typeof envelope.telemetry !== "object" || Array.isArray(envelope.telemetry)) throw telemetryError("invalid-telemetry");
+  session.lastSequence = sequence;
+  session.lastCapturedAtMs = capturedAt;
+  return envelope.telemetry;
+}
+
+function deriveTemporalBehavior(input) {
+  var behavior = input.behavior && typeof input.behavior === "object" ? input.behavior : {};
+  var samples = Array.isArray(behavior.samples) ? behavior.samples.slice(-128) : [];
+  var intervals = [], velocities = [], previous = null;
+  samples.forEach(function (sample) {
+    if (!sample || typeof sample !== "object") return;
+    var current = { type: text(sample.type), t: finite(sample.t, -1), x: finite(sample.x), y: finite(sample.y) };
+    if (previous && current.t >= previous.t) {
+      var dt = Math.max(1, current.t - previous.t); intervals.push(dt);
+      if (current.type === "pointer" && previous.type === "pointer") {
+        var dx = current.x - previous.x, dy = current.y - previous.y; velocities.push(Math.sqrt(dx*dx + dy*dy) / dt);
+      }
+    }
+    previous = current;
+  });
+  function stats(values) {
+    if (!values.length) return { count: 0, mean: 0, deviation: 0 };
+    var mean = values.reduce(function(a,b){return a+b;},0)/values.length;
+    var variance = values.reduce(function(a,b){var d=b-mean; return a+d*d;},0)/values.length;
+    return { count: values.length, mean: mean, deviation: Math.sqrt(variance) };
+  }
+  behavior.temporal = { sampleCount: samples.length, interval: stats(intervals), velocity: stats(velocities) };
+  delete behavior.samples; input.behavior = behavior; return input;
+}
+
+function browserNameFromUserAgent(userAgent) {
+  var ua = text(userAgent);
+  if (/Edg\//.test(ua)) return "Microsoft Edge";
+  if (/OPR\//.test(ua)) return "Opera";
+  if (/Firefox\//.test(ua)) return "Firefox";
+  if (/Chrome\//.test(ua)) return "Chrome";
+  if (/Safari\//.test(ua)) return "Safari";
+  return "Unknown";
+}
+
+function deriveProtectedSignals(input) {
+  var output = input && typeof input === "object" ? input : {};
+  var browser = output.browser && typeof output.browser === "object" ? output.browser : {};
+  var evidence = output.integrityEvidence && typeof output.integrityEvidence === "object" ? output.integrityEvidence : {};
+  var ua = lower(browser.userAgent);
+  var properties = Array.isArray(evidence.globalPropertyNames) ? evidence.globalPropertyNames : [];
+  var notificationPermission = text(evidence.notificationPermission || "unsupported");
+  var queriedNotification = text(evidence.queriedNotificationPermission || "unsupported");
+  var normalizedNotification = notificationPermission === "default" ? "prompt" : notificationPermission;
+  var functionSources = evidence.functionSources && typeof evidence.functionSources === "object" ? evidence.functionSources : {};
+  var modifiedNativeSurfaces = Object.keys(functionSources).filter(function (name) {
+    var source = text(functionSources[name]);
+    return source.length > 0 && !/\{\s*\[native code\]\s*\}/.test(source);
+  });
+  browser.name = browserNameFromUserAgent(browser.userAgent);
+  browser.mobile = bool(browser.userAgentDataMobile) || /android|iphone|ipad|mobile/.test(ua);
+  output.browser = browser;
+  output.automation = {
+    webdriver: bool(evidence.webdriver),
+    headlessUserAgent: /headlesschrome|phantomjs|slimerjs/.test(ua),
+    automationGlobals: COMMON_AUTOMATION_GLOBALS.filter(function (name) { return properties.indexOf(name) !== -1; }),
+    outerDimensionsMissing: !browser.mobile && (finite(evidence.outerWidth) === 0 || finite(evidence.outerHeight) === 0),
+    permissionsMismatch: normalizedNotification !== "unsupported" && queriedNotification !== "unsupported" && normalizedNotification !== queriedNotification,
+    notificationPermission: notificationPermission,
+    queriedNotificationPermission: queriedNotification,
+    nativeSurfaceMismatch: modifiedNativeSurfaces.length >= 2,
+    modifiedNativeSurfaces: modifiedNativeSurfaces,
+    chromeObjectPresent: bool(evidence.chromeObjectPresent),
+    devtoolsSizeDelta: {
+      width: Math.max(0, finite(evidence.outerWidth) - finite(evidence.innerWidth)),
+      height: Math.max(0, finite(evidence.outerHeight) - finite(evidence.innerHeight))
+    }
+  };
+  delete output.integrityEvidence;
+  return output;
+}
+
+function scoreTone(score) {
+  if (score >= 86) return "excellent";
+  if (score >= 72) return "good";
+  if (score >= 52) return "uncertain";
+  if (score >= 30) return "suspicious";
+  return "critical";
+}
+
+function countSignals(input) {
+  return Object.keys(input).reduce(function (count, key) {
+    var value = input[key];
+    if (!value || typeof value !== "object") return count;
+    return count + Object.keys(value).length;
+  }, 0);
+}
+
 function finite(value, fallback) {
   var n = Number(value);
   return Number.isFinite(n) ? n : (fallback === undefined ? 0 : fallback);
@@ -61,6 +211,7 @@ function category(id, label, score, max, signals) {
     label: label,
     score: points(score, max),
     max: max,
+    percentage: clamp(round(normalized * 100), 0, 100),
     level: level,
     signals: signals
   };
@@ -244,6 +395,15 @@ function scoreBehavior(input, findings) {
     addFinding(findings, "medium", "no-interaction", "No trusted interaction after an extended session", "A long-lived page session has not produced a trusted pointer, keyboard, click, or scroll event.", -3);
   }
 
+  var temporal = behavior.temporal || {};
+  if (finite(temporal.sampleCount) >= 8) {
+    if (finite(temporal.interval && temporal.interval.deviation) >= 4) { score += 2; signals.push("Interaction timing contains natural variance"); }
+    else { score -= 2; addFinding(findings, "medium", "uniform-event-cadence", "Interaction cadence is unusually uniform", "Protected temporal analysis found very low event timing variance.", -2); }
+  }
+  if (finite(temporal.velocity && temporal.velocity.count) >= 5) {
+    if (finite(temporal.velocity.deviation) > 0.02) { score += 1; signals.push("Pointer velocity varies over time"); }
+    else { score -= 2; addFinding(findings, "medium", "uniform-pointer-speed", "Pointer speed is unusually uniform", "Protected temporal analysis found near-constant pointer velocity.", -2); }
+  }
   if (trusted >= 6 && synthetic === 0) score += 1;
   return category("behavior", "Behavioral evidence", score, 25, signals);
 }
@@ -318,8 +478,10 @@ function recommendation(score, findings) {
   return "Allow normal interaction while retaining ordinary server-side rate limits and abuse monitoring.";
 }
 
-export function assessClient(input) {
-  input = input && typeof input === "object" ? input : {};
+export function assessClient(envelope) {
+  var input = validateTelemetryEnvelope(envelope);
+  input = deriveTemporalBehavior(input);
+  input = deriveProtectedSignals(input);
   var findings = [];
   var categories = [
     scoreIntegrity(input, findings),
@@ -348,6 +510,7 @@ export function assessClient(input) {
   findings.sort(function (a, b) { return a.impact - b.impact; });
   return {
     humanScore: humanScore,
+    scoreTone: scoreTone(humanScore),
     automationRisk: 100 - humanScore,
     classification: overallLabel(humanScore),
     confidence: confidence,
@@ -355,6 +518,8 @@ export function assessClient(input) {
     categories: categories,
     findings: findings.slice(0, 12),
     recommendation: recommendation(humanScore, findings),
-    engine: "Venom protected heuristic engine v1"
+    signalCount: countSignals(input),
+    engine: "Venom protected heuristic engine v2",
+    telemetrySchemaVersion: TELEMETRY_SCHEMA_VERSION
   };
 }

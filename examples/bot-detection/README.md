@@ -269,3 +269,7 @@ Never embed permanent secrets, allowlists, private model parameters, or final au
 ## Privacy and accessibility
 
 Sentinel keeps the collected report in page memory and does not transmit it by default. Production implementations should disclose collection, minimize retention, honor applicable consent and privacy requirements, and avoid treating accessibility tools or privacy protections as automatic evidence of abuse.
+
+## Protected telemetry protocol
+
+The example uses a versioned telemetry envelope (`schemaVersion: 2`). Before assessment, the browser requests a short-lived protected session. Every assessment is bound to the returned session ID and challenge nonce, carries a strictly increasing sequence number, and is rejected when stale, replayed, out of order, or structurally invalid. Raw compact interaction samples are collected in the browser, while timing variance, pointer-velocity analysis, scoring, thresholds, and findings remain inside protected QuickJS bytecode.

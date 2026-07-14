@@ -10,7 +10,7 @@ Venom returns nonzero process codes for configuration, build, runtime-verificati
 |---|---|
 | Success | The requested command completed and all required checks passed. |
 | Usage/configuration | Arguments, paths, configuration, or required inputs are invalid. |
-| Toolchain | A compiler, Python, Node, npm, hardener, CMake, or runtime prerequisite is unavailable. |
+| Toolchain | A compiler, Python, CMake, or runtime prerequisite is unavailable. |
 | Build | Compilation, transformation, packaging, or asset generation failed. |
 | Compatibility | The site uses unsupported behavior or a required browser qualification failed. |
 | Verification | Runtime provenance, package binding, asset integrity, or leakage policy failed. |

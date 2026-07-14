@@ -61,7 +61,7 @@ hash                  u64    FNV-1a64 over stored section bytes
 
 ## Section compression
 
-Venom v0.9 enables real section-level compression for `prod` and `prod` profiles. A compressed section has `SectionFlagCompressed` set, `data_size` equal to the stored compressed payload size, and `raw_size` equal to the decoded payload size. Hashes are computed over the stored bytes before decompression.
+Production packages use real section-level compression. A compressed section has `SectionFlagCompressed` set, `data_size` equal to the stored compressed payload size, and `raw_size` equal to the decoded payload size. Hashes are computed over the stored bytes before decompression.
 
 The current codec is a dependency-free LZ-style stream with magic `VCLZ0008`. It is intentionally isolated behind `src/package/compress.*` so a stronger production codec can replace it without changing the package table layout.
 
@@ -69,7 +69,7 @@ Debug builds leave sections uncompressed for readability. Protect/release builds
 
 ## Integrity metadata
 
-`prod` and `prod` builds include an integrity section whose canonical name is `integrity-auth.vsig`; in protected packages the stored name is an opaque alias. It is deliberately text-readable for inspection and covers the decoded section payloads that the runtime actually consumes.
+Production builds include an integrity section whose canonical name is `integrity-auth.vsig`; in protected packages the stored name is an opaque alias. It is deliberately text-readable for inspection and covers the decoded section payloads that the runtime actually consumes.
 
 ```text
 VENOM_INTEGRITY_V1

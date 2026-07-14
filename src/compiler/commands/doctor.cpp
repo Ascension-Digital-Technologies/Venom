@@ -52,7 +52,7 @@ void add(std::vector<Check>& c, std::string n, std::string d, bool ok, std::stri
 
 bool required_for(const std::string& profile, const std::string& component) {
   if (component == "emscripten") return profile == "runtime-contributor";
-  if (component == "node" || component == "npm" || component == "js-hardener") return profile == "production" || profile == "runtime-contributor";
+  if (component == "js-hardener") return profile == "production" || profile == "runtime-contributor";
   return true;
 }
 }
@@ -84,10 +84,12 @@ bool run_doctor(const DoctorOptions& options) {
   const auto npm = probe("npm --version");
   add(checks, "npm", npm.ok ? "npm " + first_line(npm.output) : "npm probe failed", npm.ok, "Install npm with Node.js.", required("npm"));
 
-  const bool lock_present = fs::exists("tools/js-hardener/package-lock.json");
-  const auto hardener = probe("node -e \"Promise.all([import('./tools/js-hardener/node_modules/terser/main.js'),import('./tools/js-hardener/node_modules/javascript-obfuscator/dist/index.js')]).then(([t,o])=>{if(typeof t.minify!=='function'||typeof (o.default||o).obfuscate!=='function')process.exit(2); console.log('imports and APIs verified')}).catch(()=>process.exit(3))\"");
-  add(checks, "js-hardener-lock", lock_present ? "committed package-lock.json" : "lockfile missing", lock_present, "Restore tools/js-hardener/package-lock.json.", required("js-hardener"));
-  add(checks, "js-hardener", hardener.ok ? first_line(hardener.output) : "module import/API probe failed", hardener.ok, "Run scripts/setup-js-hardener.ps1 -Force or scripts/setup-js-hardener.sh.", required("js-hardener"));
+  const bool embedded_hardener =
+      fs::exists("src/compiler/pipeline/native_js_hardener.cpp") &&
+      fs::exists("src/compiler/pipeline/embedded_js_hardener_bundles.inc");
+
+  add(checks, "js-hardener", embedded_hardener ? "embedded QuickJS hardener: Terser 5.49.0 + javascript-obfuscator 5.4.7" : "embedded hardener payload missing",
+      embedded_hardener, "Restore the native hardener source and embedded bundle payload.", required("js-hardener"));
 
   const bool blob_present = fs::exists("src/generated/runtime/quickjs_runtime_wasm_blob.hpp");
   add(checks, "quickjs-wasm-source", blob_present ? "embedded runtime source present" : "embedded runtime source missing", blob_present, "Run the QuickJS/WASM setup and build scripts.");

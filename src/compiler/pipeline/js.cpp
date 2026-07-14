@@ -226,6 +226,67 @@ std::string json_escape_plan(const std::string& value) {
   return out.str();
 }
 
+std::string make_protection_intent_ledger_json(
+    const std::vector<detail::BridgeRewriteRecord>& records,
+    const std::vector<JsChunk>& chunks,
+    bool registry_present) {
+  std::ostringstream out;
+  out << "{\n  \"schema_version\": 1,\n  \"registry_present\": "
+      << (registry_present ? "true" : "false") << ",\n  \"intents\": [\n";
+  for (std::size_t i = 0; i < records.size(); ++i) {
+    const auto& record = records[i];
+    out << "    {\"intent_id\":\"" << json_escape_plan(record.candidate)
+        << "\",\"source\":\"" << json_escape_plan(record.source)
+        << "\",\"symbol\":\"" << json_escape_plan(record.function)
+        << "\",\"requested_realm\":\"protected\",\"terminal_status\":\""
+        << (record.status == "extracted" ? "extracted-protected-function" : json_escape_plan(record.status))
+        << "\",\"protected_record_id\":";
+    if (record.status == "extracted") out << "\"" << json_escape_plan(record.candidate) << "\"";
+    else out << "null";
+    out << ",\"reason\":\"" << json_escape_plan(record.reason) << "\"}";
+    if (i + 1 != records.size()) out << ',';
+    out << '\n';
+  }
+  std::size_t emitted = records.size();
+  for (const auto& chunk : chunks) {
+    if ((chunk.flags & JsChunkBrowser) != 0u) continue;
+    if (emitted++ != 0u) out << ",\n";
+    const auto id = "whole-file-" + std::to_string(chunk.order) + "-" + std::to_string(envelope_seed("intent", chunk));
+    out << "    {\"intent_id\":\"" << id
+        << "\",\"source\":\"" << json_escape_plan(chunk.source)
+        << "\",\"symbol\":null,\"requested_realm\":\"protected\",\"terminal_status\":\"compiled-protected-whole-file\",\"protected_record_id\":\""
+        << id << "\",\"reason\":\"protected script chunk compiled to QuickJS bytecode\"}";
+  }
+  if (emitted != 0u) out << '\n';
+  out << "  ]\n}\n";
+  return out.str();
+}
+
+void enforce_protection_intent_closure(const std::vector<detail::BridgeRewriteRecord>& records,
+                                       bool registry_present) {
+  std::unordered_set<std::string> ids;
+  std::size_t resolved = 0;
+  for (const auto& record : records) {
+    if (record.candidate.empty())
+      throw std::runtime_error("VNM-PROT-1002: protected intent has no opaque candidate id");
+    if (!ids.insert(record.candidate).second)
+      throw std::runtime_error("VNM-PROT-1003: duplicate protected intent id: " + record.candidate);
+    if (record.status == "extracted") ++resolved;
+  }
+  if (resolved != records.size()) {
+    const auto unresolved = std::find_if(records.begin(), records.end(), [](const auto& record) {
+      return record.status != "extracted";
+    });
+    std::string detail;
+    if (unresolved != records.end()) {
+      detail = ": " + unresolved->source + "::" + unresolved->function + ": " + unresolved->reason;
+    }
+    throw std::runtime_error("VNM-PROT-1004: unresolved protected intents remain after rewrite" + detail);
+  }
+  if (resolved != 0 && !registry_present)
+    throw std::runtime_error("VNM-PROT-1005: protected intents resolved without a QuickJS registry record");
+}
+
 std::string make_execution_plan_text(const std::vector<JsChunk>& chunks) {
   std::ostringstream out;
   out << "VENOM_EXECUTION_PLAN_V1\n";
@@ -286,10 +347,9 @@ JsBridge compile_js_bridge(const SiteGraph& graph, const RemoteVendorOptions& re
   JsBridge bridge;
   bridge.chunks = detail::collect_script_chunks(graph, remote_options, bridge.remote_vendors, bridge.module_edges);
   const auto initial_function_realm_records = detail::apply_function_realm_planning(bridge.chunks);
-  (void)initial_function_realm_records;
   detail::close_classic_browser_realms(bridge.chunks);
   const auto module_rewrite_result = detail::apply_protected_module_rewrites(bridge.chunks, remote_options.bridge_id_salt, development);
-  const auto function_records = detail::collect_function_realm_records(bridge.chunks);
+  const auto function_records = initial_function_realm_records;
   const auto extraction_records = detail::analyze_function_extraction(bridge.chunks, function_records);
   auto rewrite_result = detail::apply_bridge_rewrites(bridge.chunks, extraction_records, remote_options.bridge_id_salt);
   if (!module_rewrite_result.registry_source.empty()) {
@@ -299,6 +359,15 @@ JsBridge compile_js_bridge(const SiteGraph& graph, const RemoteVendorOptions& re
   }
   bridge.protected_api_typescript = module_rewrite_result.typescript;
   bridge.diagnostics = make_js_diagnostics(bridge.chunks);
+  for (const auto& record : rewrite_result.records) {
+    if (record.status == "extracted") continue;
+    const std::string diagnostic =
+        "VNM-PROT-1001: protected item was not lowered into the protected runtime: " +
+        record.source + "::" + record.function + " (status=" + record.status +
+        ", reason=" + record.reason + ")";
+    if (!development) throw std::runtime_error(diagnostic);
+    bridge.diagnostics += "\nWARNING: " + diagnostic;
+  }
   bridge.execution_plan_text = make_execution_plan_text(bridge.chunks);
   bridge.execution_plan_json = make_execution_plan_json(bridge.chunks);
   bridge.function_plan_text = detail::make_function_plan_text(function_records);
@@ -328,6 +397,18 @@ JsBridge compile_js_bridge(const SiteGraph& graph, const RemoteVendorOptions& re
   if (!bridge.protected_exports.empty() && bridge.bridge_registry_bytecode.empty()) {
     throw std::runtime_error("protected exports exist but the protected QuickJS bridge registry is empty");
   }
+  bridge.protected_whole_file_intents = static_cast<std::size_t>(std::count_if(
+      bridge.chunks.begin(), bridge.chunks.end(),
+      [](const auto& chunk) { return (chunk.flags & JsChunkBrowser) == 0u; }));
+  const auto extracted_intents = static_cast<std::size_t>(std::count_if(
+      rewrite_result.records.begin(), rewrite_result.records.end(),
+      [](const auto& record) { return record.status == "extracted"; }));
+  bridge.protected_intents_requested = rewrite_result.records.size() + bridge.protected_whole_file_intents;
+  bridge.protected_intents_resolved = extracted_intents + bridge.protected_whole_file_intents;
+  bridge.expected_quickjs_records = bridge.protected_whole_file_intents + (!bridge.bridge_registry_bytecode.empty() ? 1u : 0u);
+  enforce_protection_intent_closure(rewrite_result.records, !bridge.bridge_registry_bytecode.empty());
+  bridge.protection_intent_ledger_json = make_protection_intent_ledger_json(
+      rewrite_result.records, bridge.chunks, !bridge.bridge_registry_bytecode.empty());
   bridge.bundle = encode_js_bundle(bridge.chunks, remote_options.bridge_id_salt);
 
   std::ostringstream preview;
@@ -400,8 +481,8 @@ std::string make_loader_js(const std::string& runtime_asset_name, const std::str
         << "  });\n"
         << "  bootOptions.packageBytes = prepared.packageBytes;\n"
         << "  if (prepared.quickJsModule) globalThis.__venomWorkerQuickJsModule = prepared.quickJsModule;\n"
-        << "  const pendingBridge=new Map(),protectedExports=new Map(),bridgePort=bridgeChannel.port1;let bridgeSequence=0,bridgeCounter=0;const bridgeGeneration=Number(prepared.bridgeGeneration)>>>0,bridgeKey=Number(prepared.bridgeKey)>>>0;if(!bridgeGeneration||!bridgeKey)throw new Error('worker binary bridge attestation missing');\n"
-        << "  const MAX_PUBLIC_PAYLOAD_BYTES=1048576,MAX_PUBLIC_TIMEOUT_MS=30000,DEFAULT_PUBLIC_TIMEOUT_MS=5000,BRIDGE_MAGIC=0x32524256,BRIDGE_HEADER_BYTES=26,BRIDGE_TAG_BYTES=4;const rotateSessionOpcode=(base,lane)=>{let value=((base>>>0)^(bridgeGeneration>>>0)^((bridgeKey<<((lane+3)&15))|(bridgeKey>>>(32-((lane+3)&15)))))>>>0;value=(value+Math.imul(lane+1,0x9e37))&0xffff;return value||((lane+1)*257);};const sessionInvokeOp=rotateSessionOpcode(__venomInvokeOp,0),sessionCancelOp=rotateSessionOpcode(__venomCancelOp,1),sessionResultOp=rotateSessionOpcode(__venomResultOp,2),sessionErrorOp=rotateSessionOpcode(__venomErrorOp,3);if(new Set([sessionInvokeOp,sessionCancelOp,sessionResultOp,sessionErrorOp]).size!==4)throw new Error('worker session opcode collision');const textEncoder=new TextEncoder(),textDecoder=new TextDecoder('utf-8',{fatal:true});\n"
+        << "  const pendingBridge=new Map(),protectedExports=new Map(),protectedCandidates=new Map(),bridgePort=bridgeChannel.port1;let bridgeSequence=0,bridgeCounter=0;const bridgeGeneration=Number(prepared.bridgeGeneration)>>>0,bridgeKey=Number(prepared.bridgeKey)>>>0;if(!bridgeGeneration||!bridgeKey)throw new Error('worker binary bridge attestation missing');\n"
+        << "  const MAX_PUBLIC_PAYLOAD_BYTES=1048576,MAX_PUBLIC_TIMEOUT_MS=30000,DEFAULT_PUBLIC_TIMEOUT_MS=5000,MAX_PUBLIC_PENDING_CALLS=32,MAX_PUBLIC_JSON_DEPTH=24,MAX_PUBLIC_JSON_NODES=16384,BRIDGE_MAGIC=0x32524256,BRIDGE_HEADER_BYTES=26,BRIDGE_TAG_BYTES=4;const rotateSessionOpcode=(base,lane)=>{let value=((base>>>0)^(bridgeGeneration>>>0)^((bridgeKey<<((lane+3)&15))|(bridgeKey>>>(32-((lane+3)&15)))))>>>0;value=(value+Math.imul(lane+1,0x9e37))&0xffff;return value||((lane+1)*257);};const sessionInvokeOp=rotateSessionOpcode(__venomInvokeOp,0),sessionCancelOp=rotateSessionOpcode(__venomCancelOp,1),sessionResultOp=rotateSessionOpcode(__venomResultOp,2),sessionErrorOp=rotateSessionOpcode(__venomErrorOp,3);if(new Set([sessionInvokeOp,sessionCancelOp,sessionResultOp,sessionErrorOp]).size!==4)throw new Error('worker session opcode collision');const textEncoder=new TextEncoder(),textDecoder=new TextDecoder('utf-8',{fatal:true});\n"
         << "  class VenomBridgeError extends Error{constructor(code,message){super(message);this.name='VenomBridgeError';this.code=code||'BRIDGE_ERROR';}}\n"
         << "  class VenomTimeoutError extends VenomBridgeError{constructor(){super('TIMEOUT','Protected operation timed out');this.name='VenomTimeoutError';}}\n"
         << "  function publicBridgeError(code,message){return new VenomBridgeError(String(code||'BRIDGE_ERROR').toUpperCase().replace(/-/g,'_'),String(message||'Protected operation failed'));}\n"
@@ -410,17 +491,17 @@ std::string make_loader_js(const std::string& runtime_asset_name, const std::str
         << "  function decodeFrame(b){if(!(b instanceof ArrayBuffer)||b.byteLength<BRIDGE_HEADER_BYTES+BRIDGE_TAG_BYTES)throw new Error('invalid bridge frame');const v=new DataView(b),a=new Uint8Array(b);if(v.getUint32(0,true)!==BRIDGE_MAGIC||v.getUint16(4,true)!==1||v.getUint32(8,true)!==bridgeGeneration)throw new Error('bridge frame attestation mismatch');const rl=v.getUint16(20,true),pl=v.getUint32(22,true);if(BRIDGE_HEADER_BYTES+rl+pl+BRIDGE_TAG_BYTES!==b.byteLength)throw new Error('bridge frame length mismatch');if(v.getUint32(b.byteLength-BRIDGE_TAG_BYTES,true)!==keyedFrameTag(a.subarray(0,b.byteLength-BRIDGE_TAG_BYTES),bridgeKey))throw new Error('bridge frame integrity mismatch');const id=textDecoder.decode(a.subarray(BRIDGE_HEADER_BYTES,BRIDGE_HEADER_BYTES+rl)),ps=BRIDGE_HEADER_BYTES+rl,t=pl?textDecoder.decode(a.subarray(ps,ps+pl)):'';return{op:v.getUint16(6,true)>>>0,counter:v.getUint32(12,true)>>>0,id,value:t?JSON.parse(t):undefined};}\n"
         << "  function sendFrame(op,counter,capability,id,value){const frame=encodeFrame(op,counter,capability,id,value);bridgePort.postMessage(frame,[frame]);}\n"
         << "  bridgePort.onmessage=(event)=>{let m;try{m=decodeFrame(event.data);}catch(_){return;}const p=pendingBridge.get(m.id);if(!p||m.counter!==p.counter||(m.op!==sessionResultOp&&m.op!==sessionErrorOp))return;pendingBridge.delete(m.id);clearTimeout(p.timer);if(p.abortCleanup)p.abortCleanup();if(m.op===sessionResultOp)p.resolve(m.value);else p.reject(publicBridgeError(m.value&&m.value.code,m.value&&m.value.message));};bridgePort.start();\n"
-        << "  function encodeJson(value,label){let encoded;try{encoded=JSON.stringify(value);}catch(error){throw new TypeError(label+' must contain only JSON-serializable values');}if(typeof encoded!=='string')throw new TypeError(label+' must be a JSON value');if(textEncoder.encode(encoded).byteLength>MAX_PUBLIC_PAYLOAD_BYTES)throw new RangeError(label+' exceeds the 1 MiB bridge limit');return JSON.parse(encoded); }\n"
+        << "  function validatePublicJson(value,label){let nodes=0;const visit=(v,depth)=>{if(++nodes>MAX_PUBLIC_JSON_NODES)throw new RangeError(label+' exceeds the JSON node limit');if(depth>MAX_PUBLIC_JSON_DEPTH)throw new RangeError(label+' exceeds the JSON depth limit');if(v===null||typeof v==='string'||typeof v==='boolean')return;if(typeof v==='number'){if(!Number.isFinite(v))throw new TypeError(label+' contains a non-finite number');return;}if(Array.isArray(v)){for(const item of v)visit(item,depth+1);return;}if(typeof v==='object'){const proto=Object.getPrototypeOf(v);if(proto!==Object.prototype&&proto!==null)throw new TypeError(label+' contains a non-plain object');for(const key of Object.keys(v)){if(key==='__proto__'||key==='prototype'||key==='constructor')throw new TypeError(label+' contains a forbidden property');visit(v[key],depth+1);}return;}throw new TypeError(label+' contains an unsupported value');};visit(value,0);}function encodeJson(value,label){validatePublicJson(value,label);let encoded;try{encoded=JSON.stringify(value);}catch(error){throw new TypeError(label+' must contain only JSON-serializable values');}if(typeof encoded!=='string')throw new TypeError(label+' must be a JSON value');if(textEncoder.encode(encoded).byteLength>MAX_PUBLIC_PAYLOAD_BYTES)throw new RangeError(label+' exceeds the 1 MiB bridge limit');return JSON.parse(encoded); }\n"
         << "  function baseCapabilityForSlot(slot){return((((__venomInvokeOp>>>0)^0x9e3779b9)+((slot+1)>>>0)*0x85ebca6b)>>>0)|1;}function leaseCapabilityForSlot(slot,counter){let value=(baseCapabilityForSlot(slot)^bridgeGeneration^Math.imul(counter>>>0,0x85ebca6b)^bridgeKey)>>>0;value^=value>>>16;value=Math.imul(value,0x7feb352d)>>>0;value^=value>>>15;return(value|1)>>>0;}\n"
-        << "  function invokeCandidate(candidateSlot,args,options){options=options||{};let normalized;try{normalized=encodeJson(Array.isArray(args)?args:[],'Protected arguments');}catch(error){error.code='INVALID_ARGUMENTS';return Promise.reject(error);}candidateSlot=Number(candidateSlot);if(!Number.isInteger(candidateSlot)||candidateSlot<0)return Promise.reject(publicBridgeError('UNKNOWN_EXPORT','Unknown protected export'));const timeout=Math.max(1,Math.min(MAX_PUBLIC_TIMEOUT_MS,Number(options.timeout)||DEFAULT_PUBLIC_TIMEOUT_MS)),signal=options.signal;if(signal&&signal.aborted)return Promise.reject(new DOMException('The protected operation was aborted','AbortError'));return new Promise((resolve,reject)=>{const requestId='v'+Date.now().toString(36)+(++bridgeSequence).toString(36)+crypto.getRandomValues(new Uint32Array(1))[0].toString(36),counter=++bridgeCounter,capability=leaseCapabilityForSlot(candidateSlot,counter);let settled=false;const finish=(fn,value)=>{if(settled)return;settled=true;pendingBridge.delete(requestId);clearTimeout(timer);if(abortCleanup)abortCleanup();fn(value);};const timer=setTimeout(()=>{sendFrame(sessionCancelOp,++bridgeCounter,0,requestId);finish(reject,new VenomTimeoutError());},timeout);let abortCleanup=null;if(signal){const onAbort=()=>{sendFrame(sessionCancelOp,++bridgeCounter,0,requestId);finish(reject,new DOMException('The protected operation was aborted','AbortError'));};signal.addEventListener('abort',onAbort,{once:true});abortCleanup=()=>signal.removeEventListener('abort',onAbort);}pendingBridge.set(requestId,{resolve:(v)=>finish(resolve,v),reject:(e)=>finish(reject,e),timer,abortCleanup,counter});sendFrame(sessionInvokeOp,counter,capability,requestId,normalized);});}\n"
+        << "  function invokeCandidate(candidateSlot,args,options){options=options||{};if(pendingBridge.size>=MAX_PUBLIC_PENDING_CALLS)return Promise.reject(publicBridgeError('BUSY','Too many protected operations are pending'));let normalized;try{normalized=encodeJson(Array.isArray(args)?args:[],'Protected arguments');}catch(error){error.code='INVALID_ARGUMENTS';return Promise.reject(error);}candidateSlot=Number(candidateSlot);if(!Number.isInteger(candidateSlot)||candidateSlot<0)return Promise.reject(publicBridgeError('UNKNOWN_EXPORT','Unknown protected export'));const timeout=Math.max(1,Math.min(MAX_PUBLIC_TIMEOUT_MS,Number(options.timeout)||DEFAULT_PUBLIC_TIMEOUT_MS)),signal=options.signal;if(signal&&signal.aborted)return Promise.reject(new DOMException('The protected operation was aborted','AbortError'));return new Promise((resolve,reject)=>{const requestId='v'+Date.now().toString(36)+(++bridgeSequence).toString(36)+crypto.getRandomValues(new Uint32Array(1))[0].toString(36),counter=++bridgeCounter,capability=leaseCapabilityForSlot(candidateSlot,counter);let settled=false;const finish=(fn,value)=>{if(settled)return;settled=true;pendingBridge.delete(requestId);clearTimeout(timer);if(abortCleanup)abortCleanup();fn(value);};const timer=setTimeout(()=>{sendFrame(sessionCancelOp,++bridgeCounter,0,requestId);finish(reject,new VenomTimeoutError());},timeout);let abortCleanup=null;if(signal){const onAbort=()=>{sendFrame(sessionCancelOp,++bridgeCounter,0,requestId);finish(reject,new DOMException('The protected operation was aborted','AbortError'));};signal.addEventListener('abort',onAbort,{once:true});abortCleanup=()=>signal.removeEventListener('abort',onAbort);}pendingBridge.set(requestId,{resolve:(v)=>finish(resolve,v),reject:(e)=>finish(reject,e),timer,abortCleanup,counter});sendFrame(sessionInvokeOp,counter,capability,requestId,normalized);});}\n"
         << "  globalThis.__venomInvokeProtected=(candidateSlot,args,options)=>invokeCandidate(candidateSlot,args,options);\n"
-        << "  globalThis.__venomInvokeProtectedByName=(name,args,options)=>{const candidateSlot=protectedExports.get(String(name||''));if(candidateSlot===undefined)return Promise.reject(publicBridgeError('UNKNOWN_EXPORT','Unknown protected export'));return invokeCandidate(candidateSlot,args,options);};\n"
-        << "  globalThis.__venomRegisterProtectedExport=(name,candidateSlot)=>{name=String(name||'');candidateSlot=Number(candidateSlot);if(!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name)||!Number.isInteger(candidateSlot)||candidateSlot<0)throw new Error('invalid protected export registration');const prior=protectedExports.get(name);if(prior!==undefined&&prior!==candidateSlot)throw new Error('duplicate protected export: '+name);protectedExports.set(name,candidateSlot);};\n";
+        << "  globalThis.__venomInvokeProtectedById=(candidate,args,options)=>{const candidateSlot=protectedCandidates.get(String(candidate||''));if(candidateSlot===undefined)return Promise.reject(publicBridgeError('UNKNOWN_EXPORT','Unknown protected export'));return invokeCandidate(candidateSlot,args,options);};\n"
+        << "  globalThis.__venomRegisterProtectedExport=(name,candidate,candidateSlot)=>{name=String(name||'');candidate=String(candidate||'');candidateSlot=Number(candidateSlot);if(!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name)||!candidate||!Number.isInteger(candidateSlot)||candidateSlot<0)throw new Error('invalid protected export registration');const prior=protectedExports.get(name),priorCandidate=protectedCandidates.get(candidate);if((prior!==undefined&&prior!==candidateSlot)||(priorCandidate!==undefined&&priorCandidate!==candidateSlot))throw new Error('duplicate protected export registration');protectedExports.set(name,candidateSlot);protectedCandidates.set(candidate,candidateSlot);};\n";
     for (std::size_t export_index = 0; export_index < protected_exports.size(); ++export_index) {
       const auto& entry = protected_exports[export_index];
-      out << "  globalThis.__venomRegisterProtectedExport(\"" << json_escape_plan(entry.first) << "\"," << export_index << ");\n";
+      out << "  globalThis.__venomRegisterProtectedExport(\"" << json_escape_plan(entry.first) << "\",\"" << json_escape_plan(entry.second) << "\"," << export_index << ");\n";
     }
-    out        << "  const venomApi=Object.freeze({ready:()=>__venomReadyPromise,call:(name,input,options)=>{const candidateSlot=protectedExports.get(String(name||''));if(candidateSlot===undefined)return Promise.reject(publicBridgeError('UNKNOWN_EXPORT','Unknown protected export'));return invokeCandidate(candidateSlot,[input],options);},info:()=>Object.freeze({protocol:1,transport:'binary-capability-v3-leased',valueContract:'json-value-v1',maxPayloadBytes:MAX_PUBLIC_PAYLOAD_BYTES,maxTimeoutMs:MAX_PUBLIC_TIMEOUT_MS,exports:Array.from(protectedExports.keys()).sort()}),exports:new Proxy(Object.create(null),{get:(_,name)=>typeof name==='string'&&protectedExports.has(name)?((input,options)=>venomApi.call(name,input,options)):undefined,has:(_,name)=>typeof name==='string'&&protectedExports.has(name),ownKeys:()=>Array.from(protectedExports.keys()).sort(),getOwnPropertyDescriptor:(_,name)=>typeof name==='string'&&protectedExports.has(name)?{enumerable:true,configurable:true}:undefined,set:()=>false})});\n"
+    out        << "  const venomApi=Object.freeze({ready:()=>__venomReadyPromise,call:(name,input,options)=>{const candidateSlot=protectedExports.get(String(name||''));if(candidateSlot===undefined)return Promise.reject(publicBridgeError('UNKNOWN_EXPORT','Unknown protected export'));return invokeCandidate(candidateSlot,[input],options);},info:()=>Object.freeze({protocol:1,transport:'binary-capability-v3-leased',valueContract:'json-value-v1',maxPayloadBytes:MAX_PUBLIC_PAYLOAD_BYTES,maxTimeoutMs:MAX_PUBLIC_TIMEOUT_MS,maxPendingCalls:MAX_PUBLIC_PENDING_CALLS,maxJsonDepth:MAX_PUBLIC_JSON_DEPTH,maxJsonNodes:MAX_PUBLIC_JSON_NODES,exports:Array.from(protectedExports.keys()).sort()}),exports:new Proxy(Object.create(null),{get:(_,name)=>typeof name==='string'&&protectedExports.has(name)?((input,options)=>venomApi.call(name,input,options)):undefined,has:(_,name)=>typeof name==='string'&&protectedExports.has(name),ownKeys:()=>Array.from(protectedExports.keys()).sort(),getOwnPropertyDescriptor:(_,name)=>typeof name==='string'&&protectedExports.has(name)?{enumerable:true,configurable:true}:undefined,set:()=>false})});\n"
         << "  Object.defineProperty(globalThis,'venom',{value:venomApi,writable:false,configurable:false,enumerable:true});\n"
         << "  __venomReadyResolve(venomApi);\n"
         << "}\n"

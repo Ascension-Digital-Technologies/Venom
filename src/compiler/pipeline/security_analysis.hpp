@@ -22,6 +22,10 @@ struct ReleaseCheckReport {
   std::size_t v_sodium_sections = 0;
   std::size_t v_legacy_sections = 0;
   std::size_t quickjs_bytecode_records = 0;
+  bool protection_closure_present = false;
+  std::size_t protection_intents_requested = 0;
+  std::size_t protection_intents_resolved = 0;
+  std::size_t protection_expected_quickjs_records = 0;
   bool quickjs_wasm_execution = false;
   std::string quickjs_execution_backend;
   bool quickjs_host_js_fallback_allowed = false;

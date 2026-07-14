@@ -23,9 +23,31 @@ def cmake_version(root: Path) -> str:
 def markdown_links(path: Path):
     text=path.read_text(encoding='utf-8',errors='replace')
     for target in re.findall(r'\[[^\]]+\]\(([^)]+)\)',text):
-        target=target.split('#',1)[0].strip()
-        if not target or '://' in target or target.startswith(('mailto:','#')): continue
+        target=target.strip()
+        if not target or '://' in target or target.startswith('mailto:'): continue
         yield target
+
+
+def github_anchor(text: str) -> str:
+    text=re.sub(r'<[^>]+>','',text).strip().lower()
+    text=re.sub(r'[^\w\- ]','',text,flags=re.UNICODE)
+    return re.sub(r'[ \t]+','-',text)
+
+
+def markdown_anchors(path: Path) -> set[str]:
+    anchors=set(); counts={}
+    text=path.read_text(encoding='utf-8',errors='replace')
+    for line in text.splitlines():
+        m=re.match(r'^#{1,6}\s+(.+?)\s*#*$',line)
+        if not m: continue
+        base=github_anchor(m.group(1))
+        if not base: continue
+        count=counts.get(base,0)
+        counts[base]=count+1
+        anchors.add(base if count==0 else f'{base}-{count}')
+    for name in re.findall(r'<a\s+(?:name|id)=["\']([^"\']+)["\']',text,re.I):
+        anchors.add(name)
+    return anchors
 
 
 def main() -> int:
@@ -66,8 +88,14 @@ def main() -> int:
     for md in root.rglob('*.md'):
         if any(part in FORBIDDEN_DIRS for part in md.relative_to(root).parts): continue
         for link in markdown_links(md):
-            if not (md.parent/link).resolve().exists():
-                errors.append(f'broken documentation link: {md.relative_to(root)} -> {link}')
+            file_part, sep, anchor = link.partition('#')
+            target = md if not file_part else (md.parent/file_part).resolve()
+            if not target.exists():
+                errors.append(f'broken documentation link: {md.relative_to(root)} -> {file_part or link}')
+                continue
+            if sep and anchor and target.is_file() and target.suffix.lower()=='.md':
+                if anchor not in markdown_anchors(target):
+                    errors.append(f'broken documentation anchor: {md.relative_to(root)} -> {link}')
 
     license_text=(root/'LICENSE').read_text(encoding='utf-8',errors='replace') if (root/'LICENSE').exists() else ''
     if 'All rights reserved' in license_text:

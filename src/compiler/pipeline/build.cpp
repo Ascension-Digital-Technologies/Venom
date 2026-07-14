@@ -33,6 +33,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <iterator>
 #include <random>
 #include <sstream>
@@ -48,6 +49,66 @@ using namespace build_detail;
 using namespace build_package_detail;
 using namespace build_runtime_detail;
 
+class BuildTrace {
+ public:
+  explicit BuildTrace(const BuildOptions& options)
+      : enabled_(options.format != OutputFormat::Json && options.verbosity > 0),
+        detailed_(options.format != OutputFormat::Json && options.verbosity > 1),
+        started_(Clock::now()), last_(started_) {}
+
+  void banner(const BuildOptions& options) const {
+    if (!enabled_) return;
+    std::cout << "\nVENOM  Protected build pipeline\n"
+              << "       native compiler + QuickJS/WASM runtime\n"
+              << "------------------------------------------------------------------------\n"
+              << "[INFO]     Input:      " << std::filesystem::absolute(options.input).string() << "\n"
+              << "[INFO]     Output:     " << std::filesystem::absolute(options.output).string() << "\n"
+              << "[INFO]     Profile:    " << options.profile << "\n"
+              << "[INFO]     Protection: " << options.protection_level << "\n"
+              << "[INFO]     Runtime:    " << options.runtime << " / " << options.quickjs_backend << "\n";
+  }
+
+  void step(const std::string& message) {
+    if (!enabled_) return;
+    const auto now = Clock::now();
+    const auto delta = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_).count();
+    std::cout << "[STEP]     " << message;
+    if (last_ != started_) std::cout << "  (previous " << format_duration(delta) << ")";
+    std::cout << "\n";
+    last_ = now;
+  }
+
+  void info(const std::string& message) const {
+    if (enabled_) std::cout << "[INFO]     " << message << "\n";
+  }
+
+  void detail(const std::string& message) const {
+    if (detailed_) std::cout << "[DETAIL]   " << message << "\n";
+  }
+
+  void success(const std::string& message) const {
+    if (!enabled_) return;
+    const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - started_).count();
+    std::cout << "[SUCCESS]  " << message << " (" << format_duration(elapsed) << ")\n";
+  }
+
+ private:
+  using Clock = std::chrono::steady_clock;
+  static std::string format_duration(long long milliseconds) {
+    std::ostringstream out;
+    if (milliseconds >= 1000) {
+      out << std::fixed << std::setprecision(2) << (static_cast<double>(milliseconds) / 1000.0) << "s";
+    } else {
+      out << milliseconds << "ms";
+    }
+    return out.str();
+  }
+
+  bool enabled_;
+  bool detailed_;
+  Clock::time_point started_;
+  Clock::time_point last_;
+};
 
 bool should_encrypt_section(const Profile& profile, venom::package::SectionType type, const std::string& name) {
   if (!profile.crypto_provider_ready || profile.kind == ProfileKind::Dev) {
@@ -173,6 +234,9 @@ void shuffle_package_sections(std::vector<PendingPackageSection>& sections, cons
 
 bool build_site(const BuildOptions& requested_options) {
   const BuildOptions& options = requested_options;
+  BuildTrace trace(options);
+  trace.banner(options);
+  trace.step("Validate build policy and load configuration");
   enforce_build_protection_plan(options);
   if (!options.key_file.empty()) {
     load_package_key_file_for_process(options.key_file);
@@ -181,8 +245,13 @@ bool build_site(const BuildOptions& requested_options) {
     throw std::runtime_error("--require-audited-crypto is not available for browser dev/prod builds");
   }
   const auto profile = resolve_profile(options.profile);
+  trace.detail("profile flags: fail_closed=" + std::string(profile.fail_closed ? "yes" : "no") +
+               " polymorphic=" + std::string(profile.polymorphic ? "yes" : "no") +
+               " strip_debug=" + std::string(profile.strip_debug_metadata ? "yes" : "no"));
+  trace.step("Verify embedded QuickJS runtime and discover site graph");
   require_real_embedded_quickjs_runtime();
   const auto graph = collect_site(options.input);
+  trace.info("Discovered " + std::to_string(graph.files.size()) + " files across " + std::to_string(graph.routes.size()) + " HTML routes");
 
   if (graph.routes.empty()) {
     throw std::runtime_error("site has no html routes");
@@ -212,12 +281,18 @@ bool build_site(const BuildOptions& requested_options) {
       remote_vendor_options.bridge_id_salt = std::string{"nonce:"} + std::to_string(now);
     }
   }
+  trace.step("Analyze JavaScript realms, modules, annotations, and dependencies");
   const auto js_bridge = compile_js_bridge(graph, remote_vendor_options, profile.name == "dev");
+  trace.info("Planned " + std::to_string(js_bridge.chunks.size()) + " protected script chunks and " +
+             std::to_string(js_bridge.protected_exports.size()) + " protected exports");
+  trace.detail("module graph: " + std::to_string(js_bridge.module_edges.size()) + " edges; remote vendors: " +
+               std::to_string(js_bridge.remote_vendors.size()));
   require_embedded_quickjs_module_bundle_runtime(js_bridge);
   if (options.vendor_offline && !vendor_lock.present && !js_bridge.remote_vendors.empty()) {
     throw std::runtime_error("offline remote vendoring requires venom.lock; run one reviewed online build first");
   }
   validate_remote_vendor_lock_coverage(vendor_lock, js_bridge.remote_vendors, options.refresh_vendors);
+  trace.step("Compile and validate protected QuickJS bytecode records");
   // Validate every protected script/bytecode record before touching the output
   // directory. A capacity failure must never leave a partial production dist.
   (void)make_quickjs_bytecode_records(js_bridge, profile.kind == ProfileKind::Prod || profile.strip_debug_metadata);
@@ -241,10 +316,12 @@ bool build_site(const BuildOptions& requested_options) {
     }
   }
 
+  trace.step("Prepare clean distribution layout");
   std::filesystem::remove_all(options.output);
   const auto assets_dir = options.output / "assets";
   std::filesystem::create_directories(assets_dir);
 
+  trace.step("Process static assets and bundle stylesheets");
   const auto assets = build_asset_pipeline(graph, options.hashed_assets, production_hardening);
   const auto css = bundle_css(graph, assets);
   const bool wasm_runtime = options.runtime == "wasm";
@@ -253,6 +330,8 @@ bool build_site(const BuildOptions& requested_options) {
   }
   const auto deterministic_seed = options.diversification_seed != 0u ? options.diversification_seed : (profile.deterministic ? 0xC0FFEEu : 0u);
   const auto poly = venom::vm::make_polymorphic_plan(deterministic_seed, profile.polymorphic);
+  trace.info("Prepared " + std::to_string(assets.records.size()) + " public assets and " + std::to_string(css.size()) + " CSS bytes");
+  trace.step("Plan runtime capabilities and build-specific polymorphism");
   const auto capability_graph = analyze_capabilities(graph.root);
   const auto runtime_modules = plan_runtime_modules(graph, capability_graph);
   const auto wasm_bytes = wasm_runtime ? make_runtime_wasm_module() : std::vector<unsigned char>{};
@@ -262,6 +341,8 @@ bool build_site(const BuildOptions& requested_options) {
   // so the generated module uses the basename while package metadata records the
   // canonical distribution path.
   const auto wasm_runtime_asset_ref = hardened_release_asset ? wasm_name : wasm_file_name;
+  trace.detail("polymorphic seed: " + std::to_string(poly.seed));
+  trace.step("Generate runtime bridge, route bytecode, worker, and engine assets");
   auto runtime = wasm_runtime ? make_runtime_wasm_bridge_js(graph, wasm_runtime_asset_ref, hardened_release_asset, &poly) : make_runtime_js(graph, hardened_release_asset);
   runtime = specialize_runtime_modules(std::move(runtime), runtime_modules);
   const auto js_preview = js_bridge.preview.empty() ? bundle_js_preview(graph) : js_bridge.preview;
@@ -612,6 +693,7 @@ bool build_site(const BuildOptions& requested_options) {
     shuffle_package_sections(package_sections, poly);
   }
 
+  trace.step("Assemble encrypted and compressed VBC package sections");
   venom::package::Writer writer;
   writer.set_flags(package_flags);
   writer.set_compression_enabled(profile.compress_sections);
@@ -633,6 +715,8 @@ bool build_site(const BuildOptions& requested_options) {
     std::filesystem::create_directories(assets_dir / "workers");
   }
   const auto package_temp_path = hardened_release_asset ? (assets_dir / "app" / ".app.vbc.tmp") : (assets_dir / ".app.vbc.tmp");
+  trace.detail("package sections queued: " + std::to_string(package_sections.size()));
+  trace.step("Write and verify polymorphic package container");
   writer.write(package_temp_path);
   const auto package_bytes = read_bytes(package_temp_path);
   const auto package_probe = venom::package::read_package(package_temp_path);
@@ -651,6 +735,7 @@ bool build_site(const BuildOptions& requested_options) {
   auto loader = make_loader_js(loader_runtime_ref, loader_package_ref, package_probe.package_hash, venom::package::sha256_hex(package_bytes), profile.runtime_hardened || profile.fail_closed, loader_engine_ref, loader_qjs_wasm_ref, loader_runtime_wasm_ref, loader_style_ref, package_binding_token, loader_worker_ref, venom::package::sha256_hex(quickjs_wasm_bytes), js_bridge.protected_exports,
       bridge_invoke_opcode, bridge_cancel_opcode, bridge_result_opcode, bridge_error_opcode);
   if (production_hardening) {
+    trace.step("Harden and validate bootstrap loader");
     loader = harden_release_js_asset(std::move(loader));
     loader = ast_harden_release_js("loader", loader);
     validate_protected_js_asset("loader", loader);
@@ -663,6 +748,7 @@ bool build_site(const BuildOptions& requested_options) {
                                         venom::package::sha256_sri(bytes_from_string(loader)),
                                         venom::package::sha256_sri(bytes_from_string(css)));
 
+  trace.step("Emit distribution assets and integrity-bound bootstrap");
   write_text(options.output / "index.html", html);
   if (!hardened_release_asset) {
     emit_html_route_shells(graph, options.output, loader_name, style_name);
@@ -708,6 +794,7 @@ bool build_site(const BuildOptions& requested_options) {
   }
   emit_public_assets(assets, assets_dir);
 
+  trace.step("Reopen output and verify package, hashes, and runtime artifacts");
   const auto validated_package = venom::package::read_package(package_path);
   if (!vendor_lock.present || options.refresh_vendors) {
     try {
@@ -718,6 +805,7 @@ bool build_site(const BuildOptions& requested_options) {
       throw;
     }
   }
+  trace.step("Write provenance metadata and private build reports");
   std::ostringstream provenance;
   provenance << "{\n"
              << "  \"schema_version\": 1,\n"
@@ -729,6 +817,11 @@ bool build_site(const BuildOptions& requested_options) {
              << "  \"security_target\": \"" << json_escape(options.security_target) << "\",\n"
              << "  \"quickjs_backend\": \"" << json_escape(release_policy.backend) << "\",\n"
              << "  \"runtime_modules\": " << runtime_module_plan_json(runtime_modules) << ",\n"
+             << "  \"protection_closure\": {\"requested\": " << js_bridge.protected_intents_requested
+             << ", \"resolved\": " << js_bridge.protected_intents_resolved
+             << ", \"registry_present\": " << (!js_bridge.bridge_registry_bytecode.empty() ? "true" : "false")
+             << ", \"whole_file_intents\": " << js_bridge.protected_whole_file_intents
+             << ", \"expected_quickjs_records\": " << js_bridge.expected_quickjs_records << "},\n"
              << "  \"module_graph\": {\"chunks\": " << js_bridge.chunks.size()
              << ", \"edges\": " << js_bridge.module_edges.size()
              << ", \"dynamic_literal_edges\": " << std::count_if(js_bridge.module_edges.begin(), js_bridge.module_edges.end(), [](const auto& edge) { return edge.dynamic; }) << "},\n"
@@ -740,6 +833,9 @@ bool build_site(const BuildOptions& requested_options) {
   const auto build_metadata_ref = hardened_release_asset ? std::string{"assets/app/build.json"} : std::string{"assets/build.json"};
   const auto build_metadata_path = options.output / build_metadata_ref;
   write_text(build_metadata_path, provenance.str());
+  const auto private_report_dir = std::filesystem::absolute(options.output).parent_path() /
+      ".venom" / options.output.filename();
+  write_text(private_report_dir / "protection-intents.json", js_bridge.protection_intent_ledger_json);
   if (profile.name == "dev") {
     const auto report_dir = options.output / "build" / "reports";
     write_text(report_dir / "execution-plan.txt", js_bridge.execution_plan_text);
@@ -754,7 +850,8 @@ bool build_site(const BuildOptions& requested_options) {
       write_text(options.output / "assets" / "app" / "venom-exports.d.ts", js_bridge.protected_api_typescript);
   }
 
-  if (options.format != OutputFormat::Json) {
+  trace.step("Finalize protection report");
+  if (options.format != OutputFormat::Json && options.verbosity > 0) {
     print_build_protection_report(profile, options, package_path, package_bytes, validated_package, should_emit_external_asset_manifest(profile, options));
   }
 
@@ -767,6 +864,11 @@ bool build_site(const BuildOptions& requested_options) {
     return true;
   }
 
+  trace.success("Protected distribution compiled successfully");
+  if (options.verbosity == 0) {
+    std::cout << "venom: built protected distribution => " << options.output.string() << "\n";
+    return true;
+  }
   std::cout << "venom: vendor lock => " << vendor_lock_path.string()
             << " mode=" << vendor_lock_mode
             << " sha256=" << vendor_lock_digest << "\n"

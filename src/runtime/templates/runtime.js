@@ -1676,23 +1676,38 @@ function parseQuickJsContextLifecycleMetadata(section) {
 }
 
 function parseHostCapabilitiesMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_HOST_CAPABILITIES_V2', 'VENOM_HOST_CAPABILITIES_V1']);
+  const plan = parseKeyValueMetadata(section, ['VENOM_HOST_CAPABILITIES_V3', 'VENOM_HOST_CAPABILITIES_V2', 'VENOM_HOST_CAPABILITIES_V1']);
   const capabilities = [];
+  const chunkCapabilities = [];
   if (section) {
     for (const line of textDecoder.decode(section.data).split(/\r?\n/)) {
       if (line.startsWith('capability\t')) {
         const parts = line.split('\t');
         if (parts.length >= 3) capabilities.push(Object.freeze({ name: parts[1], mode: parts[2] }));
+      } else if (line.startsWith('chunk_capabilities\t')) {
+        const parts = line.split('\t');
+        if (parts.length >= 5) {
+          chunkCapabilities.push(Object.freeze({
+            order: Number.parseInt(parts[1] || '0', 10) >>> 0,
+            route: parts[2] || '',
+            source: parts[3] || '',
+            capabilities: Object.freeze((parts[4] || '').split(',').filter(Boolean)),
+          }));
+        }
       }
     }
   }
   return Object.freeze({
     version: plan.version,
     enabled: plan.enabled,
+    policy: plan.values.get('policy') || 'legacy-global',
+    undeclaredCapability: plan.values.get('undeclared_capability') || 'allow',
     injectHostCall: plan.values.get('inject_host_call') || 'quickjs.hostCapabilityInject',
     defaultCapabilityCount: Number.parseInt(plan.values.get('default_capability_count') || String(capabilities.length), 10) >>> 0,
+    defaultCapabilities: Object.freeze((plan.values.get('default_capabilities') || '').split(',').filter(Boolean)),
     chunkCount: Number.parseInt(plan.values.get('chunk_count') || '0', 10) >>> 0,
     capabilities: Object.freeze(capabilities),
+    chunkCapabilities: Object.freeze(chunkCapabilities),
   });
 }
 
@@ -2746,8 +2761,58 @@ function createQuickJsEngine(asyncQueue, quickJsEnginePlan, scriptEnginePolicyPl
     return pattern.test(String(source || ''));
   }
 
+  function capabilitySetForChunk(chunk) {
+    if (!hostCapabilitiesPlan || !hostCapabilitiesPlan.enabled) return null;
+    const records = Array.isArray(hostCapabilitiesPlan.chunkCapabilities) ? hostCapabilitiesPlan.chunkCapabilities : [];
+    const order = chunk && chunk.order !== undefined ? chunk.order >>> 0 : 0;
+    const route = chunk && chunk.route ? String(chunk.route) : '';
+    const source = chunk && chunk.source ? String(chunk.source) : '';
+    let record = records.find((item) => (item.order >>> 0) === order && (!item.route || item.route === route) && (!item.source || item.source === source));
+    if (!record) record = records.find((item) => (item.order >>> 0) === order);
+    const names = record && Array.isArray(record.capabilities) ? record.capabilities : hostCapabilitiesPlan.defaultCapabilities;
+    return new Set(Array.isArray(names) ? names : []);
+  }
+
+  function capabilityDenied(name, chunk) {
+    const source = chunk && chunk.source ? String(chunk.source) : '<unknown>';
+    const error = new Error('VNM-CAP-1001: undeclared host capability "' + String(name) + '" for ' + source);
+    error.name = 'VenomCapabilityError';
+    error.code = 'VNM-CAP-1001';
+    error.capability = String(name);
+    return error;
+  }
+
+  function makeScopedRuntimeBridge(bridge, allowed, chunk) {
+    if (!bridge) return Object.freeze({});
+    const facade = Object.create(null);
+    for (const name of ['version', 'packageVersion', 'runtimeHardened', 'failClosed', 'currentRouteGeneration', 'isRouteGenerationActive']) {
+      const value = bridge[name];
+      if (typeof value === 'function') facade[name] = value.bind(bridge);
+      else if (value !== undefined) facade[name] = value;
+    }
+    const expose = (capability, names) => {
+      if (!allowed || allowed.has(capability)) {
+        for (const name of names) if (typeof bridge[name] === 'function') facade[name] = bridge[name].bind(bridge);
+      }
+    };
+    expose('fetch', ['fetch', 'requestFetch']);
+    expose('timers', ['scheduleTimer', 'cancelTimer']);
+    expose('events', ['eventQueueSnapshot', 'dispatchEventBinding']);
+    expose('document', ['domRootHandle', 'domHandleSnapshot', 'registerDomHandle', 'resolveDomHandle', 'revokeDomHandle', 'domSetAttribute', 'domAppendChild']);
+    Object.defineProperty(facade, 'requireCapability', {
+      value(name) {
+        if (allowed && !allowed.has(String(name))) throw capabilityDenied(name, chunk);
+        return true;
+      },
+      enumerable: false,
+    });
+    return Object.freeze(facade);
+  }
+
   function makeBindings(bridge, chunk) {
     const bindings = Object.create(null);
+    const allowed = capabilitySetForChunk(chunk);
+    const permits = (name) => !allowed || allowed.has(name);
     const moduleEnabled = (name) => typeof __venomRuntimeModuleEnabled === 'function' && __venomRuntimeModuleEnabled(name);
     const exposeGlobal = (name, moduleName) => {
       if (!moduleEnabled(moduleName)) return;
@@ -2758,30 +2823,34 @@ function createQuickJsEngine(asyncQueue, quickJsEnginePlan, scriptEnginePolicyPl
     const missingGlobalShims = createGuardedMissingGlobalShims(globalThis, bridge, chunk);
     const windowShim = createWindowShim(globalThis.window || globalThis, navigatorShim, missingGlobalShims);
     const globalShim = createGlobalShim(globalThis, navigatorShim, windowShim, missingGlobalShims);
-    bindings.globalThis = globalShim;
-    bindings.window = windowShim;
-    bindings.self = windowShim;
-    bindings.navigator = navigatorShim;
-    for (const name of guardedMissingGlobalNames) bindings[name] = missingGlobalShims[name];
-    bindings.document = globalThis.document;
-    bindings.__venomRuntime = bridge;
-    bindings.console = quickJsConsoleBridgePlan && quickJsConsoleBridgePlan.enabled ? makeConsoleBridgeConsole(globalThis.console, chunk) : globalThis.console;
-    bindings.fetch = bridge && typeof bridge.fetch === 'function' ? bridge.fetch.bind(bridge) : globalThis.fetch;
-    bindings.setTimeout = (callback, delay) => bridge && typeof bridge.scheduleTimer === 'function' ? bridge.scheduleTimer(callback, delay, false).id : globalThis.setTimeout(callback, delay);
-    bindings.setInterval = (callback, delay) => bridge && typeof bridge.scheduleTimer === 'function' ? bridge.scheduleTimer(callback, delay, true).id : globalThis.setInterval(callback, delay);
-    bindings.clearTimeout = (id) => bridge && typeof bridge.cancelTimer === 'function' ? bridge.cancelTimer(id) : globalThis.clearTimeout(id);
-    bindings.clearInterval = (id) => bridge && typeof bridge.cancelTimer === 'function' ? bridge.cancelTimer(id) : globalThis.clearInterval(id);
-    if (moduleEnabled('animation')) {
+    if (permits('window')) {
+      bindings.globalThis = globalShim;
+      bindings.window = windowShim;
+      bindings.self = windowShim;
+      for (const name of guardedMissingGlobalNames) bindings[name] = missingGlobalShims[name];
+    }
+    if (permits('navigator')) bindings.navigator = navigatorShim;
+    if (permits('document')) bindings.document = globalThis.document;
+    if (permits('__venomRuntime')) bindings.__venomRuntime = makeScopedRuntimeBridge(bridge, allowed, chunk);
+    if (permits('console')) bindings.console = quickJsConsoleBridgePlan && quickJsConsoleBridgePlan.enabled ? makeConsoleBridgeConsole(globalThis.console, chunk) : globalThis.console;
+    if (permits('fetch')) bindings.fetch = bridge && typeof bridge.fetch === 'function' ? bridge.fetch.bind(bridge) : globalThis.fetch;
+    if (permits('timers')) {
+      bindings.setTimeout = (callback, delay) => bridge && typeof bridge.scheduleTimer === 'function' ? bridge.scheduleTimer(callback, delay, false).id : globalThis.setTimeout(callback, delay);
+      bindings.setInterval = (callback, delay) => bridge && typeof bridge.scheduleTimer === 'function' ? bridge.scheduleTimer(callback, delay, true).id : globalThis.setInterval(callback, delay);
+      bindings.clearTimeout = (id) => bridge && typeof bridge.cancelTimer === 'function' ? bridge.cancelTimer(id) : globalThis.clearTimeout(id);
+      bindings.clearInterval = (id) => bridge && typeof bridge.cancelTimer === 'function' ? bridge.cancelTimer(id) : globalThis.clearInterval(id);
+    }
+    if (permits('timers') && moduleEnabled('animation')) {
       bindings.requestAnimationFrame = typeof globalThis.requestAnimationFrame === 'function' ? globalThis.requestAnimationFrame.bind(globalThis) : (callback) => bindings.setTimeout(() => callback(Date.now()), 16);
       bindings.cancelAnimationFrame = typeof globalThis.cancelAnimationFrame === 'function' ? globalThis.cancelAnimationFrame.bind(globalThis) : bindings.clearTimeout;
     }
-    for (const name of ['Event', 'CustomEvent']) exposeGlobal(name, 'events');
+    if (permits('events')) for (const name of ['Event', 'CustomEvent']) exposeGlobal(name, 'events');
     for (const name of ['FormData', 'SubmitEvent']) exposeGlobal(name, 'forms');
     for (const name of ['MutationObserver', 'ResizeObserver', 'IntersectionObserver']) exposeGlobal(name, 'observers');
-    for (const name of ['Headers', 'Request', 'Response', 'Blob', 'File', 'FileReader', 'URL', 'URLSearchParams', 'AbortController', 'XMLHttpRequest', 'WebSocket', 'EventSource']) exposeGlobal(name, 'network');
+    if (permits('fetch')) for (const name of ['Headers', 'Request', 'Response', 'Blob', 'File', 'FileReader', 'URL', 'URLSearchParams', 'AbortController', 'XMLHttpRequest', 'WebSocket', 'EventSource']) exposeGlobal(name, 'network');
     bindings.__venomChunk = Object.freeze({ route: chunk.route, source: chunk.source, order: chunk.order, flags: chunk.flags });
     if (hostCapabilitiesPlan && hostCapabilitiesPlan.enabled) {
-      const capabilityNames = hostCapabilitiesPlan.capabilities && hostCapabilitiesPlan.capabilities.length ? hostCapabilitiesPlan.capabilities.map((item) => item.name) : Object.keys(bindings);
+      const capabilityNames = allowed ? Array.from(allowed) : (hostCapabilitiesPlan.capabilities && hostCapabilitiesPlan.capabilities.length ? hostCapabilitiesPlan.capabilities.map((item) => item.name) : Object.keys(bindings));
       if (bridge && typeof bridge.enqueueHostCall === 'function') {
         const record = bridge.enqueueHostCall(hostCapabilitiesPlan.injectHostCall || 'quickjs.hostCapabilityInject', { route: chunk.route, source: chunk.source, order: chunk.order, capabilities: capabilityNames });
         if (bridge && typeof bridge.settleHostCall === 'function') bridge.settleHostCall(record.id, 'fulfilled', { injected: capabilityNames.length });

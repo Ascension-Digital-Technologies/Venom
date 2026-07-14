@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <set>
+#include <regex>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -35,6 +36,22 @@ ReleaseCheckReport analyze_package_for_release(const ReleaseCheckOptions& option
   report.v_sodium_sections = count_bytes(raw, "VSODIUM1");
   report.v_legacy_sections = count_bytes(raw, "VSEAL001");
   report.external_manifest = std::filesystem::exists(report.dist_root / "assets" / "asset-manifest.txt");
+
+  const auto build_metadata_path = std::filesystem::exists(report.dist_root / "assets" / "app" / "build.json")
+      ? report.dist_root / "assets" / "app" / "build.json"
+      : report.dist_root / "assets" / "build.json";
+  if (std::filesystem::exists(build_metadata_path)) {
+    const auto metadata = read_text_file(build_metadata_path);
+    std::smatch closure;
+    const std::regex closure_pattern(
+        R"("protection_closure"\s*:\s*\{[^}]*"requested"\s*:\s*([0-9]+)[^}]*"resolved"\s*:\s*([0-9]+)[^}]*"expected_quickjs_records"\s*:\s*([0-9]+))");
+    if (std::regex_search(metadata, closure, closure_pattern)) {
+      report.protection_closure_present = true;
+      report.protection_intents_requested = static_cast<std::size_t>(std::stoull(closure[1].str()));
+      report.protection_intents_resolved = static_cast<std::size_t>(std::stoull(closure[2].str()));
+      report.protection_expected_quickjs_records = static_cast<std::size_t>(std::stoull(closure[3].str()));
+    }
+  }
 
   const char* forbidden_raw[] = {
     "console.log",
@@ -557,13 +574,22 @@ ReleaseCheckReport analyze_package_for_release(const ReleaseCheckOptions& option
       report.runtime_remote_chunks += count_js_bundle_flag(section.data, 1u << 5u);
       report.vendored_remote_chunks = std::max(report.vendored_remote_chunks, count_js_bundle_flag(section.data, 1u << 7u));
     }
+    constexpr std::uint32_t js_chunk_bytecode_encoded = 1u << 6u;
     if (section.type == venom::package::SectionType::JavaScript) {
-      report.quickjs_bytecode_records += count_bytes(section.data, "VQJSE006");
+      // Protected bridge registries are emitted as a dedicated direct VQJSE006
+      // JavaScript section. Whole-file and route scripts are stored as entries
+      // in VJSB0006 bundles. Count either structural form exactly once; never
+      // search arbitrary decoded text for the envelope marker.
+      if (payload_starts_with(section.data, "VQJSE006")) {
+        ++report.quickjs_bytecode_records;
+      } else {
+        report.quickjs_bytecode_records += count_js_bundle_flagged_payload_prefix(
+            section.data, js_chunk_bytecode_encoded, "VQJSE006");
+      }
       if (contains_bytes(section.data, "VQJSBC01") || contains_bytes(section.data, "VQJSBC02") ||
           contains_bytes(section.data, "source-preserving-byte-buffer-record")) {
         add_failure(report, "JavaScript payload contains legacy source-preserving QuickJS byte buffer records");
       }
-      constexpr std::uint32_t js_chunk_bytecode_encoded = 1u << 6u;
       if (js_bundle_flagged_payload_contains(section.data, js_chunk_bytecode_encoded, "console.log") ||
           js_bundle_flagged_payload_contains(section.data, js_chunk_bytecode_encoded, "basic site script loaded")) {
         add_failure(report, "protected JavaScript payload contains clear source text instead of native bytecode records");
@@ -588,6 +614,16 @@ ReleaseCheckReport analyze_package_for_release(const ReleaseCheckOptions& option
   }
   if (report.release_or_protect && report.remote_vendor_unique_count > report.remote_vendor_count) {
     add_failure(report, "unique remote vendor count exceeds vendored script chunk count");
+  }
+
+  if (report.release_or_protect && !report.protection_closure_present) {
+    add_failure(report, "protected release is missing build-time protection closure metadata");
+  }
+  if (report.protection_closure_present && report.protection_intents_requested != report.protection_intents_resolved) {
+    add_failure(report, "protection closure requested/resolved counts do not match");
+  }
+  if (report.protection_closure_present && report.quickjs_bytecode_records != report.protection_expected_quickjs_records) {
+    add_failure(report, "emitted QuickJS bytecode record count does not match protection closure metadata");
   }
 
   // Hybrid and browser-only applications are valid release targets. A package

@@ -63,6 +63,11 @@ struct JsBridge {
   std::vector<std::pair<std::string, std::string>> protected_exports;
   std::vector<unsigned char> bridge_registry_bytecode;
   std::string bridge_rewrite_report_json;
+  std::string protection_intent_ledger_json;
+  std::size_t protected_intents_requested = 0;
+  std::size_t protected_intents_resolved = 0;
+  std::size_t protected_whole_file_intents = 0;
+  std::size_t expected_quickjs_records = 0;
   std::string preview;
   std::string protected_api_typescript;
   std::vector<RemoteVendorRecord> remote_vendors;

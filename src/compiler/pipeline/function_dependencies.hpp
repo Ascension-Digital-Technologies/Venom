@@ -22,4 +22,6 @@ FunctionDependencyResolution resolve_liftable_function_dependencies(
     const std::string& target_name,
     const std::string& target_params);
 
+bool verify_isolated_protected_unit(const std::string& declaration, std::string& reason);
+
 } // namespace venom::compiler

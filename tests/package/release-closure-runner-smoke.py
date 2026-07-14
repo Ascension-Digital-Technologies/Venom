@@ -6,8 +6,8 @@ runner=(root/'tools/run_release_closure.py').read_text(encoding='utf-8')
 ps=(root/'scripts/release-closure.ps1').read_text(encoding='utf-8')
 sh=(root/'scripts/release-closure.sh').read_text(encoding='utf-8')
 required=(
- 'final_release_gate.py','release_closure.py','npm','hardener-import-probe','hardener-functional-probe','cmake','ctest',
- 'hardener-import-probe','hardener-functional-probe','doctor-production','protected-chess','nova-trade','bot-detection','analyze-dist','check-production-leaks.py',
+ 'final_release_gate.py','release_closure.py','cmake','ctest',
+ 'doctor-production','protected-chess','nova-trade','bot-detection','analyze-dist','check-production-leaks.py',
  'package_release.py','release-closure-report.json','RELEASE CLOSURE',
 )
 missing=[x for x in required if x not in runner]

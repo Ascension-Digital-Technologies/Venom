@@ -87,7 +87,6 @@ def main() -> int:
     parser.add_argument("--generator", default="", help="optional CMake generator; empty uses the platform default")
     parser.add_argument("--parallel", type=int, default=max(1, min(8, os.cpu_count() or 2)))
     parser.add_argument("--clean", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--install-hardener", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--run-tests", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--build-examples", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--package", action=argparse.BooleanOptionalAction, default=True)
@@ -122,20 +121,6 @@ def main() -> int:
     try:
         step("repository-gate", [python, str(root / "tools/final_release_gate.py"), "--repo-root", str(root), "--run-smoke-tests"])
         step("runtime-closure", [python, str(root / "tools/release_closure.py"), "--repo-root", str(root), "--require-real"])
-
-        if args.install_hardener:
-            npm = find_program(["npm.cmd", "npm"])
-            hardener = root / "tools/js-hardener"
-            step("hardener-install", [npm, "ci", "--ignore-scripts", "--no-audit", "--no-fund"], cwd=hardener)
-            node = find_program(["node.exe", "node"])
-            step("hardener-import-probe", [node, "-e", "const [t,o]=await Promise.all([import('terser'),import('javascript-obfuscator')]); if(typeof t.minify!=='function'||!(o.default||o).obfuscate) process.exit(2);"], cwd=hardener)
-            hardener_probe = out_dir / "hardener-probe"
-            hardener_probe.mkdir(parents=True, exist_ok=True)
-            probe_input = hardener_probe / "input.js"
-            probe_output = hardener_probe / "output.js"
-            probe_input.write_text("function add(a,b){return a+b;}globalThis.__venomHardenerCheck=add(2,3);\n", encoding="utf-8")
-            step("hardener-functional-probe", [node, str(hardener / "harden.mjs"), str(probe_input), str(probe_output), "runtime", "1510"], cwd=root)
-            step("hardener-output-check", [node, "--check", str(probe_output)], cwd=root)
 
         configure = [cmake, "-S", str(root), "-B", str(build_dir)]
         if args.generator:

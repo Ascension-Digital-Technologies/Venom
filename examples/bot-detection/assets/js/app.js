@@ -27,6 +27,8 @@ const state = {
   assessment: null,
   scanning: false,
   assessments: 0,
+  protectedSession: null,
+  nextSequence: 1,
   lastError: null
 };
 
@@ -173,17 +175,9 @@ function renderBehavior(behavior, timing, session) {
   `).join("");
 }
 
-function scoreTone(score) {
-  if (score >= 86) return "excellent";
-  if (score >= 72) return "good";
-  if (score >= 52) return "uncertain";
-  if (score >= 30) return "suspicious";
-  return "critical";
-}
-
 function renderAssessment(payload, assessment) {
   const score = Number(assessment.humanScore || 1);
-  const tone = scoreTone(score);
+  const tone = String(assessment.scoreTone || "critical");
   elements.scoreRing.style.setProperty("--score", `${score * 3.6}deg`);
   elements.scoreRing.dataset.tone = tone;
   elements.scoreValue.textContent = String(score);
@@ -195,7 +189,7 @@ function renderAssessment(payload, assessment) {
   elements.lastUpdated.textContent = new Date().toLocaleTimeString();
 
   elements.categoryList.innerHTML = assessment.categories.map((item) => {
-    const percentage = Math.round((item.score / item.max) * 100);
+    const percentage = Number(item.percentage || 0);
     return `
       <div class="category-row">
         <div class="category-heading">
@@ -225,12 +219,29 @@ function renderAssessment(payload, assessment) {
     </div>
   `;
 
-  const signalCount = Object.values(payload).reduce((count, value) => {
-    if (!value || typeof value !== "object") return count;
-    return count + Object.keys(value).length;
-  }, 0);
-  elements.signalCount.textContent = String(signalCount);
+  elements.signalCount.textContent = String(assessment.signalCount || 0);
   elements.rawJson.textContent = JSON.stringify({ assessment, fingerprint: state.fingerprint, behavior: payload.behavior, timing: payload.timing, session: payload.session }, null, 2);
+}
+
+async function ensureProtectedSession(runtime, force = false) {
+  const now = Date.now();
+  if (!force && state.protectedSession && Number(state.protectedSession.expiresAtMs || 0) > now + 5000) return state.protectedSession;
+  const session = await runtime.call("beginAssessmentSession", {});
+  if (!session || session.schemaVersion !== 2 || !session.sessionId || !session.nonce) throw new Error("Protected telemetry session negotiation failed");
+  state.protectedSession = session;
+  state.nextSequence = Number(session.nextSequence || 1);
+  return session;
+}
+
+function buildTelemetryEnvelope(payload) {
+  return {
+    schemaVersion: 2,
+    sessionId: state.protectedSession.sessionId,
+    nonce: state.protectedSession.nonce,
+    sequence: state.nextSequence,
+    capturedAtMs: Date.now(),
+    telemetry: payload
+  };
 }
 
 function buildPayload() {
@@ -258,7 +269,19 @@ async function assessCurrent() {
       throw new Error("Venom protected bridge is unavailable");
     }
     await runtime.ready();
-    const assessment = await runtime.call("assessClient", payload);
+    await ensureProtectedSession(runtime);
+    let envelope = buildTelemetryEnvelope(payload);
+    let assessment;
+    try {
+      assessment = await runtime.call("assessClient", envelope);
+    } catch (error) {
+      const message = String(error?.message || error);
+      if (!/unknown-session|expired-session|replayed-or-out-of-order|nonce-mismatch|stale-telemetry/.test(message)) throw error;
+      await ensureProtectedSession(runtime, true);
+      envelope = buildTelemetryEnvelope(payload);
+      assessment = await runtime.call("assessClient", envelope);
+    }
+    state.nextSequence += 1;
     state.assessment = assessment;
     state.assessments += 1;
     elements.runtimeStatus.textContent = "Protected QuickJS/WASM engine ready";

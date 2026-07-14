@@ -6,8 +6,19 @@
 venom new <path> [--force]
 venom init [path] [--force]
 venom dev [path] [--out <dir>] [--host <host>] [--port <port>] [--open] [--no-watch]
-venom build <path> --profile dev|prod --out <dir>
+venom build <path> --profile dev|prod --out <dir> [--verbose|--quiet]
 ```
+
+## Build output controls
+
+`venom build` prints structured phase progress by default, including major analysis, bytecode, packaging, hardening, asset-binding, and verification stages.
+
+```text
+--verbose, -v  Include detailed planner, runtime, package, seed, and hardener diagnostics.
+--quiet, -q    Suppress phase progress while retaining errors and the final result.
+```
+
+`--verbose` and `--quiet` are mutually exclusive. Machine-readable output remains clean when `--format json` is selected.
 
 ## Analysis and verification
 

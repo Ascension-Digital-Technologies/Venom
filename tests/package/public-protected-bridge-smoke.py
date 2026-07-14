@@ -15,7 +15,7 @@ with tempfile.TemporaryDirectory() as td:
 source=(root/'src/compiler/pipeline/js.cpp').read_text(encoding='utf-8')
 source += (root / 'src/compiler/pipeline/js_discovery.cpp').read_text(encoding='utf-8')
 worker_source=(root/'src/generated/runtime/worker_runtime_js.cpp').read_text(encoding='utf-8')
-for token in ["Object.defineProperty(globalThis,'venom'", 'venomApi=Object.freeze', '__venomInvokeProtectedByName', 'candidateSlot', 'bridgeSession', 'bridgeCounter']:
+for token in ["Object.defineProperty(globalThis,'venom'", 'venomApi=Object.freeze', '__venomInvokeProtectedById', 'candidateSlot', 'bridgeSession', 'bridgeCounter']:
     if token not in source: raise SystemExit('public bridge source missing: '+token)
 for token in ['BRIDGE_CANDIDATES[candidateSlot]', 'counter <= bridgeCounter', 'stale or replayed bridge request']:
     if token not in worker_source: raise SystemExit('worker bridge source missing: '+token)
