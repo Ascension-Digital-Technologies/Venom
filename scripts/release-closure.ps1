@@ -13,6 +13,8 @@ param(
   [switch]$KeepGoing
 )
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'internal/console.ps1')
+Write-VenomBanner -Title 'Release closure' -Subtitle "$Config configuration"
 $Root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $Python = Get-Command python -ErrorAction SilentlyContinue
 if (-not $Python) { $Python = Get-Command py -ErrorAction SilentlyContinue }
@@ -28,4 +30,6 @@ if ($NoWerror) { $argsList += '--no-werror' }
 if ($BrowserRuntimeTests) { $argsList += '--browser-runtime-tests' }
 if ($KeepGoing) { $argsList += '--keep-going' }
 if ($Python.Name -match '^py(?:\.exe)?$') { & $Python.Source -3 @argsList } else { & $Python.Source @argsList }
-exit $LASTEXITCODE
+$code=$LASTEXITCODE
+if($code -eq 0){ Write-VenomSuccess 'Release closure completed successfully.' } else { Write-VenomFailure "Release closure failed with exit code $code." }
+exit $code

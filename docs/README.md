@@ -1,96 +1,105 @@
-# Venom documentation
+# Venom Production Documentation
 
-> **Audience:** users, integrators, operators, security reviewers, and runtime contributors  
-> **Applies to:** Venom 1.65.3
+> **Applies to:** Venom 2.0.0-alpha.2  
+> **Audience:** application teams, release engineers, security reviewers, and operators
 
-This is the canonical documentation map for Venom Secure Web Runtime. Start with the workflow that matches your goal, then use the architecture and security references when you need deeper implementation detail.
+This documentation describes the supported production use of Venom: installing the compiler, protecting an existing website, integrating browser and protected execution, building and verifying distributions, deploying static output, and operating signed releases.
 
-## Get started
+Internal implementation history and engineering-process records are intentionally excluded from the production documentation set.
 
-- [Install Venom](getting-started/installation.md)
-- [Build your first protected project](getting-started/first-project.md)
-- [Protect an existing website](getting-started/existing-project.md)
-- [Deploy a production distribution](getting-started/deployment.md)
-- [Build Venom from source](development/building-from-source.md)
+## Start here
+
+| Goal | Guide |
+|---|---|
+| Install a released build | [Installation](getting-started/installation.md) |
+| Build Venom from source | [Build from source](getting-started/build-from-source.md) |
+| Protect a first site | [First project](getting-started/first-project.md) |
+| Integrate an existing application | [Existing-site integration](getting-started/existing-project.md) |
+| Deploy the generated distribution | [Deployment](getting-started/deployment.md) |
 
 ## Integrate Venom
 
-- [Annotations and execution realms](guides/annotations.md)
-- [Protected functions](guides/protected-functions.md)
-- [Protected modules](guides/protected-modules.md)
-- [Browser bridge](guides/browser-bridge.md)
-- [Routing and route hydration](guides/routing.md)
-- [Assets and remote vendoring](guides/assets.md)
-- [Configuration](guides/configuration.md)
-- [Debugging](guides/debugging.md)
+| Topic | Guide |
+|---|---|
+| Plan protected and browser execution | [Protection planner](guides/protection-planner.md) |
+| Select browser or protected execution | [Annotations](guides/annotations.md) |
+| Expose protected functions | [Protected functions](guides/protected-functions.md) |
+| Package protected ES modules | [Protected modules](guides/protected-modules.md) |
+| Call protected exports safely | [Browser bridge](guides/browser-bridge.md) |
+| Configure routes and navigation | [Routing](guides/routing.md) |
+| Manage images, fonts, CSS, and other assets | [Assets](guides/assets.md) |
+| Configure a site | [Configuration](guides/configuration.md) |
+| Diagnose build and runtime failures | [Debugging](guides/debugging.md) |
 
-## Architecture
+## Understand the runtime
 
-- [Architecture overview](architecture/overview.md)
-- [Compiler pipeline](architecture/compiler-pipeline.md)
-- [Protected runtime](architecture/protected-runtime.md)
-- [Trust boundaries](architecture/trust-boundaries.md)
-- [Package format](package-format.md)
-- [Route hydration](architecture/route-hydration.md)
+| Topic | Guide |
+|---|---|
+| End-to-end architecture | [Architecture overview](architecture/overview.md) |
+| Compilation stages | [Compiler pipeline](architecture/compiler-pipeline.md) |
+| Runtime execution model | [Protected runtime](architecture/protected-runtime.md) |
+| Package structure | [VBC package format](architecture/package-format.md) |
+| Route execution | [Route hydration](architecture/route-hydration.md) |
+| Trust and observation boundaries | [Trust boundaries](architecture/trust-boundaries.md) |
 
-## Security and hardening
+## Review security properties
 
-- [Security model](security/security-model.md)
-- [Threat model](security/threat-model.md)
-- [Production hardening](security/production-hardening.md)
-- [Known limitations](security/limitations.md)
-- [Binary capability bridge](security/binary-capability-bridge.md)
-- [Session capability leases](security/session-capability-leases.md)
-- [Streamed WASM-owned decoding](security/streamed-wasm-decoding.md)
-- [WebAssembly memory hardening](security/wasm-memory-hardening.md)
-- [Build-specific bytecode envelopes](security/build-specific-bytecode-envelopes.md)
-- [Per-build bytecode permutation](security/per-build-bytecode-permutation.md)
-- [Runtime integrity seals](security/runtime-integrity-seals.md)
-- [Split runtime trust domains](security/split-runtime-trust-domains.md)
-- [Release signing](security/release-signing.md)
+| Topic | Guide |
+|---|---|
+| Security model and guarantees | [Security model](security/security-model.md) |
+| Threat assumptions | [Threat model](security/threat-model.md) |
+| Protection layers and evidence | [Protection strengths](security/protection-strengths.md) |
+| Production hardening requirements | [Production hardening](security/production-hardening.md) |
+| Binary bridge protocol | [Binary capability bridge](security/binary-capability-bridge.md) |
+| Streamed WASM decoding | [Streamed WASM decoding](security/streamed-wasm-decoding.md) |
+| WASM memory handling | [WASM memory hardening](security/wasm-memory-hardening.md) |
+| Build-specific bytecode records | [Bytecode envelopes](security/build-specific-bytecode-envelopes.md) |
+| Per-build byte permutation | [Bytecode permutation](security/per-build-bytecode-permutation.md) |
+| Runtime tamper detection | [Runtime integrity seals](security/runtime-integrity-seals.md) |
+| Session-bound capabilities | [Session capability leases](security/session-capability-leases.md) |
+| Decoder/executor separation | [Split runtime trust domains](security/split-runtime-trust-domains.md) |
+| Release signing | [Release signing](security/release-signing.md) |
+| Explicit limitations | [Limitations](security/limitations.md) |
 
-## Compatibility and evidence
+## Operate and verify
 
-- [Support matrix](compatibility/support-matrix.md)
-- [Framework guidance](compatibility/framework-guidance.md)
-- [Framework qualification](compatibility/framework-qualification.md)
-- [Browser equivalence testing](compatibility/browser-equivalence.md)
-- [Compatibility evidence](compatibility/compatibility-evidence.md)
+| Topic | Guide |
+|---|---|
+| Development and production profiles | [Build profiles](operations/build-profiles.md) |
+| Verify a production release | [Release verification](operations/release-verification.md) |
+| Package signed releases | [Release packaging](operations/release-packaging.md) |
+| Evidence recorded for v1.0.1 | [Release evidence](operations/release-evidence.md) |
+| Deploy and manage runtime versions | [Runtime management](operations/runtime-management.md) |
+| Update and rollback installed releases | [Update management](operations/update-management.md) |
+| Qualify source and protected behavior | [Browser equivalence](operations/browser-equivalence.md) |
+| Framework support evidence | [Framework qualification](operations/framework-qualification.md) |
+| Supported compatibility matrix | [Compatibility matrix](operations/compatibility-matrix.md) |
+| Package compatibility evidence | [Compatibility evidence](operations/compatibility-evidence.md) |
+| Measure protected runtime performance | [Runtime performance](operations/runtime-performance.md) |
+| Measure compiler build performance | [Build performance](operations/build-performance.md) |
 
-## CLI and configuration reference
+## Reference
 
-- [CLI reference](reference/cli.md)
-- [Configuration reference](reference/configuration.md)
-- [JavaScript API](reference/javascript-api.md)
-- [Annotation reference](reference/annotations.md)
-- [Production output layout](reference/output-layout.md)
-- [Exit codes and automation](reference/exit-codes.md)
+| Reference | Contents |
+|---|---|
+| [CLI](reference/cli.md) | Commands, common options, and automation usage |
+| [Configuration](reference/configuration.md) | Supported `venom.toml` settings |
+| [Annotations](reference/annotations.md) | Exact annotation forms and behavior |
+| [JavaScript API](reference/javascript-api.md) | `venom.ready`, protected exports, values, and errors |
+| [Output layout](reference/output-layout.md) | Production distribution paths and responsibilities |
+| [Exit codes](reference/exit-codes.md) | Stable process-result categories for automation |
+| [Host API contract](generated/host-api-contract.md) | Generated browser-host capability contract |
 
-## Build, test, and release
+## Public examples
 
-- [Repository layout](development/repository-layout.md)
-- [QuickJS/WASM development](development/quickjs-wasm.md)
-- [Testing](development/testing.md)
-- [Release closure](development/release-closure.md)
-- [Stable 1.65.3 verification](development/release-1.65.3-verification.md)
-- [Final repository audit](development/final-repository-audit.md)
-- [Build performance](performance/build-performance.md)
-- [Runtime benchmarking](performance/runtime-benchmarking.md)
+- [Protected Chess](../examples/protected-chess/README.md)
+- [NOVA TRADE](../examples/nova-trade/README.md)
+- [Venom Sentinel Bot Detection](../examples/bot-detection/README.md)
 
-## Operations
+## Production documentation policy
 
-- [Runtime management](runtime-management.md)
-- [Update management](update-management.md)
-- [Stable contracts](STABLE-CONTRACTS.md)
-- [Release packaging](release-packaging.md)
-- [Release qualification](RELEASE-QUALIFICATION.md)
-- [Release checklist](RELEASE-CHECKLIST.md)
+Every documented command must correspond to a shipped command or script. Every local link is validated by the release documentation gate. Security claims must describe implemented behavior and must retain the browser-owner limitation: a determined analyst controlling the client can instrument delivered code even when the original protected source is absent from the distribution.
 
-## Documentation policy
+## Version 2 preview
 
-- [Documentation style guide](STYLE-GUIDE.md)
-- [Documentation maintenance](MAINTENANCE.md)
-- The root [README](../README.md) is the product landing page and quick-start guide.
-- Pages in the categorized directories above are canonical for current workflows.
-- Uppercase and root-level legacy reference pages remain for deep implementation history; new links should prefer the canonical categorized pages.
-- Security documentation describes reverse-engineering resistance and integrity controls, not permanent secrecy in an attacker-controlled browser.
+- [Venom v2 architecture preview](architecture/v2-overview.md)

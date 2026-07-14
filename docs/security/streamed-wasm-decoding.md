@@ -1,7 +1,7 @@
 # Streamed WASM-owned package residency
 
 > **Audience:** application integrators, security reviewers, and runtime contributors  
-> **Applies to:** Venom 1.65.3
+> **Applies to:** Venom 1.0.1
 Venom 1.58 changes package ingestion so the browser loader no longer copies the complete package into WebAssembly memory in one operation or retains the fetched package bytes for later section decoding.
 
 ## Lifecycle

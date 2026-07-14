@@ -1,6 +1,6 @@
 # WebAssembly Memory Hardening
 
-> **Applies to:** Venom 1.65.3
+> **Applies to:** Venom 1.0.1
 > **Security goal:** Reduce convenient JavaScript-side memory interception and shorten plaintext lifetimes.
 
 Venom's QuickJS and package runtimes still require exported WebAssembly memory for the current Emscripten ABI. A browser owner can therefore inspect memory with sufficient instrumentation. Venom does not claim otherwise.

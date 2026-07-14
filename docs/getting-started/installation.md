@@ -1,7 +1,7 @@
 # Installation
 
 > **Audience:** users building or running Venom  
-> **Applies to:** Venom 1.65.3
+> **Applies to:** Venom 1.0.1
 ## Windows requirements
 
 - Windows 10 or newer
@@ -32,7 +32,7 @@ Install a C++17 compiler, CMake, Python, Node.js, and npm. Then run:
 
 ## Runtime contributors
 
-Ordinary users do not need to rebuild QuickJS/WASM. Contributors changing the embedded runtime must install the pinned Emscripten version and use the canonical controller documented in [QuickJS/WASM development](../development/quickjs-wasm.md).
+Ordinary users do not need to rebuild QuickJS/WASM. Contributors changing the embedded runtime must install the pinned Emscripten version and use the canonical controller documented in [QuickJS/WASM development](build-from-source.md).
 
 ## Verify the installation
 

@@ -4,6 +4,12 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; OUT="$ROOT/build/quickj
 [[ "${1:-}" == --verify-only ]] && exec python3 "$ROOT/tools/quickjs_wasm_cutover.py" --repo-root "$ROOT" --verify-embedded --require-real
 [[ $# -eq 1 && -f "${1:-}" ]] && exec python3 "$ROOT/tools/quickjs_wasm_cutover.py" --repo-root "$ROOT" --artifact "$1" --require-real
 A=("$@"); for ((i=0;i<${#A[@]};i++));do case "${A[$i]}" in --controller-build)MODE=build;;--preflight-only)MODE=preflight;;--out-dir)((i++));OUT="${A[$i]}";;--emcc)((i++));EMCC_ARG="${A[$i]}";;--clean)CLEAN=1;;--force);;--status)exec python3 "$ROOT/tools/quickjs_runtime_lifecycle.py" status --repo-root "$ROOT" --out-dir "$OUT";;*) [[ "$MODE" == preflight ]]&&OUT="${A[$i]}"||{ echo "unknown argument ${A[$i]}" >&2;exit 2;};;esac;done
+
+# Reject recursive wrapper/controller output growth before invoking any toolchain.
+if [[ "$OUT" == *"/quickjs-wasm/quickjs-wasm/quickjs-wasm"* ]]; then
+  echo "refusing recursively nested QuickJS/WASM output path: $OUT" >&2
+  exit 2
+fi
 if [[ "$MODE" == controller ]];then exec python3 "$ROOT/tools/build_emscripten.py" --repo-root "$ROOT" --out-dir "$OUT" ${EMCC_ARG:+--emcc "$EMCC_ARG"};fi
 if [[ "$MODE" == preflight ]];then mkdir -p "$OUT";exec python3 "$ROOT/tools/quickjs_wasm_preflight.py" --repo-root "$ROOT" --manifest "$OUT/quickjs-wasm-preflight.txt" --json "$OUT/quickjs-wasm-preflight.json" --allow-missing-emcc;fi
 [[ -n "$EMCC_ARG" ]]||EMCC_ARG="$(python3 "$ROOT/tools/quickjs_runtime_lifecycle.py" resolve-emcc --repo-root "$ROOT" --format path)"; ((CLEAN))&&rm -rf "$OUT";mkdir -p "$OUT"; W="$OUT/quickjs-runtime.wasm"; E="$OUT/quickjs-runtime.emcc-exports.json";python3 "$ROOT/tools/quickjs_release_abi.py" "$E"; X="$(python3 -c 'import json,sys;print(json.dumps(json.load(open(sys.argv[1]))))' "$E")"

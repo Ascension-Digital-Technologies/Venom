@@ -1,5 +1,8 @@
 # NOVA TRADE — Protected Trading Terminal
 
+
+![NOVA TRADE terminal](../../docs/assets/examples/nova-trade/terminal.png)
+
 > **Flagship Venom integration example · Paper trading only**
 
 NOVA TRADE is a full browser-native trading terminal that demonstrates how a complex application can keep rendering, charting, events, layout management, market simulation, and user interaction in the browser while moving proprietary risk, portfolio, order-policy, and signal logic into protected QuickJS/WASM execution.

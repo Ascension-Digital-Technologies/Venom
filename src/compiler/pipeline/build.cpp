@@ -4,6 +4,7 @@
 #include "compiler/pipeline/build_package_metadata.hpp"
 #include "compiler/pipeline/build_runtime_metadata.hpp"
 #include "compiler/core/version.hpp"
+#include "compiler/core/planner.hpp"
 
 #include "compiler/pipeline/assets.hpp"
 #include "compiler/pipeline/capability_analysis.hpp"
@@ -172,6 +173,7 @@ void shuffle_package_sections(std::vector<PendingPackageSection>& sections, cons
 
 bool build_site(const BuildOptions& requested_options) {
   const BuildOptions& options = requested_options;
+  enforce_build_protection_plan(options);
   if (!options.key_file.empty()) {
     load_package_key_file_for_process(options.key_file);
   }
@@ -507,6 +509,15 @@ bool build_site(const BuildOptions& requested_options) {
   add_package_section(venom::package::SectionType::Css, style_name, bytes_from_string(css));
   if (!hardened_release_asset) {
     add_package_section(venom::package::SectionType::JavaScript, "scripts.vjsb", js_bridge.bundle);
+  }
+  if (!js_bridge.bridge_registry_bytecode.empty()) {
+    auto protected_registry = encode_protected_bridge_registry(js_bridge, remote_vendor_options.bridge_id_salt);
+    if (protected_registry.empty() || count_marker(protected_registry, "VQJSE006") != 1u) {
+      throw std::runtime_error("protected bridge registry was not emitted as exactly one VQJSE006 record");
+    }
+    add_package_section(venom::package::SectionType::JavaScript,
+                        "protected-bridge-registry.vqbc",
+                        std::move(protected_registry));
   }
   if (!profile.strip_debug_metadata) {
     add_package_section(venom::package::SectionType::JavaScript, "script-diagnostics.txt", bytes_from_string(js_bridge.diagnostics));

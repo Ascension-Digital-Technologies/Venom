@@ -1,3 +1,4 @@
 @echo off
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build-emscripten.ps1" %*
+set "VENOM_PS1=%~dp0build-emscripten.ps1"
+call "%~dp0internal\invoke-powershell.bat" %*
 exit /b %ERRORLEVEL%

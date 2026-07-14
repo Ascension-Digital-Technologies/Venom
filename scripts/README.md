@@ -187,3 +187,17 @@ Run the full clean release pipeline on Windows:
 ```
 
 The command builds with warnings treated as errors, runs the complete CTest suite, validates both public examples in development and production profiles, scans production output, and creates a locally signed development release package. Results and individual command logs are written under `build/release-closure-output/`.
+
+## Windows launcher behavior
+
+Every `.bat` launcher uses `scripts/internal/invoke-powershell.bat`. When a launcher is double-clicked, the window remains open after both success and failure so the final status and diagnostic output can be read.
+
+Automation can disable the pause with:
+
+```bat
+set VENOM_NO_PAUSE=1
+```
+
+CI environments are detected automatically and never pause. PowerShell and shell scripts do not pause by themselves, so they remain suitable for terminals and automation.
+
+Console output uses consistent `STEP`, `INFO`, `SUCCESS`, `WARNING`, and `ERROR` labels.

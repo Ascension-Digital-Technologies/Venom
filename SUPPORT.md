@@ -7,8 +7,8 @@ and protected-bridge questions. Before asking, review:
 
 - `README.md`
 - `examples/protected-chess/README.md`
-- `docs/installation.md`
-- `docs/configuration.md`
+- `docs/getting-started/installation.md`
+- `docs/guides/configuration.md`
 - `docs/PROTECTED-BRIDGE.md`
 
 ## Bug reports

@@ -334,9 +334,10 @@ std::string make_script_policy_metadata(const Profile& profile, const std::strin
 }
 
 std::string make_quickjs_chunk_metadata(const Profile& profile, const std::string& runtime_mode, const JsBridge& bridge) {
-  const auto protected_count = static_cast<std::size_t>(std::count_if(
+  const auto protected_chunk_count = static_cast<std::size_t>(std::count_if(
       bridge.chunks.begin(), bridge.chunks.end(),
       [](const JsChunk& chunk) { return (chunk.flags & JsChunkBrowser) == 0u; }));
+  const auto protected_count = protected_chunk_count + (bridge.bridge_registry_bytecode.empty() ? 0u : 1u);
   std::ostringstream out;
   out << "VENOM_QUICKJS_CHUNKS_V7\n"
       << "version=7\n"
@@ -355,6 +356,10 @@ std::string make_quickjs_chunk_metadata(const Profile& profile, const std::strin
     if ((chunk.flags & JsChunkBrowser) != 0u) continue;
     out << "qjs_chunk\t" << chunk.order << "\t" << protected_route_label(profile, chunk) << "\t" << protected_source_label(profile, chunk)
         << "\tbytes=" << protected_source_size(profile, chunk) << "\tflags=" << js_flags_summary(chunk.flags) << "\n";
+  }
+  if (!bridge.bridge_registry_bytecode.empty()) {
+    out << "qjs_chunk\tregistry\tprotected-bridge-registry\tnative-quickjs-object"
+        << "\tbytes=" << bridge.bridge_registry_bytecode.size() << "\tflags=protected,isolated\n";
   }
   return out.str();
 }
@@ -494,9 +499,10 @@ std::string make_quickjs_wasm_execution_metadata(const Profile& profile,
                                                 const std::string& wasm_asset_name) {
   const bool wasm_real = policy.backend == "wasm-real";
   const bool host_fallback_allowed = policy.fallback_allowed && !wasm_real;
-  const auto protected_count = static_cast<std::size_t>(std::count_if(
+  const auto protected_chunk_count = static_cast<std::size_t>(std::count_if(
       bridge.chunks.begin(), bridge.chunks.end(),
       [](const JsChunk& chunk) { return (chunk.flags & JsChunkBrowser) == 0u; }));
+  const auto protected_count = protected_chunk_count + (bridge.bridge_registry_bytecode.empty() ? 0u : 1u);
   std::ostringstream out;
   out << "VENOM_QJS_WASM_EXECUTION_V2\n"
       << "version=2\n"
@@ -556,6 +562,11 @@ std::string make_quickjs_wasm_execution_metadata(const Profile& profile,
     if ((chunk.flags & JsChunkBrowser) != 0u) continue;
     out << "wasm_chunk\t" << chunk.order << "\t" << protected_route_label(profile, chunk) << "\t" << protected_source_label(profile, chunk)
         << "\tbytes=" << protected_source_size(profile, chunk) << "\tflags=" << js_flags_summary(chunk.flags)
+        << "\tbackend=" << (wasm_real ? "quickjs-wasm-real" : policy.backend) << "\n";
+  }
+  if (!bridge.bridge_registry_bytecode.empty()) {
+    out << "wasm_chunk\tregistry\tprotected-bridge-registry\tnative-quickjs-object"
+        << "\tbytes=" << bridge.bridge_registry_bytecode.size() << "\tflags=protected,isolated"
         << "\tbackend=" << (wasm_real ? "quickjs-wasm-real" : policy.backend) << "\n";
   }
   return out.str();

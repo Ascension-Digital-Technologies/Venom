@@ -792,6 +792,9 @@ BridgeRewriteResult apply_bridge_rewrites(std::vector<JsChunk>& chunks,
     stub << "async function " << record.name << "(" << params << "){return globalThis.__venomInvokeProtectedByName(\""
          << json_escape_plan(record.name) << "\",Array.from(arguments));}";
     it->code.replace(begin, end - begin, stub.str());
+    if (it->code.find(declaration) != std::string::npos) {
+      throw std::runtime_error("protected function source remained in browser chunk after extraction: " + record.source + "::" + record.name);
+    }
     auto registry_declaration = trim_copy(declaration);
     try { registry_declaration = std::regex_replace(registry_declaration, std::regex(R"(^\s*export\s+(?:default\s+)?)"), ""); }
     catch (const std::regex_error& error) { throw std::runtime_error(std::string("registry declaration regex: ") + error.what()); }

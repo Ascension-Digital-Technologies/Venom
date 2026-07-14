@@ -1,9 +1,23 @@
-# Runtime integrity seals
+# Runtime Integrity Seals
 
-Venom 1.62.0 adds distributed, build-bound integrity checks around critical runtime state.
+> **Applies to:** Venom 1.0.1
 
-The protected worker embeds a compiler-generated seal covering the capability identifiers, protected candidate registry, registry bytecode, and bridge opcodes. The worker recomputes this seal at startup and before every protected invocation. A mismatch closes the bridge and fails closed.
+Venom computes and rechecks integrity seals over critical browser and worker runtime state. The checks are distributed across startup and execution boundaries rather than concentrated in one optional boot check.
 
-The browser runtime also seals the active release-diversification record, QuickJS ABI fingerprint, and route opcode map after package validation. It rechecks that state before route scripts execute, so casual mutation of these tables does not silently continue.
+## Worker seal
 
-These checks increase tamper-detection coverage and force an analyst to patch both state and verification logic. They do not create a trusted boundary against someone who controls the browser engine and can modify all code involved.
+The protected worker seals capability mappings, registry bytecode, and active bridge operation identifiers. It validates the seal during initialization and before protected invocations.
+
+## Browser runtime seal
+
+The browser runtime seals release policy, QuickJS ABI identity, and route mapping state visible to the browser layer. It revalidates that state before route execution.
+
+## Failure behavior
+
+A mismatch closes or rejects the affected execution path. Production does not continue with mutated tables or silently downgrade to another backend.
+
+## Security boundary
+
+A browser owner may patch both state and verification code. Integrity seals raise the complexity of casual mutation and generic patching; they are not hardware-backed attestation.
+
+See [Security model](security-model.md), [Binary bridge](binary-capability-bridge.md), and [Split runtime trust domains](split-runtime-trust-domains.md).

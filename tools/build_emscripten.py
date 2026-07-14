@@ -22,9 +22,9 @@ def shell_build_command(repo: Path, emsdk_dir: Path, out_dir: Path, emcc: str) -
         powershell = shutil.which('powershell.exe') or shutil.which('pwsh.exe') or 'powershell.exe'
         return [powershell, '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
                 str(repo / 'scripts' / 'build-quickjs-wasm.ps1'),
-                '-OutDir', str(out_dir), '-Emcc', emcc, '-Force']
+                '-ControllerBuild', '-OutDir', str(out_dir), '-Emcc', emcc, '-Force']
     return [str(repo / 'scripts' / 'build-quickjs-wasm.sh'),
-            '--out-dir', str(out_dir), '--emcc', emcc, '--force']
+            '--controller-build', '--out-dir', str(out_dir), '--emcc', emcc, '--force']
 
 
 def write_report(out_dir: Path, info: dict[str, object]) -> None:
@@ -136,7 +136,9 @@ def main() -> int:
     if not emcc:
         print('[venom] emcc is required for a full runtime build', file=sys.stderr); return 3
 
-    wasm_out = out / 'quickjs-wasm'
+    # Accept either a controller workspace or the runtime output directory itself.
+    # This also prevents accidental recursive `quickjs-wasm/quickjs-wasm/...` growth.
+    wasm_out = out if out.name.lower() == 'quickjs-wasm' else out / 'quickjs-wasm'
     build = run(shell_build_command(repo, emsdk, wasm_out, emcc), timeout=3600); print(build.stdout, end='')
     if build.returncode: return build.returncode
     info['runtime_built'] = True

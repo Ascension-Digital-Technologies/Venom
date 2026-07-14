@@ -1,4 +1,4 @@
 @echo off
-setlocal
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0release-closure.ps1" %*
+set "VENOM_PS1=%~dp0release-closure.ps1"
+call "%~dp0internal\invoke-powershell.bat" %*
 exit /b %ERRORLEVEL%

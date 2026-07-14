@@ -4,11 +4,12 @@ from pathlib import Path
 root = Path(__file__).resolve().parents[2]
 workflow = (root / '.github/workflows/release-qualification.yml').read_text(encoding='utf-8')
 
-linux_setup = './scripts/setup-js-hardener.sh'
+linux_setup = 'bash scripts/setup-js-hardener.sh'
 windows_setup = r'.\scripts\setup-js-hardener.ps1 -NoPause'
 qualification = 'tools/release_qualification.py'
 
 assert workflow.count(linux_setup) == 1, 'Linux qualification job must install the pinned JS hardener exactly once'
+assert 'run: ./scripts/setup-js-hardener.sh' not in workflow, 'Linux qualification must invoke the hardener through bash and not depend on executable-bit preservation'
 assert workflow.count(windows_setup) == 1, 'Windows qualification job must install the pinned JS hardener exactly once'
 assert workflow.count(qualification) == 2, 'Both qualification jobs must invoke release_qualification.py'
 

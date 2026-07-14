@@ -103,6 +103,7 @@ std::vector<unsigned char> make_quickjs_runtime_wasm_module();
 std::string quickjs_runtime_wasm_provenance_text();
 std::string quickjs_runtime_wasm_sha256();
 std::string bundle_js_preview(const SiteGraph& graph);
+std::vector<unsigned char> encode_protected_bridge_registry(const JsBridge& bridge, const std::string& diversification_salt);
 JsBridge compile_js_bridge(const SiteGraph& graph, const RemoteVendorOptions& remote_options = {}, bool development = false);
 std::string js_flags_summary(std::uint32_t flags);
 

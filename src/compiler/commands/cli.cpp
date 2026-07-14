@@ -58,6 +58,24 @@ Command parse_command(int argc, char** argv) {
     cmd.kind = CommandKind::Version;
     return cmd;
   }
+
+  if (first == "plan") {
+    cmd.kind = CommandKind::Plan;
+    cmd.planner.input = argc >= 3 && !is_flag(argv[2]) ? argv[2] : std::filesystem::current_path();
+    for (int i = (argc >= 3 && !is_flag(argv[2])) ? 3 : 2; i < argc; ++i) {
+      const std::string arg = argv[i];
+      if (arg == "--format") { const auto v=require_value(i,argc,argv,arg); if(v=="json")cmd.planner.format=OutputFormat::Json; else if(v!="text")throw std::runtime_error("--format must be text or json"); }
+      else if (arg == "--mode") { const auto v=require_value(i,argc,argv,arg); if(v!="recommend"&&v!="strict")throw std::runtime_error("--mode must be recommend or strict"); cmd.planner.mode=v; }
+      else if (arg == "--protect") cmd.planner.protected_patterns.push_back(require_value(i,argc,argv,arg));
+      else if (arg == "--browser") cmd.planner.browser_patterns.push_back(require_value(i,argc,argv,arg));
+      else if (arg == "--config") cmd.planner.config_file = require_value(i,argc,argv,arg);
+      else if (arg == "--report") cmd.planner.report_file = require_value(i,argc,argv,arg);
+      else if (arg == "--min-confidence") { const auto v=std::stoi(require_value(i,argc,argv,arg)); if(v<0||v>100)throw std::runtime_error("--min-confidence must be from 0 to 100"); cmd.planner.minimum_confidence=v; }
+      else throw std::runtime_error("unknown plan option: " + arg);
+    }
+    return cmd;
+  }
+
   if (first == "dev") {
     cmd.kind = CommandKind::Dev;
     cmd.dev.executable = argv[0];
@@ -239,6 +257,45 @@ Command parse_command(int argc, char** argv) {
     return cmd;
   }
 
+  if (first == "decompile") {
+    cmd.kind = CommandKind::Decompile;
+    if (argc < 3 || is_flag(argv[2])) {
+      throw std::runtime_error("usage: venom decompile <dist|package|javascript> [--out <directory>] [--key-file <file>] [--format text|json] [--no-js] [--no-qjs-disasm] [--force]");
+    }
+    cmd.decompile.input = argv[2];
+    for (int i = 3; i < argc; ++i) {
+      const std::string arg = argv[i];
+      if (arg == "--out") cmd.decompile.output = require_value(i, argc, argv, arg);
+      else if (arg == "--key-file") cmd.decompile.key_file = require_value(i, argc, argv, arg);
+      else if (arg == "--format") {
+        const auto value = require_value(i, argc, argv, arg);
+        if (value == "json") cmd.decompile.format = OutputFormat::Json;
+        else if (value != "text") throw std::runtime_error("--format must be text or json");
+      } else if (arg == "--no-js") cmd.decompile.recover_javascript = false;
+      else if (arg == "--no-qjs-disasm") cmd.decompile.quickjs_disassembly = false;
+      else if (arg == "--force") cmd.decompile.force = true;
+      else throw std::runtime_error("unknown decompile option: " + arg);
+    }
+    return cmd;
+  }
+
+  if (first == "inspect") {
+    cmd.kind = CommandKind::Inspect;
+    if (argc < 3) {
+      throw std::runtime_error("inspect requires a package path");
+    }
+    cmd.inspect.package = argv[2];
+    for (int i = 3; i < argc; ++i) {
+      const std::string arg = argv[i];
+      if (arg == "--key-file") {
+        cmd.inspect.key_file = require_value(i, argc, argv, arg);
+      } else {
+        throw std::runtime_error("unknown inspect option: " + arg);
+      }
+    }
+    return cmd;
+  }
+
   if (first == "keygen") {
     cmd.kind = CommandKind::Keygen;
     for (int i = 2; i < argc; ++i) {
@@ -351,6 +408,16 @@ Command parse_command(int argc, char** argv) {
       cmd.build.vendor_offline = true;
     } else if (arg == "--refresh-vendors") {
       cmd.build.refresh_vendors = true;
+    } else if (arg == "--protection") {
+      const auto v=require_value(i,argc,argv,arg); if(v!="standard"&&v!="strong"&&v!="maximum") throw std::runtime_error("--protection must be standard, strong, or maximum"); cmd.build.protection_level=v;
+    } else if (arg == "--planner") {
+      const auto v=require_value(i,argc,argv,arg); if(v!="off"&&v!="recommend"&&v!="strict") throw std::runtime_error("--planner must be off, recommend, or strict"); cmd.build.planner_mode=v;
+    } else if (arg == "--planner-min-confidence") {
+      const auto v=std::stoi(require_value(i,argc,argv,arg)); if(v<0||v>100)throw std::runtime_error("--planner-min-confidence must be from 0 to 100"); cmd.build.planner_minimum_confidence=v;
+    } else if (arg == "--protect") {
+      cmd.build.force_protected.push_back(require_value(i,argc,argv,arg));
+    } else if (arg == "--browser") {
+      cmd.build.force_browser.push_back(require_value(i,argc,argv,arg));
     } else if (arg == "--seed") {
       const auto value = require_value(i, argc, argv, arg);
       std::size_t consumed = 0;
@@ -393,7 +460,8 @@ Command parse_command(int argc, char** argv) {
 void print_help() {
   std::cout << VENOM_PRODUCT_NAME << " " << VENOM_VERSION_STRING << "\n\n"
             << "Usage:\n"
-            << "  venom build [site-dir] --profile dev|prod [--out <dist>] [--seed <u32>]\n"
+            << "  venom build [site-dir] --profile dev|prod [--protection standard|strong|maximum]\n"
+            << "  venom plan [site-dir] [--protect <pattern>] [--browser <pattern>] [--min-confidence N] [--format text|json]\n"
             << "  venom dev [site-dir] [--out dist-dev] [--port 8080] [--open]\n"
             << "  venom new <name-or-path> [--force]\n"
             << "  venom init [directory] [--force]\n"
@@ -408,6 +476,7 @@ void print_help() {
             << "  venom release-check <dist-or-package> [--target browser]\n"
             << "  venom verify-runtime <dist-or-package> [--require-real-engine]\n"
             << "  venom inspect <dist/assets/app/app.<hash>.vbc>\n"
+            << "  venom decompile <dist|package|javascript> [--out recovered] [--force]\n"
             << "  venom --version\n\n"
             << "Build profiles:\n"
             << "  dev   Readable generated runtime, diagnostics, stable asset names, real QuickJS/WASM protection.\n"

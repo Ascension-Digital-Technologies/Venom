@@ -1,5 +1,8 @@
 # Protected Chess — QuickJS/WASM Engine Example
 
+
+![Protected Chess application](../../docs/assets/examples/protected-chess/application.png)
+
 > **Flagship Venom example · Browser UI with a protected chess engine**
 
 Protected Chess demonstrates one of Venom's strongest use cases: preserve a responsive browser-native interface while moving valuable search, evaluation, and move-selection logic into protected QuickJS bytecode executed inside the worker-hosted WebAssembly runtime.
@@ -59,7 +62,6 @@ examples/protected-chess/
 ├── css/main.css
 ├── js/
 │   ├── main.js
-│   ├── chess.js
 │   └── ai-engine.js
 ├── vendor/
 ├── venom.browser.json

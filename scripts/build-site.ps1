@@ -6,23 +6,33 @@ param(
   [ValidateSet('dev','prod')][string]$Profile='prod'
 )
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'internal/console.ps1')
 $Root=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 . (Join-Path $PSScriptRoot 'resolve-venom.ps1')
 
 try {
-  $Exe=Resolve-VenomExecutable -Root $Root -BuildDir $BuildDir -Config $Config
-} catch {
-  & (Join-Path $PSScriptRoot 'build.ps1') -Config $Config -BuildDir $BuildDir
-  if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
-  $Exe=Resolve-VenomExecutable -Root $Root -BuildDir $BuildDir -Config $Config
-}
+  Write-VenomBanner -Title 'Website build' -Subtitle "$Profile profile"
+  $SitePath=if([IO.Path]::IsPathRooted($Site)){$Site}else{Join-Path $Root $Site}
+  $DistPath=if([IO.Path]::IsPathRooted($Dist)){$Dist}else{Join-Path $Root $Dist}
+  Write-VenomInfo "Site:   $SitePath"
+  Write-VenomInfo "Output: $DistPath"
 
-$SitePath=if([IO.Path]::IsPathRooted($Site)){$Site}else{Join-Path $Root $Site}
-$DistPath=if([IO.Path]::IsPathRooted($Dist)){$Dist}else{Join-Path $Root $Dist}
-$args=@('build',$SitePath,'--out',$DistPath,'--profile',$Profile)
-& $Exe @args
-if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
-if($Profile -eq 'prod'){
-  python (Join-Path $PSScriptRoot 'check-production-leaks.py') $DistPath
-  if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+  try {
+    $Exe=Resolve-VenomExecutable -Root $Root -BuildDir $BuildDir -Config $Config
+  } catch {
+    Write-VenomWarning 'Venom executable was not found; building it now.'
+    & (Join-Path $PSScriptRoot 'build.ps1') -Config $Config -BuildDir $BuildDir
+    if($LASTEXITCODE -ne 0){throw "Native build failed with exit code $LASTEXITCODE"}
+    $Exe=Resolve-VenomExecutable -Root $Root -BuildDir $BuildDir -Config $Config
+  }
+
+  Invoke-VenomExternal -Program $Exe -Arguments @('build',$SitePath,'--out',$DistPath,'--profile',$Profile) -Description 'Compile protected distribution'
+  if($Profile -eq 'prod'){
+    Invoke-VenomExternal -Program 'python' -Arguments @((Join-Path $PSScriptRoot 'check-production-leaks.py'),$DistPath) -Description 'Scan production output for source leakage'
+  }
+  Write-VenomSuccess "Distribution ready: $DistPath"
+  exit 0
+} catch {
+  Write-VenomFailure $_.Exception.Message
+  exit 1
 }

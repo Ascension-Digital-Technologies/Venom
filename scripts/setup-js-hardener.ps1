@@ -5,22 +5,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'internal/console.ps1')
 $ExitCode = 0
 
-function Wait-OnFailure {
-  param([string]$Message)
-  Write-Host ''
-  Write-Host '[venom] JavaScript hardener setup failed.' -ForegroundColor Red
-  Write-Host $Message -ForegroundColor Red
-  Write-Host ''
-  Write-Host 'Run this command from an open PowerShell window to keep the full output visible:' -ForegroundColor Yellow
-  Write-Host '  powershell -NoExit -ExecutionPolicy Bypass -File .\scripts\setup-js-hardener.ps1 -Force' -ForegroundColor Yellow
-  if (-not $NoPause -and $Host.Name -notmatch 'ServerRemoteHost') {
-    Write-Host ''
-    Write-Host 'Press any key to close . . .' -ForegroundColor Cyan
-    try { $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown') } catch { Read-Host | Out-Null }
-  }
-}
+function Wait-OnFailure { param([string]$Message) Write-VenomFailure $Message }
 
 try {
   $Root = Split-Path -Parent $PSScriptRoot
@@ -65,7 +53,7 @@ try {
     }
   
     if ($NeedsInstall) {
-      Write-Host '[venom] installing pinned JavaScript hardener dependencies...'
+      Write-VenomStep 'Install pinned JavaScript hardener dependencies'
       if (Test-Path -LiteralPath $NodeModules) {
         Remove-Item -LiteralPath $NodeModules -Recurse -Force
       }
@@ -96,7 +84,7 @@ try {
     Pop-Location
   }
   
-  Write-Host '[venom] release JavaScript hardener installed and verified'
+  Write-VenomSuccess 'Release JavaScript hardener installed and verified.'
 }
 catch {
   $ExitCode = 1

@@ -2194,6 +2194,21 @@ function minimax(game, depth, alpha, beta, isMaximizingPlayer, sum, color) {
 }
 
 
+  function snapshot(state, history) {
+    return {
+      fen: state.fen(),
+      turn: state.turn(),
+      gameOver: state.game_over(),
+      inCheck: state.in_check(),
+      checkmate: state.in_checkmate(),
+      stalemate: state.in_stalemate(),
+      draw: state.in_draw(),
+      insufficientMaterial: state.insufficient_material(),
+      threefoldRepetition: state.in_threefold_repetition(),
+      history: Array.isArray(history) ? history.slice(0, 512) : []
+    };
+  }
+
   var action = request && request.action;
   if (action === 'identity') {
     return {
@@ -2202,15 +2217,27 @@ function minimax(game, depth, alpha, beta, isMaximizingPlayer, sum, color) {
       isolation: 'worker',
       bridge: 'json-value-v1',
       protected: true,
-      capabilities: ['evaluation', 'minimax', 'alpha-beta', 'piece-square-tables']
+      capabilities: ['rules', 'validation', 'legal-moves', 'evaluation', 'minimax', 'alpha-beta', 'piece-square-tables']
     };
   }
-  var state = new Chess(request.fen);
+  var state = new Chess(request && request.fen ? request.fen : undefined);
   var positionCount = 0;
-  if (action === 'evaluate') {
+  if (action === 'state') return { state: snapshot(state, request.history) };
+  if (action === 'moves') {
+    var legal = state.moves({ square: String(request.square || ''), verbose: true });
+    return { moves: legal.map(function (move) { return { from: move.from, to: move.to, promotion: move.promotion || null, san: move.san || '' }; }) };
+  }
+  if (action === 'move' || action === 'evaluate') {
     var played = state.move(request.move);
     if (!played) throw new Error('engine received an illegal move');
-    return { value: evaluateBoard(state, played, Number(request.sum) || 0, request.color || 'b') };
+    var history = Array.isArray(request.history) ? request.history.slice(0, 511) : [];
+    history.push(played.san || (played.from + '-' + played.to));
+    var value = evaluateBoard(state, played, Number(request.sum) || 0, request.color || 'b');
+    return {
+      move: { from: played.from, to: played.to, promotion: played.promotion || 'q', san: played.san || '' },
+      value: value,
+      state: snapshot(state, history)
+    };
   }
   if (action !== 'search') throw new Error('unsupported chess engine action');
   var started = Date.now();

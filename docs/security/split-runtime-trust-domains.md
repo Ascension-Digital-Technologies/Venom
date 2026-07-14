@@ -2,7 +2,7 @@
 
 > **Audience:** Security reviewers and runtime contributors  
 > **Status:** Stable  
-> **Applies to:** Venom 1.65.3
+> **Applies to:** Venom 1.0.1
 Venom separates package decoding from protected JavaScript execution. The package runtime owns package upload, validation, section materialization, and retirement. The QuickJS runtime owns bytecode loading and execution.
 
 ## Handoff contract

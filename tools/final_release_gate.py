@@ -9,7 +9,8 @@ REQUIRED = [
     '.github/workflows/release.yml', '.github/workflows/release-hardening.yml',
     'tools/package_release_set.py', 'tools/verify_release_set.py', 'tools/documentation_gate.py',
     'cmake/build_acceleration.cmake',
-    'docs/README.md', 'GOVERNANCE.md', 'ROADMAP.md', 'CITATION.cff',
+    'docs/README.md', 'docs/getting-started/build-from-source.md',
+    'docs/operations/release-verification.md', 'docs/security/security-model.md',
     'src/generated/runtime/quickjs_runtime_wasm_blob.hpp',
     'src/generated/runtime/wasm_runtime_provenance.json',
 ]
@@ -31,7 +32,8 @@ def main() -> int:
     version=m.group(1)
     readme=(root/'README.md').read_text(encoding='utf-8')
     changes=(root/'CHANGES.md').read_text(encoding='utf-8')
-    if f'**Version:** {version}' not in readme: fail('README version does not match CMake project version')
+    readme_version_markers = (f'**Version:** {version}', f'Version {version}</strong>')
+    if not any(marker in readme for marker in readme_version_markers): fail('README version does not match CMake project version')
     if f'## {version} ' not in changes: fail('changelog lacks current version heading')
     release=(root/'.github/workflows/release.yml').read_text(encoding='utf-8')
     hardening=(root/'.github/workflows/release-hardening.yml').read_text(encoding='utf-8')

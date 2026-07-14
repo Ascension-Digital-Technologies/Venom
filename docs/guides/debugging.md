@@ -1,10 +1,46 @@
 # Debugging
 
-1. Run `venom doctor --profile production`.
-2. Reproduce with `venom dev <site> --open`.
-3. Run `venom compatibility check <site>`.
-4. Inspect browser and worker console output.
-5. Verify remote assets and MIME types.
-6. Build production and run `venom analyze-dist` plus `venom release-check`.
+> **Applies to:** Venom 1.0.1
 
-Development uses the real protected runtime but preserves readable generated JavaScript and richer diagnostics. Do not debug production by enabling host fallback; fix the compatibility boundary instead.
+Use the development profile to diagnose application behavior while still executing protected code through the real QuickJS/WASM path. Do not debug a production failure by disabling verification or introducing host-JavaScript fallback behavior.
+
+## First checks
+
+```powershell
+venom doctor --profile production
+venom compatibility check path\to\site
+venom build path\to\site --profile dev --out build\dev-dist
+venom analyze-dist build\dev-dist
+```
+
+Inspect the browser console, network panel, worker errors, route requests, and generated compatibility report.
+
+## Common failure categories
+
+- unsupported browser API used from protected code;
+- missing or incorrectly routed asset;
+- non-JSON-safe bridge value;
+- protected call payload exceeding limits;
+- stale or mismatched runtime/package assets;
+- JS hardener not installed for production;
+- package, runtime, or loader integrity failure;
+- incorrect annotation boundary around framework or DOM code.
+
+## Bridge failures
+
+Protected functions accept bounded JSON-safe values. DOM nodes, functions, symbols, cyclic objects, framework proxies, and browser-native handles must remain browser-side. Reduce the payload to plain objects, arrays, strings, booleans, finite numbers, and null.
+
+## Production failures
+
+Run:
+
+```powershell
+venom verify-runtime dist
+venom release-check dist
+```
+
+Never replace a failed production runtime with a development asset. Rebuild the complete distribution so all hashes and package bindings are generated together.
+
+## Minimal reproductions
+
+When isolating compatibility problems, preserve the same annotations, module graph, route shape, and browser API usage. A reduced fixture that removes the execution boundary may hide the actual issue.

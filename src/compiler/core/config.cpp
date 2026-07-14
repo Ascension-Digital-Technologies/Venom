@@ -20,6 +20,32 @@ std::string unquote(std::string v) {
   if (v.size()>=2 && ((v.front()=='"'&&v.back()=='"')||(v.front()=='\''&&v.back()=='\''))) return v.substr(1,v.size()-2);
   return v;
 }
+
+std::vector<std::string> parse_string_list(std::string value, const std::string& key) {
+  value = trim(value);
+  if (value.size() < 2 || value.front() != '[' || value.back() != ']')
+    throw std::runtime_error("venom.toml: " + key + " must be an array of strings");
+  value = value.substr(1, value.size() - 2);
+  std::vector<std::string> out;
+  std::string current;
+  bool quoted = false;
+  char quote = 0;
+  for (char c : value) {
+    if (c == '\'' || c == '"') {
+      if (!quoted) { quoted = true; quote = c; }
+      else if (quote == c) quoted = false;
+      else current += c;
+    } else if (c == ',' && !quoted) {
+      current = trim(current);
+      if (!current.empty()) out.push_back(unquote(current));
+      current.clear();
+    } else current += c;
+  }
+  current = trim(current);
+  if (!current.empty()) out.push_back(unquote(current));
+  if (quoted) throw std::runtime_error("venom.toml: unterminated string in " + key);
+  return out;
+}
 bool parse_bool(const std::string& value, const std::string& key) {
   const auto v=unquote(value);
   if (v=="true") return true;
@@ -57,11 +83,16 @@ void apply_project_config(const std::filesystem::path& path, BuildOptions& optio
     else if (full=="build.vendor_lock") options.vendor_lock=unquote(value);
     else if (full=="build.offline") options.vendor_offline=parse_bool(value,full);
     else if (full=="build.refresh_vendors") options.refresh_vendors=parse_bool(value,full);
+    else if (full=="protection.level") options.protection_level=unquote(value);
+    else if (full=="planner.mode") options.planner_mode=unquote(value);
+    else if (full=="planner.minimum_confidence") { options.planner_minimum_confidence=std::stoi(unquote(value)); if(options.planner_minimum_confidence<0||options.planner_minimum_confidence>100) throw std::runtime_error("venom.toml: planner.minimum_confidence must be from 0 to 100"); }
+    else if (full=="planner.protect" || full=="planner.protected") options.force_protected=parse_string_list(value,full);
+    else if (full=="planner.browser") options.force_browser=parse_string_list(value,full);
     else if (full=="security.require_audited_crypto") options.require_audited_crypto=parse_bool(value,full);
     else if (full=="security.deny_host_js_fallback" && !parse_bool(value,full)) throw std::runtime_error("Venom production policy requires security.deny_host_js_fallback=true");
     else if (full=="runtime.engine" && unquote(value)!="quickjs-wasm") throw std::runtime_error("Venom production policy requires runtime.engine=\"quickjs-wasm\"");
     else if (full=="runtime.fail_closed" && !parse_bool(value,full)) throw std::runtime_error("Venom production policy requires runtime.fail_closed=true");
-    else if (section=="project" || section=="build" || section=="runtime" || section=="security" || section=="compatibility") {
+    else if (section=="project" || section=="build" || section=="runtime" || section=="security" || section=="compatibility" || section=="protection" || section=="planner") {
       // Forward-compatible: recognized sections may contain fields consumed by newer runtimes.
     } else throw std::runtime_error("venom.toml:"+std::to_string(line_no)+": unknown section or key: "+full);
   }

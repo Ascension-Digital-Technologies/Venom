@@ -364,3 +364,7 @@ set_tests_properties(venom_split_trust_domain_smoke PROPERTIES LABELS "security;
 add_test(NAME venom_release_entrypoint_policy_smoke
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/release-entrypoint-policy-smoke.py)
 set_tests_properties(venom_release_entrypoint_policy_smoke PROPERTIES LABELS "release;static;security" TIMEOUT 60)
+
+add_test(NAME venom_windows_launcher_policy_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/windows-launcher-policy-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
+set_tests_properties(venom_windows_launcher_policy_smoke PROPERTIES LABELS "static;release")

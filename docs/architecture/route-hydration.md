@@ -18,4 +18,4 @@ The browser or WASM route executor resolves the physical opcode mapping, applies
 
 ## Validation
 
-Executable regressions cover malformed markup, omitted end tags, nested routes, multi-page output, asset-base resolution, and source-versus-protected browser equivalence. See [routing and hydration](../guides/routing.md) and [browser equivalence testing](../compatibility/browser-equivalence.md).
+Executable regressions cover malformed markup, omitted end tags, nested routes, multi-page output, asset-base resolution, and source-versus-protected browser equivalence. See [routing and hydration](../guides/routing.md) and [browser equivalence testing](../operations/browser-equivalence.md).

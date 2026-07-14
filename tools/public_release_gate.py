@@ -5,7 +5,7 @@ from pathlib import Path
 
 REQUIRED = [
     'README.md','CHANGES.md','LICENSE','NOTICE.md','SECURITY.md','SUPPORT.md',
-    'CODE_OF_CONDUCT.md','CONTRIBUTING.md','docs/RELEASE-CHECKLIST.md',
+    'docs/README.md','docs/getting-started/build-from-source.md','docs/operations/release-verification.md',
     'examples/protected-chess/README.md','examples/nova-trade/README.md','examples/bot-detection/README.md','.github/workflows/release.yml',
 ]
 FORBIDDEN_DIRS = {'.git','build','dist','node_modules','__pycache__','.pytest_cache','.mypy_cache'}
@@ -42,7 +42,7 @@ def main() -> int:
         if not (root/rel).is_file(): errors.append(f'missing required release file: {rel}')
 
     readme=(root/'README.md').read_text(encoding='utf-8',errors='replace') if (root/'README.md').exists() else ''
-    if version!='unknown' and f'**Version:** {version}' not in readme:
+    if version!='unknown' and not (f'**Version:** {version}' in readme or f'Version {version}</strong>' in readme):
         errors.append(f'README version does not match {version}')
     changes=(root/'CHANGES.md').read_text(encoding='utf-8',errors='replace') if (root/'CHANGES.md').exists() else ''
     if version!='unknown' and version not in changes:

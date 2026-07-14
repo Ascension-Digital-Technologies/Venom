@@ -1,3 +1,4 @@
+#include "decompiler/decompiler.hpp"
 #include "compiler/pipeline/build.hpp"
 #include "compiler/commands/cli.hpp"
 #include "compiler/commands/inspect.hpp"
@@ -10,6 +11,7 @@
 #include "compiler/services/runtime_manager.hpp"
 #include "compiler/services/update_manager.hpp"
 #include "compiler/core/config.hpp"
+#include "compiler/core/planner.hpp"
 
 #include <exception>
 #include <iostream>
@@ -33,6 +35,16 @@ int main(int argc, char** argv) {
           venom::compiler::load_package_key_file_for_process(command.inspect.key_file);
         }
         return venom::compiler::inspect_package(command.inspect.package) ? 0 : 30;
+      case venom::compiler::CommandKind::Decompile:
+        return venom::decompiler::recover({
+          command.decompile.input,
+          command.decompile.output,
+          command.decompile.key_file,
+          command.decompile.format,
+          command.decompile.recover_javascript,
+          command.decompile.quickjs_disassembly,
+          command.decompile.force
+        }) ? 0 : 84;
       case venom::compiler::CommandKind::Keygen:
         return venom::compiler::generate_key_file(command.keygen) ? 0 : 40;
       case venom::compiler::CommandKind::ReleaseCheck:
@@ -45,6 +57,8 @@ int main(int argc, char** argv) {
       case venom::compiler::CommandKind::Analyze:
         venom::compiler::run_capability_analysis(command.compatibility);
         return 0;
+      case venom::compiler::CommandKind::Plan:
+        return venom::compiler::run_protection_plan(command.planner) ? 0 : 22;
       case venom::compiler::CommandKind::AnalyzeDist:
         return venom::compiler::analyze_distribution({command.analyze_dist_input, command.analyze_dist_format}) ? 0 : 21;
       case venom::compiler::CommandKind::Contracts:

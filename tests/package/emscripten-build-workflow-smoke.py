@@ -58,9 +58,9 @@ def main() -> int:
         print('build-emscripten.sh did not write status manifest', file=sys.stderr)
         return 1
 
-    docs = root / 'docs' / 'emscripten-build.md'
+    docs = root / 'docs' / 'getting-started' / 'build-from-source.md'
     doc_text = docs.read_text(encoding='utf-8')
-    for marker in ('build-emscripten', 'setup/check emsdk', 'strict QuickJS WASM preflight'):
+    for marker in ('build-emscripten', 'Emscripten setup', 'QuickJS/WASM preflight'):
         if marker not in doc_text:
             print(f'missing docs marker {marker!r}', file=sys.stderr)
             return 1
@@ -95,11 +95,14 @@ def main() -> int:
     finally:
         build_module.is_windows = original_is_windows
         build_module.shutil.which = original_which
+    if '-ControllerBuild' not in windows_cmd:
+        print('Windows Emscripten controller must enter the wrapper build mode instead of recursively invoking itself', file=sys.stderr)
+        return 1
     if '-Emcc' not in windows_cmd or windows_cmd[windows_cmd.index('-Emcc') + 1] != expected_emcc:
         print('Windows Emscripten controller must pass the resolved compiler through -Emcc', file=sys.stderr)
         return 1
 
-    quote_doc = root / 'docs' / 'emscripten-windows-quoting-fix.md'
+    quote_doc = root / 'docs' / 'getting-started' / 'build-from-source.md'
     if not quote_doc.exists() or 'quote characters as part of the executable name' not in quote_doc.read_text(encoding='utf-8'):
         print('missing Windows Emscripten quoting fix documentation', file=sys.stderr)
         return 1
@@ -119,9 +122,20 @@ def main() -> int:
     if '--all-features' in ps_text or '--all-features' in shell_quickjs_text:
         print('QuickJS Binaryen post-processing should enable only detected/required features, not all features', file=sys.stderr)
         return 1
-    if '@wasmFeatureFlags' not in ps_text or '"${WASM_FEATURE_FLAGS[@]}"' not in shell_quickjs_text:
+    if '$wasmFeatureFlags' not in ps_text or '"${WASM_FEATURE_FLAGS[@]}"' not in shell_quickjs_text:
         print('QuickJS Binaryen feature arrays must be included in the actual wasm-opt command', file=sys.stderr)
         return 1
+    if '+@wasmFeatureFlags+' in ps_text:
+        print('PowerShell array expressions must reference $wasmFeatureFlags, not the splatting-only @wasmFeatureFlags form', file=sys.stderr)
+        return 1
+    for marker in ('$ControllerBuild', 'refusing recursively nested QuickJS/WASM output path'):
+        if marker not in ps_text:
+            print(f'PowerShell QuickJS wrapper must prevent recursive controller output growth: missing {marker!r}', file=sys.stderr)
+            return 1
+    for marker in ('--controller-build', 'refusing recursively nested QuickJS/WASM output path'):
+        if marker not in shell_quickjs_text:
+            print(f'Shell QuickJS wrapper must prevent recursive controller output growth: missing {marker!r}', file=sys.stderr)
+            return 1
 
     wasm_exports_text = (root / 'tools' / 'wasm_exports.py').read_text(encoding='utf-8')
     for marker in ('WebAssembly.Module.imports', 'makeImportObject', 'defaultImportFor'):

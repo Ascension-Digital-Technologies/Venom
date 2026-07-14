@@ -15,6 +15,7 @@ enum class CommandKind {
   Build,
   Dev,
   Inspect,
+  Decompile,
   Keygen,
   ReleaseCheck,
   VerifyRuntime,
@@ -28,6 +29,7 @@ enum class CommandKind {
   Runtime,
   Config,
   Update,
+  Plan,
 };
 
 struct BuildOptions {
@@ -51,6 +53,11 @@ struct BuildOptions {
   bool vendor_offline = false;
   bool refresh_vendors = false;
   std::uint32_t diversification_seed = 0;
+  std::string protection_level = "strong";
+  std::string planner_mode = "manual";
+  int planner_minimum_confidence = 70;
+  std::vector<std::string> force_protected;
+  std::vector<std::string> force_browser;
   std::filesystem::path config_file;
   OutputFormat format = OutputFormat::Text;
 };
@@ -58,6 +65,16 @@ struct BuildOptions {
 struct InspectOptions {
   std::filesystem::path package;
   std::filesystem::path key_file;
+};
+
+struct DecompileOptions {
+  std::filesystem::path input;
+  std::filesystem::path output;
+  std::filesystem::path key_file;
+  OutputFormat format = OutputFormat::Text;
+  bool recover_javascript = true;
+  bool quickjs_disassembly = true;
+  bool force = false;
 };
 
 struct KeygenOptions {
@@ -77,6 +94,18 @@ struct ReleaseCheckOptions {
 struct DevOptions { std::filesystem::path executable; std::filesystem::path input; std::filesystem::path output = "dist-dev"; std::string host = "127.0.0.1"; std::uint16_t port = 8080; bool open_browser = false; bool watch = true; };
 struct DoctorOptions { OutputFormat format = OutputFormat::Text; std::string profile = "development"; };
 struct CompatibilityOptions { std::filesystem::path input; OutputFormat format = OutputFormat::Text; };
+struct PlannerOptions {
+  std::filesystem::path input;
+  OutputFormat format = OutputFormat::Text;
+  std::string mode = "recommend";
+  int minimum_confidence = 70;
+  std::vector<std::string> protected_patterns;
+  std::vector<std::string> browser_patterns;
+  std::vector<std::string> config_protected_patterns;
+  std::vector<std::string> config_browser_patterns;
+  std::filesystem::path config_file;
+  std::filesystem::path report_file;
+};
 struct ContractsOptions { OutputFormat format = OutputFormat::Text; };
 struct DistAnalyzeOptions;
 struct ProjectCommandOptions { std::filesystem::path directory; bool force = false; };
@@ -89,10 +118,12 @@ struct Command {
   BuildOptions build;
   DevOptions dev;
   InspectOptions inspect;
+  DecompileOptions decompile;
   KeygenOptions keygen;
   ReleaseCheckOptions release_check;
   DoctorOptions doctor;
   CompatibilityOptions compatibility;
+  PlannerOptions planner;
   ContractsOptions contracts;
   std::filesystem::path analyze_dist_input;
   OutputFormat analyze_dist_format = OutputFormat::Text;

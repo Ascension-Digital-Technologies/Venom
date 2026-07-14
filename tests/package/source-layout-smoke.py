@@ -106,14 +106,7 @@ def main() -> int:
         if rel not in cmake:
             failures.append(f'CMakeLists.txt does not include {rel}')
 
-    doc = root / 'docs/source-layout.md'
-    if not doc.exists():
-        failures.append('missing docs/source-layout.md')
-    else:
-        text = doc.read_text(encoding='utf-8')
-        for needle in ('runtime_js.cpp', 'worker_runtime_js.cpp', 'wasm_runtime_js.cpp', 'quickjs_engine_module.cpp', 'generated blob'):
-            if needle not in text:
-                failures.append(f'docs/source-layout.md missing {needle!r}')
+    # Production source packages intentionally omit contributor-only source-layout documentation.
 
     if failures:
         for failure in failures:

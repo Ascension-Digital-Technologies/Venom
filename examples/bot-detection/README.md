@@ -1,5 +1,8 @@
 # Venom Sentinel — Protected Bot Detection
 
+
+![Venom Sentinel overview](../../docs/assets/examples/bot-detection/overview.png)
+
 Venom Sentinel is a browser-fingerprint and behavioral-analysis example whose scoring policy executes inside Venom's protected QuickJS/WASM runtime.
 
 The page inventories browser-exposed client information, observes aggregate trusted interaction, and produces a live **human-likelihood score from 1 to 100**. The user interface and signal collection remain browser-native; the weighting, anomaly classification, score composition, and response recommendation are protected.
@@ -65,6 +68,28 @@ flowchart LR
 - final 1–100 human-likelihood score;
 - confidence estimate, classification, findings, and recommended response policy;
 - deterministic fingerprint identifier derivation.
+
+## Interface gallery
+
+### Protected score composition
+
+![Protected score composition](../../docs/assets/examples/bot-detection/score-composition.png)
+
+### Behavior and anomaly analysis
+
+![Behavior and anomaly analysis](../../docs/assets/examples/bot-detection/behavior-analysis.png)
+
+### Browser identity and client hints
+
+![Browser identity and client hints](../../docs/assets/examples/bot-detection/browser-identity.png)
+
+### Automation and hardware surfaces
+
+![Automation and hardware surfaces](../../docs/assets/examples/bot-detection/automation-hardware.png)
+
+### Display and graphics fingerprint
+
+![Display and graphics fingerprint](../../docs/assets/examples/bot-detection/display-graphics.png)
 
 ## Source layout
 

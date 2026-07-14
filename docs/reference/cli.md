@@ -12,7 +12,7 @@ venom build <path> --profile dev|prod --out <dir>
 ## Analysis and verification
 
 ```text
-venom doctor --profile development|production|runtime-contributor [--format text|json]
+venom doctor --profile development|production [--format text|json]
 venom analyze <site-dir> [--format text|json]
 venom compatibility check <site-dir> [--format text|json]
 venom analyze-dist <dist-dir> [--format text|json]

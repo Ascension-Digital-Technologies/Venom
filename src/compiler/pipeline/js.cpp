@@ -316,6 +316,17 @@ JsBridge compile_js_bridge(const SiteGraph& graph, const RemoteVendorOptions& re
   if (!rewrite_result.registry_source.empty()) {
     bridge.bridge_registry_bytecode = venom::quickjs::compile_native_quickjs_bytecode(
         rewrite_result.registry_source, "venom://protected-bridge-registry", false, false, nullptr);
+    const bool native_record = bridge.bridge_registry_bytecode.size() >= 8u &&
+        (std::equal(bridge.bridge_registry_bytecode.begin(), bridge.bridge_registry_bytecode.begin() + 8,
+                    reinterpret_cast<const unsigned char*>("VQJSBC03")) ||
+         std::equal(bridge.bridge_registry_bytecode.begin(), bridge.bridge_registry_bytecode.begin() + 8,
+                    reinterpret_cast<const unsigned char*>("VQJSMB04")));
+    if (!native_record) {
+      throw std::runtime_error("protected bridge extraction did not produce a native QuickJS bytecode record");
+    }
+  }
+  if (!bridge.protected_exports.empty() && bridge.bridge_registry_bytecode.empty()) {
+    throw std::runtime_error("protected exports exist but the protected QuickJS bridge registry is empty");
   }
   bridge.bundle = encode_js_bundle(bridge.chunks, remote_options.bridge_id_salt);
 
@@ -329,6 +340,18 @@ JsBridge compile_js_bridge(const SiteGraph& graph, const RemoteVendorOptions& re
   return bridge;
 }
 
+
+
+std::vector<unsigned char> encode_protected_bridge_registry(const JsBridge& bridge, const std::string& diversification_salt) {
+  if (bridge.bridge_registry_bytecode.empty()) return {};
+  JsChunk synthetic;
+  synthetic.route = "venom://protected-bridge";
+  synthetic.source = "venom://protected-bridge-registry";
+  synthetic.order = 0u;
+  synthetic.flags = JsChunkBytecodeEncoded;
+  synthetic.kind = 0u;
+  return wrap_quickjs_record(bridge.bridge_registry_bytecode, diversification_salt, synthetic);
+}
 
 std::string js_hash64_literal(std::uint64_t value) {
   std::ostringstream out;

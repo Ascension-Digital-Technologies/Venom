@@ -19,7 +19,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: {node-version: '22'}
       - name: Install and verify Venom JS hardener
-        run: ./scripts/setup-js-hardener.sh
+        run: bash scripts/setup-js-hardener.sh
       - run: npm install --no-save playwright@1.52.0 && npx playwright install --with-deps chromium firefox webkit
       - run: cmake --preset release -DVENOM_ENABLE_IPO=OFF
       - run: cmake --build --preset release --parallel 2

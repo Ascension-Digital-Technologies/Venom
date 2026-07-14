@@ -1,13 +1,34 @@
-# Exit codes and automation
+# Exit Codes
 
-Venom commands return `0` on success and a nonzero value when validation, compilation, runtime verification, release policy, or input processing fails.
+> **Applies to:** Venom 1.0.1
 
-## Automation guidance
+Venom returns nonzero process codes for configuration, build, runtime-verification, compatibility, packaging, and release-policy failures. Automation should treat any nonzero result as failure and preserve standard output and error logs.
 
-1. Treat any nonzero exit code as a failed step.
-2. Capture both standard output and standard error.
-3. Prefer structured JSON output when a command offers `--format json` or `--json-out`.
-4. Do not infer success from the presence of an output directory; production builds are fail-closed and may remove or leave incomplete staging output after a rejected build.
-5. Run `venom release-check` or the repository release closure before publication.
+## Stable categories
 
-Venom does not currently promise a permanent public mapping between individual numeric nonzero values and error categories. Automation should rely on zero versus nonzero status plus structured diagnostics, rather than hard-coding undocumented numeric values.
+| Category | Meaning |
+|---|---|
+| Success | The requested command completed and all required checks passed. |
+| Usage/configuration | Arguments, paths, configuration, or required inputs are invalid. |
+| Toolchain | A compiler, Python, Node, npm, hardener, CMake, or runtime prerequisite is unavailable. |
+| Build | Compilation, transformation, packaging, or asset generation failed. |
+| Compatibility | The site uses unsupported behavior or a required browser qualification failed. |
+| Verification | Runtime provenance, package binding, asset integrity, or leakage policy failed. |
+| Release policy | Signing, release-set, source completeness, or publication policy failed. |
+
+The exact numeric values are emitted by the CLI and should be read from the installed version's `--help` and automation output. Scripts should not convert a failing production command into success.
+
+## PowerShell
+
+```powershell
+venom release-check dist
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+```
+
+## Shell
+
+```bash
+venom release-check dist
+```
+
+With `set -e`, the shell exits immediately on failure. Preserve the command logs as release evidence.

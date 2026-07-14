@@ -26,5 +26,5 @@ reproducibility.
 Venom raises the cost of extracting and tampering with shipped application
 logic, but it cannot make browser-delivered code or data absolutely secret. A
 hostile client controls its browser, storage, network stack, and debugging
-environment. See [docs/threat-model.md](docs/threat-model.md) and
-[docs/security-model.md](docs/security-model.md) before deploying.
+environment. See [docs/security/threat-model.md](docs/security/threat-model.md) and
+[docs/security/security-model.md](docs/security/security-model.md) before deploying.

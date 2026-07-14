@@ -1,5 +1,4 @@
 @echo off
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build-site.ps1" %*
-set "ec=%errorlevel%"
-if not "%ec%"=="0" if not defined VENOM_NO_PAUSE pause
-exit /b %ec%
+set "VENOM_PS1=%~dp0build-site.ps1"
+call "%~dp0internal\invoke-powershell.bat" %*
+exit /b %ERRORLEVEL%

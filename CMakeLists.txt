@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(venom
-  VERSION 1.65.4
+  VERSION 2.0.0
   DESCRIPTION "Venom - Secure Web Runtime: protected web compiler and dual-VM browser runtime"
   LANGUAGES C CXX
 )
@@ -151,6 +151,7 @@ else()
 endif()
 
 set(VENOM_CORE_SOURCES
+  src/decompiler/decompiler.cpp
   src/compiler/commands/cli.cpp
   src/compiler/core/config.cpp
   src/compiler/core/project.cpp
@@ -159,6 +160,7 @@ set(VENOM_CORE_SOURCES
   src/compiler/commands/doctor.cpp
   src/compiler/commands/dev.cpp
   src/compiler/core/compatibility.cpp
+  src/compiler/core/planner.cpp
   src/compiler/commands/dist_analyzer.cpp
   src/compiler/pipeline/capability_analysis.cpp
   src/compiler/pipeline/build.cpp
@@ -221,6 +223,11 @@ venom_apply_pgo(venom_core)
 
 add_executable(venom src/compiler/main.cpp)
 target_link_libraries(venom PRIVATE venom_core)
+
+add_executable(venom-decompiler src/decompiler/main.cpp)
+target_link_libraries(venom-decompiler PRIVATE venom_core)
+venom_apply_warnings(venom-decompiler)
+venom_apply_build_acceleration(venom-decompiler)
 venom_apply_warnings(venom)
 venom_apply_build_acceleration(venom)
 venom_apply_pgo(venom)
@@ -290,6 +297,14 @@ endif()
 include(cmake/tests.cmake)
 
 if(BUILD_TESTING AND VENOM_ENABLE_FULL_QUICKJS)
+  add_executable(venom_decompiler_quickjs_artifact
+    tests/decompiler/quickjs-artifact.cpp)
+  target_include_directories(venom_decompiler_quickjs_artifact PRIVATE src third_party/quickjs)
+  target_link_libraries(venom_decompiler_quickjs_artifact PRIVATE venom_core qjs ${CMAKE_DL_LIBS})
+  venom_apply_warnings(venom_decompiler_quickjs_artifact)
+  venom_apply_build_acceleration(venom_decompiler_quickjs_artifact)
+  add_test(NAME venom_decompiler_quickjs_artifact COMMAND venom_decompiler_quickjs_artifact)
+
   add_executable(venom_quickjs_module_bundle_runtime
     tests/quickjs/module-bundle-runtime.cpp
     src/runtime/quickjs_runtime_scaffold.c)
@@ -325,6 +340,12 @@ if(BUILD_TESTING)
   add_test(NAME runtime_performance_budget_smoke
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/runtime-performance-budget-smoke.py
             ${CMAKE_CURRENT_SOURCE_DIR})
+  add_test(NAME venom_decompiler_package_smoke
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/decompiler/package-smoke.py
+            $<TARGET_FILE:venom> $<TARGET_FILE:venom-decompiler>
+            ${CMAKE_CURRENT_BINARY_DIR}/venom-decompiler-package-smoke)
+  add_test(NAME protected_runtime_assurance_smoke
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/protected-runtime-assurance-smoke.py)
 endif()
 
 add_test(NAME venom_compatibility_report_smoke

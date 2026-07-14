@@ -7,13 +7,22 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED = [
-    "README.md", "docs/README.md", "SECURITY.md", "SUPPORT.md", "CONTRIBUTING.md",
-    "CODE_OF_CONDUCT.md", "GOVERNANCE.md", "ROADMAP.md", "CITATION.cff",
-    "docs/getting-started/installation.md", "docs/getting-started/existing-project.md",
-    "docs/guides/annotations.md", "docs/guides/browser-bridge.md",
-    "docs/architecture/protected-runtime.md", "docs/security/security-model.md",
-    "docs/security/limitations.md", "docs/reference/cli.md", "docs/MAINTENANCE.md",
+    "README.md", "docs/README.md", "SECURITY.md", "SUPPORT.md",
+    "docs/getting-started/installation.md", "docs/getting-started/build-from-source.md",
+    "docs/getting-started/existing-project.md", "docs/getting-started/deployment.md",
+    "docs/guides/annotations.md", "docs/guides/protected-functions.md",
+    "docs/guides/protected-modules.md", "docs/guides/browser-bridge.md",
+    "docs/architecture/overview.md", "docs/architecture/protected-runtime.md",
+    "docs/architecture/package-format.md", "docs/security/security-model.md",
+    "docs/security/threat-model.md", "docs/security/limitations.md",
+    "docs/security/protection-strengths.md", "docs/security/production-hardening.md",
+    "docs/operations/build-profiles.md", "docs/operations/release-verification.md",
+    "docs/operations/release-packaging.md", "docs/operations/browser-equivalence.md",
+    "docs/reference/cli.md", "docs/reference/javascript-api.md",
     "examples/protected-chess/README.md", "examples/nova-trade/README.md", "examples/bot-detection/README.md",
+    "docs/assets/examples/protected-chess/application.png",
+    "docs/assets/examples/nova-trade/terminal.png",
+    "docs/assets/examples/bot-detection/overview.png",
 ]
 FORBIDDEN_CLAIMS = [
     r"\bunbreakable\b", r"\bimpossible to reverse\b", r"\bmilitary[- ]grade\b",
@@ -21,7 +30,7 @@ FORBIDDEN_CLAIMS = [
 ]
 LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 MERMAID_RE = re.compile(r"```mermaid\s*\n(.*?)```", re.DOTALL)
-SEQUENCE_PARTICIPANT_RE = re.compile(r'^\s*participant\s+[A-Za-z_][A-Za-z0-9_]*(?:\s+as\s+"[^"\n]+")?\s*$')
+SEQUENCE_PARTICIPANT_RE = re.compile(r'^\s*participant\s+[A-Za-z_][A-Za-z0-9_]*(?:\s+as\s+(?:"[^"\n]+"|[^\n]+))?\s*$')
 SEQUENCE_MESSAGE_RE = re.compile(r'^\s*[A-Za-z_][A-Za-z0-9_]*\s*(?:-+|=+)(?:>>|>)[A-Za-z_][A-Za-z0-9_]*\s*:\s*\S.*$')
 
 def fail(msg: str) -> None:
@@ -38,9 +47,24 @@ def main() -> int:
     if not m:
         fail("unable to determine CMake project version")
     version = m.group(1)
-    obsolete_rc_reports = list((ROOT / "docs/development").glob("release-candidate-*-report.md"))
-    if obsolete_rc_reports:
-        fail("stable source package contains obsolete release-candidate reports: " + ", ".join(str(p.relative_to(ROOT)) for p in obsolete_rc_reports))
+    forbidden_doc_paths = [
+        ROOT / "docs/development", ROOT / "docs/MAINTENANCE.md", ROOT / "docs/STYLE-GUIDE.md",
+        ROOT / "CONTRIBUTING.md", ROOT / "CODE_OF_CONDUCT.md", ROOT / "GOVERNANCE.md",
+        ROOT / "ROADMAP.md", ROOT / "CITATION.cff",
+    ]
+    present_forbidden = [str(p.relative_to(ROOT)) for p in forbidden_doc_paths if p.exists()]
+    if present_forbidden:
+        fail("production source package contains development-process documentation: " + ", ".join(present_forbidden))
+    allowed_doc_dirs = {"getting-started", "guides", "architecture", "security", "operations", "reference", "generated", "assets"}
+    unexpected = []
+    for child in (ROOT / "docs").iterdir():
+        if child.name == "README.md":
+            continue
+        if child.is_dir() and child.name in allowed_doc_dirs:
+            continue
+        unexpected.append(str(child.relative_to(ROOT)))
+    if unexpected:
+        fail("documentation is outside the production folder structure: " + ", ".join(unexpected))
 
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     if version not in readme:
@@ -97,6 +121,30 @@ def main() -> int:
         fail("NOVA TRADE README is not sufficiently detailed")
     if len((ROOT / "README.md").read_text(encoding="utf-8").splitlines()) < 200:
         fail("root README is unexpectedly short")
+    required_strength_markers = [
+        "## Why a Venom distribution is difficult to reverse",
+        "exact original protected source is not present",
+        "Polymorphic builds",
+        "VQJSE006",
+        "Private binary capability bridge",
+        "WebAssembly memory remains inspectable",
+    ]
+    for marker in required_strength_markers:
+        if marker not in readme:
+            fail(f"root README is missing protection-strength marker: {marker}")
+
+    detailed_docs = {
+        "docs/getting-started/build-from-source.md": 80,
+        "docs/operations/release-verification.md": 80,
+        "docs/architecture/package-format.md": 150,
+        "docs/security/security-model.md": 70,
+        "docs/security/protection-strengths.md": 60,
+        "docs/README.md": 100,
+    }
+    for rel, minimum in detailed_docs.items():
+        count = len((ROOT / rel).read_text(encoding="utf-8").splitlines())
+        if count < minimum:
+            fail(f"production documentation is unexpectedly thin: {rel} ({count} < {minimum})")
 
     print(f"[PASS] documentation gate: version={version} files={len(markdown)}")
     return 0
