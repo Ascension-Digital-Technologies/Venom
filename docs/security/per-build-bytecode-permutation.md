@@ -1,6 +1,6 @@
 # Per-build bytecode permutation
 
-> **Applies to:** Venom 1.65.2
+> **Applies to:** Venom 1.65.3
 > **Security goal:** make stored QuickJS records build-specific without forking the QuickJS bytecode ABI.
 
 Venom 1.61 adds a validated, per-build lane permutation to the `VQJSE006` protected bytecode envelope. The canonical QuickJS record remains compatible with the pinned upstream engine, but its stored representation is no longer a simple stream-XOR transform.

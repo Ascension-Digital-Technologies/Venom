@@ -271,6 +271,10 @@ add_test(NAME venom_nova_trade_example_smoke
 add_test(NAME venom_js_hardener_reproducibility_smoke
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/js-hardener-reproducibility-smoke.py)
 
+add_test(NAME venom_release_qualification_hardener_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/release-qualification-hardener-smoke.py)
+set_tests_properties(venom_release_qualification_hardener_smoke PROPERTIES LABELS "release;static;ci" TIMEOUT 60)
+
 add_test(NAME venom_cpp_standard_header_smoke
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/cpp-standard-header-smoke.py)
 

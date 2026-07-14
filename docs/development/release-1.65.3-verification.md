@@ -1,6 +1,6 @@
-# Venom 1.65.2 stable release verification
+# Venom 1.65.3 stable release verification
 
-Venom 1.65.2 retains the stable source-package verification established after the extracted source archive configured, built, and ran successfully on Windows.
+Venom 1.65.3 retains the stable source-package verification established after the extracted source archive configured, built, and ran successfully on Windows.
 
 ## Verified release properties
 

@@ -8,7 +8,7 @@
   <code>QuickJS bytecode</code> · <code>WebAssembly isolation</code> · <code>Dedicated workers</code> · <code>Hybrid execution</code> · <code>Per-build diversification</code>
 </p>
 
-> **Version:** 1.65.2 · **Status:** stable  
+> **Version:** 1.65.4 · **Status:** stable  
 > Venom is a hybrid web protection compiler and runtime. It moves valuable JavaScript logic out of ordinary browser source and into a worker-isolated QuickJS/WebAssembly execution environment—while preserving static hosting, browser rendering, routing, assets, and normal frontend code.
 
 ---
@@ -67,18 +67,18 @@ flowchart LR
 
 ```mermaid
 sequenceDiagram
-    participant App as Browser application
-    participant API as Venom public API
-    participant Worker as Dedicated worker
-    participant QJS as QuickJS/WASM
-    App->>API: venom.exports.calculateRisk(input)
-    API->>API: Validate JSON value and limits
-    API->>Worker: Session + counter + export slot + payload
-    Worker->>Worker: Validate session, replay counter, slot
-    Worker->>QJS: Invoke protected bytecode export
-    QJS-->>Worker: Result or sanitized error
-    Worker-->>API: Bound response envelope
-    API-->>App: Promise result
+    participant Browser as "Browser application"
+    participant API as "Venom API"
+    participant Worker as "Dedicated worker"
+    participant Runtime as "QuickJS WASM runtime"
+    Browser->>API: Call protected export
+    API->>API: Validate input and limits
+    API->>Worker: Send authenticated binary frame
+    Worker->>Worker: Validate session and replay counter
+    Worker->>Runtime: Invoke protected export
+    Runtime-->>Worker: Return result or sanitized error
+    Worker-->>API: Send authenticated response
+    API-->>Browser: Resolve promise
 ```
 
 Read the deeper architecture guides: [Compiler pipeline](docs/architecture/compiler-pipeline.md), [Protected runtime](docs/architecture/protected-runtime.md), [Trust boundaries](docs/architecture/trust-boundaries.md), and [Package format](docs/package-format.md).

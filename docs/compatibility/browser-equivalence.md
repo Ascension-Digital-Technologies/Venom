@@ -1,7 +1,7 @@
 # Browser equivalence testing
 
 > **Audience:** integrators, release engineers, and compatibility contributors  
-> **Applies to:** Venom 1.65.2
+> **Applies to:** Venom 1.65.3
 Venom browser equivalence testing executes the same compatibility scenario against an original website and its Venom production distribution in a real Playwright browser.
 
 The gate checks three things for every declared observation:

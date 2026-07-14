@@ -1,7 +1,7 @@
 # Installation
 
 > **Audience:** users building or running Venom  
-> **Applies to:** Venom 1.65.2
+> **Applies to:** Venom 1.65.3
 ## Windows requirements
 
 - Windows 10 or newer

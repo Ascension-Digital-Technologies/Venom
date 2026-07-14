@@ -1,7 +1,7 @@
 # Venom documentation
 
 > **Audience:** users, integrators, operators, security reviewers, and runtime contributors  
-> **Applies to:** Venom 1.65.2
+> **Applies to:** Venom 1.65.3
 
 This is the canonical documentation map for Venom Secure Web Runtime. Start with the workflow that matches your goal, then use the architecture and security references when you need deeper implementation detail.
 
@@ -72,7 +72,7 @@ This is the canonical documentation map for Venom Secure Web Runtime. Start with
 - [QuickJS/WASM development](development/quickjs-wasm.md)
 - [Testing](development/testing.md)
 - [Release closure](development/release-closure.md)
-- [Stable 1.65.2 verification](development/release-1.65.2-verification.md)
+- [Stable 1.65.3 verification](development/release-1.65.3-verification.md)
 - [Final repository audit](development/final-repository-audit.md)
 - [Build performance](performance/build-performance.md)
 - [Runtime benchmarking](performance/runtime-benchmarking.md)

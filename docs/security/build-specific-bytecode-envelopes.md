@@ -1,7 +1,7 @@
 # Build-specific bytecode envelopes
 
 > **Audience:** Security reviewers, integrators, and runtime contributors  
-> **Applies to:** Venom 1.65.2
+> **Applies to:** Venom 1.65.3
 Venom production packages no longer store protected QuickJS records directly as recognizable `VQJSBC03` or `VQJSMB04` byte sequences inside the JavaScript bundle. Each protected record is wrapped in a build-specific `VQJSE006` envelope with per-build lane permutation before package emission.
 
 ## Envelope lifecycle

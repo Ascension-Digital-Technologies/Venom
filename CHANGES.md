@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.65.4 — Release qualification CI hardener setup
+
+- Install and functionally verify the pinned JavaScript hardener before release qualification on Linux and Windows GitHub runners.
+- Add a workflow-order regression that requires hardener setup to precede every production qualification invocation.
+- Include the qualification workflow policy in the final release gate.
+
+## 1.65.3 — GitHub diagram compatibility fix
+
+### Fixed
+
+- Replaced the protected-call Mermaid sequence diagram with conservative GitHub-compatible syntax.
+- Added documentation-gate validation for Mermaid fences, diagram declarations, participants, and sequence messages.
+- Verified every Mermaid block in the root and example READMEs.
+
 ## 1.65.2 — Documentation maintenance release
 
 ### Documentation

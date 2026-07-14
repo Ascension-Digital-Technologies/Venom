@@ -1,6 +1,6 @@
 # Session capability leases
 
-> **Applies to:** Venom 1.65.2
+> **Applies to:** Venom 1.65.3
 Venom 1.63 rotates the protected bridge protocol for every worker session and replaces stable transport capabilities with request-scoped capability leases.
 
 ## Lifecycle

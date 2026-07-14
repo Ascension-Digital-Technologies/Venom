@@ -1,6 +1,6 @@
 # Documentation maintenance
 
-> **Applies to:** Venom 1.65.2
+> **Applies to:** Venom 1.65.3
 
 Documentation is part of the release contract.
 

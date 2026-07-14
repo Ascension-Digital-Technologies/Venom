@@ -1,7 +1,7 @@
 # Build performance and compiler caching
 
 > **Audience:** contributors, CI maintainers, and release engineers  
-> **Applies to:** Venom 1.65.2
+> **Applies to:** Venom 1.65.3
 Venom keeps the production runtime fully optimized while avoiding unnecessary contributor rebuild cost. The build system supports precompiled standard-library headers, MSVC multi-process compilation, compiler launchers, and independent QuickJS IPO control.
 
 ## Recommended Windows build

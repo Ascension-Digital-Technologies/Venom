@@ -1,7 +1,7 @@
 # Runtime performance benchmarking
 
 > **Audience:** integrators, release engineers, and performance reviewers  
-> **Applies to:** Venom 1.65.2
+> **Applies to:** Venom 1.65.3
 Venom measures runtime performance as evidence tied to a specific distribution, browser, machine, payload, and protected entry point. The benchmark tooling is designed for regression detection—not universal latency claims.
 
 ## Metrics

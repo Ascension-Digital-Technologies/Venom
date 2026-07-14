@@ -45,6 +45,7 @@ def main() -> int:
     subprocess.run([sys.executable, str(root/'tools/documentation_gate.py')], check=True, cwd=root)
     subprocess.run([sys.executable, str(root/'tests/package/changelog-uniqueness-smoke.py')], check=True, cwd=root)
     subprocess.run([sys.executable, str(root/'tests/package/release-entrypoint-policy-smoke.py')], check=True, cwd=root)
+    subprocess.run([sys.executable, str(root/'tests/package/release-qualification-hardener-smoke.py')], check=True, cwd=root)
     subprocess.run([sys.executable, str(root/'tests/package/cmake-module-completeness-smoke.py'), str(root)], check=True, cwd=root)
     subprocess.run([sys.executable, str(root/'tests/package/cmake-source-completeness-smoke.py'), str(root)], check=True, cwd=root)
     if a.run_smoke_tests:
