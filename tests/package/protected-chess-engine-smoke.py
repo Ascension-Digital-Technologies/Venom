@@ -14,7 +14,7 @@ assert 'await runChessEngine' not in main
 if venom:
     with tempfile.TemporaryDirectory(prefix='venom-chess-engine-') as temp:
         out=Path(temp)/'dist'
-        subprocess.run([str(venom),'build',str(root/'examples/protected-chess'),'--out',str(out),'--profile','browser-protect','--hashed'],check=True,stdout=subprocess.DEVNULL)
+        subprocess.run([str(venom),'build',str(root/'examples/protected-chess'),'--out',str(out),'--profile','prod','--hashed'],check=True,stdout=subprocess.DEVNULL)
         assert not (out/'build/reports').exists(), 'hardened dist must not ship internal reports'
         shipped=''.join(p.read_text(encoding='utf-8',errors='ignore') for p in (out/'assets').rglob('*.js'))
         assert 'function minimax' not in shipped

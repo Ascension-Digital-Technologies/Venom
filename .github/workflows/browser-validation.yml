@@ -39,7 +39,7 @@ jobs:
         run: |
           scripts/setup-emscripten.sh --version "$EMSDK_VERSION" --emsdk-dir build/emsdk
           source build/emsdk/emsdk_env.sh
-          scripts/build-quickjs-wasm.sh build/quickjs-wasm
+          python tools/build_emscripten.py --repo-root . --out-dir build/emscripten-build --emsdk-dir build/emsdk --skip-native-rebuild --skip-runtime-smoke
       - name: Build Venom
         run: |
           cmake --preset release-closure
@@ -52,6 +52,9 @@ jobs:
           ./build/release-closure/venom build tests/fixtures/sites/react16-umd-site --out build/react16-dist
           ./build/release-closure/venom build tests/fixtures/sites/dom-compat-site --out build/dom-compat-dist
           ./build/release-closure/venom build tests/fixtures/sites/dynamic-bundle-site --out build/dynamic-bundle-dist
+          ./build/release-closure/venom build tests/fixtures/sites/react-vite-modern-site --out build/react-vite-modern-dist
+          ./build/release-closure/venom build tests/fixtures/sites/vue-vite-modern-site --out build/vue-vite-modern-dist
+          ./build/release-closure/venom build tests/fixtures/sites/svelte-vite-modern-site --out build/svelte-vite-modern-dist
       - name: Validate Chromium, Firefox, and WebKit
         run: |
           python tools/browser_validation.py build/browser-dist --browser all --manifest tests/fixtures/sites/browser-compat-site/venom.browser.json --json-out build/browser-validation.json
@@ -60,9 +63,12 @@ jobs:
           python tools/browser_validation.py build/react16-dist --browser all --manifest tests/fixtures/sites/react16-umd-site/venom.browser.json --json-out build/react16-browser-validation.json
           python tools/browser_validation.py build/dom-compat-dist --browser all --manifest tests/fixtures/sites/dom-compat-site/venom.browser.json --json-out build/dom-compat-browser-validation.json
           python tools/browser_validation.py build/dynamic-bundle-dist --browser all --manifest tests/fixtures/sites/dynamic-bundle-site/venom.browser.json --json-out build/dynamic-bundle-browser-validation.json
-          python tools/compatibility_matrix.py build/browser-validation.json build/static-browser-validation.json build/production-bundle-validation.json build/react16-browser-validation.json build/dom-compat-browser-validation.json build/dynamic-bundle-browser-validation.json --json-out build/compatibility-matrix.json
-          python tools/browser_performance.py build/browser-validation.json build/static-browser-validation.json build/production-bundle-validation.json build/react16-browser-validation.json build/dom-compat-browser-validation.json build/dynamic-bundle-browser-validation.json --json-out build/browser-performance.json
-          python tools/package_compatibility_evidence.py --matrix build/compatibility-matrix.json --reports build/browser-validation.json build/static-browser-validation.json build/production-bundle-validation.json build/react16-browser-validation.json build/dom-compat-browser-validation.json build/dynamic-bundle-browser-validation.json --manifests tests/fixtures/sites/browser-compat-site/venom.browser.json tests/fixtures/sites/no-script-site/venom.browser.json tests/fixtures/sites/production-bundle-site/venom.browser.json tests/fixtures/sites/react16-umd-site/venom.browser.json tests/fixtures/sites/dom-compat-site/venom.browser.json tests/fixtures/sites/dynamic-bundle-site/venom.browser.json --out build/venom-compatibility-evidence.zip --source-revision "${GITHUB_SHA}"
+          python tools/browser_validation.py build/react-vite-modern-dist --browser all --manifest tests/fixtures/sites/react-vite-modern-site/venom.browser.json --json-out build/react-vite-modern-browser-validation.json
+          python tools/browser_validation.py build/vue-vite-modern-dist --browser all --manifest tests/fixtures/sites/vue-vite-modern-site/venom.browser.json --json-out build/vue-vite-modern-browser-validation.json
+          python tools/browser_validation.py build/svelte-vite-modern-dist --browser all --manifest tests/fixtures/sites/svelte-vite-modern-site/venom.browser.json --json-out build/svelte-vite-modern-browser-validation.json
+          python tools/compatibility_matrix.py build/browser-validation.json build/static-browser-validation.json build/production-bundle-validation.json build/react16-browser-validation.json build/dom-compat-browser-validation.json build/dynamic-bundle-browser-validation.json build/react-vite-modern-browser-validation.json build/vue-vite-modern-browser-validation.json build/svelte-vite-modern-browser-validation.json --json-out build/compatibility-matrix.json --markdown-out build/COMPATIBILITY.md
+          python tools/browser_performance.py build/browser-validation.json build/static-browser-validation.json build/production-bundle-validation.json build/react16-browser-validation.json build/dom-compat-browser-validation.json build/dynamic-bundle-browser-validation.json build/react-vite-modern-browser-validation.json build/vue-vite-modern-browser-validation.json build/svelte-vite-modern-browser-validation.json --json-out build/browser-performance.json
+          python tools/package_compatibility_evidence.py --matrix build/compatibility-matrix.json --reports build/browser-validation.json build/static-browser-validation.json build/production-bundle-validation.json build/react16-browser-validation.json build/dom-compat-browser-validation.json build/dynamic-bundle-browser-validation.json build/react-vite-modern-browser-validation.json build/vue-vite-modern-browser-validation.json build/svelte-vite-modern-browser-validation.json --manifests tests/fixtures/sites/browser-compat-site/venom.browser.json tests/fixtures/sites/no-script-site/venom.browser.json tests/fixtures/sites/production-bundle-site/venom.browser.json tests/fixtures/sites/react16-umd-site/venom.browser.json tests/fixtures/sites/dom-compat-site/venom.browser.json tests/fixtures/sites/dynamic-bundle-site/venom.browser.json tests/fixtures/sites/react-vite-modern-site/venom.browser.json tests/fixtures/sites/vue-vite-modern-site/venom.browser.json tests/fixtures/sites/svelte-vite-modern-site/venom.browser.json --out build/venom-compatibility-evidence.zip --source-revision "${GITHUB_SHA}"
           python tools/verify_compatibility_evidence.py build/venom-compatibility-evidence.zip
       - name: Verify consolidated readiness
         run: |
@@ -82,6 +88,10 @@ jobs:
             build/react16-browser-validation.json
             build/dom-compat-browser-validation.json
             build/dynamic-bundle-browser-validation.json
+            build/react-vite-modern-browser-validation.json
+            build/vue-vite-modern-browser-validation.json
+            build/svelte-vite-modern-browser-validation.json
             build/compatibility-matrix.json
+            build/COMPATIBILITY.md
             build/browser-performance.json
             build/venom-compatibility-evidence.zip

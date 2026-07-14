@@ -1,5 +1,8 @@
 # Release qualification
 
+
+> Stable release entrypoints fail closed. Set `VENOM_RELEASE_PRIVATE_KEY_FILE` and `VENOM_RELEASE_PUBLIC_KEY_FILE` to Ed25519 PEM file paths before running `release.ps1` or `release.sh`. Unsigned stable archives are not supported.
+
 Venom's release gate validates the real `examples/protected-chess` application rather than only compiler metadata.
 
 ## One-command workflow

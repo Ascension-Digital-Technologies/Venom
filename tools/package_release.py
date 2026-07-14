@@ -171,9 +171,9 @@ def verify_release_binary(binary: Path) -> str:
     return text
 
 
-def archive_release(out_dir: Path, version: str, archive_format: str, source_date_epoch: int) -> Path:
+def archive_release(out_dir: Path, version: str, archive_format: str, source_date_epoch: int, target_triplet: str) -> Path:
     suffix = '.zip' if archive_format == 'zip' else '.tar.gz'
-    archive = out_dir.with_name(f'venom-v{version}-{platform.system().lower()}-{platform.machine().lower()}{suffix}')
+    archive = out_dir.with_name(f'venom-v{version}-{target_triplet}{suffix}')
     if archive.exists():
         archive.unlink()
     root_name = out_dir.name
@@ -215,6 +215,7 @@ def main() -> int:
     ap.add_argument('--out', type=Path, default=None)
     ap.add_argument('--venom', type=Path, default=None, help='explicit compiled venom executable')
     ap.add_argument('--config', default='Release')
+    ap.add_argument('--target-triplet', default=None, help='archive target name such as windows-x64 or linux-arm64')
     ap.add_argument('--archive', choices=['none', 'zip', 'tar.gz'], default='none')
     ap.add_argument('--sign', choices=['none', 'dev-sha256', 'ed25519'], default='none')
     ap.add_argument('--dev-insecure-key', default=None, help='development-only signature key for portable smoke tests')
@@ -231,6 +232,9 @@ def main() -> int:
 
     repo_root = args.repo_root.resolve()
     version = parse_version(repo_root)
+    machine = platform.machine().lower().replace('amd64','x64').replace('x86_64','x64').replace('aarch64','arm64')
+    system = platform.system().lower().replace('darwin','macos')
+    target_triplet = args.target_triplet or f'{system}-{machine}'
     build_dir = (args.build_dir or (repo_root / 'build')).resolve()
     out_dir = (args.out or (repo_root / 'dist-release')).resolve()
     venom = find_venom(repo_root, build_dir, args.config, args.venom)
@@ -247,7 +251,9 @@ def main() -> int:
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
 
-    release_binary = out_dir / ('venom.exe' if venom.suffix.lower() == '.exe' or os.name == 'nt' else 'venom')
+    bin_dir = out_dir / 'bin'
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    release_binary = bin_dir / ('venom.exe' if venom.suffix.lower() == '.exe' or os.name == 'nt' else 'venom')
     shutil.copy2(venom, release_binary)
     make_executable(release_binary)
     version_text = verify_release_binary(release_binary)
@@ -257,7 +263,7 @@ def main() -> int:
     copy_tree(repo_root / 'scripts', out_dir / 'scripts')
     tools_out = out_dir / 'tools'
     tools_out.mkdir(parents=True, exist_ok=True)
-    for tool_name in ('verify_release.py', 'release_crypto.py', 'sign_release.py', 'quickjs_wasm_preflight.py', 'quickjs_wasm_cutover.py', 'quickjs_runtime_lifecycle.py', 'setup_emscripten.py', 'build_emscripten.py', 'analyze_dist.py', 'wasm_exports.py', 'embed_wasm.py', 'generate_release_metadata.py', 'verify_release_set.py', 'install_release.py', 'public_release_gate.py'):
+    for tool_name in ('verify_release.py', 'release_crypto.py', 'sign_release.py', 'quickjs_wasm_preflight.py', 'quickjs_wasm_cutover.py', 'quickjs_runtime_lifecycle.py', 'setup_emscripten.py', 'build_emscripten.py', 'analyze_dist.py', 'wasm_exports.py', 'embed_wasm.py', 'generate_release_metadata.py', 'verify_release_set.py', 'install_release.py', 'public_release_gate.py', 'generate_contract_manifest.py', 'check_contract_upgrade.py'):
         tool_src = repo_root / 'tools' / tool_name
         if tool_src.exists():
             shutil.copy2(tool_src, tools_out / tool_name)
@@ -280,6 +286,21 @@ def main() -> int:
     (out_dir / 'VERSION.txt').write_text(
         f'venom {version}\nverified_binary_output={version_text}\n', encoding='utf-8'
     )
+    runtime_dir = out_dir / 'runtime'
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+    embedded_runtime = repo_root / 'build' / 'quickjs-wasm' / 'quickjs-runtime.wasm'
+    if embedded_runtime.is_file():
+        shutil.copy2(embedded_runtime, runtime_dir / 'quickjs-runtime.wasm')
+    contract_tool = repo_root / 'tools' / 'generate_contract_manifest.py'
+    subprocess.run([sys.executable, str(contract_tool), '--header', str(repo_root / 'src' / 'contracts' / 'product_contracts.hpp'), '--version', version, '--out', str(out_dir / 'CONTRACTS.json')], check=True)
+    for src_name, dst_name in (('release_install.ps1','install.ps1'),('release_install.sh','install.sh')):
+        src = repo_root / 'tools' / src_name
+        if src.is_file():
+            shutil.copy2(src, out_dir / dst_name)
+            make_executable(out_dir / dst_name)
+    (out_dir / 'uninstall.ps1').write_text("$Root=Split-Path -Parent $MyInvocation.MyCommand.Path\npython (Join-Path $Root 'tools\\install_release.py') uninstall @args\nexit $LASTEXITCODE\n", encoding='utf-8')
+    (out_dir / 'uninstall.sh').write_text('#!/usr/bin/env sh\nset -eu\nROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\nexec python3 "$ROOT/tools/install_release.py" uninstall "$@"\n', encoding='utf-8')
+    make_executable(out_dir / 'uninstall.sh')
     if args.release_sequence < 0: raise SystemExit('--release-sequence must be non-negative')
     if not args.no_supply_chain_metadata:
         metadata_tool = repo_root / 'tools' / 'generate_release_metadata.py'
@@ -307,7 +328,7 @@ def main() -> int:
 
     archive_path = None
     if args.archive != 'none':
-        archive_path = archive_release(out_dir, version, args.archive, source_date_epoch)
+        archive_path = archive_release(out_dir, version, args.archive, source_date_epoch, target_triplet)
         if not args.skip_verify:
             run_release_verify(repo_root, archive_path, version, verify_dev_key, args.public_key.resolve() if args.public_key else None, strict_signature, args.openssl)
 

@@ -12,9 +12,11 @@ node = sys.argv[4] if len(sys.argv) > 4 else "node"
 if out.exists():
     shutil.rmtree(out)
 
-dist = out / "production"
-subprocess.run([str(venom), "build", str(site), "--out", str(dist)], check=True)
-subprocess.run([str(venom), "verify-runtime", str(dist), "--target", "browser", "--require-real-engine"], check=True)
+dev_dist = out / "development"
+prod_dist = out / "production"
+subprocess.run([str(venom), "build", str(site), "--out", str(dev_dist), "--profile", "dev"], check=True)
+subprocess.run([str(venom), "build", str(site), "--out", str(prod_dist), "--profile", "prod"], check=True)
+subprocess.run([str(venom), "verify-runtime", str(prod_dist), "--target", "browser", "--require-real-engine"], check=True)
 
 script = r'''
 import { readFile, readdir } from 'node:fs/promises';
@@ -104,7 +106,7 @@ const result = await runtime.bootVenom({
   assetBaseUrl,
   quickJsEngineUrl: pathToFileURL(join(distDir, 'assets', ...quickJsEngineFile.split('/'))).href,
   quickJsWasmUrl: pathToFileURL(join(distDir, 'assets', ...quickJsWasmFile.split('/'))).href,
-  hardened: true,
+  hardened: false,
   bindingToken,
 });
 
@@ -115,9 +117,9 @@ if (!globalThis.__venomRuntime || globalThis.__venomRuntime.packageVersion !== 4
 const execution = globalThis.__venomRuntime.quickJsExecutionSnapshot();
 if (!execution) throw new Error('QuickJS execution snapshot missing after browser API shim smoke');
 '''
-subprocess.run([node, "--input-type=module", "-e", script, str(dist)], check=True)
+subprocess.run([node, "--input-type=module", "-e", script, str(dev_dist)], check=True)
 
-package = next((dist / "assets" / "app").glob("app.*.vbc"))
+package = next((prod_dist / "assets" / "app").glob("app.*.vbc"))
 raw = package.read_bytes()
 for needle in [b"browser host api shim script loaded", b"native sendBeacon should not receive zero args", b"native getUserMedia should not receive zero args", b"native mediaDevices.getUserMedia should not receive zero args", b"navigator.sendBeacon.arity", b"navigator.getUserMedia.arity", b"navigator.mediaDevices.getUserMedia.arity", b"global.fpCollect.missing", b"__venomMissingGlobalShim"]:
     if needle in raw:

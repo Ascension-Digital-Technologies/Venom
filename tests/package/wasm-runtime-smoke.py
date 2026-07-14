@@ -11,7 +11,7 @@ out = Path(sys.argv[3])
 if out.exists():
     shutil.rmtree(out)
 
-subprocess.run([str(venom), 'build', str(site), '--out', str(out), '--profile', 'protect', '--runtime', 'wasm', '--hashed'], check=True)
+subprocess.run([str(venom), 'build', str(site), '--out', str(out), '--profile', 'prod', '--runtime', 'wasm', '--hashed'], check=True)
 assets = out / 'assets'
 wasm_files = sorted(assets.glob('runtime*.wasm'))
 bridge_files = sorted(assets.glob('runtime-js-bridge*.js'))

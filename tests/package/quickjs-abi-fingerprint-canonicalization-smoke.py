@@ -3,9 +3,9 @@ from pathlib import Path
 import re
 
 root = Path(__file__).resolve().parents[2]
-engine = (root / 'src/compiler/quickjs_engine_module.cpp').read_text(encoding='utf-8')
-build = (root / 'src/compiler/build.cpp').read_text(encoding='utf-8')
-worker = (root / 'src/compiler/worker_runtime_js.cpp').read_text(encoding='utf-8')
+engine = (root / 'src/generated/runtime/quickjs_engine_module.cpp').read_text(encoding='utf-8')
+build = (root / 'src/compiler/pipeline/build.cpp').read_text(encoding='utf-8') + (root / 'src/compiler/pipeline/build_package_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/compiler/pipeline/build_runtime_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/compiler/pipeline/build_runtime_audit_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/compiler/pipeline/build_runtime_module_metadata.cpp').read_text(encoding='utf-8')
+worker = (root / 'src/generated/runtime/worker_runtime_js.cpp').read_text(encoding='utf-8')
 
 required = [
     'memory',

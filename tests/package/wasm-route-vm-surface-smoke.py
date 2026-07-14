@@ -25,7 +25,7 @@ def main() -> int:
     repo = pathlib.Path(sys.argv[2]).resolve()
     with tempfile.TemporaryDirectory(prefix="venom-wasm-route-vm-") as td:
         dist = pathlib.Path(td) / "dist"
-        subprocess.run([str(venom), "build", str(repo / "examples" / "no-script-site"), "--out", str(dist)], check=True)
+        subprocess.run([str(venom), "build", str(repo / "tests" / "fixtures" / "sites" / "no-script-site"), "--out", str(dist)], check=True)
         runtimes = list((dist / "assets" / "runtime").glob("r.*.js"))
         if len(runtimes) != 1:
             raise SystemExit(f"expected one runtime JS asset, found {len(runtimes)}")

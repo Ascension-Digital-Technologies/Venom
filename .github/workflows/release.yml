@@ -4,7 +4,11 @@ on:
   push:
     tags: ['v*']
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   SOURCE_DATE_EPOCH: 1704067200
@@ -27,9 +31,9 @@ jobs:
         run: |
           scripts/setup-emscripten.sh --version "$EMSDK_VERSION" --emsdk-dir build/emsdk
           source build/emsdk/emsdk_env.sh
-          scripts/build-quickjs-wasm.sh --out-dir build/quickjs-wasm --clean --force
+          python tools/build_emscripten.py --repo-root . --out-dir build/emscripten-build --emsdk-dir build/emsdk --clean --force --skip-native-rebuild --skip-runtime-smoke
           python tools/quickjs_wasm_cutover.py --repo-root . --out-dir build/quickjs-wasm --verify-embedded --require-real
-          sha256sum build/quickjs-wasm/quickjs-runtime.wasm src/compiler/quickjs_runtime_wasm_blob.hpp > build/quickjs-wasm/VERIFIED_RUNTIME_SHA256SUMS
+          sha256sum build/quickjs-wasm/quickjs-runtime.wasm src/generated/runtime/quickjs_runtime_wasm_blob.hpp > build/quickjs-wasm/VERIFIED_RUNTIME_SHA256SUMS
       - uses: actions/upload-artifact@v4
         with:
           name: venom-verified-runtime
@@ -37,7 +41,7 @@ jobs:
             build/quickjs-wasm/quickjs-runtime.wasm
             build/quickjs-wasm/runtime-performance.json
             build/quickjs-wasm/VERIFIED_RUNTIME_SHA256SUMS
-            src/compiler/quickjs_runtime_wasm_blob.hpp
+            src/generated/runtime/quickjs_runtime_wasm_blob.hpp
           if-no-files-found: error
 
   release-closure:
@@ -54,7 +58,7 @@ jobs:
           path: verified-runtime
       - name: Install canonical runtime and verify provenance
         run: |
-          cp verified-runtime/src/compiler/quickjs_runtime_wasm_blob.hpp src/compiler/quickjs_runtime_wasm_blob.hpp
+          cp verified-runtime/src/generated/runtime/quickjs_runtime_wasm_blob.hpp src/generated/runtime/quickjs_runtime_wasm_blob.hpp
           mkdir -p build/quickjs-wasm
           cp verified-runtime/build/quickjs-wasm/* build/quickjs-wasm/
           python tools/quickjs_wasm_cutover.py --repo-root . --out-dir build/quickjs-wasm --verify-embedded --require-real
@@ -76,11 +80,14 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact: linux
+            artifact: linux-x64
+            target: linux-x64
           - os: windows-latest
-            artifact: windows
+            artifact: windows-x64
+            target: windows-x64
           - os: macos-latest
-            artifact: macos
+            artifact: macos-arm64
+            target: macos-arm64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -93,7 +100,7 @@ jobs:
       - name: Install and verify canonical runtime
         shell: bash
         run: |
-          cp verified-runtime/src/compiler/quickjs_runtime_wasm_blob.hpp src/compiler/quickjs_runtime_wasm_blob.hpp
+          cp verified-runtime/src/generated/runtime/quickjs_runtime_wasm_blob.hpp src/generated/runtime/quickjs_runtime_wasm_blob.hpp
           mkdir -p build/quickjs-wasm
           cp verified-runtime/build/quickjs-wasm/* build/quickjs-wasm/
           python tools/quickjs_wasm_cutover.py --repo-root . --out-dir build/quickjs-wasm --verify-embedded --require-real
@@ -101,7 +108,12 @@ jobs:
       - run: cmake --build --preset release --parallel 2
       - name: Package release
         shell: bash
-        run: python tools/package_release.py --build-dir build/release --out build/package --archive zip --sign none --source-date-epoch "$SOURCE_DATE_EPOCH"
+        run: python tools/package_release.py --build-dir build/release --out build/package --archive zip --target-triplet ${{ matrix.target }} --sign none --source-date-epoch "$SOURCE_DATE_EPOCH"
+      - name: Verify stable contract manifest
+        shell: bash
+        run: |
+          test -s build/package/CONTRACTS.json
+          python tools/check_contract_upgrade.py build/package/CONTRACTS.json build/package/CONTRACTS.json
       - uses: actions/upload-artifact@v4
         with:
           name: venom-${{ matrix.artifact }}
@@ -124,7 +136,7 @@ jobs:
           path: verified-runtime
       - name: Install canonical runtime
         run: |
-          cp verified-runtime/src/compiler/quickjs_runtime_wasm_blob.hpp src/compiler/quickjs_runtime_wasm_blob.hpp
+          cp verified-runtime/src/generated/runtime/quickjs_runtime_wasm_blob.hpp src/generated/runtime/quickjs_runtime_wasm_blob.hpp
           mkdir -p build/quickjs-wasm
           cp verified-runtime/build/quickjs-wasm/* build/quickjs-wasm/
           python tools/quickjs_wasm_cutover.py --repo-root . --out-dir build/quickjs-wasm --verify-embedded --require-real
@@ -161,6 +173,8 @@ jobs:
 
   publish:
     if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
     needs: [verified-runtime, release-closure, package, compatibility-evidence]
     runs-on: ubuntu-latest
     steps:
@@ -174,18 +188,30 @@ jobs:
         run: |
           cat artifacts/venom-verified-runtime/build/quickjs-wasm/VERIFIED_RUNTIME_SHA256SUMS
           test -s artifacts/venom-verified-runtime/build/quickjs-wasm/quickjs-runtime.wasm
-      - name: Create and verify release publication set
+      - name: Materialize protected release signing keys
+        env:
+          VENOM_RELEASE_PRIVATE_KEY_PEM: ${{ secrets.VENOM_RELEASE_PRIVATE_KEY_PEM }}
+          VENOM_RELEASE_PUBLIC_KEY_PEM: ${{ secrets.VENOM_RELEASE_PUBLIC_KEY_PEM }}
+        run: |
+          test -n "$VENOM_RELEASE_PRIVATE_KEY_PEM" || { echo "missing VENOM_RELEASE_PRIVATE_KEY_PEM" >&2; exit 1; }
+          test -n "$VENOM_RELEASE_PUBLIC_KEY_PEM" || { echo "missing VENOM_RELEASE_PUBLIC_KEY_PEM" >&2; exit 1; }
+          install -m 700 -d "$RUNNER_TEMP/venom-signing"
+          printf '%s\n' "$VENOM_RELEASE_PRIVATE_KEY_PEM" > "$RUNNER_TEMP/venom-signing/private.pem"
+          printf '%s\n' "$VENOM_RELEASE_PUBLIC_KEY_PEM" > "$RUNNER_TEMP/venom-signing/public.pem"
+          chmod 600 "$RUNNER_TEMP/venom-signing/private.pem"
+      - name: Create and verify signed release publication set
         run: |
           mapfile -t PACKAGES < <(find artifacts -type f -name 'venom-v*.zip' | sort)
           EVIDENCE="$(find artifacts -type f -name 'venom-compatibility-evidence.zip' | head -1)"
-          python tools/package_release_set.py --version "${GITHUB_REF_NAME#v}" --source-revision "$GITHUB_SHA" --packages "${PACKAGES[@]}" --compatibility-evidence "$EVIDENCE" --verified-runtime artifacts/venom-verified-runtime/build/quickjs-wasm/quickjs-runtime.wasm --out release-set --archive venom-release-set.zip --source-date-epoch "$SOURCE_DATE_EPOCH"
+          python tools/package_release_set.py --version "${GITHUB_REF_NAME#v}" --source-revision "$GITHUB_SHA" --packages "${PACKAGES[@]}" --compatibility-evidence "$EVIDENCE" --verified-runtime artifacts/venom-verified-runtime/build/quickjs-wasm/quickjs-runtime.wasm --out release-set --archive venom-release-set.zip --source-date-epoch "$SOURCE_DATE_EPOCH" --private-key "$RUNNER_TEMP/venom-signing/private.pem" --public-key "$RUNNER_TEMP/venom-signing/public.pem" --require-signature
           cp artifacts/venom-verified-runtime/build/quickjs-wasm/VERIFIED_RUNTIME_SHA256SUMS release-set/VERIFIED_RUNTIME_SHA256SUMS
-          python tools/verify_release_set.py release-set --expect-version "${GITHUB_REF_NAME#v}" --require-evidence --require-runtime
+          python tools/verify_release_set.py release-set --expect-version "${GITHUB_REF_NAME#v}" --require-evidence --require-runtime --require-signature --public-key "$RUNNER_TEMP/venom-signing/public.pem"
       - uses: softprops/action-gh-release@v2
         with:
           files: |
             release-set/artifacts/*
             release-set/RELEASE_SET.json
+            release-set/RELEASE_SET.sig
             release-set/SHA256SUMS
             release-set/VERIFIED_RUNTIME_SHA256SUMS
             venom-release-set.zip

@@ -1,5 +1,8 @@
 # Public release checklist
 
+
+> Stable release entrypoints fail closed. Set `VENOM_RELEASE_PRIVATE_KEY_FILE` and `VENOM_RELEASE_PUBLIC_KEY_FILE` to Ed25519 PEM file paths before running `release.ps1` or `release.sh`. Unsigned stable archives are not supported.
+
 A Venom release is publishable only when every required gate passes.
 
 ## Repository

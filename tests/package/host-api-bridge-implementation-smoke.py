@@ -2,7 +2,7 @@
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
-module = (root / 'src/compiler/quickjs_engine_module.cpp').read_text(encoding='utf-8')
+module = (root / 'src/generated/runtime/quickjs_engine_module.cpp').read_text(encoding='utf-8')
 harness = (root / 'tests/runtime/browser-compat-harness.mjs').read_text(encoding='utf-8')
 doc = (root / 'docs/host-api-bridge-implementation.md').read_text(encoding='utf-8')
 

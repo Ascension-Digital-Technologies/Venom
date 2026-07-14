@@ -49,8 +49,8 @@ def main() -> int:
     if not info['repo_inputs_ok']:
         print('repo input preflight should pass even when emcc is missing', file=sys.stderr)
         return 1
-    if len(info['exports']) < 150:
-        print('expected broad ABI12 export set', file=sys.stderr)
+    if len(info['exports']) < len(info.get('required_probe_exports', [])):
+        print('expected complete ABI12 probe export set', file=sys.stderr)
         return 1
     for name in ('venom_qjs_engine_abi', 'venom_qjs_execute_bytecode', 'venom_qjs_real_engine_candidate', 'venom_qjs_upstream_quickjs_ready'):
         if name not in info['exports']:

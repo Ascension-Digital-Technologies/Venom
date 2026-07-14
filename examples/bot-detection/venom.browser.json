@@ -1,0 +1,108 @@
+{
+  "id": "bot-detection",
+  "schema_version": 1,
+  "profile": "prod",
+  "evidence_level": "release-qualification",
+  "support_tier": "flagship",
+  "claims": [
+    "protected-scoring-engine-boots",
+    "human-score-produced",
+    "fingerprint-dashboard-populated",
+    "behavior-telemetry-updates",
+    "behavior-reset-works"
+  ],
+  "scenarios": [
+    {
+      "id": "scan-and-score",
+      "path": "/",
+      "timeout_ms": 45000,
+      "wait_for": {
+        "selector": "#score-value"
+      },
+      "actions": [
+        {
+          "type": "wait-for-function",
+          "expression": "() => document.querySelector('#runtime-status') && document.querySelector('#runtime-status').textContent.includes('ready')",
+          "timeout_ms": 30000
+        },
+        {
+          "type": "wait-for-function",
+          "expression": "() => Number(document.querySelector('#score-value')?.textContent) >= 1",
+          "timeout_ms": 15000
+        }
+      ],
+      "checks": [
+        {
+          "id": "runtime-ready",
+          "type": "contains-text",
+          "selector": "#runtime-status",
+          "contains": "ready"
+        },
+        {
+          "id": "score-produced",
+          "type": "number-min",
+          "selector": "#score-value",
+          "min": 1
+        },
+        {
+          "id": "signals-populated",
+          "type": "number-min",
+          "selector": "#signal-count",
+          "min": 20
+        },
+        {
+          "id": "fingerprint-id",
+          "type": "contains-text",
+          "selector": "#fingerprint-id",
+          "contains": "-"
+        },
+        {
+          "id": "fingerprint-cards",
+          "type": "evaluate",
+          "expression": "document.querySelectorAll('.fingerprint-card').length >= 10"
+        }
+      ]
+    },
+    {
+      "id": "interaction-and-reset",
+      "path": "/",
+      "timeout_ms": 45000,
+      "wait_for": {
+        "selector": "#reset-button"
+      },
+      "actions": [
+        {
+          "type": "wait-for-function",
+          "expression": "() => Number(document.querySelector('#score-value')?.textContent) >= 1",
+          "timeout_ms": 30000
+        },
+        {
+          "type": "click",
+          "selector": "#copy-button"
+        },
+        {
+          "type": "click",
+          "selector": "#reset-button"
+        },
+        {
+          "type": "wait",
+          "ms": 700
+        }
+      ],
+      "checks": [
+        {
+          "id": "reset-status",
+          "type": "contains-text",
+          "selector": "#scan-status",
+          "contains": "reset"
+        },
+        {
+          "id": "score-still-valid",
+          "type": "number-min",
+          "selector": "#score-value",
+          "min": 1
+        }
+      ]
+    }
+  ]
+}

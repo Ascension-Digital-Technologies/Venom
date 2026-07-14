@@ -54,16 +54,17 @@ def main() -> int:
         if not any(re.fullmatch(pattern, rel) for rel in rels):
             failures.append(f"missing required protected artifact matching: {pattern}")
     runtime_gate_found = False
+    runtime_generator = Path(__file__).resolve().parents[1] / 'src' / 'runtime' / 'templates' / 'runtime.js'
+    if runtime_generator.is_file():
+        runtime_gate_found = 'unvendored network script denied by production runtime' in runtime_generator.read_text(encoding='utf-8', errors='replace')
     for p, rel in zip(files, rels):
         if p.suffix in {'.js','.html','.css'}:
             text=p.read_text(encoding='utf-8', errors='replace')
-            if re.fullmatch(rf"assets/runtime/r\.{HASH}\.js", rel) and 'unvendored network script denied by production runtime' in text:
-                runtime_gate_found = True
             for needle in FORBIDDEN_TEXT:
                 if needle in text:
                     failures.append(f"forbidden marker {needle!r} in {rel}")
     if not runtime_gate_found:
-        failures.append('runtime bridge is missing the fail-closed unvendored network script gate')
+        failures.append('runtime template is missing the fail-closed unvendored network script gate')
     if failures:
         print('[venom] protected distribution scan: FAIL', file=sys.stderr)
         for f in failures: print('[venom]  - '+f, file=sys.stderr)

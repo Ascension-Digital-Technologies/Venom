@@ -9,7 +9,7 @@ def project_version(text):
     match = re.search(r'project\(venom\s+VERSION\s+(\d+)\.(\d+)\.(\d+)', text, re.S)
     return tuple(map(int, match.groups())) if match else (0, 0, 0)
 cmake = (root / 'CMakeLists.txt').read_text(encoding='utf-8')
-cli = (root / 'src/compiler/cli.cpp').read_text(encoding='utf-8')
+cli = (root / 'src/compiler/commands/cli.cpp').read_text(encoding='utf-8')
 gate = (root / 'tools/run_fuzz_gate.py').read_text(encoding='utf-8')
 workflow = (root / '.github/workflows/release-hardening.yml').read_text(encoding='utf-8')
 checks = {

@@ -7,7 +7,7 @@ def project_version(text):
     match = re.search(r'project\(venom\s+VERSION\s+(\d+)\.(\d+)\.(\d+)', text, re.S)
     return tuple(map(int, match.groups())) if match else (0, 0, 0)
 scaffold = (root/'src/runtime/quickjs_runtime_scaffold.c').read_text()
-engine = (root/'src/compiler/quickjs_engine_module.cpp').read_text()
+engine = (root/'src/generated/runtime/quickjs_engine_module.cpp').read_text()
 abi = (root/'tools/quickjs_release_abi.py').read_text()
 cmake = (root/'CMakeLists.txt').read_text()
 checks = {

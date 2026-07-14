@@ -147,26 +147,6 @@ JSModuleDef* load_module_source(JSContext* ctx, const char* module_name, void* o
 
 } // namespace
 
-std::vector<unsigned char> compile_placeholder_bytecode(const std::string& source) {
-  return compile_native_quickjs_bytecode(source, "<venom-script>", false);
-}
-
-std::vector<unsigned char> compile_byte_buffer_record(const std::string& source) {
-  // Kept only for debug/backward compatibility tests. Production call sites use
-  // compile_native_quickjs_bytecode and release checks reject VQJSBC01.
-  std::vector<unsigned char> out;
-  const char magic[] = {'V','Q','J','S','B','C','0','1'};
-  out.insert(out.end(), magic, magic + sizeof(magic));
-  const std::uint32_t version = 1;
-  const std::uint32_t size = static_cast<std::uint32_t>(source.size());
-  const std::uint64_t hash = venom::package::fnv1a64(source_bytes_for_hash(source));
-  append_u32(out, version);
-  append_u32(out, size);
-  append_u64(out, hash);
-  out.insert(out.end(), source.begin(), source.end());
-  return out;
-}
-
 std::vector<unsigned char> compile_protected_portable_bytecode(const std::string& source) {
   return compile_native_quickjs_bytecode(source, "<venom-script>", false);
 }

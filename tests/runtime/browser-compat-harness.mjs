@@ -11,6 +11,7 @@ const denyFetch = process.argv.includes('--deny-fetch');
 const viaLoader = process.argv.includes('--via-loader');
 const requireRemoteScript = process.argv.includes('--require-remote-script');
 const assertHtmlFidelity = process.argv.includes('--assert-html-fidelity');
+const assertMalformedHtml = process.argv.includes('--assert-malformed-html');
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
@@ -574,4 +575,15 @@ if (assertHtmlFidelity) {
   if (!heading || heading.textContent !== 'Fingerprint Scanner tests') throw new Error(`heading boundary whitespace was not preserved: ${heading && heading.textContent}`);
   if (!pre || pre.textContent !== '{\n  "value": 1\n}') throw new Error(`preformatted whitespace was not preserved: ${JSON.stringify(pre && pre.textContent)}`);
 }
-console.log(`browser compatibility harness passed: ${mode}${viaLoader ? ':via-loader' : ''}${requireRemoteScript ? ':remote-script' : ''}${assertHtmlFidelity ? ':html-fidelity' : ''}`);
+if (assertMalformedHtml) {
+  const liOne = root.getElementById('li-one');
+  const liTwo = root.getElementById('li-two');
+  const paragraph = root.getElementById('implied-p');
+  const afterParagraph = root.getElementById('after-p');
+  const tdOne = root.getElementById('td-one');
+  const tdTwo = root.getElementById('td-two');
+  if (!liOne || !liTwo || liOne.parentNode !== liTwo.parentNode) throw new Error('omitted li end tag produced nested list items');
+  if (!paragraph || !afterParagraph || paragraph.parentNode !== afterParagraph.parentNode) throw new Error('block start tag did not imply paragraph closure');
+  if (!tdOne || !tdTwo || tdOne.parentNode !== tdTwo.parentNode) throw new Error('omitted td end tag produced nested cells');
+}
+console.log(`browser compatibility harness passed: ${mode}${viaLoader ? ':via-loader' : ''}${requireRemoteScript ? ':remote-script' : ''}${assertHtmlFidelity ? ':html-fidelity' : ''}${assertMalformedHtml ? ':malformed-html' : ''}`);

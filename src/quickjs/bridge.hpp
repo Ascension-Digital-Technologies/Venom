@@ -119,7 +119,5 @@ std::string capability_ledger_contract_text(std::uint32_t runtime_abi, std::uint
 std::string policy_seal_audit_contract_text(std::uint32_t runtime_abi, std::uint32_t package_version, bool strict_release);
 std::string runtime_denylist_contract_text(std::uint32_t runtime_abi, std::uint32_t package_version, bool strict_release);
 
-// Backward-compatible no-op retained for older internal callers.
-void install_host_bridge_placeholder();
 
 } // namespace venom::quickjs

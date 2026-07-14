@@ -144,7 +144,7 @@ v0.88.0 fixes a Windows PowerShell parser failure in `scripts/build-quickjs-wasm
 
 ## v1.30.5 native binding closure
 
-A successful WASM cutover changes `src/compiler/quickjs_runtime_wasm_blob.hpp`. The controller now rebuilds the native compiler automatically so an older `venom.exe` cannot continue packaging the previous runtime. It then builds `examples/protected-chess` and runs `verify-runtime --require-real-engine`.
+A successful WASM cutover changes `src/generated/runtime/quickjs_runtime_wasm_blob.hpp`. The controller now rebuilds the native compiler automatically so an older `venom.exe` cannot continue packaging the previous runtime. It then builds `examples/protected-chess` and runs `verify-runtime --require-real-engine`.
 
 Targeted toolchain runs may opt out with `--skip-native-rebuild` and `--skip-runtime-smoke`; release workflows should not use those switches.
 

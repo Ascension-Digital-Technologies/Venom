@@ -18,10 +18,8 @@ fi
 if [ "$needs_install" -ne 0 ]; then
   echo '[venom] installing pinned JavaScript hardener dependencies...'
   rm -rf node_modules
-  if [ -f package-lock.json ] && grep -Eq 'applied-caas-gateway|internal\.api\.openai\.org' package-lock.json; then
-    rm -f package-lock.json
-  fi
-  npm install --ignore-scripts --no-audit --no-fund --save-exact
+  [ -f package-lock.json ] || { echo 'Missing tools/js-hardener/package-lock.json; source releases require a committed lockfile.' >&2; exit 1; }
+  npm ci --ignore-scripts --no-audit --no-fund
 fi
 
 node -e "const [t,o]=await Promise.all([import('terser'),import('javascript-obfuscator')]); if(typeof t.minify!=='function'||!(o.default||o).obfuscate) process.exit(2);"

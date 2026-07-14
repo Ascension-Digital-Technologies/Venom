@@ -15,7 +15,7 @@ out = pathlib.Path(sys.argv[3])
 if out.exists():
     shutil.rmtree(out)
 
-subprocess.run([str(venom), 'build', str(site), '--out', str(out), '--profile', 'browser-protect'], check=True, text=True, capture_output=True)
+subprocess.run([str(venom), 'build', str(site), '--out', str(out), '--profile', 'prod'], check=True, text=True, capture_output=True)
 check = subprocess.run([str(venom), 'release-check', str(out), '--target', 'browser'], check=True, text=True, capture_output=True)
 required = [
     'quickjs_wasm_runtime_mode: quickjs-wasm-abi12-upstream-global-host-api-shims',

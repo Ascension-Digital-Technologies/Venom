@@ -6,7 +6,7 @@ venom = Path(sys.argv[1])
 site = Path(sys.argv[2])
 out = Path(sys.argv[3])
 
-subprocess.run([str(venom), 'build', str(site), '--out', str(out), '--profile', 'browser-protect', '--hashed'], check=True)
+subprocess.run([str(venom), 'build', str(site), '--out', str(out), '--profile', 'prod', '--hashed'], check=True)
 check = subprocess.run([str(venom), 'verify-runtime', str(out), '--target', 'browser'], check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 for marker in (
     'Runtime verification report:',

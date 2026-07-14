@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(venom
-  VERSION 1.36.4
+  VERSION 1.65.2
   DESCRIPTION "Venom - Secure Web Runtime: protected web compiler and dual-VM browser runtime"
   LANGUAGES C CXX
 )
@@ -9,6 +9,7 @@ project(venom
 include(cmake/options.cmake)
 include(cmake/warnings.cmake)
 include(cmake/platforms.cmake)
+include(cmake/build_acceleration.cmake)
 include(CheckCSourceCompiles)
 
 set(CMAKE_C_STANDARD 11)
@@ -19,9 +20,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # One authoritative project version for C++, scripts, and release metadata.
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated/compiler/core")
 configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/compiler/version.hpp.in
-  ${CMAKE_CURRENT_BINARY_DIR}/generated/compiler/version.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/templates/version.hpp.in
+  ${CMAKE_CURRENT_BINARY_DIR}/generated/compiler/core/version.hpp
   @ONLY
 )
 
@@ -33,6 +35,22 @@ if(CMAKE_CONFIGURATION_TYPES AND DEFINED CMAKE_BUILD_TYPE)
 endif()
 
 find_package(Threads REQUIRED)
+find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter)
+venom_configure_compiler_cache()
+
+set(VENOM_GENERATED_RUNTIME_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/runtime")
+set(VENOM_RUNTIME_TEMPLATE_CPP "${VENOM_GENERATED_RUNTIME_DIR}/runtime_js_template.cpp")
+add_custom_command(
+  OUTPUT "${VENOM_RUNTIME_TEMPLATE_CPP}"
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/embed_runtime_template.py"
+          --input "${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/templates/runtime.js"
+          --output "${VENOM_RUNTIME_TEMPLATE_CPP}"
+  DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/templates/runtime.js"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tools/embed_runtime_template.py"
+  COMMENT "Embedding browser runtime template"
+  VERBATIM
+)
 
 # Phase 11: release optimization and profile-guided optimization.
 include(CheckIPOSupported)
@@ -85,6 +103,10 @@ if(VENOM_ENABLE_FULL_QUICKJS)
     target_compile_definitions(qjs PRIVATE WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0601 _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_DEPRECATE)
   endif()
   target_link_libraries(qjs PUBLIC Threads::Threads)
+  if(NOT VENOM_ENABLE_QUICKJS_IPO)
+    set_property(TARGET qjs PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE OFF)
+  endif()
+  venom_apply_build_acceleration(qjs)
   if(UNIX AND NOT APPLE)
     target_link_libraries(qjs PUBLIC dl m)
   elseif(APPLE)
@@ -129,29 +151,45 @@ else()
 endif()
 
 set(VENOM_CORE_SOURCES
-  src/compiler/cli.cpp
-  src/compiler/config.cpp
-  src/compiler/doctor.cpp
-  src/compiler/compatibility.cpp
-  src/compiler/capability_analysis.cpp
-  src/compiler/build.cpp
-  src/compiler/inspect.cpp
-  src/compiler/security.cpp
-  src/compiler/site.cpp
-  src/compiler/assets.cpp
-  src/compiler/html.cpp
-  src/compiler/css.cpp
-  src/compiler/js.cpp
-  src/compiler/function_dependencies.cpp
-  src/compiler/worker_runtime_js.cpp
-  src/compiler/browser_asset_runtime_js.cpp
-  src/compiler/runtime_js.cpp
-  src/compiler/runtime_modules.cpp
-  src/compiler/wasm_runtime_js.cpp
-  src/compiler/quickjs_engine_module.cpp
-  src/compiler/profile.cpp
-  src/compiler/process.cpp
-  src/compiler/remote.cpp
+  src/compiler/commands/cli.cpp
+  src/compiler/core/config.cpp
+  src/compiler/core/project.cpp
+  src/compiler/services/runtime_manager.cpp
+  src/compiler/services/update_manager.cpp
+  src/compiler/commands/doctor.cpp
+  src/compiler/commands/dev.cpp
+  src/compiler/core/compatibility.cpp
+  src/compiler/commands/dist_analyzer.cpp
+  src/compiler/pipeline/capability_analysis.cpp
+  src/compiler/pipeline/build.cpp
+  src/compiler/pipeline/build_support.cpp
+  src/compiler/pipeline/build_package_metadata.cpp
+  src/compiler/pipeline/build_runtime_metadata.cpp
+  src/compiler/pipeline/build_runtime_audit_metadata.cpp
+  src/compiler/pipeline/build_runtime_module_metadata.cpp
+  src/compiler/commands/inspect.cpp
+  src/compiler/pipeline/security.cpp
+  src/compiler/pipeline/security_analysis.cpp
+  src/compiler/pipeline/security_artifact_inspection.cpp
+  src/compiler/core/site.cpp
+  src/compiler/pipeline/assets.cpp
+  src/compiler/pipeline/html.cpp
+  src/compiler/pipeline/css.cpp
+  src/compiler/pipeline/js.cpp
+  src/compiler/pipeline/js_discovery.cpp
+  src/compiler/pipeline/js_planning.cpp
+  src/compiler/pipeline/js_rewriting.cpp
+  src/compiler/pipeline/function_dependencies.cpp
+  src/generated/runtime/worker_runtime_js.cpp
+  src/generated/runtime/browser_asset_runtime_js.cpp
+  src/generated/runtime/runtime_js.cpp
+  ${VENOM_RUNTIME_TEMPLATE_CPP}
+  src/compiler/services/runtime_modules.cpp
+  src/generated/runtime/wasm_runtime_js.cpp
+  src/generated/runtime/quickjs_engine_module.cpp
+  src/compiler/core/profile.cpp
+  src/compiler/core/process.cpp
+  src/compiler/commands/remote.cpp
   src/package/format.cpp
   src/package/writer.cpp
   src/package/reader.cpp
@@ -161,7 +199,6 @@ set(VENOM_CORE_SOURCES
   src/vm/opcode.cpp
   src/vm/encoder.cpp
   src/vm/polymorph.cpp
-  src/vm/interpreter.cpp
   src/quickjs/abi.cpp
   src/quickjs/engine.cpp
   src/quickjs/bytecode.cpp
@@ -170,32 +207,34 @@ set(VENOM_CORE_SOURCES
 
 add_library(venom_core STATIC ${VENOM_CORE_SOURCES})
 target_include_directories(venom_core PUBLIC src third_party/quickjs "${CMAKE_CURRENT_BINARY_DIR}/generated")
+target_compile_definitions(venom_core PRIVATE VENOM_SOURCE_ROOT="${CMAKE_SOURCE_DIR}")
 target_link_libraries(venom_core PUBLIC qjs ${CMAKE_DL_LIBS})
 if(VENOM_ENABLE_FULL_QUICKJS)
   target_compile_definitions(venom_core PRIVATE VENOM_ENABLE_FULL_QUICKJS)
 endif()
 venom_apply_warnings(venom_core)
+venom_apply_build_acceleration(venom_core)
+if(VENOM_ENABLE_PCH)
+  target_precompile_headers(venom_core PRIVATE src/compiler/core/pch.hpp)
+endif()
 venom_apply_pgo(venom_core)
 
 add_executable(venom src/compiler/main.cpp)
 target_link_libraries(venom PRIVATE venom_core)
 venom_apply_warnings(venom)
+venom_apply_build_acceleration(venom)
 venom_apply_pgo(venom)
 
 
 if(VENOM_BUILD_RUNTIME_NATIVE)
   add_library(venom_runtime_native STATIC
-    src/runtime/runtime.c
-    src/runtime/loader.c
-    src/runtime/host_dom.c
-    src/runtime/host_fetch.c
-    src/runtime/host_events.c
     src/runtime/package_runtime.c
     src/runtime/quickjs_upstream_runtime.c
   )
   target_include_directories(venom_runtime_native PUBLIC src/runtime third_party/quickjs)
   target_link_libraries(venom_runtime_native PUBLIC qjs ${CMAKE_DL_LIBS})
   venom_apply_warnings(venom_runtime_native)
+  venom_apply_build_acceleration(venom_runtime_native)
   venom_apply_pgo(venom_runtime_native)
   if(VENOM_ENABLE_FULL_QUICKJS)
     target_compile_definitions(venom_runtime_native PRIVATE VENOM_ENABLE_FULL_QUICKJS)
@@ -269,10 +308,24 @@ if(BUILD_TESTING AND VENOM_ENABLE_FULL_QUICKJS)
 endif()
 
 if(BUILD_TESTING)
+  add_test(NAME cli_project_runtime_smoke
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/cli-project-runtime-smoke.py
+            $<TARGET_FILE:venom>)
+  add_test(NAME dev_server_incremental_smoke
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/dev-server-incremental-smoke.py)
+  add_test(NAME protected_module_smoke
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/protected-module-smoke.py
+            $<TARGET_FILE:venom>)
   add_test(NAME quickjs_runtime_lifecycle_smoke
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/quickjs-runtime-lifecycle-smoke.py
             ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/quickjs-runtime-lifecycle-smoke)
+  add_test(NAME dist_analyzer_smoke
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/dist-analyzer-smoke.py
+            $<TARGET_FILE:venom>)
   add_test(NAME runtime_performance_budget_smoke
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/runtime-performance-budget-smoke.py
             ${CMAKE_CURRENT_SOURCE_DIR})
 endif()
+
+add_test(NAME venom_compatibility_report_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/compatibility-report-smoke.py)

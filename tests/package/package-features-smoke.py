@@ -11,7 +11,7 @@ out = Path(sys.argv[3])
 if out.exists():
     shutil.rmtree(out)
 
-subprocess.run([str(venom), 'build', str(site), '--out', str(out), '--profile', 'release', '--hashed'], check=True)
+subprocess.run([str(venom), 'build', str(site), '--out', str(out), '--profile', 'prod', '--hashed'], check=True)
 package_files = sorted((out / 'assets').glob('app*.vbc'))
 if len(package_files) != 1:
     raise SystemExit('expected exactly one package')

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "profile": "cross-platform-regression-ceilings",
+  "budgets": [
+    {"metric": "browser.browser_launch_ms", "operator": "max", "threshold": 15000},
+    {"metric": "browser.navigation_wall.p95_ms", "operator": "max", "threshold": 10000},
+    {"metric": "browser.runtime_ready.p95_ms", "operator": "max", "threshold": 5000},
+    {"metric": "browser.protected_calls.sequential_latency.p95_ms", "operator": "max", "threshold": 1000},
+    {"metric": "browser.protected_calls.throughput_calls_per_second.median", "operator": "min", "threshold": 5}
+  ],
+  "notes": [
+    "These are broad regression ceilings for comparable CI runners, not end-user latency guarantees.",
+    "Protected-call results depend on the selected function, payload, browser, hardware, and build profile.",
+    "Publish benchmark claims only with the complete report, fixture, browser version, and machine specification."
+  ]
+}

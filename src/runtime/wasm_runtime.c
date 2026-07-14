@@ -94,9 +94,11 @@ void* memcpy(void* dst, const void* src, unsigned long count) {
 #define ERR_VM 13
 #define ERR_CAPACITY 14
 
+#define VENOM_RUNTIME_FEATURE_STREAMED_PACKAGE_UPLOAD 0x00000001u
+
 #define PACKAGE_CAP (2u * 1024u * 1024u)
 #define ROUTE_CAP 256u
-#define RESULT_CAP 65536u
+#define RESULT_CAP (256u * 1024u)
 #define DOMOPS_CAP 262144u
 #define DOMOP_BIN_CAP 262144u
 #define STRINGS_CAP 131072u
@@ -122,6 +124,7 @@ static unsigned char g_package[PACKAGE_CAP];
 static unsigned char g_route[ROUTE_CAP];
 static unsigned char g_result[RESULT_CAP];
 static unsigned int g_result_size;
+static int g_result_overflow;
 static unsigned char g_domops[DOMOPS_CAP];
 static unsigned int g_domops_size;
 static int g_domops_overflow;
@@ -142,6 +145,9 @@ static uint32_t g_package_meta_size = 0u;
 static unsigned char g_route_record[ROUTE_RECORD_CAP];
 static uint32_t g_route_record_size = 0u;
 static uint32_t g_package_loaded_size = 0u;
+static int g_package_loaded = 0;
+static uint32_t g_package_upload_expected = 0u;
+static uint32_t g_package_upload_received = 0u;
 static uint32_t g_route_generation = 0u;
 
 static void venom_wasm_secure_zero(void* ptr, uint32_t size) {
@@ -153,6 +159,45 @@ static void venom_wasm_release_materialized(void) {
   if (g_materialized_section_size) venom_wasm_secure_zero(g_materialized_section, g_materialized_section_size);
   g_materialized_section_size = 0u;
   ++g_route_generation;
+}
+
+static void venom_wasm_release_transient(void);
+static int venom_wasm_parse_package(unsigned int package_size);
+
+static void venom_wasm_release_package(void) {
+  if (g_package_loaded_size) venom_wasm_secure_zero(g_package, g_package_loaded_size);
+  g_package_loaded_size = 0u;
+  g_package_upload_expected = 0u;
+  g_package_upload_received = 0u;
+  g_package_loaded = 0;
+  if (g_package_meta_size) venom_wasm_secure_zero(g_package_meta, g_package_meta_size);
+  g_package_meta_size = 0u;
+}
+
+static int venom_wasm_begin_package_upload(uint32_t total_size) {
+  if (total_size == 0u || total_size > PACKAGE_CAP) return ERR_CAPACITY;
+  venom_wasm_release_transient();
+  venom_wasm_release_package();
+  g_package_upload_expected = total_size;
+  return ERR_OK;
+}
+
+static int venom_wasm_accept_package_chunk(uint32_t offset, uint32_t size) {
+  if (!g_package_upload_expected || offset != g_package_upload_received) return ERR_RANGE;
+  if (size == 0u || offset + size < offset || offset + size > g_package_upload_expected) return ERR_RANGE;
+  g_package_upload_received += size;
+  return ERR_OK;
+}
+
+static int venom_wasm_finish_package_upload(void) {
+  if (!g_package_upload_expected || g_package_upload_received != g_package_upload_expected) return ERR_RANGE;
+  const uint32_t size = g_package_upload_expected;
+  const int rc = venom_wasm_parse_package(size);
+  if (rc != ERR_OK) { venom_wasm_release_package(); return rc; }
+  g_package_loaded_size = size;
+  g_package_upload_expected = 0u;
+  g_package_upload_received = 0u;
+  return ERR_OK;
 }
 
 static void venom_wasm_release_transient(void) {
@@ -176,7 +221,6 @@ static void venom_wasm_release_transient(void) {
   g_domop_bin_size = 0u;
   g_domop_bin_overflow = 0;
 }
-static int g_package_loaded = 0;
 static uint32_t g_phys_to_logical[65536];
 static uint32_t g_has_phys[65536 / 32];
 static uint32_t g_dom_logical_to_physical[8] = {0u,1u,2u,3u,4u,5u,6u,7u};
@@ -842,8 +886,11 @@ static int decode_instruction(const unsigned char* vm_data, uint32_t vm_size, ui
   return ERR_OK;
 }
 
-static void result_reset(void) { g_result_size = 0u; }
-static void result_ch(char c) { if (g_result_size + 1u < RESULT_CAP) g_result[g_result_size++] = (unsigned char)c; }
+static void result_reset(void) { g_result_size = 0u; g_result_overflow = 0; }
+static void result_ch(char c) {
+  if (g_result_size < RESULT_CAP) g_result[g_result_size++] = (unsigned char)c;
+  else g_result_overflow = 1;
+}
 static void result_str(const char* s) { for (uint32_t i = 0; s && s[i]; ++i) result_ch(s[i]); }
 static void result_raw(const unsigned char* p, uint32_t n) { for (uint32_t i = 0; i < n; ++i) result_ch((char)p[i]); }
 
@@ -1199,8 +1246,11 @@ static int venom_wasm_analyze(unsigned int package_size, unsigned int route_size
   result_str(",\"domOpCount\":"); result_u32(dom_ops);
   result_str(",\"domOpFormat\":\"VDOP0020\"");
   result_str(",\"domOpBytes\":"); result_u32(g_domop_bin_size);
-  result_str(",\"domOps\":"); result_raw(g_domops, g_domops_size);
+  /* DOM operations are transferred once through the bounded binary VDOP0020
+   * stream.  Duplicating them as JSON made large pages exceed the historical
+   * 64 KiB report buffer and produced a truncated JSON document. */
   result_ch('}');
+  if (g_result_overflow) { result_reset(); return ERR_CAPACITY; }
   return ERR_OK;
 }
 
@@ -1233,6 +1283,7 @@ __attribute__((export_name("v12_n"))) unsigned int v12_n(unsigned int slot) {
     case 8u: return venom_wasm_package_meta_size();
     case 9u: return venom_wasm_route_record_capacity();
     case 10u: return venom_wasm_route_record_size();
+    case 12u: return VENOM_RUNTIME_FEATURE_STREAMED_PACKAGE_UPLOAD;
     default: return 0u;
   }
 }
@@ -1248,6 +1299,10 @@ __attribute__((export_name("v12_x"))) int v12_x(unsigned int op,
     case 3u: return venom_wasm_materialize_section(a, b, c, d);
     case 5u: venom_wasm_release_materialized(); return ERR_OK;
     case 6u: venom_wasm_release_transient(); return ERR_OK;
+    case 7u: return venom_wasm_begin_package_upload(a);
+    case 8u: return venom_wasm_accept_package_chunk(a, b);
+    case 9u: return venom_wasm_finish_package_upload();
+    case 10u: venom_wasm_release_transient(); venom_wasm_release_package(); return ERR_OK;
     case 4u: return venom_wasm_analyze(a, b);
     default: return ERR_FORMAT;
   }

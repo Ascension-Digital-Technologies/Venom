@@ -11,7 +11,7 @@ dist = pathlib.Path(sys.argv[3])
 if dist.exists():
     shutil.rmtree(dist)
 
-subprocess.run([str(venom), 'build', str(site), '--out', str(dist), '--profile', 'browser-protect', '--hashed'], check=True)
+subprocess.run([str(venom), 'build', str(site), '--out', str(dist), '--profile', 'prod', '--hashed'], check=True)
 passed = subprocess.run([str(venom), 'release-check', str(dist), '--target', 'browser'], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
 if 'package_binding: yes' not in passed.stdout or 'loader_binding: yes' not in passed.stdout or 'bound_assets: 6' not in passed.stdout:
     print(passed.stdout)

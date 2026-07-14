@@ -1,0 +1,32 @@
+{
+  "artifact_kind": "venom-package-route-runtime-wasm",
+  "byte_length": 31870,
+  "dom_command_contract": "VDOP0020",
+  "dom_command_contract_embedded": true,
+  "exports": [
+    "memory",
+    "venom_runtime_abi",
+    "venom_package_version",
+    "v12_p",
+    "v12_n",
+    "v12_x"
+  ],
+  "package_runtime_abi": 12,
+  "required_exports": [
+    "memory",
+    "venom_runtime_abi",
+    "venom_package_version",
+    "v12_p",
+    "v12_n",
+    "v12_x"
+  ],
+  "required_exports_satisfied": true,
+  "route_vm_contract": "VPOL0010-v2-fixed16",
+  "route_vm_contract_location": "protected package plan section",
+  "route_vm_contract_not_claimed_as_wasm_literal": true,
+  "runtime_implementation": "venom-native-wasm-runtime",
+  "scaffold_runtime": false,
+  "schema_version": 1,
+  "sha256": "7bb8bcb5a4a7745afc9c8e2f28ad4b9ec7a377615eaa9d5a5f6dc2d98e313938",
+  "wasm_version": 1
+}

@@ -95,7 +95,7 @@ def find_release_root(path: Path) -> Path:
 
 
 def extract_archive(archive: Path, temp_root: Path) -> Path:
-    out = temp_root / 'release'
+    out = temp_root / 'prod'
     out.mkdir()
     name = archive.name.lower()
     if name.endswith('.zip'):

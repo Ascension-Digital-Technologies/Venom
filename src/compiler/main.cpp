@@ -1,9 +1,15 @@
-#include "compiler/build.hpp"
-#include "compiler/cli.hpp"
-#include "compiler/inspect.hpp"
-#include "compiler/doctor.hpp"
-#include "compiler/compatibility.hpp"
-#include "compiler/security.hpp"
+#include "compiler/pipeline/build.hpp"
+#include "compiler/commands/cli.hpp"
+#include "compiler/commands/inspect.hpp"
+#include "compiler/commands/doctor.hpp"
+#include "compiler/commands/dev.hpp"
+#include "compiler/core/compatibility.hpp"
+#include "compiler/commands/dist_analyzer.hpp"
+#include "compiler/pipeline/security.hpp"
+#include "compiler/core/project.hpp"
+#include "compiler/services/runtime_manager.hpp"
+#include "compiler/services/update_manager.hpp"
+#include "compiler/core/config.hpp"
 
 #include <exception>
 #include <iostream>
@@ -20,6 +26,8 @@ int main(int argc, char** argv) {
         return 0;
       case venom::compiler::CommandKind::Build:
         return venom::compiler::build_site(command.build) ? 0 : 70;
+      case venom::compiler::CommandKind::Dev:
+        return venom::compiler::run_dev(command.dev) ? 0 : 60;
       case venom::compiler::CommandKind::Inspect:
         if (!command.inspect.key_file.empty()) {
           venom::compiler::load_package_key_file_for_process(command.inspect.key_file);
@@ -37,9 +45,39 @@ int main(int argc, char** argv) {
       case venom::compiler::CommandKind::Analyze:
         venom::compiler::run_capability_analysis(command.compatibility);
         return 0;
+      case venom::compiler::CommandKind::AnalyzeDist:
+        return venom::compiler::analyze_distribution({command.analyze_dist_input, command.analyze_dist_format}) ? 0 : 21;
       case venom::compiler::CommandKind::Contracts:
         venom::compiler::print_contracts(command.contracts.format);
         return 0;
+      case venom::compiler::CommandKind::NewProject:
+        return venom::compiler::create_project({command.project.directory, command.project.force}) ? 0 : 80;
+      case venom::compiler::CommandKind::InitProject:
+        return venom::compiler::initialize_project({command.project.directory, command.project.force}) ? 0 : 80;
+      case venom::compiler::CommandKind::Runtime:
+        return venom::compiler::manage_runtime({command.runtime.action, command.runtime.directory, command.runtime.force}) ? 0 : 81;
+      case venom::compiler::CommandKind::Update:
+        return venom::compiler::manage_update({command.update.action, command.update.channel, command.update.manifest, command.update.prefix, command.update.public_key, command.update.require_signature, command.update.yes, command.update.dry_run, command.update.format == venom::compiler::OutputFormat::Json ? "json" : "text"}, argv[0]) ? 0 : 83;
+      case venom::compiler::CommandKind::Config: {
+        auto path = command.config.file;
+        if (path.empty()) path = venom::compiler::discover_project_config(std::filesystem::current_path());
+        if (path.empty()) throw std::runtime_error("no venom.toml found");
+        if (command.config.action == "validate") {
+          std::string error;
+          const bool ok = venom::compiler::validate_project_config(path, &error);
+          if (command.config.format == venom::compiler::OutputFormat::Json) {
+            std::cout << "{\"valid\":" << (ok ? "true" : "false") << ",\"file\":\"" << std::filesystem::absolute(path).generic_string() << "\"";
+            if (!ok) std::cout << ",\"error\":\"" << error << "\"";
+            std::cout << "}\n";
+          } else {
+            std::cout << (ok ? "[PASS] " : "[FAIL] ") << std::filesystem::absolute(path).string() << "\n";
+            if (!ok) std::cout << "       " << error << "\n";
+          }
+          return ok ? 0 : 82;
+        }
+        if (command.config.action == "print") { venom::compiler::print_project_config(path, command.config.format); return 0; }
+        throw std::runtime_error("config action must be validate or print");
+      }
     }
   } catch (const std::exception& ex) {
     std::cerr << "venom: " << ex.what() << '\n';

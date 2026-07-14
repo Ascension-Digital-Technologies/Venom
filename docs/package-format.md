@@ -61,7 +61,7 @@ hash                  u64    FNV-1a64 over stored section bytes
 
 ## Section compression
 
-Venom v0.9 enables real section-level compression for `protect` and `release` profiles. A compressed section has `SectionFlagCompressed` set, `data_size` equal to the stored compressed payload size, and `raw_size` equal to the decoded payload size. Hashes are computed over the stored bytes before decompression.
+Venom v0.9 enables real section-level compression for `prod` and `prod` profiles. A compressed section has `SectionFlagCompressed` set, `data_size` equal to the stored compressed payload size, and `raw_size` equal to the decoded payload size. Hashes are computed over the stored bytes before decompression.
 
 The current codec is a dependency-free LZ-style stream with magic `VCLZ0008`. It is intentionally isolated behind `src/package/compress.*` so a stronger production codec can replace it without changing the package table layout.
 
@@ -69,7 +69,7 @@ Debug builds leave sections uncompressed for readability. Protect/release builds
 
 ## Integrity metadata
 
-`protect` and `release` builds include an integrity section whose canonical name is `integrity-auth.vsig`; in protected packages the stored name is an opaque alias. It is deliberately text-readable for inspection and covers the decoded section payloads that the runtime actually consumes.
+`prod` and `prod` builds include an integrity section whose canonical name is `integrity-auth.vsig`; in protected packages the stored name is an opaque alias. It is deliberately text-readable for inspection and covers the decoded section payloads that the runtime actually consumes.
 
 ```text
 VENOM_INTEGRITY_V1
@@ -81,7 +81,7 @@ section_count=<n>
 section	<section_type>	<section_name>	<decoded_size>	<sha256_hex>
 ```
 
-The older 64-bit FNV table hashes remain fast structural checks over stored payload bytes. The SHA-256 metadata is the stronger execution boundary after decompression. `release` packages fail closed when this metadata is missing or mismatched.
+The older 64-bit FNV table hashes remain fast structural checks over stored payload bytes. The SHA-256 metadata is the stronger execution boundary after decompression. `prod` packages fail closed when this metadata is missing or mismatched.
 
 `aead_provider=venom-aead-section-v1` identifies Venom's browser-runnable, runtime-decodable authenticated encoding layer. It raises casual extraction cost and validates envelope consistency, but it is not an audited secret-key confidentiality boundary against the browser operator. `aead_provider=libsodium-xchacha20poly1305-ietf-v1` identifies the optional native/private provider using an external key; browser runtimes reject those packages.
 

@@ -1,166 +1,75 @@
-# Venom Protected Chess Lab
+# Protected Chess — QuickJS/WASM Engine Example
 
-The Protected Chess Lab is Venom's flagship example. It demonstrates a practical hybrid application in which the browser retains the parts that benefit from native browser compatibility while proprietary computation runs inside the protected QuickJS/WASM boundary.
+> **Flagship Venom example · Browser UI with a protected chess engine**
 
-## What the example proves
+Protected Chess demonstrates one of Venom's strongest use cases: preserve a responsive browser-native interface while moving valuable search, evaluation, and move-selection logic into protected QuickJS bytecode executed inside the worker-hosted WebAssembly runtime.
 
-The browser is responsible for:
+## What is protected
 
-- chessboard rendering and animation;
-- DOM events and controls;
-- move history, charts, and status presentation;
-- human-versus-engine and engine-versus-engine orchestration.
+| Component | Realm |
+|---|---|
+| Board rendering and interaction | Browser |
+| Move highlighting and controls | Browser |
+| Game state presentation | Browser |
+| Chess search/evaluation engine | **Protected QuickJS/WASM** |
+| Browser-to-engine calls | Validated asynchronous bridge |
 
-Venom protects:
+## Architecture
 
-- board evaluation and piece-square tables;
-- minimax and alpha-beta search;
-- legal move selection;
-- search metrics and engine telemetry.
+```mermaid
+flowchart LR
+  UI[Board and controls] --> APP[js/main.js]
+  APP --> API[Venom protected export]
+  API --> WORKER[Dedicated worker]
+  WORKER --> QJS[QuickJS/WASM]
+  QJS --> ENGINE[js/ai-engine.js bytecode]
+  ENGINE --> MOVE[Best move and evaluation]
+  MOVE --> UI
+```
 
-The engine is extracted from browser JavaScript and compiled into protected QuickJS bytecode. Browser code communicates with it through Venom's bounded request/response bridge.
+## Run
+
+```powershell
+venom dev examples\protected-chess --open
+```
+
+## Build production
+
+```powershell
+venom build examples\protected-chess --profile prod --out dist\protected-chess
+venom analyze-dist dist\protected-chess
+venom release-check dist\protected-chess
+```
+
+## Why it is a useful security example
+
+A normal JavaScript chess engine exposes its evaluation constants, move ordering, pruning strategy, search implementation, and heuristics directly in browser source. Venom changes that recovery problem: the engine is compiled to QuickJS bytecode, stored in a diversified package, decoded through the runtime boundary, and invoked through opaque production bridge metadata.
+
+This does not make the engine impossible to recover. It does force analysis beyond ordinary source formatting and JavaScript deobfuscation, and per-build diversification reduces the usefulness of one fixed extraction layout.
+
+## Performance measurement
+
+Benchmark claims should include the browser, CPU, position, search depth or time limit, build profile, and whether the measurement includes bridge overhead. For meaningful comparisons, warm up the worker/runtime before measuring repeated engine calls.
 
 ## Source layout
 
 ```text
-protected-chess/
+examples/protected-chess/
 ├── index.html
-├── css/
-│   └── style.css
-├── img/
-│   └── chesspieces/
+├── css/main.css
 ├── js/
-│   ├── ai-engine.js   protected engine unit
-│   ├── chess.js       browser chess rules/state
-│   └── main.js        browser UI and game controller
-└── vendor/            local browser dependencies
+│   ├── main.js
+│   ├── chess.js
+│   └── ai-engine.js
+├── vendor/
+├── venom.browser.json
+└── venom.lock
 ```
 
-The protected engine is declared with Venom's isolated marker:
+## Integration pattern
 
-```javascript
-// @venom: protected isolated
-function runChessEngine(request) {
-  // Evaluation and search logic.
-}
-```
+Keep board manipulation and DOM work browser-side. Expose coarse engine operations such as choosing a move, evaluating a position, or analyzing a line. Avoid crossing the worker boundary for every tiny engine helper.
 
-Browser code calls it through the public bridge:
+## Verification
 
-```javascript
-await venom.ready();
-
-const result = await venom.exports.runChessEngine({
-  action: "search",
-  fen: game.fen(),
-  depth: 4,
-  color: "w"
-});
-```
-
-Only JSON values cross the boundary. DOM nodes, functions, class instances, cyclic values, and browser objects are intentionally rejected.
-
-## Build
-
-From the repository root:
-
-```powershell
-.\scripts\build.ps1 -Config Release
-.\scripts\build-site.ps1 -Site examples\protected-chess -Dist dist
-.\scripts\serve-site.ps1 -Dist dist -Port 8080
-```
-
-Open `http://127.0.0.1:8080`.
-
-Linux/macOS:
-
-```bash
-./scripts/build.sh Release
-./scripts/build-site.sh examples/protected-chess dist
-./scripts/serve-site.sh 8080 dist
-```
-
-Do not open `dist/index.html` directly with a `file://` URL. Workers, WASM, module loading, and integrity checks require an HTTP origin.
-
-## Expected protected distribution
-
-```text
-dist/
-├── index.html
-└── assets/
-    ├── app/
-    │   └── app.<hash>.vbc
-    ├── images/
-    ├── loader/
-    │   └── loader.<hash>.js
-    ├── runtime/
-    │   ├── engine.<hash>.js
-    │   ├── r.<hash>.js
-    │   ├── runtime.<hash>.wasm
-    │   └── rw.<hash>.wasm
-    ├── style/
-    │   └── s.<hash>.css
-    └── workers/
-        └── worker.<hash>.js
-```
-
-Protected releases use hashed assets, fail-closed QuickJS/WASM execution, an opaque session-bound bridge, WASM-owned package decoding, per-build section layout diversification, and aggressive generated-JavaScript hardening.
-
-## Validation
-
-Run the focused and full regression suites:
-
-```powershell
-.\scripts\test.ps1 -Config Release
-python scripts\check-production-leaks.py dist
-```
-
-A successful protected build should verify that:
-
-- `runChessEngine` is extracted;
-- minimax and evaluation tables are absent from shipped browser JavaScript;
-- no readable package decoder is present in JavaScript;
-- no source paths or descriptive QuickJS ABI names leak;
-- host-JavaScript fallback is denied;
-- the real QuickJS/WASM backend is present.
-
-## Performance expectations
-
-Performance depends on browser, processor, depth, position, and power state. The example is designed to demonstrate that protected computation can remain practical; it is not intended as a competitive chess engine benchmark.
-
-## Security model
-
-Venom raises the cost of recovering and modifying browser-delivered logic. It does not make client-side software unrecoverable. A determined operator controls their browser, can observe bridge inputs and outputs, and can instrument WASM memory. Never embed permanent server secrets or rely on client-side protection as the sole authorization layer.
-
-See the repository's [security model](../../docs/security-model.md), [threat model](../../docs/threat-model.md), and [protected bridge documentation](../../docs/PROTECTED-BRIDGE.md).
-
-## Troubleshooting
-
-### The page loads but the engine does not move
-
-Check the browser console and verify that:
-
-```javascript
-await venom.ready();
-Object.keys(venom.exports);
-```
-
-includes `runChessEngine`. Rebuild the distribution after changing protected code; do not mix assets from different builds.
-
-### Integrity or binding mismatch
-
-Delete the complete `dist/` directory and rebuild it. Hashed assets, package bindings, loader SRI, and runtime artifacts must come from the same build.
-
-### QuickJS/WASM unavailable
-
-Verify the embedded runtime:
-
-```powershell
-.\scripts\build-quickjs-wasm.ps1 -VerifyOnly
-```
-
-Protected builds intentionally fail instead of falling back to readable browser execution.
-
-## Browser qualification manifest
-
-`venom.browser.json` is the release E2E contract. It starts AI-vs-AI, requires at least four legal moves and nonzero throughput, then verifies Stop & Reset cancels the loop cleanly. The release workflow runs it in Chromium, Firefox, and WebKit.
+After a production build, inspect the generated JavaScript and confirm the engine implementation is not present as readable browser source. Then run `venom release-check` to validate runtime provenance, package binding, release policy, and leakage checks.

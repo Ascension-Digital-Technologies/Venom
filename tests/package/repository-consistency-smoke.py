@@ -7,16 +7,16 @@ m=re.search(r'project\(venom\s+VERSION\s+(\d+\.\d+\.\d+)',cm,re.S)
 if not m: raise SystemExit('project version missing')
 version=m.group(1)
 required={
- 'generated version template': 'VENOM_VERSION_STRING "@PROJECT_VERSION@"' in (root/'src/compiler/version.hpp.in').read_text(),
- 'CLI uses generated version': 'VENOM_VERSION_STRING' in (root/'src/compiler/cli.cpp').read_text(),
- 'remote UA uses generated version': 'VENOM_REMOTE_VENDOR_USER_AGENT' in (root/'src/compiler/remote.cpp').read_text(),
+ 'generated version template': 'VENOM_VERSION_STRING "@PROJECT_VERSION@"' in (root/'cmake/templates/version.hpp.in').read_text(),
+ 'CLI uses generated version': 'VENOM_VERSION_STRING' in (root/'src/compiler/commands/cli.cpp').read_text(),
+ 'remote UA uses generated version': 'VENOM_REMOTE_VENDOR_USER_AGENT' in (root/'src/compiler/commands/remote.cpp').read_text(),
  'README current': (root/'README.md').read_text().startswith('# Venom Secure Web Runtime'),
  'canonical scripts directory': all((root/'scripts'/name).is_file() for name in ('build.bat','build.ps1','build.sh','build-site.bat','build-site.ps1','build-site.sh','test.bat','test.ps1','test.sh')),
  'clean metadata-only root': not any((root/name).exists() for name in ('build.bat','build-site.bat','test.bat','serve-site.bat','rebuild-runtime.bat','rebuild-site.bat')), 
  'preset configurations': (root/'CMakePresets.json').is_file(),
  'tests isolated from root graph': 'include(cmake/tests.cmake)' in cm and (root/'cmake/tests.cmake').is_file(),
  'production leak gate present': (root/'scripts/check-production-leaks.py').is_file(),
- 'single public example': [p.name for p in (root/'examples').iterdir() if p.is_dir()] == ['protected-chess'],
+ 'canonical public examples': sorted(p.name for p in (root/'examples').iterdir() if p.is_dir()) == ['bot-detection', 'nova-trade', 'protected-chess'],
 }
 failed=[k for k,v in required.items() if not v]
 if failed: raise SystemExit('repository consistency failed: '+', '.join(failed))

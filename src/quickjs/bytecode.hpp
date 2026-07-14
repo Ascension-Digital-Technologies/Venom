@@ -29,8 +29,6 @@ struct ModuleSourceRecord {
   std::string source;
 };
 
-std::vector<unsigned char> compile_placeholder_bytecode(const std::string& source);
-std::vector<unsigned char> compile_byte_buffer_record(const std::string& source);
 std::vector<unsigned char> compile_protected_portable_bytecode(const std::string& source);
 std::vector<unsigned char> compile_native_quickjs_bytecode(const std::string& source,
                                                            const std::string& source_name,

@@ -1,8 +1,9 @@
 from pathlib import Path
 root = Path(__file__).resolve().parents[2]
 c = (root / "src/runtime/wasm_runtime.c").read_text()
-bridge = (root / "src/compiler/wasm_runtime_js.cpp").read_text()
-runtime = (root / "src/compiler/runtime_js.cpp").read_text()
+bridge = (root / "src/generated/runtime/wasm_runtime_js.cpp").read_text()
+runtime = (root / "src/generated/runtime/runtime_js.cpp").read_text()
+runtime += (root / 'src/runtime/templates/runtime.js').read_text(encoding='utf-8')
 for token in ["venom_wasm_materialize_section", "venom_wasm_materialized_section_ptr", "venom_wasm_materialized_section_size"]:
     if token not in c:
         raise SystemExit("missing private WASM-owned materialization implementation: " + token)

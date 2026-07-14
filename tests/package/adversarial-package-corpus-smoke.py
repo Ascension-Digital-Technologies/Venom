@@ -9,11 +9,13 @@ from pathlib import Path
 
 
 def find_package(dist: Path) -> Path:
-    candidates = sorted((dist / 'assets' / 'app').glob('app.*.vbc'))
+    app_dir = dist / 'assets' / 'app'
+    candidates = sorted(app_dir.glob('app.*.vbc'))
+    candidates.extend(sorted(app_dir.glob('app.vbc')))
     for candidate in candidates:
-        if candidate.exists():
+        if candidate.is_file():
             return candidate
-    raise SystemExit('missing app package under assets/app/app.<hash>.vbc')
+    raise SystemExit('missing app package under assets/app (expected app.vbc or app.<hash>.vbc)')
 
 HEADER_SIZE = 80
 ENTRY_SIZE = 48
@@ -51,7 +53,7 @@ def main() -> int:
     corpus.mkdir(parents=True, exist_ok=True)
     dist = work / "dist"
     remote_cache = Path(__file__).resolve().parents[1] / "fixtures" / "remote-cache"
-    run([str(venom), "build", str(site), "--out", str(dist), "--profile", "debug", "--vendor-cache", str(remote_cache), "--offline"])
+    run([str(venom), "build", str(site), "--out", str(dist), "--profile", "dev", "--vendor-cache", str(remote_cache), "--offline"])
     package = find_package(dist)
     original = bytearray(package.read_bytes())
     if len(original) < HEADER_SIZE + 2 * ENTRY_SIZE:

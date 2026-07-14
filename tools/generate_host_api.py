@@ -18,7 +18,7 @@ def render(data):
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('--check',action='store_true'); a=ap.parse_args()
     root=Path(__file__).resolve().parents[1]; data=json.loads((root/'contracts/host-api.json').read_text())
-    header,docs=render(data); outputs={root/'src/runtime/host_api_contract.h':header, root/'docs/generated/host-api-contract.md':docs}
+    header,docs=render(data); outputs={root/'src/generated/runtime/host_api_contract.h':header, root/'docs/generated/host-api-contract.md':docs}
     bad=[]
     for p,text in outputs.items():
         if a.check:

@@ -21,17 +21,21 @@ int main(int argc, char** argv) {
       user_agent = argv[++i];
     } else if (arg == "--url" && i + 1 < argc) {
       url = argv[++i];
+    } else if ((arg == "--connect-timeout" || arg == "--max-time" ||
+                arg == "--proto-redir" || arg == "--max-redirs" ||
+                arg == "--max-filesize") && i + 1 < argc) {
+      // Consume the value for curl options used by the production downloader.
+      // The fake downloader validates process boundaries, not curl semantics.
+      ++i;
+    } else if (arg == "--disable" || arg == "--tlsv1.2" || arg == "--fail" ||
+               arg == "--silent" || arg == "--show-error" ||
+               arg == "--compressed" || arg == "--location") {
+      // Supported flag-only curl options.
     } else if (!arg.empty() && arg[0] != '-') {
-      // Values belonging to known options have already been consumed above or
-      // are skipped here. Any second positional value is a process-quoting bug.
-      const std::string previous = i > 1 ? argv[i - 1] : "";
-      if (previous != "--connect-timeout" && previous != "--max-time" &&
-          previous != "--max-redirs" && previous != "--max-filesize") {
-        if (url.empty()) {
-          url = arg;
-        } else {
-          unexpected_positionals.push_back(arg);
-        }
+      if (url.empty()) {
+        url = arg;
+      } else {
+        unexpected_positionals.push_back(arg);
       }
     }
   }

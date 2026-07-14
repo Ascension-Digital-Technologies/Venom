@@ -6,7 +6,7 @@ from pathlib import Path
 REQUIRED = [
     'README.md','CHANGES.md','LICENSE','NOTICE.md','SECURITY.md','SUPPORT.md',
     'CODE_OF_CONDUCT.md','CONTRIBUTING.md','docs/RELEASE-CHECKLIST.md',
-    'examples/protected-chess/README.md','.github/workflows/release.yml',
+    'examples/protected-chess/README.md','examples/nova-trade/README.md','examples/bot-detection/README.md','.github/workflows/release.yml',
 ]
 FORBIDDEN_DIRS = {'.git','build','dist','node_modules','__pycache__','.pytest_cache','.mypy_cache'}
 FORBIDDEN_SUFFIXES = {'.pyc','.pyo','.key','.pem'}
@@ -50,8 +50,8 @@ def main() -> int:
 
     examples=root/'examples'
     public=[p.name for p in examples.iterdir() if p.is_dir()] if examples.exists() else []
-    if public != ['protected-chess']:
-        errors.append(f'public examples must contain only protected-chess; found {sorted(public)}')
+    if sorted(public) != ['bot-detection', 'nova-trade', 'protected-chess']:
+        errors.append(f'public examples must contain bot-detection, protected-chess and nova-trade; found {sorted(public)}')
     for name in FORBIDDEN_PUBLIC_EXAMPLES:
         if (examples/name).exists(): errors.append(f'legacy public example remains: examples/{name}')
 

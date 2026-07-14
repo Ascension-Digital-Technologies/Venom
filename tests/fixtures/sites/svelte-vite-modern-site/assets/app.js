@@ -1,0 +1,2 @@
+// @venom: browser
+const target=document.querySelector('#app');const main=document.createElement('main');main.dataset.framework='svelte';const title=document.createElement('h1');title.textContent='Modern Svelte/Vite pattern';const count=document.createElement('p');count.id='count';let value=0;const button=document.createElement('button');button.id='increment';button.textContent='Increment';const flush=()=>{count.textContent=String(value)};button.addEventListener('click',()=>{value+=1;queueMicrotask(flush)});main.append(title,count,button);target.append(main);flush();

@@ -2,7 +2,8 @@
 from pathlib import Path
 import sys
 root = Path(sys.argv[1]).resolve()
-source = (root / 'src/compiler/runtime_js.cpp').read_text(encoding='utf-8')
+source = (root / 'src/generated/runtime/runtime_js.cpp').read_text(encoding='utf-8')
+source += (root / 'src/runtime/templates/runtime.js').read_text(encoding='utf-8')
 required = [
     'let activeGeneration = 0;',
     "assertGeneration(requestGeneration, 'fetch response')",

@@ -108,3 +108,12 @@ verify-runtime --require-real-engine
 still fails on the checked-in contract scaffold until `scripts/build-quickjs-wasm.*` is run with Emscripten and the verified upstream QuickJS WASM artifact is embedded.
 
 The binary release is suitable for building and inspecting protected website packages, but a release should not claim full upstream browser QuickJS/WASM parity until the strict real-engine gate passes.
+
+
+## Platform package layout
+
+Binary releases use target-qualified names such as `venom-v1.47.0-windows-x64.zip`, `venom-v1.47.0-linux-x64.zip`, and `venom-v1.47.0-macos-arm64.zip`. The executable lives under `bin/`; runtime payloads live under `runtime/`; and every package contains `CONTRACTS.json`, install/uninstall helpers, licenses, checksums, provenance, and the release verifier.
+
+```bash
+python tools/package_release.py --build-dir build/release --archive zip --target-triplet linux-x64
+```

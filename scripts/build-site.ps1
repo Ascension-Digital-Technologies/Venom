@@ -3,8 +3,7 @@ param(
   [string]$Dist='dist',
   [string]$BuildDir='build',
   [ValidateSet('Debug','Release','RelWithDebInfo','MinSizeRel')][string]$Config='Release',
-  [ValidateSet('debug','browser-protect','native-protect','maximum')][string]$Profile='browser-protect',
-  [switch]$NoHashed
+  [ValidateSet('dev','prod')][string]$Profile='prod'
 )
 $ErrorActionPreference='Stop'
 $Root=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
@@ -21,10 +20,9 @@ try {
 $SitePath=if([IO.Path]::IsPathRooted($Site)){$Site}else{Join-Path $Root $Site}
 $DistPath=if([IO.Path]::IsPathRooted($Dist)){$Dist}else{Join-Path $Root $Dist}
 $args=@('build',$SitePath,'--out',$DistPath,'--profile',$Profile)
-if(!$NoHashed){$args+='--hashed'}
 & $Exe @args
 if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
-if($Profile -ne 'debug'){
+if($Profile -eq 'prod'){
   python (Join-Path $PSScriptRoot 'check-production-leaks.py') $DistPath
   if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
 }

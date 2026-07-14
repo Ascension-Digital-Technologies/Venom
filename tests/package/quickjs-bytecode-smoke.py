@@ -20,7 +20,7 @@ venom = pathlib.Path(sys.argv[1])
 site = pathlib.Path(sys.argv[2])
 out = pathlib.Path(sys.argv[3])
 
-proc = subprocess.run([str(venom), "build", str(site), "--out", str(out), "--profile", "browser-protect"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+proc = subprocess.run([str(venom), "build", str(site), "--out", str(out), "--profile", "prod"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 if proc.returncode != 0:
     print(proc.stdout)
     raise SystemExit(proc.returncode)

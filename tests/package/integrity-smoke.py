@@ -19,7 +19,7 @@ out = Path(sys.argv[3])
 if out.exists():
     shutil.rmtree(out)
 
-subprocess.run([str(venom), 'build', str(site), '--out', str(out), '--profile', 'protect'], check=True)
+subprocess.run([str(venom), 'build', str(site), '--out', str(out), '--profile', 'prod'], check=True)
 inspect = subprocess.run([str(venom), 'inspect', str(find_package(out))], check=True, text=True, stdout=subprocess.PIPE)
 text = inspect.stdout
 required = [

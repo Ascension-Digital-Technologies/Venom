@@ -70,16 +70,10 @@ try {
         Remove-Item -LiteralPath $NodeModules -Recurse -Force
       }
   
-      # Older source archives could contain a lockfile generated against a private
-      # registry. Remove only those non-portable locks; npm will create a clean one.
-      if (Test-Path -LiteralPath $LockFile) {
-        $LockText = Get-Content -LiteralPath $LockFile -Raw
-        if ($LockText -match 'applied-caas-gateway|internal\.api\.openai\.org') {
-          Remove-Item -LiteralPath $LockFile -Force
-        }
+      if (-not (Test-Path -LiteralPath $LockFile)) {
+        throw 'Missing tools\js-hardener\package-lock.json; source releases require a committed lockfile.'
       }
-  
-      Invoke-Checked -Program $Npm.Source -Arguments @('install', '--ignore-scripts', '--no-audit', '--no-fund', '--save-exact')
+      Invoke-Checked -Program $Npm.Source -Arguments @('ci', '--ignore-scripts', '--no-audit', '--no-fund')
     }
   
     Invoke-Checked -Program $Node.Source -Arguments @('-e', "const [t,o]=await Promise.all([import('terser'),import('javascript-obfuscator')]); if(typeof t.minify!=='function'||!(o.default||o).obfuscate) process.exit(2);")

@@ -24,7 +24,7 @@ def main() -> int:
         return 2
     venom = pathlib.Path(sys.argv[1]).resolve()
     repo = pathlib.Path(__file__).resolve().parents[2]
-    site = repo / "examples" / "no-script-site"
+    site = repo / "tests" / "fixtures" / "sites" / "no-script-site"
     with tempfile.TemporaryDirectory(prefix="venom-runtime-surface-") as td:
         root = pathlib.Path(td)
         a, b = root / "a", root / "b"
@@ -43,8 +43,9 @@ def main() -> int:
         for name in forbidden:
             if name in ja or name in jb:
                 raise SystemExit(f"protected runtime retained semantic marker: {name}")
-        opaque_a = set(re.findall(r"\bv[0-9a-f]{8}\b", ja))
-        opaque_b = set(re.findall(r"\bv[0-9a-f]{8}\b", jb))
+        opaque_pattern = r"\b(?:v[0-9a-f]{8}|_0x[0-9a-f]{4,})\b"
+        opaque_a = set(re.findall(opaque_pattern, ja))
+        opaque_b = set(re.findall(opaque_pattern, jb))
         if len(opaque_a) < 12 or len(opaque_b) < 12:
             raise SystemExit("protected runtime did not contain the expected opaque identifier set")
         if opaque_a == opaque_b:

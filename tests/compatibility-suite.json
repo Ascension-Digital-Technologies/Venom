@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "fixtures": [
+    {
+      "id": "browser-api-and-modules",
+      "site": "tests/fixtures/sites/browser-compat-site",
+      "dist": "build/compatibility/browser-api-and-modules"
+    },
+    {
+      "id": "static-multi-route",
+      "site": "tests/fixtures/sites/no-script-site",
+      "dist": "build/compatibility/static-multi-route"
+    },
+    {
+      "id": "production-esm-bundle",
+      "site": "tests/fixtures/sites/production-bundle-site",
+      "dist": "build/compatibility/production-esm-bundle"
+    },
+    {
+      "id": "react16-umd-production",
+      "site": "tests/fixtures/sites/react16-umd-site",
+      "dist": "build/compatibility/react16-umd-production"
+    },
+    {
+      "id": "dom-forms-events-observers",
+      "site": "tests/fixtures/sites/dom-compat-site",
+      "dist": "build/compatibility/dom-forms-events-observers"
+    },
+    {
+      "id": "dynamic-esm-bundle",
+      "site": "tests/fixtures/sites/dynamic-bundle-site",
+      "dist": "build/compatibility/dynamic-esm-bundle"
+    },
+    {
+      "id": "react-vite-modern-production",
+      "site": "tests/fixtures/sites/react-vite-modern-site",
+      "dist": "build/compatibility/react-vite-modern-production"
+    },
+    {
+      "id": "vue-vite-modern-production",
+      "site": "tests/fixtures/sites/vue-vite-modern-site",
+      "dist": "build/compatibility/vue-vite-modern-production"
+    },
+    {
+      "id": "svelte-vite-modern-production",
+      "site": "tests/fixtures/sites/svelte-vite-modern-site",
+      "dist": "build/compatibility/svelte-vite-modern-production"
+    }
+  ]
+}

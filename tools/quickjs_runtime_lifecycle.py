@@ -74,7 +74,7 @@ def input_digest(root: Path, emcc: Path|None, abi: str, opt: str, mem: str) -> s
     return h.hexdigest()
 
 def embedded_info(root: Path) -> dict[str,str]:
-    p=root/'src'/'compiler'/'quickjs_runtime_wasm_blob.hpp'
+    p=root/'src'/'generated'/'runtime'/'quickjs_runtime_wasm_blob.hpp'
     if not p.is_file(): return {}
     text=p.read_text(encoding='utf-8',errors='replace')
     m=re.search(r'kQuickJsRuntimeWasmBlobProvenance\s*=\s*R"[^\(]*\((.*?)\)[A-Za-z0-9_]*"',text,re.S)
@@ -112,7 +112,7 @@ def main()->int:
     ap.add_argument('command',choices=['resolve-emcc','resolve-wasm-opt','status','write-state'])
     ap.add_argument('--repo-root',type=Path,default=Path(__file__).resolve().parents[1])
     ap.add_argument('--out-dir',type=Path,default=None); ap.add_argument('--emcc', nargs='?', const='', default=None)
-    ap.add_argument('--abi-mode',default='release'); ap.add_argument('--optimization-profile',default='balanced'); ap.add_argument('--memory-profile',default='medium')
+    ap.add_argument('--abi-mode',default='prod'); ap.add_argument('--optimization-profile',default='balanced'); ap.add_argument('--memory-profile',default='medium')
     ap.add_argument('--format',choices=['text','json','path'],default='text')
     args=ap.parse_args(); root=args.repo_root.resolve(); out=(args.out_dir or root/'build'/'quickjs-wasm').resolve()
     emcc,source=resolve_emcc(root,args.emcc)

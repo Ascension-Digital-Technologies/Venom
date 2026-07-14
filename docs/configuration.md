@@ -1,18 +1,14 @@
-# Project configuration
+# Configuration
 
-Venom 1.1 introduces `venom.toml`, a source-controlled project policy file. The CLI searches from the site directory toward the filesystem root, or accepts an explicit path with `--config`.
+Venom uses `venom.toml` at the project root. CLI arguments override project configuration.
 
 ```toml
 [project]
-name = "example-site"
-entry = "site"
+entry = "."
 output = "dist"
 
 [build]
-vendor_cache = ".venom/vendor-cache"
-vendor_lock = "site/venom.lock"
-offline = false
-refresh_vendors = false
+profile = "dev"
 
 [runtime]
 engine = "quickjs-wasm"
@@ -20,15 +16,14 @@ fail_closed = true
 
 [security]
 deny_host_js_fallback = true
-require_audited_crypto = false
 ```
 
-Command-line values override configuration values:
+Only `dev` and `prod` are valid profiles. Validate and inspect the resolved configuration with:
 
-```bash
-venom build --config venom.toml --out dist-ci --format json
+```powershell
+venom config validate
+venom config print
+venom config print --format json
 ```
 
-Production safety settings cannot be disabled through configuration. Venom rejects a configuration that requests a non-QuickJS/WASM engine, an open-failure policy, or host-JavaScript fallback.
-
-The generated distribution includes `assets/app/build.json`, which records the product version, package and runtime ABI versions, source/config paths, selected backend, dependency lock digest, and package digest.
+The runtime and fail-closed security values are mandatory. Unknown fields inside recognized sections are reserved for forward-compatible versions; unknown sections fail validation.

@@ -41,29 +41,32 @@ def main() -> int:
 
     repo = pathlib.Path(sys.argv[1]).resolve()
     venom = pathlib.Path(sys.argv[2]).resolve()
-    runtime_cpp = repo / "src/compiler/runtime_js.cpp"
-    asset_runtime_cpp = repo / "src/compiler/browser_asset_runtime_js.cpp"
-    wasm_runtime_cpp = repo / "src/compiler/wasm_runtime_js.cpp"
+    runtime_cpp = repo / "src/generated/runtime/runtime_js.cpp"
+    runtime_template = repo / "src/runtime/templates/runtime.js"
+    asset_runtime_cpp = repo / "src/generated/runtime/browser_asset_runtime_js.cpp"
+    wasm_runtime_cpp = repo / "src/generated/runtime/wasm_runtime_js.cpp"
     example = repo / "examples/protected-chess"
 
     if not venom.is_file():
         fail(f"missing venom executable: {venom}")
-    if not runtime_cpp.is_file() or not asset_runtime_cpp.is_file() or not wasm_runtime_cpp.is_file():
+    if not runtime_cpp.is_file() or not runtime_template.is_file() or not asset_runtime_cpp.is_file() or not wasm_runtime_cpp.is_file():
         fail("missing runtime generator sources")
 
     runtime_text = runtime_cpp.read_text(encoding="utf-8")
+    runtime_template_text = runtime_template.read_text(encoding="utf-8")
     asset_runtime_text = asset_runtime_cpp.read_text(encoding="utf-8")
     wasm_runtime_text = wasm_runtime_cpp.read_text(encoding="utf-8")
-    required_markers = [
+    generator_marker = 'emit_block("__VENOM_BROWSER_ASSET_RUNTIME__", venom::compiler::make_browser_asset_runtime_js());'
+    if generator_marker not in runtime_text:
+        fail(f"runtime generator is missing marker: {generator_marker}")
+    for marker in [
         "installBrowserAssetResolver(route, assetManifest, assetBaseUrl);",
         "setActiveBrowserAssetRoute(runtime.route);",
-        'emit_block("__VENOM_BROWSER_ASSET_RUNTIME__", venom::compiler::make_browser_asset_runtime_js());',
-    ]
-    for marker in required_markers:
-        if marker not in runtime_text:
-            fail(f"runtime generator is missing marker: {marker}")
-    install_pos = runtime_text.find("installBrowserAssetResolver(route, assetManifest, assetBaseUrl);")
-    execute_pos = runtime_text.find("const executedScripts = await executeScriptsForRoute", install_pos)
+    ]:
+        if marker not in runtime_template_text:
+            fail(f"runtime template is missing marker: {marker}")
+    install_pos = runtime_template_text.find("installBrowserAssetResolver(route, assetManifest, assetBaseUrl);")
+    execute_pos = runtime_template_text.find("const executedScripts = await executeScriptsForRoute", install_pos)
     if install_pos < 0 or execute_pos < 0 or install_pos > execute_pos:
         fail("browser asset resolver is not installed before initial browser scripts execute")
     for marker in [
@@ -133,7 +136,7 @@ console.log(JSON.stringify({{passed:true, pawn:pawn.src, routed:routed.src}}));
 
     with tempfile.TemporaryDirectory(prefix="venom-dynamic-assets-") as temp:
         dist = pathlib.Path(temp) / "dist"
-        run([str(venom), "build", str(example), "--out", str(dist)])
+        run([str(venom), "build", str(example), "--out", str(dist)], cwd=repo)
         image_dir = dist / "assets/images"
         images = sorted(image_dir.glob("*.png")) if image_dir.is_dir() else []
         if len(images) != 12:
@@ -150,10 +153,10 @@ console.log(JSON.stringify({{passed:true, pawn:pawn.src, routed:routed.src}}));
         runtime_files = sorted((dist / "assets/runtime").glob("r.*.js"))
         if len(runtime_files) != 1:
             fail(f"expected one runtime JS file, found {len(runtime_files)}")
-        generated_runtime = runtime_files[0].read_text(encoding="utf-8")
-        for marker in ["__venomResolveAsset", "HTMLImageElement", "srcset"]:
-            if marker not in generated_runtime:
-                fail(f"generated runtime is missing dynamic asset resolver marker: {marker}")
+        # Production runtime identifiers are intentionally hardened. The source-level
+        # contract and executable resolver behavior above validate the implementation;
+        # strict runtime verification validates the emitted protected distribution.
+        run([str(venom), "verify-runtime", str(dist), "--target", "browser", "--require-real-engine"], cwd=repo)
 
     print("browser dynamic asset resolution smoke: PASS")
     return 0

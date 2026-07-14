@@ -1,89 +1,174 @@
 # Venom Secure Web Runtime
 
-Venom compiles supported websites into a compact, integrity-bound distribution that keeps browser-facing code compatible while moving selected JavaScript logic into a protected QuickJS/WebAssembly runtime.
+<p align="center">
+  <strong>Compile ordinary websites into hardened, diversified, QuickJS/WASM-powered static distributions.</strong>
+</p>
 
-The project is designed to increase the cost of static source recovery and unauthorized modification. It is not a substitute for server-side authorization, secret storage, or trusted execution.
+<p align="center">
+  <code>QuickJS bytecode</code> · <code>WebAssembly isolation</code> · <code>Dedicated workers</code> · <code>Hybrid execution</code> · <code>Per-build diversification</code>
+</p>
 
-> **Version:** 1.36.4  
-> **Status:** public release candidate  
-> **Flagship example:** [`examples/protected-chess`](examples/protected-chess)
+> **Version:** 1.65.2 · **Status:** stable  
+> Venom is a hybrid web protection compiler and runtime. It moves valuable JavaScript logic out of ordinary browser source and into a worker-isolated QuickJS/WebAssembly execution environment—while preserving static hosting, browser rendering, routing, assets, and normal frontend code.
 
-## Why Venom
+---
 
-Ordinary web deployments expose JavaScript source directly. Venom provides a hybrid model:
+## Why Venom exists
 
-- browser-native code remains in the browser for DOM, events, rendering, and framework compatibility;
-- explicitly protected logic is extracted and compiled to QuickJS bytecode;
-- QuickJS executes inside WebAssembly in a dedicated worker;
-- browser and protected code communicate through a narrow asynchronous JSON-value bridge;
-- generated loader, worker, engine, and runtime JavaScript is aggressively hardened;
-- protected package decoding is owned by WebAssembly rather than a readable JavaScript fallback;
-- package layout, bridge identifiers, opcode mappings, and section order vary between builds;
-- production builds fail closed when the real protected runtime is unavailable.
+Client-side applications often contain algorithms, pricing rules, risk models, game engines, signal generation, licensing logic, data transforms, and other valuable implementation details. Minification and obfuscation make that code less pleasant to read, but they still deliver ordinary JavaScript to the browser.
+
+**Venom changes the representation and execution boundary.** Protected logic is compiled into QuickJS bytecode, packaged in a diversified `.vbc` container, decoded through WebAssembly-owned boundaries, and executed inside a dedicated worker-hosted QuickJS/WASM runtime. Browser-facing code receives a narrow asynchronous API instead of direct access to the protected implementation.
+
+Venom does not claim that browser-delivered software can be made permanently secret. Its purpose is to **substantially raise reverse-engineering, extraction, and tampering cost** by forcing analysis across bytecode, WebAssembly, workers, package layout, integrity bindings, and a per-build bridge protocol.
+
+## What makes the runtime advanced
+
+| Capability | Minifier | JS obfuscator | Handwritten WASM | **Venom** |
+|---|---:|---:|---:|---:|
+| Identifier and syntax reduction | Yes | Yes | N/A | **Yes** |
+| Removes protected logic from normal browser JS | No | No | Yes | **Yes** |
+| QuickJS bytecode execution | No | No | No | **Built in** |
+| Dedicated worker isolation | No | No | Optional | **Built in** |
+| WASM-owned package decoding | No | No | Manual | **Built in** |
+| Hybrid browser/protected execution | No | No | Difficult | **First-class** |
+| Per-build package diversification | No | Limited | Manual | **Automatic** |
+| Static-host deployment | Yes | Yes | Usually | **Yes** |
+| Fail-closed verified runtime | No | No | Manual | **Yes** |
+| Release leak scanning | No | No | Manual | **Integrated** |
+| Signed release chain | External | External | External | **Integrated** |
+
+### Protection in layers
+
+1. **Source transformation** — AST minification, mangling, string encoding, and selective control-flow hardening.
+2. **Representation change** — protected JavaScript becomes QuickJS bytecode rather than readable browser source.
+3. **Runtime isolation** — execution occurs inside QuickJS/WASM hosted by a dedicated worker.
+4. **Narrow bridge** — only validated JSON-safe arguments and results cross the public boundary.
+5. **Package and bytecode diversification** — section order, identifiers, aliases, offsets, padding, generated assets, and the stored QuickJS record permutation vary by build.
+6. **Integrity binding** — loader, runtime, package, stylesheets, and WASM assets are hash-bound.
+7. **Release enforcement** — production builds fail closed and run provenance, leakage, hardener, and runtime verification.
 
 ## Architecture
 
-```text
-Browser UI
-   │
-   │ venom.exports.<name>(plainData)
-   ▼
-Generated public bridge
-   │  session-bound, bounded request/response protocol
-   ▼
-Dedicated worker
-   │
-   ▼
-QuickJS/WASM protected runtime
-   │
-   ▼
-Compiled protected exports
+```mermaid
+flowchart LR
+    A[HTML CSS JavaScript assets] --> B[Site and route graph]
+    B --> C[Browser compatibility analysis]
+    B --> D[Protected realm planning]
+    D --> E[QuickJS bytecode compiler]
+    E --> F[Diversified VBC package]
+    C --> G[Browser chunks and assets]
+    F --> H[WASM-owned decoder]
+    G --> I[Verified loader]
+    H --> J[Dedicated worker]
+    I --> J
+    J --> K[QuickJS/WASM runtime]
+    K --> L[Protected exports]
 ```
 
-A second WebAssembly runtime owns package parsing, authenticated section lookup, decoding, and route/DOM program execution.
+```mermaid
+sequenceDiagram
+    participant App as Browser application
+    participant API as Venom public API
+    participant Worker as Dedicated worker
+    participant QJS as QuickJS/WASM
+    App->>API: venom.exports.calculateRisk(input)
+    API->>API: Validate JSON value and limits
+    API->>Worker: Session + counter + export slot + payload
+    Worker->>Worker: Validate session, replay counter, slot
+    Worker->>QJS: Invoke protected bytecode export
+    QJS-->>Worker: Result or sanitized error
+    Worker-->>API: Bound response envelope
+    API-->>App: Promise result
+```
 
-See [`docs/architecture.md`](docs/architecture.md) for the complete design.
+Read the deeper architecture guides: [Compiler pipeline](docs/architecture/compiler-pipeline.md), [Protected runtime](docs/architecture/protected-runtime.md), [Trust boundaries](docs/architecture/trust-boundaries.md), and [Package format](docs/package-format.md).
 
-## Protected logic
+## Five-minute quick start
 
-### Protected function in a browser file
+### 1. Check the environment
+
+```powershell
+venom doctor --profile production
+```
+
+### 2. Initialize an existing site
+
+```powershell
+venom init path\to\site
+venom compatibility check path\to\site
+```
+
+### 3. Develop with the real protected runtime
+
+```powershell
+venom dev path\to\site --open
+```
+
+### 4. Build a hardened distribution
+
+```powershell
+venom build path\to\site --profile prod --out dist
+venom analyze-dist dist
+venom release-check dist
+```
+
+The result remains a static site that can be served by an ordinary web server or CDN.
+
+## Select what remains in the browser
+
+Venom protects JavaScript by default. Use annotations when compatibility-sensitive code should remain native.
 
 ```javascript
-// @venom: browser
+// No annotation: protected by default.
+function calculateRisk(order) {
+  return order.quantity * order.price;
+}
 
-// @venom: protected isolated
-function calculatePrice(input) {
-  return {
-    total: input.quantity * input.unitPrice
-  };
+// @venom: browser
+function renderChart(points) {
+  chart.draw(points);
+}
+
+// @venom: protected
+async function approveOrder(order) {
+  return calculateRisk(order) < 100000;
 }
 ```
 
-### Browser call
+Browser code calls protected exports asynchronously:
 
 ```javascript
 await venom.ready();
 
-const result = await venom.exports.calculatePrice({
-  quantity: 4,
-  unitPrice: 19.95
+const approved = await venom.exports.approveOrder({
+  symbol: "VENM",
+  quantity: 250,
+  price: 182.40
 });
 ```
 
-Protected calls accept only JSON values: `null`, booleans, finite numbers, strings, arrays, and plain objects. Functions, DOM values, custom class instances, cyclic values, `BigInt`, and other non-JSON values are rejected.
+See the complete [annotation guide](docs/guides/annotations.md), [protected function guide](docs/guides/protected-functions.md), and [browser bridge reference](docs/guides/browser-bridge.md).
 
-See [`docs/PROTECTED-BRIDGE.md`](docs/PROTECTED-BRIDGE.md).
+## Build profiles
 
-## Distribution layout
+Venom deliberately exposes only two profiles.
 
-A protected build emits:
+| Profile | Intended use | Runtime | Output |
+|---|---|---|---|
+| `dev` | Local development and debugging | Real QuickJS/WASM | Readable generated runtime, stable names, diagnostics |
+| `prod` | Deployment | Verified fail-closed QuickJS/WASM | Hashed, hardened, diversified, stripped assets |
+
+Both profiles execute protected code through the real QuickJS/WASM path. Production does not silently fall back to host JavaScript.
+
+## Production distribution
 
 ```text
 dist/
 ├── index.html
 └── assets/
     ├── app/
-    │   └── app.<hash>.vbc
+    │   ├── app.<hash>.vbc
+    │   └── build.json
     ├── images/
     ├── loader/
     │   └── loader.<hash>.js
@@ -98,206 +183,119 @@ dist/
         └── worker.<hash>.js
 ```
 
-`index.html` remains stable. Generated assets are content-addressed and bound to the same build. The loader and stylesheet use Subresource Integrity.
+Production output excludes source maps, human-readable extraction reports, browser-test manifests, and contributor-only files. See [production output layout](docs/reference/output-layout.md).
 
-## License and availability
+## Build Venom from source
 
-Venom is currently **source-available under a restricted evaluation and authorized-use license**. It is not OSI-approved open-source software. See [`LICENSE`](LICENSE), [`NOTICE.md`](NOTICE.md), and [`SUPPORT.md`](SUPPORT.md) before copying, distributing, or deploying it. Third-party components remain under their own licenses.
+### Windows
 
-## Requirements
-
-- CMake 3.24 or newer
-- A C++20 compiler
-- Python 3.10 or newer
-- Node.js for the release JavaScript hardener
-- Emscripten when rebuilding WebAssembly runtimes
-
-Windows development is tested with MSVC and PowerShell. Linux/macOS use the equivalent shell scripts.
-
-## Build Venom
-
-Windows:
+Requirements: Visual Studio with Desktop development with C++, CMake 3.20+, Python 3.10+, Node.js 20+, and npm.
 
 ```powershell
-.\scripts\build.ps1 -Config Release
-```
+git clone <repository-url>
+cd venom-secure-web-runtime
 
-Linux/macOS:
-
-```bash
-./scripts/build.sh Release
-```
-
-The executable is produced under `build/` according to the selected generator and configuration.
-
-## Build the protected chess example
-
-Windows:
-
-```powershell
 .\scripts\setup-js-hardener.ps1
+.\scripts\build.ps1 -Config Release
 
-The Windows installer pauses automatically on failure. For unattended environments, add `-NoPause`.
-.\scripts\build-site.ps1 -Site examples\protected-chess -Dist dist
-.\scripts\serve-site.ps1 -Dist dist -Port 8080
+.\build\Release\venom.exe doctor --profile production
+.\build\Release\venom.exe --version
 ```
 
-Linux/macOS:
+### Linux/macOS
 
 ```bash
+git clone <repository-url>
+cd venom-secure-web-runtime
+
 ./scripts/setup-js-hardener.sh
-./scripts/build-site.sh examples/protected-chess dist
-./scripts/serve-site.sh 8080 dist
+./scripts/build.sh --config Release
+
+./build/venom doctor --profile production
+./build/venom --version
 ```
 
-Then open `http://127.0.0.1:8080`.
+Runtime contributors rebuilding QuickJS/WASM also need the pinned Emscripten toolchain. Full instructions are in [Building from source](docs/development/building-from-source.md) and [QuickJS/WASM development](docs/development/quickjs-wasm.md).
 
-The chess example demonstrates browser-native UI and game orchestration with protected evaluation, minimax, alpha-beta pruning, and move selection. Read its [standalone guide](examples/protected-chess/README.md).
+## Release closure
 
-## Direct CLI use
+Venom includes a one-command release validation pipeline.
+
+```powershell
+.\scripts\release-closure.ps1
+```
+
+It verifies the repository, runtime provenance, JavaScript hardener, clean Release build, complete CTest suite, example builds, production leakage scans, and locally signed release packaging. A successful run ends with:
 
 ```text
-venom build <site> --out <dist> --profile browser-protect --hashed
-venom inspect <dist>
-venom verify-runtime <dist> --require-real-engine
+[venom] RELEASE CLOSURE: PASS
 ```
 
-Use `venom --help` for the authoritative command list.
+See [Release closure](docs/development/release-closure.md).
 
-## Build profiles
+## Flagship examples
 
-- `debug` — readable diagnostics and development behavior.
-- `browser-protect` — protected QuickJS/WASM execution with browser compatibility boundaries.
-- `native-protect` — native protected build workflow where supported.
-- `maximum` — strongest available release settings and validation.
+### Protected Chess
 
-Protected release profiles deny host-JavaScript fallback.
+A complete chess application with browser-native rendering and protected engine/search logic. It demonstrates isolated exports, worker execution, route/assets handling, and production verification.
 
-## Runtime and release hardening
+[Open the Protected Chess guide](examples/protected-chess/README.md)
 
-Current protected builds include:
+### NOVA TRADE
 
-- real QuickJS compiled to WebAssembly;
-- stripped QuickJS bytecode without protected source text;
-- explicit protected exports and a bounded JSON-value bridge;
-- numeric export slots and per-worker session binding;
-- replay and stale-envelope rejection;
-- per-build opaque bridge operation identifiers;
-- compact production WebAssembly ABI names;
-- WASM-owned package section decoding;
-- full package-section order and offset diversification;
-- content hashes, loader SRI, and package/runtime binding;
-- aggressive AST-aware JavaScript hardening;
-- production metadata and decoder leak scanning;
-- fail-closed runtime and release verification.
+A full trading-terminal demonstration with charts, paper trading, simulated feeds, order workflows, and proprietary risk/signal logic executed through protected QuickJS/WASM exports.
 
-These measures raise reverse-engineering cost but cannot create absolute confidentiality on an attacker-controlled client.
+[Open the NOVA TRADE guide](examples/nova-trade/README.md)
 
-## Release qualification
+### Venom Sentinel Bot Detection
 
-The flagship release gate builds and runs the protected chess application, verifies fail-closed tamper behavior, and checks deterministic seeded builds:
+A browser-intelligence dashboard that collects browser-exposed fingerprint, capability, timing, network, and behavior signals in the browser, then sends a JSON-safe assessment payload through Venom's binary capability bridge to a protected QuickJS/WASM scoring engine.
+
+[Open the bot-detection guide](examples/bot-detection/README.md)
+
+## Browser-equivalence evidence
+
+Venom can qualify compatibility by running the same scenario against the original site and the protected production distribution in real Chromium, Firefox, or WebKit sessions. The equivalence gate compares observable DOM values, routes, interactions, console failures, page failures, and optional normalized page snapshots, then binds the report to source, distribution, and manifest hashes.
 
 ```powershell
-.\scripts\release.ps1 -Browser all -Seed 1350001
+.\scripts\release-closure.ps1 -BrowserRuntimeTests
 ```
 
-See [Release qualification](docs/RELEASE-QUALIFICATION.md).
-
-
-## Release integrity
-
-Public release packages include deterministic manifests, SBOM/provenance metadata,
-license notices, checksums, and verification tooling. Run the repository-facing gate
-before publishing:
-
-```powershell
-python .\tools\public_release_gate.py .
-```
-
-The authoritative release workflow is:
-
-```powershell
-.\scripts\release.ps1 -Browser all -Seed 1350001
-```
-
-See [`docs/RELEASE-CHECKLIST.md`](docs/RELEASE-CHECKLIST.md).
-
-## Validation
-
-Run the complete test suite:
-
-```powershell
-.\scripts\test.ps1 -Config Release
-```
-
-Inspect a generated distribution:
-
-```powershell
-.\scripts\analyze-dist.ps1 -Dist dist
-python .\scripts\check-production-leaks.py dist
-```
-
-Assess release readiness:
-
-```powershell
-.\scripts\readiness.ps1 -Site examples\protected-chess -Dist dist
-```
-
-Canonical scripts are documented in [`scripts/README.md`](scripts/README.md). Test-only websites live under `tests/fixtures/sites`; `examples/` intentionally contains only the flagship protected chess application.
-
-## Repository layout
-
-```text
-cmake/             CMake modules and test registration
-contracts/         generated/runtime contract definitions
-docs/              current architecture, security, and release documentation
-examples/          supported public examples (protected chess only)
-fuzz/              fuzzing targets and corpora
-scripts/           stable developer and release entry points
-src/               compiler, package, runtime, and CLI sources
-tests/             unit, integration, package, and fixture tests
-third_party/       pinned third-party source dependencies
-tools/             Python implementation tools used by scripts and CI
-```
-
-See [`docs/source-layout.md`](docs/source-layout.md).
-
-## Security expectations
-
-Venom protects client-delivered implementation details; it does not provide a trusted client.
-
-Assume a determined operator can:
-
-- inspect and modify their local loader and worker;
-- observe bridge requests and responses;
-- instrument WebAssembly memory and imports;
-- query protected exports as black-box oracles;
-- reproduce enough runtime behavior with sufficient effort.
-
-Never place permanent credentials, signing keys, backend authorization decisions, or irreplaceable secrets in protected browser code.
-
-Read [`SECURITY.md`](SECURITY.md), [`docs/security-model.md`](docs/security-model.md), and [`docs/threat-model.md`](docs/threat-model.md).
+See [browser equivalence testing](docs/compatibility/browser-equivalence.md).
 
 ## Documentation
 
-- [Installation](docs/installation.md)
-- [Configuration](docs/configuration.md)
-- [Architecture](docs/architecture.md)
-- [Protected bridge](docs/PROTECTED-BRIDGE.md)
-- [Package format](docs/package-format.md)
-- [Production artifact layout](docs/production-artifact-layout.md)
-- [Release profiles](docs/release-profiles.md)
-- [Release packaging](docs/release-packaging.md)
-- [Release signing](docs/release-signing.md)
-- [Runtime performance](docs/runtime-performance.md)
-- [Compatibility](docs/compatibility.md)
-- [Security model](docs/security-model.md)
-- [Threat model](docs/threat-model.md)
+| Goal | Start here |
+|---|---|
+| Install and build Venom | [Installation](docs/getting-started/installation.md) |
+| Protect an existing website | [Existing-site integration](docs/getting-started/existing-project.md) |
+| Learn annotations and APIs | [Guides](docs/README.md#use-venom) |
+| Understand the architecture | [Architecture overview](docs/architecture/overview.md) |
+| Review the security model | [Security model](docs/security/security-model.md) |
+| Verify a production release | [Production hardening](docs/security/production-hardening.md) |
+| Contribute to the runtime | [Development documentation](docs/README.md#contribute) |
+| Find CLI commands | [CLI reference](docs/reference/cli.md) |
 
-## Contributing
+## Security model and limitations
 
-Read [`CONTRIBUTING.md`](CONTRIBUTING.md). Keep generated artifacts, build directories, historical release bundles, and compatibility fixture sites out of the public example surface.
+Venom is designed to increase the time, specialization, tooling, and per-build effort required to recover or modify protected behavior. It is especially effective against ordinary source inspection, reusable JavaScript deobfuscation workflows, static scraping, and low-effort modification.
+
+It cannot make software permanently secret from an analyst who controls the browser, operating system, memory, and execution environment. Highly motivated analysts can instrument any client runtime given enough time. Sensitive credentials, signing keys, and server-authoritative decisions still belong on a trusted server.
+
+Read [Security model](docs/security/security-model.md), [Threat model](docs/security/threat-model.md), and [Limitations](docs/security/limitations.md). Report vulnerabilities privately through [SECURITY.md](SECURITY.md).
+
+## Repository standards
+
+- [Contributing](CONTRIBUTING.md)
+- [Support](SUPPORT.md)
+- [Security policy](SECURITY.md)
+- [Code of conduct](CODE_OF_CONDUCT.md)
+- [Governance](GOVERNANCE.md)
+- [Roadmap](ROADMAP.md)
+- [Changelog](CHANGES.md)
 
 ## License
 
-See [`LICENSE`](LICENSE). Third-party components remain subject to their own licenses and notices.
+See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
+
+- [Runtime benchmarking](docs/performance/runtime-benchmarking.md)

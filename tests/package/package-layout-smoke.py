@@ -12,7 +12,7 @@ out_b = pathlib.Path(sys.argv[4]).resolve()
 for out in (out_a, out_b):
     if out.exists():
         shutil.rmtree(out)
-    subprocess.check_call([str(venom), 'build', str(site), '--out', str(out), '--profile', 'browser-protect', '--hashed'])
+    subprocess.check_call([str(venom), 'build', str(site), '--out', str(out), '--profile', 'prod', '--hashed'])
     check = subprocess.check_output([str(venom), 'release-check', str(out), '--target', 'browser'], text=True)
     for needle in ('layout_polymorphic: yes', 'payload_padding_bytes:', 'release_status: PASS'):
         if needle not in check:

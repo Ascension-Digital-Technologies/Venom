@@ -1,0 +1,55 @@
+name: Compatibility issue
+description: Report a website, framework, browser API, route, or asset that behaves differently after compilation.
+title: "[compatibility]: "
+labels: ["compatibility", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: Please remove private code and secrets. A minimal reproducible site is strongly preferred.
+  - type: input
+    id: version
+    attributes:
+      label: Venom version
+      placeholder: 1.52.0
+    validations:
+      required: true
+  - type: dropdown
+    id: profile
+    attributes:
+      label: Build profile
+      options: [dev, prod, both]
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+    validations:
+      required: true
+  - type: input
+    id: framework
+    attributes:
+      label: Framework or build tool
+      placeholder: Plain HTML, Vite, React, Vue, Svelte, etc.
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Compatibility report and console output
+      description: Include `venom compatibility check`, browser console, and failed network requests.
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Link a public reproduction or paste the smallest relevant source.

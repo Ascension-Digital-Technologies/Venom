@@ -3,7 +3,8 @@ import subprocess, sys, tempfile
 from pathlib import Path
 root = Path(__file__).resolve().parents[2]
 venom = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else None
-runtime_source = (root / 'src/compiler/runtime_js.cpp').read_text(encoding='utf-8')
+runtime_source = (root / 'src/generated/runtime/runtime_js.cpp').read_text(encoding='utf-8')
+runtime_source += (root / 'src/runtime/templates/runtime.js').read_text(encoding='utf-8')
 assert "protected package decoder is unavailable" in runtime_source
 assert "js.erase(begin, end - begin)" in runtime_source
 if venom:

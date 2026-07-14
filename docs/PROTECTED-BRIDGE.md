@@ -81,3 +81,14 @@ Every protected export is callable by page code and therefore by an attacker con
 ## Production transport hardening
 
 Hardened builds compile each protected export to a compact numeric slot. Browser-to-worker calls do not transmit internal candidate identifiers. Every worker boot also creates a fresh session token, and all call, cancel, result, and error envelopes carry a monotonic per-session counter. The worker rejects stale, duplicated, replayed, or cross-session envelopes. These controls reduce accidental cross-talk and generic protocol replay; they do not create a secret channel from an attacker who controls the client.
+
+## File-level protected modules
+
+```javascript
+// @venom: protected module
+
+function privateHelper(value) { return value * 2; }
+export function calculate(input) { return { result: privateHelper(input.value) }; }
+```
+
+The compiler keeps private declarations inside QuickJS and emits an ES-module facade for browser entry exports. Static relative imports between protected modules are resolved at build time. Each module executes inside an independent lexical closure, so identical private helper and constant names cannot collide. Dependency-module exports are stored only in the internal protected module namespace and are not registered on `venom.exports`. Named imports and namespace imports are supported. Cycles, dynamic imports, default imports, side-effect-only imports, and non-function exports are rejected during compilation.

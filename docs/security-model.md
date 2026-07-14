@@ -19,7 +19,7 @@ Venom aims to:
 
 Venom does not claim:
 
-- unbreakable browser-side confidentiality;
+- permanent browser-side confidentiality;
 - an unextractable package key;
 - a secure enclave or trusted execution environment;
 - complete browser sandboxing;

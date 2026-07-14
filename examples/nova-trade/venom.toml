@@ -1,0 +1,13 @@
+[project]
+entry = "."
+output = "dist"
+
+[build]
+profile = "dev"
+
+[runtime]
+engine = "quickjs-wasm"
+fail_closed = true
+
+[security]
+deny_host_js_fallback = true

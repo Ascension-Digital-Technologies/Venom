@@ -90,3 +90,12 @@ Release signing verifies that the binary release folder/archive matches the mani
 ## v0.90 production signature
 
 Production releases use the Ed25519 V2 envelope, explicit key fingerprints, trusted-key rotation, and monotonic release-sequence rollback checks. See `docs/security-model.md`. Generic OpenSSL RSA/ECDSA manifest signing is no longer the production contract.
+
+## GitHub tagged releases
+
+Configure these protected repository or environment secrets before creating a version tag:
+
+- `VENOM_RELEASE_PRIVATE_KEY_PEM`
+- `VENOM_RELEASE_PUBLIC_KEY_PEM`
+
+The tag publication workflow fails closed when either secret is absent. It creates `RELEASE_SET.sig`, verifies it against the supplied public key, and publishes the signature beside `RELEASE_SET.json`. Keep the private key in a protected release environment and require reviewer approval for that environment.

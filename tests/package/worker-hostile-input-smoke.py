@@ -1,7 +1,9 @@
 from pathlib import Path
 root = Path(__file__).resolve().parents[2]
-js = (root / 'src/compiler/js.cpp').read_text()
-runtime = (root / 'src/compiler/runtime_js.cpp').read_text()
+js = (root / 'src/compiler/pipeline/js.cpp').read_text()
+js += (root / 'src/compiler/pipeline/js_discovery.cpp').read_text(encoding='utf-8')
+runtime = (root / 'src/generated/runtime/runtime_js.cpp').read_text()
+runtime += (root / 'src/runtime/templates/runtime.js').read_text(encoding='utf-8')
 checks = {
     'worker nonce rejection': 'm.nonce !== nonce' in js,
     'worker protocol version': 'WORKER_PROTOCOL = 1' in js and 'm.protocol !== WORKER_PROTOCOL' in js,

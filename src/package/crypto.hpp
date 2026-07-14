@@ -37,11 +37,6 @@ public:
   std::vector<unsigned char> open(const std::vector<unsigned char>& ciphertext) override;
 };
 
-// Backwards-compatible alias for older call sites; v0.10 keeps this boundary
-// AEAD explicitly so compression/integrity are not confused with encryption.
-using CryptoProvider = AeadProvider;
-using NoCryptoProvider = NoAeadProvider;
-
 // Section sealing boundary. The default browser-runnable provider remains
 // runtime-decodable. The optional libsodium provider uses audited
 // XChaCha20-Poly1305-IETF and requires VENOM_PACKAGE_KEY at build/open time.

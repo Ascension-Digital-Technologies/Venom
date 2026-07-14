@@ -38,7 +38,7 @@ This is still intentionally narrower than full browser API parity. It is a fail-
 
 ## Validation
 
-The browser runtime compatibility smoke now requires all of the following under `browser-protect` with source-eval blocked:
+The browser runtime compatibility smoke now requires all of the following under `prod` with source-eval blocked:
 
 1. `verify-runtime --target browser --require-real-engine` passes.
 2. Upstream QuickJS WASM execution records are present.

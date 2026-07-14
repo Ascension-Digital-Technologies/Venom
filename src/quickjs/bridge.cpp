@@ -655,6 +655,5 @@ std::string runtime_denylist_contract_text(std::uint32_t runtime_abi, std::uint3
   return out.str();
 }
 
-void install_host_bridge_placeholder() {}
 
 } // namespace venom::quickjs

@@ -2,7 +2,7 @@
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
-module = (root / 'src/compiler/quickjs_engine_module.cpp').read_text(encoding='utf-8')
+module = (root / 'src/generated/runtime/quickjs_engine_module.cpp').read_text(encoding='utf-8')
 harness = (root / 'tests/runtime/browser-compat-harness.mjs').read_text(encoding='utf-8')
 fixture = (root / 'tests/fixtures/sites/browser-compat-site/assets/compat.js').read_text(encoding='utf-8')
 entry = (root / 'tests/fixtures/sites/browser-compat-site/assets/module-entry.js').read_text(encoding='utf-8')

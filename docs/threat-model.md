@@ -55,7 +55,7 @@ The Route VM is a custom interpreter in generated JavaScript. It is a transforma
 
 ## Explicit non-goals
 
-- making client code impossible to reverse engineer;
+- making client code permanently unrecoverable;
 - hiding server secrets in browser artifacts;
 - preventing a user from observing values rendered or used locally;
 - guaranteeing publisher authenticity without trusted signatures;

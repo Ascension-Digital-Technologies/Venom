@@ -7,7 +7,7 @@ venom = pathlib.Path(sys.argv[1])
 site = pathlib.Path(sys.argv[2])
 out = pathlib.Path(sys.argv[3])
 
-subprocess.run([str(venom), 'build', str(site), '--out', str(out), '--profile', 'browser-protect'], check=True)
+subprocess.run([str(venom), 'build', str(site), '--out', str(out), '--profile', 'prod'], check=True)
 check = subprocess.run([str(venom), 'release-check', str(out), '--target', 'browser'], check=True, text=True, capture_output=True)
 stdout = check.stdout
 required = [

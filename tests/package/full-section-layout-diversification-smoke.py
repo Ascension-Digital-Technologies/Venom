@@ -34,7 +34,7 @@ def main():
         raise SystemExit('usage: full-section-layout-diversification-smoke.py <venom>')
     venom = pathlib.Path(sys.argv[1]).resolve()
     repo = pathlib.Path(__file__).resolve().parents[2]
-    site = repo / 'examples' / 'no-script-site'
+    site = repo / 'tests' / 'fixtures' / 'sites' / 'no-script-site'
     with tempfile.TemporaryDirectory(prefix='venom-full-layout-') as td:
         root = pathlib.Path(td)
         layouts = []
