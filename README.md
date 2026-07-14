@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <strong>Version 2.0.0</strong> · <strong>Alpha 30</strong> · <strong>Static-host compatible</strong>
+  <strong>Version 1.0.0</strong> · <strong>Static-host compatible</strong>
 </p>
 
 ---
@@ -488,6 +488,10 @@ Report suspected vulnerabilities privately through [SECURITY.md](SECURITY.md). D
 | [CHANGES.md](CHANGES.md) | Public release history |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Development workflow, review expectations, and documentation standards |
 | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community participation and enforcement standards |
+
+## Versioning
+
+Venom follows [Semantic Versioning](docs/operations/versioning.md). The current public release is **1.0.0**. Internal commits and CI runs do not create new public version numbers.
 
 ## License
 

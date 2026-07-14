@@ -1,7 +1,7 @@
-# Venom 2.0.0-alpha.2 Security Audit
+# Venom pre-release development build Security Audit
 
 **Audit date:** 2026-07-14  
-**Scope revision:** telemetry-hardened source derived from `venom-secure-web-runtime-v2.0.0-alpha.2`  
+**Scope revision:** telemetry-hardened source derived from `a pre-release Venom development snapshot`  
 **Assessment type:** source-assisted architecture, implementation, build, and test review  
 **Overall risk:** **High until the browser cryptography language and native key generation findings are corrected**
 

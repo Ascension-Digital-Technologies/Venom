@@ -1,6 +1,6 @@
 # Venom Production Documentation
 
-> **Applies to:** Venom 2.0.0-alpha.30  
+> **Applies to:** Venom 1.0.0  
 > **Audience:** application teams, release engineers, security reviewers, and operators
 
 This documentation describes the supported production use of Venom: installing the compiler, protecting an existing website, integrating browser and protected execution, building and verifying distributions, deploying static output, and operating signed releases.
@@ -68,6 +68,7 @@ Internal implementation history and engineering-process records are intentionall
 | Development and production profiles | [Build profiles](operations/build-profiles.md) |
 | Verify a production release | [Release verification](operations/release-verification.md) |
 | Package signed releases | [Release packaging](operations/release-packaging.md) |
+| Understand release numbers and prerelease stages | [Versioning policy](operations/versioning.md) |
 | Historical release evidence | [Release evidence](operations/release-evidence.md) |
 | Deploy and manage runtime versions | [Runtime management](operations/runtime-management.md) |
 | Update and rollback installed releases | [Update management](operations/update-management.md) |
@@ -100,9 +101,9 @@ Internal implementation history and engineering-process records are intentionall
 
 Every documented command must correspond to a shipped command or script. Every local link is validated by the release documentation gate. Security claims must describe implemented behavior and must retain the browser-owner limitation: a determined analyst controlling the client can instrument delivered code even when the original protected source is absent from the distribution.
 
-## Version 2 preview
+## Architecture overview
 
-- [Venom v2 architecture preview](architecture/v2-overview.md)
+- [Venom architecture overview](architecture/product-overview.md)
 
 ## Security audit
 

@@ -2,7 +2,7 @@
 
 ## Finding
 
-The structural release scanner introduced in alpha.8 only inspected `VJSB0006` bundle entries. Protected function registries are emitted as a dedicated JavaScript section whose payload begins directly with `VQJSE006`, so valid protected-chess builds were incorrectly reported as containing zero records.
+The structural release scanner introduced during pre-release development only inspected `VJSB0006` bundle entries. Protected function registries are emitted as a dedicated JavaScript section whose payload begins directly with `VQJSE006`, so valid protected-chess builds were incorrectly reported as containing zero records.
 
 ## Fix
 

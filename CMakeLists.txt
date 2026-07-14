@@ -1,10 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(venom
-  VERSION 2.0.0
+  VERSION 1.0.0
   DESCRIPTION "Venom - Secure Web Runtime: protected web compiler and dual-VM browser runtime"
   LANGUAGES C CXX
 )
+
+# Stable public product version.
+set(VENOM_VERSION_FULL "${PROJECT_VERSION}")
 
 include(cmake/options.cmake)
 include(cmake/warnings.cmake)

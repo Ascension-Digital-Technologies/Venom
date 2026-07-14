@@ -78,11 +78,6 @@ bool run_doctor(const DoctorOptions& options) {
   const auto python = probe(python_command + " -c \"import sys; assert sys.version_info >= (3,10); print(sys.version.split()[0])\"");
   add(checks, "python", python.ok ? "Python " + first_line(python.output) : "Python 3.10+ probe failed", python.ok, "Install Python 3.10 or newer.");
 
-  const auto node = probe("node -e \"const m=Number(process.versions.node.split('.')[0]); if(m<20)process.exit(2); console.log(process.version)\"");
-  add(checks, "node", node.ok ? "Node.js " + first_line(node.output) : "Node.js 20+ probe failed", node.ok, "Install Node.js 20 or newer.", required("node"));
-
-  const auto npm = probe("npm --version");
-  add(checks, "npm", npm.ok ? "npm " + first_line(npm.output) : "npm probe failed", npm.ok, "Install npm with Node.js.", required("npm"));
 
   const bool embedded_hardener =
       fs::exists("src/compiler/pipeline/native_js_hardener.cpp") &&

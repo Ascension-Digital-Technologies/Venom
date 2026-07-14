@@ -1,6 +1,6 @@
 # Phase 3C — Enforced Host Capability Bridge
 
-Version: 2.0.0-alpha.22
+Development milestone: enforced host-capability bridge
 Date: 2026-07-14
 
 ## Summary

@@ -15,9 +15,10 @@ FORBIDDEN_PUBLIC_EXAMPLES = {'basic-site','kitchen-sink','multipage','chess-ai'}
 
 def cmake_version(root: Path) -> str:
     text=(root/'CMakeLists.txt').read_text(encoding='utf-8')
-    m=re.search(r'project\s*\(\s*venom\s+VERSION\s+([0-9]+\.[0-9]+\.[0-9]+)',text,re.I|re.S)
-    if not m: raise ValueError('unable to read project version from CMakeLists.txt')
-    return m.group(1)
+    base=re.search(r'project\s*\(\s*venom\s+VERSION\s+([0-9]+\.[0-9]+\.[0-9]+)',text,re.I|re.S)
+    if not base: raise ValueError('unable to read project version from CMakeLists.txt')
+    prerelease=re.search(r'set\s*\(\s*VENOM_VERSION_PRERELEASE\s+"([^"]+)"\s*\)',text,re.I)
+    return f"{base.group(1)}-{prerelease.group(1)}" if prerelease else base.group(1)
 
 
 def markdown_links(path: Path):

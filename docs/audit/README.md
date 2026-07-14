@@ -3,7 +3,7 @@
 
 > [!NOTE]
 > This directory is a dated engineering audit archive. Version numbers inside individual reports identify the source revision that was assessed and should not be interpreted as current product documentation.
-This directory contains the internal security assessment for Venom 2.0.0-alpha.2.
+This directory contains the internal security assessment for Venom pre-release development build.
 
 - [Full security audit](security-audit-2026-07-14.md)
 - [Findings register](findings-register.md)

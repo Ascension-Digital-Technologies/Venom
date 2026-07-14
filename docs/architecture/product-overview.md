@@ -1,6 +1,6 @@
-# Venom v2 architecture preview
+# Venom architecture overview
 
-Venom v2 remains a local compiler and browser runtime. It does not add a server dependency, remote execution service, hosted build requirement, or online control plane.
+Venom remains a local compiler and browser runtime. It does not add a server dependency, remote execution service, hosted build requirement, or online control plane.
 
 ## Planner precedence
 
@@ -14,7 +14,7 @@ The automatic protection planner accelerates project onboarding without taking c
 
 A higher-precedence decision cannot be overwritten by the planner. Conflicts are reported rather than silently resolved.
 
-## Initial v2 foundations
+## Architecture foundations
 
 - local protection-planning command;
 - `standard`, `strong`, and `maximum` protection levels;

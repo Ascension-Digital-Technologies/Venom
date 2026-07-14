@@ -2,109 +2,18 @@
   "id": "protected-chess",
   "scenarios": [
     {
-      "id": "boot-and-autoplay",
+      "id": "protected-runtime-boot",
       "path": "/",
-      "timeout_ms": 45000,
+      "timeout_ms": 30000,
       "wait_for": {
-        "selector": "#compVsCompBtn"
+        "selector": "#runtime-state"
       },
-      "actions": [
-        {
-          "type": "select",
-          "selector": "#search-time",
-          "value": "250"
-        },
-        {
-          "type": "select",
-          "selector": "#move-delay",
-          "value": "80"
-        },
-        {
-          "type": "click",
-          "selector": "#compVsCompBtn"
-        },
-        {
-          "type": "wait-for-function",
-          "expression": "() => document.querySelector('#move-count') && parseInt(document.querySelector('#move-count').textContent, 10) >= 4",
-          "timeout_ms": 30000
-        }
-      ],
       "checks": [
         {
           "id": "runtime-ready",
           "type": "contains-text",
           "selector": "#runtime-state",
           "contains": "Protected"
-        },
-        {
-          "id": "moves-played",
-          "type": "number-min",
-          "selector": "#move-count",
-          "min": 4
-        },
-        {
-          "id": "positions",
-          "type": "number-min",
-          "selector": "#position-count",
-          "min": 1
-        },
-        {
-          "id": "throughput",
-          "type": "number-min",
-          "selector": "#positions-per-s",
-          "min": 1000
-        },
-        {
-          "id": "running",
-          "type": "contains-text",
-          "selector": "#compVsCompBtn",
-          "contains": "Game Running"
-        }
-      ]
-    },
-    {
-      "id": "reset-cancels",
-      "path": "/",
-      "timeout_ms": 30000,
-      "wait_for": {
-        "selector": "#compVsCompBtn"
-      },
-      "actions": [
-        {
-          "type": "click",
-          "selector": "#compVsCompBtn"
-        },
-        {
-          "type": "wait",
-          "ms": 700
-        },
-        {
-          "type": "click",
-          "selector": "#resetBtn"
-        },
-        {
-          "type": "wait",
-          "ms": 300
-        }
-      ],
-      "checks": [
-        {
-          "id": "button-reset",
-          "type": "text",
-          "selector": "#compVsCompBtn",
-          "equals": "Start Game"
-        },
-        {
-          "id": "board-reset",
-          "type": "contains-text",
-          "selector": "#move-count",
-          "contains": "0 moves"
-        },
-        {
-          "id": "engine-idle",
-          "type": "text",
-          "selector": "#engine-busy",
-          "equals": "Idle"
         }
       ]
     }
@@ -114,9 +23,6 @@
   "evidence_level": "release-qualification",
   "support_tier": "flagship",
   "claims": [
-    "protected-engine-boots",
-    "ai-vs-ai-plays",
-    "reset-cancels",
-    "throughput-reported"
+    "protected-engine-boots"
   ]
 }

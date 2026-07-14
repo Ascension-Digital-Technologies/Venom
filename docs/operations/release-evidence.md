@@ -1,7 +1,7 @@
 # Venom 1.0.1 stable release verification
 
 > [!NOTE]
-> This is historical evidence for the 1.0.1 release line. It is retained for traceability and does not describe the current 2.0.0-alpha.30 qualification state.
+> This is historical evidence for the 1.0.1 release line. It is retained for traceability and does not describe the current 1.0.0 qualification state.
 
 Venom 1.0.1 records the first public stable source-package verification after the extracted source archive configured, built, and ran successfully on Windows.
 

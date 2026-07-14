@@ -46,3 +46,7 @@ Do not disclose suspected vulnerabilities in a public issue or pull request. Fol
 ## Community conduct
 
 Participation is governed by [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
+## Versioning
+
+Version numbers are assigned only for public release milestones. Do not increment the product version for individual commits, pull requests, or internal validation passes. Use commit hashes and CI run numbers for development traceability. See [the versioning policy](docs/operations/versioning.md).

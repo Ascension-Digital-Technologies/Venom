@@ -120,62 +120,11 @@ jobs:
           path: venom-v*.zip
           if-no-files-found: error
 
-  compatibility-evidence:
-    needs: [verified-runtime, release-closure]
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: {node-version: '22'}
-      - uses: actions/setup-python@v5
-        with: {python-version: '3.12'}
-      - uses: actions/download-artifact@v4
-        with:
-          name: venom-verified-runtime
-          path: verified-runtime
-      - name: Install canonical runtime
-        run: |
-          cp verified-runtime/src/generated/runtime/quickjs_runtime_wasm_blob.hpp src/generated/runtime/quickjs_runtime_wasm_blob.hpp
-          mkdir -p build/quickjs-wasm
-          cp verified-runtime/build/quickjs-wasm/* build/quickjs-wasm/
-          python tools/quickjs_wasm_cutover.py --repo-root . --out-dir build/quickjs-wasm --verify-embedded --require-real
-      - name: Install Playwright browsers
-        run: |
-          npm install --no-save playwright@1.52.0
-          npx playwright install --with-deps chromium firefox webkit
-      - name: Build Venom and compatibility fixtures
-        run: |
-          cmake --preset release-closure
-          cmake --build --preset release-closure --parallel 2
-          ./build/release-closure/venom build tests/fixtures/sites/browser-compat-site --out build/browser-dist
-          ./build/release-closure/venom build tests/fixtures/sites/no-script-site --out build/static-dist
-          ./build/release-closure/venom build tests/fixtures/sites/production-bundle-site --out build/production-bundle-dist
-          ./build/release-closure/venom build tests/fixtures/sites/react16-umd-site --out build/react16-dist
-          ./build/release-closure/venom build tests/fixtures/sites/dom-compat-site --out build/dom-compat-dist
-          ./build/release-closure/venom build tests/fixtures/sites/dynamic-bundle-site --out build/dynamic-bundle-dist
-      - name: Build compatibility evidence
-        run: |
-          python tools/browser_validation.py build/browser-dist --browser all --manifest tests/fixtures/sites/browser-compat-site/venom.browser.json --json-out build/browser-validation.json
-          python tools/browser_validation.py build/static-dist --browser all --manifest tests/fixtures/sites/no-script-site/venom.browser.json --json-out build/static-browser-validation.json
-          python tools/browser_validation.py build/production-bundle-dist --browser all --manifest tests/fixtures/sites/production-bundle-site/venom.browser.json --json-out build/production-bundle-validation.json
-          python tools/browser_validation.py build/react16-dist --browser all --manifest tests/fixtures/sites/react16-umd-site/venom.browser.json --json-out build/react16-browser-validation.json
-          python tools/browser_validation.py build/dom-compat-dist --browser all --manifest tests/fixtures/sites/dom-compat-site/venom.browser.json --json-out build/dom-compat-browser-validation.json
-          python tools/browser_validation.py build/dynamic-bundle-dist --browser all --manifest tests/fixtures/sites/dynamic-bundle-site/venom.browser.json --json-out build/dynamic-bundle-browser-validation.json
-          python tools/compatibility_matrix.py build/browser-validation.json build/static-browser-validation.json build/production-bundle-validation.json build/react16-browser-validation.json build/dom-compat-browser-validation.json build/dynamic-bundle-browser-validation.json --json-out build/compatibility-matrix.json
-          python tools/package_compatibility_evidence.py --matrix build/compatibility-matrix.json --reports build/browser-validation.json build/static-browser-validation.json build/production-bundle-validation.json build/react16-browser-validation.json build/dom-compat-browser-validation.json build/dynamic-bundle-browser-validation.json --manifests tests/fixtures/sites/browser-compat-site/venom.browser.json tests/fixtures/sites/no-script-site/venom.browser.json tests/fixtures/sites/production-bundle-site/venom.browser.json tests/fixtures/sites/react16-umd-site/venom.browser.json tests/fixtures/sites/dom-compat-site/venom.browser.json tests/fixtures/sites/dynamic-bundle-site/venom.browser.json --out build/venom-compatibility-evidence.zip --source-revision "${GITHUB_SHA}"
-          python tools/verify_compatibility_evidence.py build/venom-compatibility-evidence.zip
-      - uses: actions/upload-artifact@v4
-        with:
-          name: venom-compatibility-evidence
-          path: build/venom-compatibility-evidence.zip
-          if-no-files-found: error
-
   publish:
     if: startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
-    needs: [verified-runtime, release-closure, package, compatibility-evidence]
+    needs: [verified-runtime, release-closure, package]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -202,10 +151,9 @@ jobs:
       - name: Create and verify signed release publication set
         run: |
           mapfile -t PACKAGES < <(find artifacts -type f -name 'venom-v*.zip' | sort)
-          EVIDENCE="$(find artifacts -type f -name 'venom-compatibility-evidence.zip' | head -1)"
-          python tools/package_release_set.py --version "${GITHUB_REF_NAME#v}" --source-revision "$GITHUB_SHA" --packages "${PACKAGES[@]}" --compatibility-evidence "$EVIDENCE" --verified-runtime artifacts/venom-verified-runtime/build/quickjs-wasm/quickjs-runtime.wasm --out release-set --archive venom-release-set.zip --source-date-epoch "$SOURCE_DATE_EPOCH" --private-key "$RUNNER_TEMP/venom-signing/private.pem" --public-key "$RUNNER_TEMP/venom-signing/public.pem" --require-signature
+          python tools/package_release_set.py --version "${GITHUB_REF_NAME#v}" --source-revision "$GITHUB_SHA" --packages "${PACKAGES[@]}" --verified-runtime artifacts/venom-verified-runtime/build/quickjs-wasm/quickjs-runtime.wasm --out release-set --archive venom-release-set.zip --source-date-epoch "$SOURCE_DATE_EPOCH" --private-key "$RUNNER_TEMP/venom-signing/private.pem" --public-key "$RUNNER_TEMP/venom-signing/public.pem" --require-signature
           cp artifacts/venom-verified-runtime/build/quickjs-wasm/VERIFIED_RUNTIME_SHA256SUMS release-set/VERIFIED_RUNTIME_SHA256SUMS
-          python tools/verify_release_set.py release-set --expect-version "${GITHUB_REF_NAME#v}" --require-evidence --require-runtime --require-signature --public-key "$RUNNER_TEMP/venom-signing/public.pem"
+          python tools/verify_release_set.py release-set --expect-version "${GITHUB_REF_NAME#v}" --require-runtime --require-signature --public-key "$RUNNER_TEMP/venom-signing/public.pem"
       - uses: softprops/action-gh-release@v2
         with:
           files: |

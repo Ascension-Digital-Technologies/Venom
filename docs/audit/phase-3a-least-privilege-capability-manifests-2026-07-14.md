@@ -1,7 +1,7 @@
 # Phase 3A — Least-Privilege Capability Manifests
 
 Date: 2026-07-14
-Version: 2.0.0-alpha.20
+Development milestone: capability manifests
 
 ## Summary
 
