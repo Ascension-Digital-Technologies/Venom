@@ -11,11 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: github/codeql-action/init@v3
+      - uses: github/codeql-action/init@v4
         with: {languages: 'c-cpp'}
       - run: cmake -S . -B build/codeql -DVENOM_ENABLE_IPO=OFF
       - run: cmake --build build/codeql --parallel 2
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@v4
   sanitizers:
     runs-on: ubuntu-latest
     steps:
