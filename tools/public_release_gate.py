@@ -4,7 +4,7 @@ import argparse, json, re, sys
 from pathlib import Path
 
 REQUIRED = [
-    'README.md','CHANGES.md','LICENSE','NOTICE.md','SECURITY.md','SUPPORT.md',
+    'README.md','CHANGELOG.md','LICENSE','NOTICE.md','SECURITY.md','SUPPORT.md',
     'CODE_OF_CONDUCT.md','CONTRIBUTING.md','docs/RELEASE-CHECKLIST.md',
     'examples/protected-chess/README.md','.github/workflows/release.yml',
 ]
@@ -44,9 +44,9 @@ def main() -> int:
     readme=(root/'README.md').read_text(encoding='utf-8',errors='replace') if (root/'README.md').exists() else ''
     if version!='unknown' and f'**Version:** {version}' not in readme:
         errors.append(f'README version does not match {version}')
-    changes=(root/'CHANGES.md').read_text(encoding='utf-8',errors='replace') if (root/'CHANGES.md').exists() else ''
+    changes=(root/'CHANGELOG.md').read_text(encoding='utf-8',errors='replace') if (root/'CHANGELOG.md').exists() else ''
     if version!='unknown' and version not in changes:
-        errors.append(f'CHANGES.md does not mention {version}')
+        errors.append(f'CHANGELOG.md does not mention {version}')
 
     examples=root/'examples'
     public=[p.name for p in examples.iterdir() if p.is_dir()] if examples.exists() else []

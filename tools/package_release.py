@@ -272,7 +272,7 @@ def main() -> int:
     if root_license.exists():
         shutil.copy2(root_license, licenses / 'VENOM-LICENSE')
 
-    for rel in ('README.md', 'CHANGES.md', 'SECURITY.md', 'SUPPORT.md', 'CODE_OF_CONDUCT.md', 'NOTICE.md', 'toolchains.lock.json'):
+    for rel in ('README.md', 'CHANGELOG.md', 'SECURITY.md', 'SUPPORT.md', 'CODE_OF_CONDUCT.md', 'NOTICE.md', 'toolchains.lock.json'):
         src = repo_root / rel
         if src.exists():
             shutil.copy2(src, out_dir / rel)
