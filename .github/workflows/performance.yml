@@ -16,7 +16,7 @@ jobs:
       - run: python -m pip install brotli
       - name: Embedded runtime budgets
         run: python tools/runtime_performance.py --format json --json-out runtime-performance.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: runtime-performance
           path: runtime-performance.json

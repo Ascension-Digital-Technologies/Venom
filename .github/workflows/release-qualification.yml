@@ -19,7 +19,7 @@ jobs:
       - run: cmake --preset release -DVENOM_ENABLE_IPO=OFF
       - run: cmake --build --preset release --parallel 2
       - run: python tools/release_qualification.py --venom build/release/venom --seed 1350001
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: release-qualification-linux

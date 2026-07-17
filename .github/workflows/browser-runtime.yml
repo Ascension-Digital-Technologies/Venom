@@ -48,7 +48,7 @@ jobs:
       - name: Qualify Playground and Aegis end to end in all browsers
         if: github.event_name == 'schedule'
         run: python tests/browser/venom_examples_e2e.py --browser all --venom build/release/venom --work-dir build/browser-e2e
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: browser-runtime-qualification
