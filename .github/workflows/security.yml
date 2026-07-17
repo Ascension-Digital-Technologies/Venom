@@ -10,7 +10,7 @@ jobs:
   codeql:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: github/codeql-action/init@v3
         with: {languages: 'c-cpp'}
       - run: cmake -S . -B build/codeql -DVENOM_ENABLE_IPO=OFF
@@ -19,7 +19,7 @@ jobs:
   sanitizers:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: cmake -S . -B build/sanitizers -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DVENOM_ENABLE_SANITIZERS=ON -DVENOM_ENABLE_IPO=OFF
       - run: cmake --build build/sanitizers --parallel 2
       - run: ctest --test-dir build/sanitizers --output-on-failure
