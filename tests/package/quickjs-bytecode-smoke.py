@@ -40,12 +40,12 @@ for marker in (b"VQJSBC02", b"VQJSBC03"):
     if marker in blob:
         raise SystemExit(f"protected raw package exposes QuickJS bytecode marker; section should be sealed: {marker!r}")
 
-check = subprocess.run([str(venom), "release-check", str(out), "--target", "browser"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+check = subprocess.run([str(venom), "verify", str(out), "--target", "browser"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 if check.returncode != 0:
     print(check.stdout)
     raise SystemExit(check.returncode)
 if "release_status: PASS" not in check.stdout or "quickjs_bytecode_records: 0" in check.stdout:
     print(check.stdout)
-    raise SystemExit("release-check did not verify QuickJS bytecode records")
+    raise SystemExit("verify did not verify QuickJS bytecode records")
 
 print("quickjs bytecode smoke passed")

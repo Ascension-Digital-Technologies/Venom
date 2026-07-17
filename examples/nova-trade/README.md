@@ -19,7 +19,7 @@ It is intentionally larger than a toy example. The source includes a simulated m
 
 ## Execution boundary
 
-| Component | Realm | Reason |
+| Component | Runtime | Reason |
 |---|---|---|
 | Terminal layout and panels | Browser | Direct DOM and UI state |
 | Charts and drawing tools | Browser | Canvas/rendering integration |
@@ -96,8 +96,8 @@ Development keeps generated runtime code readable and emits diagnostics, but pro
 
 ```powershell
 venom build examples\nova-trade --profile prod --out dist\nova-trade
-venom analyze-dist dist\nova-trade
-venom release-check dist\nova-trade
+venom analyze dist\nova-trade
+venom verify dist\nova-trade
 ```
 
 Serve the generated directory with an ordinary HTTP server. Do not open `index.html` directly from `file://`, because workers and WebAssembly require normal HTTP behavior.
@@ -109,14 +109,14 @@ A production build should contain hashed loader, worker, runtime, WASM, styleshe
 Use:
 
 ```powershell
-venom analyze-dist dist\nova-trade --format json
+venom analyze dist\nova-trade --format json
 ```
 
 The release checker validates the real engine requirement, runtime/package binding, production policy, and common metadata/source leakage.
 
 ## Integration lessons
 
-1. Keep rendering and browser integrations in the browser realm.
+1. Keep rendering and browser integrations in the browser runtime.
 2. Protect cohesive algorithms rather than tiny helper calls.
 3. Use plain JSON-safe request/response contracts.
 4. Batch expensive analytics when possible.

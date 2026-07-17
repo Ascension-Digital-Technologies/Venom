@@ -6,7 +6,7 @@
 venom new <path> [--force]
 venom init [path] [--force]
 venom dev [path] [--out <dir>] [--host <host>] [--port <port>] [--open] [--no-watch]
-venom build <path> --profile dev|prod --out <dir> [--verbose|--quiet]
+venom build <path> --profile prod --out <dir> [--verbose|--quiet]
 ```
 
 ## Build output controls
@@ -23,11 +23,10 @@ venom build <path> --profile dev|prod --out <dir> [--verbose|--quiet]
 ## Analysis and verification
 
 ```text
-venom doctor --profile development|production [--format text|json]
-venom analyze <site-dir> [--format text|json]
+venom doctor --profile prodelopment|production [--format text|json]
 venom compatibility check <site-dir> [--format text|json]
-venom analyze-dist <dist-dir> [--format text|json]
-venom release-check <dist-dir>
+venom analyze <dist-dir> [--format text|json]
+venom verify <dist-dir>
 venom verify-runtime <dist-dir> --require-real-engine
 venom inspect <package> [--key-file <path>]
 ```
@@ -42,3 +41,12 @@ venom update check|install|rollback|status [options]
 ```
 
 Run `venom --help` for the exact commands supported by the current binary.
+
+### Build cache controls
+
+```text
+--no-cache
+--cache-dir <path>
+```
+
+Venom caches deterministic native-hardener results by content hash. Cache identity includes the hardener versions, asset role, deterministic seed, and complete input source. Final package polymorphism, integrity binding, and release verification still run for every build.

@@ -1,0 +1,15 @@
+{
+  "schema": "VENOM_EXAMPLE_CERTIFICATION_V1",
+  "version": 1,
+  "buildProfile": "prod",
+  "examples": [
+    {"id":"protected-chess","path":"examples/protected-chess","number":1,"requiresRealQuickJs":true,"leakScan":true,"browser":true},
+    {"id":"nova-trade","path":"examples/nova-trade","number":2,"requiresRealQuickJs":true,"leakScan":true,"browser":true},
+    {"id":"bot-detection","path":"examples/bot-detection","number":3,"requiresRealQuickJs":true,"leakScan":true,"browser":true},
+    {"id":"typescript-showcase","path":"examples/typescript-showcase","number":4,"requiresRealQuickJs":true,"leakScan":true,"browser":true},
+    {"id":"tsx-showcase","path":"examples/tsx-showcase","number":5,"requiresRealQuickJs":true,"leakScan":true,"browser":true},
+    {"id":"aegis-operations","path":"examples/aegis-operations","number":6,"requiresRealQuickJs":true,"leakScan":true,"browser":true},
+    {"id":"javascript-playground","path":"examples/javascript-playground","number":7,"requiresRealQuickJs":true,"leakScan":true,"browser":true,"requiresLoopbackCompiler":true},
+    {"id":"vite-framework-showcase","path":"examples/vite-framework-showcase","number":8,"requiresRealQuickJs":true,"leakScan":true,"browser":true,"requiresVite":true}
+  ]
+}

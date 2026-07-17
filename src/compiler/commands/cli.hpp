@@ -16,11 +16,10 @@ enum class CommandKind {
   Dev,
   Inspect,
   Keygen,
-  ReleaseCheck,
+  Verify,
   VerifyRuntime,
   Doctor,
   Compatibility,
-  Analyze,
   AnalyzeDist,
   Contracts,
   NewProject,
@@ -29,6 +28,7 @@ enum class CommandKind {
   Config,
   Update,
   Plan,
+  CompileSnippet,
 };
 
 struct BuildOptions {
@@ -60,6 +60,14 @@ struct BuildOptions {
   std::filesystem::path config_file;
   OutputFormat format = OutputFormat::Text;
   int verbosity = 1; // 0=quiet, 1=phases, 2=verbose internals
+  bool cache_enabled = true;
+  std::filesystem::path cache_directory;
+  std::string capability_fetch = "auto";
+  std::string capability_timers = "auto";
+  std::string capability_storage = "auto";
+  std::string capability_crypto = "auto";
+  bool lazy_loading_enabled = true;
+  std::vector<std::string> lazy_preload;
 };
 
 struct InspectOptions {
@@ -79,11 +87,13 @@ struct ReleaseCheckOptions {
   bool require_audited_crypto = false;
   bool runtime_verification = false;
   bool require_real_engine = false;
+  OutputFormat format = OutputFormat::Text;
+  int verbosity = 1; // 0=quiet, 1=concise, 2=full evidence
 };
 
 struct DevOptions { std::filesystem::path executable; std::filesystem::path input; std::filesystem::path output = "dist-dev"; std::string host = "127.0.0.1"; std::uint16_t port = 8080; bool open_browser = false; bool watch = true; };
 struct DoctorOptions { OutputFormat format = OutputFormat::Text; std::string profile = "development"; };
-struct CompatibilityOptions { std::filesystem::path input; OutputFormat format = OutputFormat::Text; };
+struct CompatibilityOptions { std::filesystem::path input; OutputFormat format = OutputFormat::Text; int verbosity = 1; };
 struct PlannerOptions {
   std::filesystem::path input;
   OutputFormat format = OutputFormat::Text;
@@ -116,6 +126,7 @@ struct Command {
   ContractsOptions contracts;
   std::filesystem::path analyze_dist_input;
   OutputFormat analyze_dist_format = OutputFormat::Text;
+  int analyze_dist_verbosity = 1;
   ProjectCommandOptions project;
   RuntimeCommandOptions runtime;
   ConfigCommandOptions config;

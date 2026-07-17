@@ -1,0 +1,57 @@
+name: Browser runtime qualification
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '23 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-runtime-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  runtime-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      SOURCE_DATE_EPOCH: 1704067200
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install browser test tooling
+        run: python -m pip install --disable-pip-version-check playwright==1.52.0
+      - name: Install Chromium for pull requests and pushes
+        if: github.event_name != 'schedule'
+        run: python -m playwright install --with-deps chromium
+      - name: Install full browser matrix for nightly qualification
+        if: github.event_name == 'schedule'
+        run: python -m playwright install --with-deps chromium firefox webkit
+      - run: cmake --preset release -DVENOM_ENABLE_IPO=OFF
+      - run: cmake --build --preset release --parallel 2
+      - name: Qualify protected runtime in Chromium
+        if: github.event_name != 'schedule'
+        run: python tools/release_qualification.py --venom build/release/venom --seed 1350001 --skip-reproducibility --browser chromium
+      - name: Qualify protected runtime in all browsers
+        if: github.event_name == 'schedule'
+        run: python tools/release_qualification.py --venom build/release/venom --seed 1350001 --skip-reproducibility --browser all
+      - name: Qualify Playground and Aegis end to end in Chromium
+        if: github.event_name != 'schedule'
+        run: python tests/browser/venom_examples_e2e.py --browser chromium --venom build/release/venom --work-dir build/browser-e2e
+      - name: Qualify Playground and Aegis end to end in all browsers
+        if: github.event_name == 'schedule'
+        run: python tests/browser/venom_examples_e2e.py --browser all --venom build/release/venom --work-dir build/browser-e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-runtime-qualification
+          path: |
+            build/protected-chess-browser.json
+            build/qualified-chess-dist

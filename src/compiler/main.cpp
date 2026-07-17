@@ -4,6 +4,7 @@
 #include "compiler/commands/doctor.hpp"
 #include "compiler/commands/dev.hpp"
 #include "compiler/core/compatibility.hpp"
+#include "compiler/core/diagnostic.hpp"
 #include "compiler/commands/dist_analyzer.hpp"
 #include "compiler/pipeline/security.hpp"
 #include "compiler/core/project.hpp"
@@ -11,6 +12,8 @@
 #include "compiler/services/update_manager.hpp"
 #include "compiler/core/config.hpp"
 #include "compiler/core/planner.hpp"
+#include "compiler/core/console.hpp"
+#include "compiler/commands/compile_snippet.hpp"
 
 #include <exception>
 #include <iostream>
@@ -36,18 +39,17 @@ int main(int argc, char** argv) {
         return venom::compiler::inspect_package(command.inspect.package) ? 0 : 30;
       case venom::compiler::CommandKind::Keygen:
         return venom::compiler::generate_key_file(command.keygen) ? 0 : 40;
-      case venom::compiler::CommandKind::ReleaseCheck:
+      case venom::compiler::CommandKind::Verify:
       case venom::compiler::CommandKind::VerifyRuntime:
         return venom::compiler::release_check(command.release_check) ? 0 : 30;
       case venom::compiler::CommandKind::Doctor:
         return venom::compiler::run_doctor(command.doctor) ? 0 : 50;
       case venom::compiler::CommandKind::Compatibility:
         return venom::compiler::run_compatibility_check(command.compatibility) ? 0 : 20;
-      case venom::compiler::CommandKind::Analyze:
-        venom::compiler::run_capability_analysis(command.compatibility);
-        return 0;
       case venom::compiler::CommandKind::Plan:
         return venom::compiler::run_protection_plan(command.planner) ? 0 : 22;
+      case venom::compiler::CommandKind::CompileSnippet:
+        return venom::compiler::compile_snippet(std::cin, std::cout) ? 0 : 23;
       case venom::compiler::CommandKind::AnalyzeDist:
         return venom::compiler::analyze_distribution({command.analyze_dist_input, command.analyze_dist_format}) ? 0 : 21;
       case venom::compiler::CommandKind::Contracts:
@@ -82,8 +84,11 @@ int main(int argc, char** argv) {
         throw std::runtime_error("config action must be validate or print");
       }
     }
+  } catch (const venom::compiler::DiagnosticError& diagnostic) {
+    venom::compiler::print_diagnostic(std::cerr, diagnostic);
+    return 10;
   } catch (const std::exception& ex) {
-    std::cerr << "venom: " << ex.what() << '\n';
+    venom::compiler::print_fatal_error(ex.what());
     return 10;
   }
   return 70;

@@ -1,8 +1,8 @@
 # Protected Modules
 
-> **Applies to:** Venom 1.0.1
+> **Applies to:** Venom 1.1.0
 
-Protected modules package related JavaScript logic into the QuickJS/WASM execution realm while exposing only declared asynchronous exports to browser code.
+Protected modules package related JavaScript logic into the QuickJS/WASM execution runtime while exposing only declared asynchronous exports to browser code.
 
 ## Declaring a protected module
 

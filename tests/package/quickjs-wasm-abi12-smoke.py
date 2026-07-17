@@ -16,7 +16,7 @@ if out.exists():
     shutil.rmtree(out)
 
 subprocess.run([str(venom), 'build', str(site), '--out', str(out), '--profile', 'prod'], check=True, text=True, capture_output=True)
-check = subprocess.run([str(venom), 'release-check', str(out), '--target', 'browser'], check=True, text=True, capture_output=True)
+check = subprocess.run([str(venom), 'verify', str(out), '--target', 'browser'], check=True, text=True, capture_output=True)
 required = [
     'quickjs_wasm_execution: yes',
     'quickjs_execution_backend: quickjs-wasm-real',

@@ -9,7 +9,7 @@ The host capability metadata is now specialized per JavaScript chunk instead of 
 
 ## Updated protected chess example
 
-The user-supplied protected chess example replaces the repository example. Its directives were corrected from two adjacent file-scope directives to an explicit browser file realm followed by a function-level protected directive:
+The user-supplied protected chess example replaces the repository example. Its directives were corrected from two adjacent file-scope directives to an explicit browser file runtime followed by a function-level protected directive:
 
 ```js
 // @venom: browser

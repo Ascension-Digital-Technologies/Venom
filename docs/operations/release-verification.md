@@ -1,6 +1,6 @@
 # Production Release Verification
 
-> **Applies to:** Venom 1.0.1  
+> **Applies to:** Venom 1.1.0  
 > **Purpose:** prove that a source tree, compiler binary, examples, runtime artifacts, and signed release package satisfy the production contracts
 
 Venom release verification is fail closed. A release is not qualified merely because the compiler builds or an example opens in a browser. The release closure validates the repository, embedded runtimes, hardener, native tests, production distributions, browser behavior, leakage policy, package signatures, and generated evidence.
@@ -10,19 +10,19 @@ Venom release verification is fail closed. A release is not qualified merely bec
 Windows:
 
 ```powershell
-.\scripts\release-closure.ps1 -Parallel 8
+.\scripts\windows\release-closure.ps1 -Parallel 8
 ```
 
 Linux:
 
 ```bash
-bash scripts/release-closure.sh --parallel 8
+bash scripts/linux/package-release.sh --help
 ```
 
 To include real-browser equivalence tests:
 
 ```powershell
-.\scripts\release-closure.ps1 -BrowserRuntimeTests -Parallel 8
+.\scripts\windows\release-closure.ps1  -Parallel 8
 ```
 
 ## Verification stages
@@ -32,7 +32,7 @@ To include real-browser equivalence tests:
 3. **Hardener verification** — installs the locked Node dependency graph, imports required modules, performs a real hardening pass, and validates the generated JavaScript.
 4. **Clean native build** — configures and builds the compiler and native probes using the release profile.
 5. **CTest closure** — executes the complete registered test inventory.
-6. **Example qualification** — builds Protected Chess, NOVA TRADE, and Bot Detection under development and production profiles.
+6. **Example qualification** — builds Protected Chess, NOVA TRADE, and Bot Detection under a single production-grade profile.
 7. **Distribution inspection** — validates asset binding, package layout, source leakage policy, runtime fingerprints, and fail-closed metadata.
 8. **Browser equivalence** — when enabled, compares source and protected distributions in real browsers using the checked-in scenario manifests.
 9. **Performance budgets** — records build and runtime evidence and fails on configured regression ceilings where enabled.
@@ -69,8 +69,8 @@ Any failed stage invalidates the release. Do not bypass a failed hardener, runti
 For a previously built distribution:
 
 ```powershell
-venom analyze-dist dist
-venom release-check dist
+venom analyze dist
+venom verify dist
 venom verify-runtime dist
 ```
 
@@ -81,7 +81,7 @@ The exact command names exposed by the installed binary are documented in [CLI r
 Before publication, extract the produced source archive into a new directory and repeat:
 
 ```powershell
-.\scripts\build.ps1 -Config Release
+.\scripts\windows\build.ps1 -Config Release
 ctest --test-dir build -C Release --output-on-failure -j 1
 ```
 
@@ -92,11 +92,16 @@ This detects omitted CMake modules, source files, generated inputs, templates, s
 Install Playwright browser engines before requesting browser runtime tests:
 
 ```powershell
-npx playwright install chromium firefox webkit
+python -m pip install playwright==1.52.0
+python -m playwright install chromium firefox webkit
 ```
 
-At minimum, Chromium qualification should pass for a public stable release. Broader claims require evidence from the corresponding engine reports.
+Browser qualification uses Python Playwright strictly as test tooling; Node.js is not required by the Venom compiler, hardener, or runtime. Pull requests and main-branch pushes run the Chromium runtime gate. The scheduled nightly job runs Chromium, Firefox, and WebKit.
+
+The gate validates navigation, protected runtime readiness, execution of a real protected export, failed network requests, page errors, and console errors. It intentionally does not assert demo autoplay timing or application performance.
 
 ## Signing requirements
 
 Stable release packaging requires the configured Ed25519 private key, public key, and key identifier. The private key must remain outside the repository and should be supplied through a protected release environment. See [Release signing](../security/release-signing.md) and [Release packaging](release-packaging.md).
+
+> **Verified WASM toolchain:** Venom pins Emscripten 4.0.10 for reproducible release builds. The minimal QuickJS/WASM target excludes QuickJS POSIX libc helpers, allowing newer Emscripten releases to compile the web/worker runtime without `environ` or `sighandler_t` compatibility failures.

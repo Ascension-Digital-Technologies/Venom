@@ -1,6 +1,8 @@
 #include "compiler/pipeline/js.hpp"
+#include "generated/contracts/quickjs_wasm_abi.hpp"
 
 #include <stdexcept>
+#include <sstream>
 
 namespace venom::compiler {
 
@@ -38,6 +40,8 @@ std::string make_quickjs_engine_module_js(bool protected_release) {
   const RELEASE_ABI_REQUIRED_KINDS = new Map(RELEASE_ABI_REQUIRED_EXPORTS.map((name) => [name, name === 'memory' ? 'memory' : 'function']));
   const RELEASE_ABI_APPROVED_TOOLCHAIN_EXPORTS = new Map([
     ['__indirect_function_table', 'table'],
+    ['__cxa_increment_exception_refcount', 'function'],
+    ['_initialize', 'function'],
     ['_emscripten_stack_restore', 'function'],
     ['emscripten_stack_get_current', 'function'],
   ]);
@@ -207,7 +211,8 @@ std::string make_quickjs_engine_module_js(bool protected_release) {
     const bytes = chunk && chunk.bytecodeBytes;
     if (!(bytes instanceof Uint8Array) || !bytes.length) return true;
     const handoff = chunk.bytecodeTrustHandoff;
-    if (!handoff || handoff.version !== 1 || handoff.producer !== 'package-decoder-wasm' || handoff.consumer !== 'quickjs-execution-wasm') {
+    const trustedProducer = handoff && (handoff.producer === 'package-decoder-wasm' || (!protectedRelease && handoff.producer === 'development-quickjs-compiler'));
+    if (!handoff || handoff.version !== 1 || !trustedProducer || handoff.consumer !== 'quickjs-execution-wasm') {
       throw new Error('QuickJS trust-domain handoff is missing or invalid');
     }
     const byteHash = fnv1a32(bytes) >>> 0;
@@ -457,22 +462,17 @@ std::string make_quickjs_engine_module_js(bool protected_release) {
         .then((result) => {
           const instance = result.instance || result;
           const e = instance.exports || {};
-          const releaseRequired = RELEASE_ABI_REQUIRED_EXPORTS;
-          const debugRequired = [
-            'memory', 'venom_qjs_engine_abi', 'venom_qjs_engine_version',
-            'venom_qjs_wasm_native_stack_capacity', 'venom_qjs_execute_source',
-            'venom_qjs_context_alloc', 'venom_qjs_context_free',
-            'venom_qjs_script_buffer_alloc', 'venom_qjs_script_buffer_capacity',
-          ];
-          const required = protectedRelease ? releaseRequired : debugRequired;
+          // The embedded browser artifact deliberately exposes the same minimal
+          // bytecode-only ABI in development and release builds. Development mode
+          // changes the accepted trust-domain producer, not the WASM export surface.
+          // Do not require the old debug/scaffold exports (engine_abi,
+          // execute_source, native_stack_capacity): current upstream QuickJS/WASM
+          // artifacts intentionally omit them.
+          const required = RELEASE_ABI_REQUIRED_EXPORTS;
           for (const name of required) if (!e[name]) throw new Error('QuickJS WASM backend missing ' + name + ' export');
-          if (protectedRelease) {
-            if ((e.venom_qjs_upstream_quickjs_ready() >>> 0) !== 1) throw new Error('QuickJS upstream runtime is not ready');
-          } else {
-            if (e.venom_qjs_engine_abi() !== 12) throw new Error('QuickJS WASM backend ABI mismatch');
-            const nativeStackCapacity = e.venom_qjs_wasm_native_stack_capacity() >>> 0;
-            if (nativeStackCapacity < 2097152) throw new Error('QuickJS WASM native stack is too small');
-            if (stackLimit > (nativeStackCapacity >>> 2)) throw new Error('QuickJS logical stack limit lacks a safe WASM native-stack margin');
+          if ((e.venom_qjs_upstream_quickjs_ready() >>> 0) !== 1) throw new Error('QuickJS upstream runtime is not ready');
+          if (!protectedRelease && (e.venom_qjs_bridge_abi() >>> 0) !== 1) {
+            throw new Error('QuickJS WASM bridge ABI mismatch');
           }
           cachedAbiTable = readAbiTableFromExports(instance);
           cachedHostImportTable = readHostImportTableFromExports(instance);
@@ -614,16 +614,24 @@ std::string make_quickjs_engine_module_js(bool protected_release) {
     if (protectedRelease && !bytecodeMode) throw new Error('protected release rejected a non-bytecode JavaScript chunk');
     const bytes = bytecodeMode ? chunk.bytecodeBytes : encoder.encode(String(chunk.code || ''));
     const requested = bytes.length >>> 0;
-    let mutableContext = contexts.get(context.key);
+    const executionPolicy = chunk && chunk.executionPolicy && typeof chunk.executionPolicy === 'object' ? chunk.executionPolicy : Object.freeze({});
+    const ephemeralContext = !protectedRelease && !!chunk.bridgeCandidate && executionPolicy.isolation !== 'persistent';
+    const effectiveHeapLimit = Math.min(heapLimit, executionPolicy.heapLimitBytes ? executionPolicy.heapLimitBytes >>> 0 : heapLimit) >>> 0;
+    const effectiveStackLimit = Math.min(stackLimit, executionPolicy.stackLimitBytes ? executionPolicy.stackLimitBytes >>> 0 : stackLimit) >>> 0;
+    const effectiveInterruptBudget = Math.min(interruptBudget, executionPolicy.interruptBudget ? executionPolicy.interruptBudget >>> 0 : interruptBudget) >>> 0;
+    const effectivePendingJobLimit = Math.min(pendingJobLimit, executionPolicy.pendingJobLimit ? executionPolicy.pendingJobLimit >>> 0 : pendingJobLimit) >>> 0;
+    const maxBridgeInputBytes = executionPolicy.maxBridgeInputBytes ? executionPolicy.maxBridgeInputBytes >>> 0 : 1048576;
+    const maxResultBytes = executionPolicy.maxResultBytes ? executionPolicy.maxResultBytes >>> 0 : 1048576;
+    let mutableContext = ephemeralContext ? null : contexts.get(context.key);
     if (!mutableContext) {
       mutableContext = { ...context, wasmContext: 0 };
-      contexts.set(context.key, mutableContext);
+      if (!ephemeralContext) contexts.set(context.key, mutableContext);
     }
     if (!mutableContext.wasmContext) mutableContext.wasmContext = e.venom_qjs_context_alloc() >>> 0;
-    if (mutableContext.wasmContext && typeof e.venom_qjs_context_set_limits === 'function') e.venom_qjs_context_set_limits(mutableContext.wasmContext >>> 0, heapLimit >>> 0, stackLimit >>> 0);
+    if (mutableContext.wasmContext && typeof e.venom_qjs_context_set_limits === 'function' && (e.venom_qjs_context_set_limits(mutableContext.wasmContext >>> 0, effectiveHeapLimit, effectiveStackLimit) >>> 0) !== 1) throw new Error('QuickJS memory limits rejected');
     if (mutableContext.wasmContext) {
       if (protectedRelease && typeof e.venom_qjs_context_set_execution_limits !== 'function') throw new Error('QuickJS release runtime lacks execution-limit support');
-      if (typeof e.venom_qjs_context_set_execution_limits === 'function' && (e.venom_qjs_context_set_execution_limits(mutableContext.wasmContext >>> 0, interruptBudget >>> 0, pendingJobLimit >>> 0) >>> 0) !== 1) throw new Error('QuickJS execution limits rejected');
+      if (typeof e.venom_qjs_context_set_execution_limits === 'function' && (e.venom_qjs_context_set_execution_limits(mutableContext.wasmContext >>> 0, effectiveInterruptBudget, effectivePendingJobLimit) >>> 0) !== 1) throw new Error('QuickJS execution limits rejected');
     }
     if (protectedRelease && diversification && !diversificationInstalled) {
       if (typeof e.venom_qjs_diversification_install !== 'function') throw new Error('QuickJS release runtime lacks live diversification support');
@@ -716,11 +724,52 @@ std::string make_quickjs_engine_module_js(bool protected_release) {
         abiStatus
       });
     }
-    const resultPtr = e.venom_qjs_result_ptr() >>> 0;
-    const resultSize = e.venom_qjs_result_size() >>> 0;
-    const reportText = decoder.decode(memory.subarray(resultPtr, resultPtr + resultSize));
     let report = null;
-    try { report = reportText ? JSON.parse(reportText) : null; } catch (_) { report = { ok: !!ok }; }
+    if (chunk.bridgeCandidate) {
+      if (typeof e.venom_qjs_bridge_input_alloc !== 'function' ||
+          typeof e.venom_qjs_bridge_input_capacity !== 'function' ||
+          typeof e.venom_qjs_bridge_invoke !== 'function' ||
+          typeof e.venom_qjs_bridge_result_ptr !== 'function' ||
+          typeof e.venom_qjs_bridge_result_size !== 'function' ||
+          typeof e.venom_qjs_bridge_release !== 'function') {
+        throw new Error('QuickJS minimal bridge result ABI is unavailable');
+      }
+      const requestBytes = encoder.encode(JSON.stringify({
+        candidate: String(chunk.bridgeCandidate),
+        args: Array.isArray(chunk.bridgeArgs) ? chunk.bridgeArgs : []
+      }));
+      const bridgePtr = e.venom_qjs_bridge_input_alloc(mutableContext.wasmContext >>> 0, requestBytes.byteLength >>> 0) >>> 0;
+      const bridgeCap = e.venom_qjs_bridge_input_capacity() >>> 0;
+      if (requestBytes.byteLength > maxBridgeInputBytes) throw new Error('QuickJS bridge request exceeds configured input limit');
+      if (!bridgePtr || requestBytes.byteLength > bridgeCap) throw new Error('QuickJS bridge request allocation failed');
+      try {
+        memoryRange(instance, bridgePtr, requestBytes.byteLength, 'QuickJS bridge request').set(requestBytes);
+        const invoked = e.venom_qjs_bridge_invoke(mutableContext.wasmContext >>> 0, requestBytes.byteLength >>> 0) >>> 0;
+        const resultPtr = e.venom_qjs_bridge_result_ptr() >>> 0;
+        const resultSize = e.venom_qjs_bridge_result_size() >>> 0;
+        if (resultSize > maxResultBytes) throw new Error('QuickJS bridge result exceeds configured result limit');
+        if (!invoked || !resultPtr || !resultSize) {
+          let exceptionMessage = '';
+          if (typeof e.venom_qjs_exception_message_ptr === 'function' && typeof e.venom_qjs_exception_message_size === 'function') {
+            const msgPtr = e.venom_qjs_exception_message_ptr() >>> 0;
+            const msgSize = e.venom_qjs_exception_message_size() >>> 0;
+            if (msgPtr && msgSize) exceptionMessage = decoder.decode(memory.subarray(msgPtr, msgPtr + msgSize));
+          }
+          throw new Error(exceptionMessage || 'QuickJS bridge result retrieval failed');
+        }
+        const reportText = decoder.decode(memory.subarray(resultPtr, resultPtr + resultSize));
+        try { report = JSON.parse(reportText); } catch (_) { report = { raw: reportText }; }
+      } finally {
+        e.venom_qjs_bridge_release(mutableContext.wasmContext >>> 0);
+      }
+    } else if (typeof e.venom_qjs_result_ptr === 'function' && typeof e.venom_qjs_result_size === 'function') {
+      const resultPtr = e.venom_qjs_result_ptr() >>> 0;
+      const resultSize = e.venom_qjs_result_size() >>> 0;
+      const reportText = decoder.decode(memory.subarray(resultPtr, resultPtr + resultSize));
+      try { report = reportText ? JSON.parse(reportText) : null; } catch (_) { report = { ok: !!ok }; }
+    } else {
+      report = { ok: !!ok };
+    }
     let executionRecord = report;
     if (typeof e.venom_qjs_execution_record_ptr === 'function' && typeof e.venom_qjs_execution_record_size === 'function') {
       const recPtr = e.venom_qjs_execution_record_ptr() >>> 0;
@@ -775,9 +824,15 @@ std::string make_quickjs_engine_module_js(bool protected_release) {
       try { return JSON.parse(text); } catch (_) { return { raw: text }; }
     };
     const scriptRecord = readJsonExportRecord('venom_qjs_script_record_ptr', 'venom_qjs_script_record_size');
-    const evalResult = readJsonExportRecord('venom_qjs_eval_result_ptr', 'venom_qjs_eval_result_size');
-    const consoleCapture = readJsonExportRecord('venom_qjs_console_capture_ptr', 'venom_qjs_console_capture_size');
-    const failureReport = readJsonExportRecord('venom_qjs_failure_report_ptr', 'venom_qjs_failure_report_size');
+    const evalResult = report && Object.prototype.hasOwnProperty.call(report, 'result')
+      ? report.result
+      : readJsonExportRecord('venom_qjs_eval_result_ptr', 'venom_qjs_eval_result_size');
+    const consoleCapture = report && Array.isArray(report.consoleCapture)
+      ? report.consoleCapture
+      : readJsonExportRecord('venom_qjs_console_capture_ptr', 'venom_qjs_console_capture_size');
+    const failureReport = report && report.ok === false
+      ? (report.error || report)
+      : readJsonExportRecord('venom_qjs_failure_report_ptr', 'venom_qjs_failure_report_size');
     cachedExecutionJournal = readTextRecordFromExports(instance, 'venom_qjs_execution_journal_ptr', 'venom_qjs_execution_journal_size', 'venom_qjs_execution_journal_hash');
     cachedReplayCursor = readTextRecordFromExports(instance, 'venom_qjs_replay_cursor_ptr', 'venom_qjs_replay_cursor_size', 'venom_qjs_replay_cursor_hash');
     cachedResumeState = readTextRecordFromExports(instance, 'venom_qjs_resume_state_ptr', 'venom_qjs_resume_state_size', 'venom_qjs_resume_state_hash');
@@ -823,11 +878,16 @@ std::string make_quickjs_engine_module_js(bool protected_release) {
     const wasmFallbackRequired = typeof e.venom_qjs_fallback_required === 'function' ? !!e.venom_qjs_fallback_required() : true;
     const wasmUpstreamReady = typeof e.venom_qjs_upstream_quickjs_ready === 'function' ? !!e.venom_qjs_upstream_quickjs_ready() : false;
     const hostBridgeTelemetry = inferWasmHostBridgeTelemetry(chunk, { quickJsWasm: true, report, hostCallCount: wasmHostCallCount, consoleCount: wasmConsoleCount, hostReceipts: cachedHostReceipts, hostIoDecision: cachedHostIoDecision, hostIoDenyTrace: cachedHostIoDenyTrace, fallbackRequired: wasmFallbackRequired, upstreamQuickJsReady: wasmUpstreamReady });
-    return Object.freeze({ executed: !!ok, quickJsWasm: true, bytecodeExecuted: !!(report && report.bytecodeExecuted), hostEffects: report && Array.isArray(report.hostEffects) ? report.hostEffects : Object.freeze([]), hostBridgeTelemetry, hostBridgeParity: hostBridgeTelemetry, wasmContext: mutableContext.wasmContext, report, executionRecord, scriptRecord, evalResult, consoleCapture, failureReport, executionJournal: cachedExecutionJournal, checkpointPolicy: cachedCheckpointPolicy, replayCursor: cachedReplayCursor, resumeState: cachedResumeState, determinismAudit: cachedDeterminismAudit, snapshotPolicy: cachedSnapshotPolicy, snapshotRecord: cachedSnapshotRecord, replayValidation: cachedReplayValidation, determinismLedger: cachedDeterminismLedger, auditSeal: cachedAuditSeal, executionCommit: cachedExecutionCommit, rollbackPolicy: cachedRollbackPolicy, hostReceipts: cachedHostReceipts, releaseAcceptance: cachedReleaseAcceptance, commitAudit: cachedCommitAudit, capabilityPolicy: cachedCapabilityPolicy, hostIoPolicy: cachedHostIoPolicy, permissionSeal: cachedPermissionSeal, policyReceipts: cachedPolicyReceipts, releaseGate: cachedReleaseGate, hostIoDecision: cachedHostIoDecision, hostIoDenyTrace: cachedHostIoDenyTrace, capabilityLedger: cachedCapabilityLedger, policySealAudit: cachedPolicySealAudit, runtimeDenylist: cachedRuntimeDenylist, exceptionRecord, exceptionMessage, moduleRecord, moduleGraphRecord: cachedModuleGraph, moduleExecutionCount: typeof e.venom_qjs_module_execution_count === 'function' ? e.venom_qjs_module_execution_count() >>> 0 : 0, moduleCacheState: (typeof e.venom_qjs_module_cache_state_ptr === 'function' && typeof e.venom_qjs_module_cache_state_size === 'function') ? readWasmString(instance, e.venom_qjs_module_cache_state_ptr() >>> 0, e.venom_qjs_module_cache_state_size() >>> 0) : '', resolverAuditState: (typeof e.venom_qjs_resolver_audit_ptr === 'function' && typeof e.venom_qjs_resolver_audit_size === 'function') ? readWasmString(instance, e.venom_qjs_resolver_audit_ptr() >>> 0, e.venom_qjs_resolver_audit_size() >>> 0) : '', interopFallbackRequired: typeof e.venom_qjs_interop_fallback_required === 'function' ? !!e.venom_qjs_interop_fallback_required() : false, bytecodeManifestHash: typeof e.venom_qjs_bytecode_manifest_hash === 'function' ? String(e.venom_qjs_bytecode_manifest_hash() >>> 0) : '', moduleResolverAbi: typeof e.venom_qjs_module_resolver_abi === 'function' ? e.venom_qjs_module_resolver_abi() >>> 0 : 0, exceptionAbi: typeof e.venom_qjs_exception_abi === 'function' ? e.venom_qjs_exception_abi() >>> 0 : 0, exceptionCode: typeof e.venom_qjs_exception_code === 'function' ? e.venom_qjs_exception_code() >>> 0 : 0, hostTrapPolicyHash: typeof e.venom_qjs_host_trap_policy_hash === 'function' ? String(e.venom_qjs_host_trap_policy_hash() >>> 0) : '', fallbackRequired: wasmFallbackRequired, backendKind: typeof e.venom_qjs_backend_kind === 'function' ? e.venom_qjs_backend_kind() >>> 0 : 0, backendReady: typeof e.venom_qjs_backend_ready === 'function' ? !!e.venom_qjs_backend_ready() : false, realEngineCandidate: typeof e.venom_qjs_real_engine_candidate === 'function' ? !!e.venom_qjs_real_engine_candidate() : false, engineState: typeof e.venom_qjs_engine_state === 'function' ? e.venom_qjs_engine_state() >>> 0 : 0, engineStateName: typeof e.venom_qjs_engine_state === 'function' ? lifecycleStateName(e.venom_qjs_engine_state() >>> 0) : 'unknown', engineTrapCode: typeof e.venom_qjs_engine_trap_code === 'function' ? e.venom_qjs_engine_trap_code() >>> 0 : 0, hostCallCount: wasmHostCallCount, scriptBufferAllocCount: typeof e.venom_qjs_script_buffer_alloc_count === 'function' ? e.venom_qjs_script_buffer_alloc_count() >>> 0 : 0, scriptBufferFreeCount: typeof e.venom_qjs_script_buffer_free_count === 'function' ? e.venom_qjs_script_buffer_free_count() >>> 0 : 0, consoleCount: wasmConsoleCount, wasmConsoleEvent, heapUsed, heapLimit: contextHeapLimit, stackLimit: contextStackLimit, scriptBufferBytes: typeof e.venom_qjs_script_buffer_size === 'function' ? e.venom_qjs_script_buffer_size(mutableContext.wasmContext) >>> 0 : requested, expectedHash, parityProbe: cachedParityProbe, abiStatus: typeof e.venom_qjs_status_code === 'function' ? e.venom_qjs_status_code() >>> 0 : 0, releaseStatus: typeof e.venom_qjs_release_status === 'function' ? e.venom_qjs_release_status() >>> 0 : 0, statusRecord, contextReport, runtimeLimits: cachedRuntimeLimits, backendContract: cachedBackendContract, interpreterContract: cachedInterpreterContract, interpreterReady: typeof e.venom_qjs_interpreter_ready === 'function' ? !!e.venom_qjs_interpreter_ready() : false, interpreterDispatchCount: typeof e.venom_qjs_interpreter_dispatch_count === 'function' ? e.venom_qjs_interpreter_dispatch_count() >>> 0 : 0, interpreterOpcodeCount: typeof e.venom_qjs_interpreter_opcode_count === 'function' ? e.venom_qjs_interpreter_opcode_count() >>> 0 : 0, interpreterGlobalSlotCount: typeof e.venom_qjs_global_slot_count === 'function' ? e.venom_qjs_global_slot_count() >>> 0 : 0, interpreterLastGlobalWriteHash: typeof e.venom_qjs_last_global_write_hash === 'function' ? e.venom_qjs_last_global_write_hash() >>> 0 : 0, interpreterSemanticPassCount: typeof e.venom_qjs_interpreter_semantic_pass_count === 'function' ? e.venom_qjs_interpreter_semantic_pass_count() >>> 0 : 0, interpreterPropertyWriteCount: typeof e.venom_qjs_interpreter_property_write_count === 'function' ? e.venom_qjs_interpreter_property_write_count() >>> 0 : 0, interpreterBuiltinProbeCount: typeof e.venom_qjs_interpreter_builtin_probe_count === 'function' ? e.venom_qjs_interpreter_builtin_probe_count() >>> 0 : 0, interpreterConsoleCallCount: typeof e.venom_qjs_interpreter_console_call_count === 'function' ? e.venom_qjs_interpreter_console_call_count() >>> 0 : 0, interpreterSemanticRecord: cachedSemanticRecord, interpreterGlobalSlotRecord: cachedGlobalSlotRecord, upstreamQuickJsReady: wasmUpstreamReady, upstreamParityRecord: cachedUpstreamParityRecord, upstreamBytecodeSemanticsRecord: cachedUpstreamBytecodeSemanticsRecord, upstreamLexicalScopeRecord: cachedUpstreamLexicalScopeRecord, upstreamClosureRecord: cachedUpstreamClosureRecord, upstreamIteratorRecord: cachedUpstreamIteratorRecord, upstreamIntrinsicRecord: cachedUpstreamIntrinsicRecord, upstreamPropertyDescriptorRecord: cachedUpstreamPropertyDescriptorRecord, upstreamPrototypeChainRecord: cachedUpstreamPrototypeChainRecord, upstreamCallFrameRecord: cachedUpstreamCallFrameRecord, upstreamIntrinsicSemanticsScore: typeof e.venom_qjs_upstream_intrinsic_semantics_score === 'function' ? e.venom_qjs_upstream_intrinsic_semantics_score() >>> 0 : 0, upstreamBytecodeSemanticsScore: typeof e.venom_qjs_upstream_bytecode_semantics_score === 'function' ? e.venom_qjs_upstream_bytecode_semantics_score() >>> 0 : 0, upstreamFeatureCount: typeof e.venom_qjs_upstream_feature_count === 'function' ? e.venom_qjs_upstream_feature_count() >>> 0 : 0, upstreamBuiltinCount: typeof e.venom_qjs_upstream_builtin_count === 'function' ? e.venom_qjs_upstream_builtin_count() >>> 0 : 0, upstreamObjectModelScore: typeof e.venom_qjs_upstream_object_model_score === 'function' ? e.venom_qjs_upstream_object_model_score() >>> 0 : 0, upstreamExceptionModelScore: typeof e.venom_qjs_upstream_exception_model_score === 'function' ? e.venom_qjs_upstream_exception_model_score() >>> 0 : 0, upstreamModuleModelScore: typeof e.venom_qjs_upstream_module_model_score === 'function' ? e.venom_qjs_upstream_module_model_score() >>> 0 : 0, bytecodeRecordHash32: typeof e.venom_qjs_bytecode_record_hash32 === 'function' ? e.venom_qjs_bytecode_record_hash32() >>> 0 : 0, bytecodePayloadSize: typeof e.venom_qjs_bytecode_payload_size === 'function' ? e.venom_qjs_bytecode_payload_size() >>> 0 : 0, bytecodeExpectedSourceHash32: typeof e.venom_qjs_bytecode_expected_source_hash32 === 'function' ? e.venom_qjs_bytecode_expected_source_hash32() >>> 0 : 0 });
+    if (!exceptionMessage && report && report.ok === false && report.error) exceptionMessage = String(report.error.message || report.error);
+    return Object.freeze({ executed: !!ok && (!report || report.ok !== false), quickJsWasm: true, bytecodeExecuted: !!(report && report.bytecodeExecuted), hostEffects: report && Array.isArray(report.hostEffects) ? report.hostEffects : Object.freeze([]), hostBridgeTelemetry, hostBridgeParity: hostBridgeTelemetry, wasmContext: mutableContext.wasmContext, report, executionRecord, scriptRecord, evalResult, consoleCapture, failureReport, executionJournal: cachedExecutionJournal, checkpointPolicy: cachedCheckpointPolicy, replayCursor: cachedReplayCursor, resumeState: cachedResumeState, determinismAudit: cachedDeterminismAudit, snapshotPolicy: cachedSnapshotPolicy, snapshotRecord: cachedSnapshotRecord, replayValidation: cachedReplayValidation, determinismLedger: cachedDeterminismLedger, auditSeal: cachedAuditSeal, executionCommit: cachedExecutionCommit, rollbackPolicy: cachedRollbackPolicy, hostReceipts: cachedHostReceipts, releaseAcceptance: cachedReleaseAcceptance, commitAudit: cachedCommitAudit, capabilityPolicy: cachedCapabilityPolicy, hostIoPolicy: cachedHostIoPolicy, permissionSeal: cachedPermissionSeal, policyReceipts: cachedPolicyReceipts, releaseGate: cachedReleaseGate, hostIoDecision: cachedHostIoDecision, hostIoDenyTrace: cachedHostIoDenyTrace, capabilityLedger: cachedCapabilityLedger, policySealAudit: cachedPolicySealAudit, runtimeDenylist: cachedRuntimeDenylist, exceptionRecord, exceptionMessage, moduleRecord, moduleGraphRecord: cachedModuleGraph, moduleExecutionCount: typeof e.venom_qjs_module_execution_count === 'function' ? e.venom_qjs_module_execution_count() >>> 0 : 0, moduleCacheState: (typeof e.venom_qjs_module_cache_state_ptr === 'function' && typeof e.venom_qjs_module_cache_state_size === 'function') ? readWasmString(instance, e.venom_qjs_module_cache_state_ptr() >>> 0, e.venom_qjs_module_cache_state_size() >>> 0) : '', resolverAuditState: (typeof e.venom_qjs_resolver_audit_ptr === 'function' && typeof e.venom_qjs_resolver_audit_size === 'function') ? readWasmString(instance, e.venom_qjs_resolver_audit_ptr() >>> 0, e.venom_qjs_resolver_audit_size() >>> 0) : '', interopFallbackRequired: typeof e.venom_qjs_interop_fallback_required === 'function' ? !!e.venom_qjs_interop_fallback_required() : false, bytecodeManifestHash: typeof e.venom_qjs_bytecode_manifest_hash === 'function' ? String(e.venom_qjs_bytecode_manifest_hash() >>> 0) : '', moduleResolverAbi: typeof e.venom_qjs_module_resolver_abi === 'function' ? e.venom_qjs_module_resolver_abi() >>> 0 : 0, exceptionAbi: typeof e.venom_qjs_exception_abi === 'function' ? e.venom_qjs_exception_abi() >>> 0 : 0, exceptionCode: typeof e.venom_qjs_exception_code === 'function' ? e.venom_qjs_exception_code() >>> 0 : 0, hostTrapPolicyHash: typeof e.venom_qjs_host_trap_policy_hash === 'function' ? String(e.venom_qjs_host_trap_policy_hash() >>> 0) : '', fallbackRequired: wasmFallbackRequired, backendKind: typeof e.venom_qjs_backend_kind === 'function' ? e.venom_qjs_backend_kind() >>> 0 : 0, backendReady: typeof e.venom_qjs_backend_ready === 'function' ? !!e.venom_qjs_backend_ready() : false, realEngineCandidate: typeof e.venom_qjs_real_engine_candidate === 'function' ? !!e.venom_qjs_real_engine_candidate() : false, engineState: typeof e.venom_qjs_engine_state === 'function' ? e.venom_qjs_engine_state() >>> 0 : 0, engineStateName: typeof e.venom_qjs_engine_state === 'function' ? lifecycleStateName(e.venom_qjs_engine_state() >>> 0) : 'unknown', engineTrapCode: typeof e.venom_qjs_engine_trap_code === 'function' ? e.venom_qjs_engine_trap_code() >>> 0 : 0, hostCallCount: wasmHostCallCount, scriptBufferAllocCount: typeof e.venom_qjs_script_buffer_alloc_count === 'function' ? e.venom_qjs_script_buffer_alloc_count() >>> 0 : 0, scriptBufferFreeCount: typeof e.venom_qjs_script_buffer_free_count === 'function' ? e.venom_qjs_script_buffer_free_count() >>> 0 : 0, consoleCount: wasmConsoleCount, wasmConsoleEvent, heapUsed, heapLimit: contextHeapLimit, stackLimit: contextStackLimit, scriptBufferBytes: typeof e.venom_qjs_script_buffer_size === 'function' ? e.venom_qjs_script_buffer_size(mutableContext.wasmContext) >>> 0 : requested, expectedHash, parityProbe: cachedParityProbe, abiStatus: typeof e.venom_qjs_status_code === 'function' ? e.venom_qjs_status_code() >>> 0 : 0, releaseStatus: typeof e.venom_qjs_release_status === 'function' ? e.venom_qjs_release_status() >>> 0 : 0, statusRecord, contextReport, runtimeLimits: cachedRuntimeLimits, backendContract: cachedBackendContract, interpreterContract: cachedInterpreterContract, interpreterReady: typeof e.venom_qjs_interpreter_ready === 'function' ? !!e.venom_qjs_interpreter_ready() : false, interpreterDispatchCount: typeof e.venom_qjs_interpreter_dispatch_count === 'function' ? e.venom_qjs_interpreter_dispatch_count() >>> 0 : 0, interpreterOpcodeCount: typeof e.venom_qjs_interpreter_opcode_count === 'function' ? e.venom_qjs_interpreter_opcode_count() >>> 0 : 0, interpreterGlobalSlotCount: typeof e.venom_qjs_global_slot_count === 'function' ? e.venom_qjs_global_slot_count() >>> 0 : 0, interpreterLastGlobalWriteHash: typeof e.venom_qjs_last_global_write_hash === 'function' ? e.venom_qjs_last_global_write_hash() >>> 0 : 0, interpreterSemanticPassCount: typeof e.venom_qjs_interpreter_semantic_pass_count === 'function' ? e.venom_qjs_interpreter_semantic_pass_count() >>> 0 : 0, interpreterPropertyWriteCount: typeof e.venom_qjs_interpreter_property_write_count === 'function' ? e.venom_qjs_interpreter_property_write_count() >>> 0 : 0, interpreterBuiltinProbeCount: typeof e.venom_qjs_interpreter_builtin_probe_count === 'function' ? e.venom_qjs_interpreter_builtin_probe_count() >>> 0 : 0, interpreterConsoleCallCount: typeof e.venom_qjs_interpreter_console_call_count === 'function' ? e.venom_qjs_interpreter_console_call_count() >>> 0 : 0, interpreterSemanticRecord: cachedSemanticRecord, interpreterGlobalSlotRecord: cachedGlobalSlotRecord, upstreamQuickJsReady: wasmUpstreamReady, upstreamParityRecord: cachedUpstreamParityRecord, upstreamBytecodeSemanticsRecord: cachedUpstreamBytecodeSemanticsRecord, upstreamLexicalScopeRecord: cachedUpstreamLexicalScopeRecord, upstreamClosureRecord: cachedUpstreamClosureRecord, upstreamIteratorRecord: cachedUpstreamIteratorRecord, upstreamIntrinsicRecord: cachedUpstreamIntrinsicRecord, upstreamPropertyDescriptorRecord: cachedUpstreamPropertyDescriptorRecord, upstreamPrototypeChainRecord: cachedUpstreamPrototypeChainRecord, upstreamCallFrameRecord: cachedUpstreamCallFrameRecord, upstreamIntrinsicSemanticsScore: typeof e.venom_qjs_upstream_intrinsic_semantics_score === 'function' ? e.venom_qjs_upstream_intrinsic_semantics_score() >>> 0 : 0, upstreamBytecodeSemanticsScore: typeof e.venom_qjs_upstream_bytecode_semantics_score === 'function' ? e.venom_qjs_upstream_bytecode_semantics_score() >>> 0 : 0, upstreamFeatureCount: typeof e.venom_qjs_upstream_feature_count === 'function' ? e.venom_qjs_upstream_feature_count() >>> 0 : 0, upstreamBuiltinCount: typeof e.venom_qjs_upstream_builtin_count === 'function' ? e.venom_qjs_upstream_builtin_count() >>> 0 : 0, upstreamObjectModelScore: typeof e.venom_qjs_upstream_object_model_score === 'function' ? e.venom_qjs_upstream_object_model_score() >>> 0 : 0, upstreamExceptionModelScore: typeof e.venom_qjs_upstream_exception_model_score === 'function' ? e.venom_qjs_upstream_exception_model_score() >>> 0 : 0, upstreamModuleModelScore: typeof e.venom_qjs_upstream_module_model_score === 'function' ? e.venom_qjs_upstream_module_model_score() >>> 0 : 0, bytecodeRecordHash32: typeof e.venom_qjs_bytecode_record_hash32 === 'function' ? e.venom_qjs_bytecode_record_hash32() >>> 0 : 0, bytecodePayloadSize: typeof e.venom_qjs_bytecode_payload_size === 'function' ? e.venom_qjs_bytecode_payload_size() >>> 0 : 0, bytecodeExpectedSourceHash32: typeof e.venom_qjs_bytecode_expected_source_hash32 === 'function' ? e.venom_qjs_bytecode_expected_source_hash32() >>> 0 : 0 });
     } finally {
       zeroWasmRange(instance, ptr, requested);
       if (ptr && typeof e.venom_qjs_script_buffer_free === 'function') {
         e.venom_qjs_script_buffer_free(mutableContext.wasmContext >>> 0, ptr >>> 0);
+      }
+      if (ephemeralContext && mutableContext.wasmContext && typeof e.venom_qjs_context_free === 'function') {
+        e.venom_qjs_context_free(mutableContext.wasmContext >>> 0);
+        mutableContext.wasmContext = 0;
       }
     }
   }
@@ -1158,6 +1218,32 @@ __VENOM_QUICKJS_FALLBACK_BLOCK__
   });
 }
 )QJSENGINE";
+  {
+    const std::string required_begin = "  const RELEASE_ABI_REQUIRED_EXPORTS = Object.freeze([";
+    const std::string required_end = "  ]);";
+    const auto begin = js.find(required_begin);
+    const auto end = begin == std::string::npos ? std::string::npos : js.find(required_end, begin);
+    if (begin == std::string::npos || end == std::string::npos) throw std::runtime_error("QuickJS ABI export marker missing");
+    std::ostringstream generated;
+    generated << required_begin << "\n";
+    for (const auto name : generated::quickjs_wasm_abi::required_exports) generated << "    '" << name << "',\n";
+    generated << required_end;
+    js.replace(begin, end + required_end.size() - begin, generated.str());
+
+    const std::string approved_begin = "  const RELEASE_ABI_APPROVED_TOOLCHAIN_EXPORTS = new Map([";
+    const auto approved_pos = js.find(approved_begin);
+    const auto approved_end = approved_pos == std::string::npos ? std::string::npos : js.find("  ]);", approved_pos);
+    if (approved_pos == std::string::npos || approved_end == std::string::npos) throw std::runtime_error("QuickJS toolchain ABI marker missing");
+    std::ostringstream approved;
+    approved << approved_begin << "\n";
+    for (const auto name : generated::quickjs_wasm_abi::allowed_toolchain_exports) {
+      const auto kind = name == "__indirect_function_table" ? "table" : "function";
+      approved << "    ['" << name << "', '" << kind << "'],\n";
+    }
+    approved << "  ]);";
+    js.replace(approved_pos, approved_end + 5u - approved_pos, approved.str());
+  }
+
   const std::string fallback_marker = "__VENOM_QUICKJS_FALLBACK_BLOCK__";
   const auto fallback_pos = js.find(fallback_marker);
   if (fallback_pos == std::string::npos) throw std::runtime_error("QuickJS module generation marker missing");

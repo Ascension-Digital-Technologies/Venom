@@ -79,11 +79,11 @@
           <p>The interface stays compatible with the browser. All chess rules, validation, move generation, evaluation, and search execute behind a narrow JSON bridge.</p>
         </div>
         <div class="protection-list">
-          <div class="protection-row"><span>UI &amp; board rendering</span><strong class="realm browser-realm">Browser</strong></div>
-          <div class="protection-row"><span>Rules, validation &amp; legal moves</span><strong class="realm protected-realm">Protected</strong></div>
-          <div class="protection-row"><span>Evaluation tables</span><strong class="realm protected-realm">Protected</strong></div>
-          <div class="protection-row"><span>Negamax, quiescence &amp; transposition table</span><strong class="realm protected-realm">Protected</strong></div>
-          <div class="protection-row"><span>Move selection</span><strong class="realm protected-realm">Protected</strong></div>
+          <div class="protection-row"><span>UI &amp; board rendering</span><strong class="runtime browser-runtime">Browser</strong></div>
+          <div class="protection-row"><span>Rules, validation &amp; legal moves</span><strong class="runtime protected-runtime">Protected</strong></div>
+          <div class="protection-row"><span>Evaluation tables</span><strong class="runtime protected-runtime">Protected</strong></div>
+          <div class="protection-row"><span>Negamax, quiescence &amp; transposition table</span><strong class="runtime protected-runtime">Protected</strong></div>
+          <div class="protection-row"><span>Move selection</span><strong class="runtime protected-runtime">Protected</strong></div>
         </div>
         <div class="integrity-box">
           <div><span>Runtime</span><strong id="runtime-name">QuickJS / WASM</strong></div>

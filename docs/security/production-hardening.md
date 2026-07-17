@@ -1,6 +1,6 @@
 # Production Hardening
 
-> **Applies to:** Venom 1.0.1
+> **Applies to:** Venom 1.1.0
 
 A production build must use the `prod` profile and pass the release verification pipeline. Development output is not a production substitute even though it uses the real QuickJS/WASM execution path.
 
@@ -18,7 +18,7 @@ A production build must use the `prod` profile and pass the release verification
 
 ## Application boundary
 
-Protect algorithms and business rules that operate on plain data. Keep DOM rendering, framework lifecycle, browser handles, and compatibility-sensitive APIs in the browser realm. Return only the minimum information needed by the UI.
+Protect algorithms and business rules that operate on plain data. Keep DOM rendering, framework lifecycle, browser handles, and compatibility-sensitive APIs in the browser runtime. Return only the minimum information needed by the UI.
 
 ## Deployment
 
@@ -27,9 +27,9 @@ Serve the generated files over HTTPS. Apply a restrictive Content Security Polic
 ## Verification commands
 
 ```powershell
-venom analyze-dist dist
+venom analyze dist
 venom verify-runtime dist
-venom release-check dist
+venom verify dist
 ```
 
 For the complete release pipeline, use [Production release verification](../operations/release-verification.md).

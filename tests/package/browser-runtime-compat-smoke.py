@@ -29,7 +29,7 @@ strict_out = out_root / 'strict-production'
 subprocess.run([str(venom), 'build', str(compat_site), '--out', str(compat_out)], check=True)
 subprocess.run([str(venom), 'verify-runtime', str(compat_out), '--target', 'browser', '--require-real-engine'], check=True)
 subprocess.run([node, str(harness), str(compat_out), 'real-engine-strict', '--strict-no-source-eval'], check=True)
-real_check = subprocess.run([str(venom), 'release-check', str(compat_out), '--target', 'browser'], text=True, capture_output=True, check=True)
+real_check = subprocess.run([str(venom), 'verify', str(compat_out), '--target', 'browser'], text=True, capture_output=True, check=True)
 for marker in [
     'quickjs_execution_backend: quickjs-wasm-real',
     'quickjs_bytecode_boundary: wasm-owned',

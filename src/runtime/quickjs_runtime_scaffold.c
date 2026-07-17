@@ -2477,7 +2477,7 @@ static uint32_t venom_qjs_bridge_copy_json_result(uint32_t ctx, JSValue value) {
   if (!text || size == 0u || size > BRIDGE_RESULT_CAP) {
     if (text) JS_FreeCString(g_upstream_qjs_context, text);
     JS_FreeValue(g_upstream_qjs_context, json);
-    build_exception_json(ctx, 101u, "bridge", "bridge result is not representable by json-value-v1", (uint32_t)size, 0u);
+    build_exception_json(ctx, 101u, "bridge", "bridge result is not representable by binary-json-v2", (uint32_t)size, 0u);
     return 0u;
   }
   memcpy(g_bridge_result, text, size);
@@ -2553,7 +2553,7 @@ VENOM_QJS_PUBLIC("venom_qjs_bridge_invoke") uint32_t venom_qjs_bridge_invoke(uin
   }
 
   /* Protected exports may be declared async. Resolve their Promise inside the
-   * QuickJS realm before serializing the bridge result. Serializing the raw
+   * QuickJS runtime before serializing the bridge result. Serializing the raw
    * Promise would produce an empty object and silently discard the real value. */
   if (JS_IsPromise(result)) {
     for (;;) {

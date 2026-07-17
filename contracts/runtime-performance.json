@@ -1,16 +1,28 @@
 {
-  "schema_version": 1,
-  "profile": "production-balanced",
-  "budgets": {
-    "quickjs_wasm_raw_bytes": 1300000,
-    "quickjs_wasm_gzip_bytes": 500000,
-    "quickjs_wasm_brotli_bytes": 420000,
-    "release_abi_exports": 23,
-    "distribution_javascript_bytes": 650000,
-    "distribution_total_bytes": 2500000
+  "schema": "VENOM_RUNTIME_PERFORMANCE_V1",
+  "version": 1,
+  "measurement": {
+    "clock": "performance.now",
+    "warmupRuns": 1,
+    "measuredRuns": 5,
+    "aggregation": ["median", "p95"]
   },
-  "notes": [
-    "Budgets are regression ceilings, not performance guarantees.",
-    "Browser startup timing is evaluated separately because it is environment-dependent."
-  ]
+  "budgetsMs": {
+    "complete": {"median": 3000, "p95": 5000},
+    "package-load": {"median": 800, "p95": 1500},
+    "package-policy": {"median": 900, "p95": 1800},
+    "runtime-install": {"median": 1500, "p95": 3000},
+    "route-decode": {"median": 500, "p95": 1000},
+    "script-execution": {"median": 800, "p95": 1600}
+  },
+  "preloadPolicy": {
+    "required": true,
+    "assets": ["loader", "runtime", "package", "quickjs-wasm", "worker"],
+    "cacheMode": "http-cache-only",
+    "persistentPlaintextCacheAllowed": false
+  },
+  "failurePolicy": {
+    "budgetRegressionFailsCertification": true,
+    "missingTimelineFailsCertification": true
+  }
 }

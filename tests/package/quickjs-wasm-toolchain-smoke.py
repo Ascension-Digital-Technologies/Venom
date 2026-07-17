@@ -4,9 +4,9 @@ from pathlib import Path
 
 root = Path(sys.argv[1])
 required = [
-    'scripts/build-quickjs-wasm.sh',
-    'scripts/build-quickjs-wasm.ps1',
-    'scripts/build-quickjs-wasm.bat',
+    'scripts/linux/build-emsdk.sh',
+    'scripts/windows/build-emsdk.bat',
+    'scripts/windows/build-emsdk.bat',
     'tools/embed_wasm.py',
     'tools/quickjs_wasm_preflight.py',
     'tools/quickjs_wasm_cutover.py',
@@ -49,7 +49,7 @@ for name in (
 if len(exports) < 60:
     raise SystemExit(f'expected complete ABI12 export set, found only {len(exports)} exports')
 
-script = (root / 'scripts/build-quickjs-wasm.sh').read_text(encoding='utf-8')
+script = (root/'scripts'/'linux'/'build-quickjs-wasm.sh').read_text(encoding='utf-8')
 for marker in ('emcc', 'VENOM_ENABLE_UPSTREAM_QJS_WASM=1', 'third_party/quickjs/quickjs.c',
     'tools/quickjs_wasm_preflight.py', 'tools/quickjs_wasm_cutover.py', 'quickjs-runtime.wasm',
     'quickjs_wasm_preflight.py', '--preflight-only'):

@@ -1,0 +1,89 @@
+name: release certification
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '23 4 * * 1'
+permissions:
+  contents: read
+jobs:
+  platform-certification:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            id: linux-x64
+          - os: windows-latest
+            id: windows-x64
+          - os: macos-14
+            id: macos-arm64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    env:
+      SOURCE_DATE_EPOCH: 1704067200
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: cmake --preset release -DVENOM_ENABLE_IPO=OFF
+      - run: cmake --build --preset release --config Release --parallel 2
+      - id: resolve-venom
+        shell: pwsh
+        run: |
+          $candidate = Get-ChildItem build/release -Recurse -File | Where-Object { $_.Name -eq $(if ($IsWindows) { "venom.exe" } else { "venom" }) } | Select-Object -First 1
+          if (-not $candidate) { throw "Venom executable was not produced" }
+          "path=$($candidate.FullName)" >> $env:GITHUB_OUTPUT
+      - shell: bash
+        run: python tools/certify_release.py --venom "${{ steps.resolve-venom.outputs.path }}" --output-dir "build/certification-${{ matrix.id }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: certification-${{ matrix.id }}
+          path: build/certification-${{ matrix.id }}/certification.*
+
+  browser-certification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      SOURCE_DATE_EPOCH: 1704067200
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install playwright
+      - run: python -m playwright install --with-deps chromium firefox webkit
+      - run: cmake --preset release -DVENOM_ENABLE_IPO=OFF
+      - run: cmake --build --preset release --parallel 2
+      - run: python tests/browser/venom_examples_e2e.py --venom build/release/venom --browser all --json-out build/browser-certification.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: certification-browsers
+          path: build/browser-certification.json
+
+  aggregate:
+    if: github.event_name != 'pull_request'
+    needs: [platform-certification, browser-certification]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: certification-*
+          path: build/evidence
+          merge-multiple: false
+      - shell: bash
+        run: |
+          python tools/aggregate_certification.py \
+            --contract contracts/release-certification.json \
+            --platform-report build/evidence/certification-linux-x64/certification.json \
+            --platform-report build/evidence/certification-windows-x64/certification.json \
+            --platform-report build/evidence/certification-macos-arm64/certification.json \
+            --browser-matrix build/evidence/certification-browsers/browser-certification.json \
+            --json-out build/final-certification.json \
+            --markdown-out build/final-certification.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: final-release-certification
+          path: build/final-certification.*

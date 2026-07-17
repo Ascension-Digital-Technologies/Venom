@@ -53,7 +53,7 @@ def main() -> int:
     corpus.mkdir(parents=True, exist_ok=True)
     dist = work / "dist"
     remote_cache = Path(__file__).resolve().parents[1] / "fixtures" / "remote-cache"
-    run([str(venom), "build", str(site), "--out", str(dist), "--profile", "dev", "--vendor-cache", str(remote_cache), "--offline"])
+    run([str(venom), "build", str(site), "--out", str(dist), "--profile", "prod", "--vendor-cache", str(remote_cache), "--offline"])
     package = find_package(dist)
     original = bytearray(package.read_bytes())
     if len(original) < HEADER_SIZE + 2 * ENTRY_SIZE:

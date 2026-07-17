@@ -45,8 +45,8 @@ venom analyze path\to\site
 
 ```powershell
 venom build path\to\site --profile prod --out dist
-venom analyze-dist dist
-venom release-check dist
+venom analyze dist
+venom verify dist
 ```
 
 Integrate incrementally. Begin with algorithms and pure functions, then expand the protected boundary after browser-equivalence testing.

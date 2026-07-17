@@ -6,7 +6,7 @@ Date: 2026-07-14
 
 Production builds now fail with `VNM-PROT-1001` whenever a function-level protected bridge candidate is not successfully extracted into the protected QuickJS registry. This closes the verified path where an explicitly protected arrow function could remain in browser JavaScript while the production build succeeded.
 
-The compiler now preserves the authoritative function-realm records captured before later chunk rewrites and uses those records for extraction analysis. Development builds retain diagnostics; production builds throw before package emission.
+The compiler now preserves the authoritative function-runtime records captured before later chunk rewrites and uses those records for extraction analysis. Development builds retain diagnostics; production builds throw before package emission.
 
 `docs/audit` is now accepted by `tools/documentation_gate.py`.
 

@@ -96,6 +96,23 @@ def copy_tree(src: Path, dst: Path, ignore_names: set[str] | None = None) -> Non
     shutil.copytree(src, dst, ignore=ignore)
 
 
+
+def copy_platform_scripts(src: Path, dst: Path, target_triplet: str) -> str:
+    """Copy the small platform-native launcher set into release/scripts."""
+    if dst.exists():
+        shutil.rmtree(dst)
+    dst.mkdir(parents=True, exist_ok=True)
+    is_windows = target_triplet.lower().startswith('windows-')
+    platform_src = src / ('windows' if is_windows else 'linux')
+    suffix = '.bat' if is_windows else '.sh'
+    for path in sorted(platform_src.glob(f'*{suffix}')):
+        shutil.copy2(path, dst / path.name)
+        if not is_windows:
+            make_executable(dst / path.name)
+    if is_windows:
+        copy_tree(src.parent / 'tools' / 'windows-scripts', dst.parent / 'tools' / 'windows-scripts')
+    return 'bat' if is_windows else 'sh'
+
 def parse_version(repo_root: Path) -> str:
     cmake = (repo_root / 'CMakeLists.txt').read_text(encoding='utf-8')
     for line in cmake.splitlines():
@@ -128,7 +145,7 @@ def find_venom(repo_root: Path, build_dir: Path, config: str, explicit: Path | N
         if path.is_file():
             return path
     raise SystemExit(
-        'could not find venom executable; pass --venom <path> or build first with scripts/build.*'
+        'could not find venom executable; pass --venom <path> or build first with scripts/linux/build.sh or scripts/windows/build.bat'
     )
 
 
@@ -260,10 +277,13 @@ def main() -> int:
 
     copy_tree(repo_root / 'docs', out_dir / 'docs')
     copy_tree(repo_root / 'examples', out_dir / 'examples')
-    copy_tree(repo_root / 'scripts', out_dir / 'scripts')
+    copy_tree(repo_root / 'packages', out_dir / 'packages')
+    copy_tree(repo_root / 'integrations', out_dir / 'integrations')
+    copy_tree(repo_root / 'contracts', out_dir / 'contracts')
+    release_script_format = copy_platform_scripts(repo_root / 'scripts', out_dir / 'scripts', target_triplet)
     tools_out = out_dir / 'tools'
     tools_out.mkdir(parents=True, exist_ok=True)
-    for tool_name in ('verify_release.py', 'release_crypto.py', 'sign_release.py', 'quickjs_wasm_preflight.py', 'quickjs_wasm_cutover.py', 'quickjs_runtime_lifecycle.py', 'setup_emscripten.py', 'build_emscripten.py', 'analyze_dist.py', 'wasm_exports.py', 'embed_wasm.py', 'generate_release_metadata.py', 'verify_release_set.py', 'install_release.py', 'public_release_gate.py', 'generate_contract_manifest.py', 'check_contract_upgrade.py'):
+    for tool_name in ('verify_release.py', 'release_crypto.py', 'sign_release.py', 'quickjs_wasm_preflight.py', 'quickjs_wasm_cutover.py', 'quickjs_runtime_lifecycle.py', 'setup_emscripten.py', 'build_emscripten.py', 'analyze_dist.py', 'wasm_exports.py', 'embed_wasm.py', 'generate_release_metadata.py', 'verify_release_set.py', 'install_release.py', 'public_release_gate.py', 'generate_contract_manifest.py', 'check_contract_upgrade.py', 'generate_release_metadata.py'):
         tool_src = repo_root / 'tools' / tool_name
         if tool_src.exists():
             shutil.copy2(tool_src, tools_out / tool_name)
@@ -284,7 +304,7 @@ def main() -> int:
             shutil.copy2(src, out_dir / rel)
 
     (out_dir / 'VERSION.txt').write_text(
-        f'venom {version}\nverified_binary_output={version_text}\n', encoding='utf-8'
+        f'venom {version}\nverified_binary_output={version_text}\nrelease_script_format={release_script_format}\n', encoding='utf-8'
     )
     runtime_dir = out_dir / 'runtime'
     runtime_dir.mkdir(parents=True, exist_ok=True)
@@ -304,7 +324,7 @@ def main() -> int:
     if args.release_sequence < 0: raise SystemExit('--release-sequence must be non-negative')
     if not args.no_supply_chain_metadata:
         metadata_tool = repo_root / 'tools' / 'generate_release_metadata.py'
-        cmd = [sys.executable, str(metadata_tool), '--repo-root', str(repo_root), '--release-root', str(out_dir), '--version', version, '--source-date-epoch', str(source_date_epoch), '--release-sequence', str(args.release_sequence), '--release-channel', args.release_channel]
+        cmd = [sys.executable, str(metadata_tool), '--repo-root', str(repo_root), '--release-root', str(out_dir), '--version', version, '--source-date-epoch', str(source_date_epoch), '--release-sequence', str(args.release_sequence), '--release-channel', args.release_channel, '--target-triplet', target_triplet]
         subprocess.run(cmd, check=True, timeout=60)
     write_manifest(out_dir, version, repo_root, args.release_sequence, args.release_channel, source_date_epoch)
 

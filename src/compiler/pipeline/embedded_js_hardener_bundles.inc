@@ -34357,6 +34357,9 @@ async function infer_options(options) {
 
 exports._default_options = _default_options;
 exports._run_cli = run_cli;
+// Venom native frontend hooks. These are kept private to the embedded bundle.
+exports.__venom_parse = parse;
+exports.__venom_tree_walker = TreeWalker;
 exports.minify = minify;
 exports.minify_sync = minify_sync;
 

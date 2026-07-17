@@ -1,6 +1,6 @@
 # Threat Model
 
-> **Applies to:** Venom 1.0.1
+> **Applies to:** Venom 1.1.0
 
 ## Adversary capabilities
 

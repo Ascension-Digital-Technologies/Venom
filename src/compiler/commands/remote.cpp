@@ -231,7 +231,8 @@ void validate_public_https_url(const std::string& normalized_url) {
   if (normalized_url.size() > 4096u) {
     throw std::runtime_error("remote script URL exceeds 4096 bytes");
   }
-  for (const unsigned char c : normalized_url) {
+  for (const char raw_c : normalized_url) {
+    const auto c = static_cast<unsigned char>(raw_c);
     if (c < 0x20u || c == 0x7fu || std::isspace(c) != 0 || c == '\\') {
       throw std::runtime_error("remote script URL contains forbidden whitespace or control characters");
     }

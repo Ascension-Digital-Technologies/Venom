@@ -8,20 +8,6 @@
 namespace venom::compiler {
 
 Profile resolve_profile(const std::string& name) {
-  if (name == "dev") {
-    return {ProfileKind::Dev, name,
-            venom::package::PackageFlagProtectProfile |
-              venom::package::PackageFlagReleaseProfile |
-              venom::package::PackageFlagPolymorphic |
-              venom::package::PackageFlagCryptoProviderReady |
-              venom::package::PackageFlagIntegrityMetadata |
-              venom::package::PackageFlagAeadProviderReady |
-              venom::package::PackageFlagRuntimeHardened |
-              venom::package::PackageFlagHostBridge |
-              venom::package::PackageFlagFetchBridge |
-              venom::package::PackageFlagAsyncHostQueue,
-            true, true, false, false, true, true, true, true, true, false};
-  }
   if (name == "prod") {
     return {ProfileKind::Prod, name,
             venom::package::PackageFlagProtectProfile |
@@ -37,7 +23,8 @@ Profile resolve_profile(const std::string& name) {
               venom::package::PackageFlagAsyncHostQueue,
             false, true, true, true, true, true, true, true, true, true};
   }
-  throw std::runtime_error("unknown profile: " + name + "; expected dev or prod");
+  if (name == "dev") throw std::runtime_error("the dev build profile was removed in Venom 2.0.0; use prod (venom dev now serves production-grade builds)");
+  throw std::runtime_error("unknown profile: " + name + "; expected prod");
 }
 
 std::string describe_profile(const Profile& profile) {

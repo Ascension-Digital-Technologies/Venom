@@ -4,7 +4,7 @@ Venom supports framework applications through its **hybrid execution model**. Re
 
 ## Recommended boundary
 
-| Responsibility | Recommended realm |
+| Responsibility | Recommended runtime |
 |---|---|
 | Framework runtime and renderer | Browser |
 | Component lifecycle and DOM refs | Browser |

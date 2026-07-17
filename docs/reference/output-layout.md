@@ -1,6 +1,6 @@
 # Production Output Layout
 
-> **Applies to:** Venom 1.0.1
+> **Applies to:** Venom 1.1.0
 
 A production build emits a static distribution with stable entry documents and content-addressed protected assets.
 
@@ -38,4 +38,4 @@ dist/
 
 Production output must not contain source maps, original protected source, extraction reports, browser-test manifests, private keys, internal engineering documents, or files from another build.
 
-Deploy the directory atomically and verify it with `analyze-dist`, `verify-runtime`, and `release-check`.
+Deploy the directory atomically and verify it with `analyze`, `verify-runtime`, and `verify`.

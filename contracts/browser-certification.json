@@ -1,0 +1,16 @@
+{
+  "schema": "VENOM_BROWSER_CERTIFICATION_V2",
+  "version": 2,
+  "browsers": ["chromium", "firefox", "webkit"],
+  "bootTimeoutMs": 120000,
+  "examples": [
+    {"id":"protected-chess","root":"#venom-root","readySelector":"#myBoard"},
+    {"id":"nova-trade","root":"#venom-root","readySelector":"#connectionStatus"},
+    {"id":"bot-detection","root":"#venom-root","readySelector":"#runtime-status"},
+    {"id":"typescript-showcase","root":"#venom-root","readySelector":"#quote-form"},
+    {"id":"tsx-showcase","root":"#venom-root","readySelector":"#app"},
+    {"id":"aegis-operations","root":"#venom-root","readySelector":"#app"},
+    {"id":"javascript-playground","root":"#venom-root","readySelector":"#code-editor","playground":true},
+    {"id":"vite-framework-showcase","root":"#venom-root","readySelector":"#app"}
+  ]
+}

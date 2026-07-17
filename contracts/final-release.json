@@ -1,0 +1,49 @@
+{
+  "schema": "VENOM_FINAL_RELEASE_CONTRACT_V1",
+  "version": "2.0.0",
+  "buildProfile": "prod",
+  "requiredExampleCount": 8,
+  "requiredBrowserEngines": [
+    "chromium",
+    "firefox",
+    "webkit"
+  ],
+  "requiredPlatforms": [
+    "linux-x64",
+    "windows-x64",
+    "macos-arm64"
+  ],
+  "requiredContracts": [
+    "runtime-api.json",
+    "quickjs-wasm-abi.json",
+    "examples.json",
+    "browser-certification.json",
+    "release-certification.json",
+    "runtime-startup.json",
+    "runtime-performance.json",
+    "diagnostics.json"
+  ],
+  "requiredTools": [
+    "certify_examples.py",
+    "certify_release.py",
+    "aggregate_certification.py",
+    "verify_release.py",
+    "final_release_gate.py",
+    "summarize_startup.py"
+  ],
+  "forbiddenSourcePatterns": [
+    "--profile dev",
+    "profile == \"dev\"",
+    "ProfileKind::Dev"
+  ],
+  "claims": [
+    "One production-grade build profile",
+    "Protected browser imports are lowered before browser module graph serialization",
+    "Real QuickJS/WASM execution is required for certified releases",
+    "All included examples are production certified",
+    "Browser boot completion is distinct from worker readiness",
+    "Decoded protected content is never persistently cached",
+    "Stable typed runtime SDK and generated clients are included",
+    "Release artifacts support SBOM, provenance, signing, and fail-closed verification"
+  ]
+}

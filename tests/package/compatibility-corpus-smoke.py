@@ -6,9 +6,9 @@ venom=pathlib.Path(sys.argv[1]).resolve(); site=pathlib.Path(sys.argv[2]).resolv
 if out.exists(): shutil.rmtree(out)
 out.mkdir(parents=True)
 debug=out/'dev'; protected=out/'protected'
-subprocess.run([str(venom),'build',str(site),'--out',str(debug),'--profile','dev','--hashed'],check=True)
+subprocess.run([str(venom),'build',str(site),'--out',str(debug),'--profile','prod','--hashed'],check=True)
 subprocess.run([str(venom),'build',str(site),'--out',str(protected),'--profile','prod','--hashed'],check=True)
-subprocess.run([str(venom),'release-check',str(protected),'--target','browser'],check=True)
+subprocess.run([str(venom),'verify',str(protected),'--target','browser'],check=True)
 subprocess.run([str(venom),'verify-runtime',str(protected),'--target','browser','--require-real-engine'],check=True)
 # Debug preserves route shells; protected collapses them into the package.
 for rel in ['index.html','about.html','account/settings.html']:

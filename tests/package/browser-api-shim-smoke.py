@@ -14,7 +14,7 @@ if out.exists():
 
 dev_dist = out / "development"
 prod_dist = out / "production"
-subprocess.run([str(venom), "build", str(site), "--out", str(dev_dist), "--profile", "dev"], check=True)
+subprocess.run([str(venom), "build", str(site), "--out", str(dev_dist), "--profile", "prod"], check=True)
 subprocess.run([str(venom), "build", str(site), "--out", str(prod_dist), "--profile", "prod"], check=True)
 subprocess.run([str(venom), "verify-runtime", str(prod_dist), "--target", "browser", "--require-real-engine"], check=True)
 

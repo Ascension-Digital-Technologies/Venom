@@ -26,7 +26,7 @@ Search is deterministic for the same position and limits. A time-limited interru
 
 ## What is protected
 
-| Component | Realm |
+| Component | Runtime |
 |---|---|
 | Board rendering and interaction | Browser |
 | Move highlighting and controls | Browser |
@@ -53,7 +53,7 @@ The browser never supplies an authoritative accumulated score. Every evaluation 
 ## Run
 
 ```powershell
-.\scripts\protected-chess.bat
+.\scripts\windows\protected-chess.bat
 ```
 
 Or use the CLI directly:
@@ -66,8 +66,8 @@ venom dev examples\protected-chess --open
 
 ```powershell
 venom build examples\protected-chess --profile prod --out dist\protected-chess
-venom analyze-dist dist\protected-chess
-venom release-check dist\protected-chess
+venom analyze dist\protected-chess
+venom verify dist\protected-chess
 ```
 
 ## Source tests
@@ -146,4 +146,4 @@ examples/protected-chess/
 
 ## Verification
 
-After a production build, inspect generated JavaScript and confirm that engine evaluation and search logic are not present as readable browser source. Then run `venom release-check` to validate runtime provenance, package binding, release policy, and leakage checks.
+After a production build, inspect generated JavaScript and confirm that engine evaluation and search logic are not present as readable browser source. Then run `venom verify` to validate runtime provenance, package binding, release policy, and leakage checks.

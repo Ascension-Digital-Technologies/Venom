@@ -1,6 +1,6 @@
 # Release Signing
 
-> **Applies to:** Venom 1.0.1
+> **Applies to:** Venom 1.1.0
 
 Stable Venom release sets use Ed25519 signatures to bind published metadata to an authorized release key. Checksums alone do not authenticate a manifest when an attacker can replace both the package and its checksum.
 

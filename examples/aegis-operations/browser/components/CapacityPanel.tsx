@@ -1,0 +1,4 @@
+// @venom: browser
+import React from "../jsx-runtime"; import type { CapacityForecast } from "../data/types";
+interface CapacityProps { forecast:CapacityForecast; }
+export default function CapacityPanel({forecast}:CapacityProps){ return <article className="panel capacity-panel"><div className="panel-heading"><div><p className="eyebrow">Predictive capacity</p><h2>30-day forecast</h2></div><span className={`state-pill ${forecast.status==="Healthy"?"healthy":"watch"}`}>{forecast.status}</span></div><div className="capacity-number"><strong>{forecast.projected}%</strong><span>projected utilization</span></div><div className="capacity-track"><i style={`width:${forecast.projected}%`}></i></div><div className="capacity-stats"><div><small>Current</small><strong>{forecast.current}%</strong></div><div><small>Headroom</small><strong>{forecast.headroom}%</strong></div></div><ul>{forecast.recommendations.map(item=><li>{item}</li>)}</ul></article>; }

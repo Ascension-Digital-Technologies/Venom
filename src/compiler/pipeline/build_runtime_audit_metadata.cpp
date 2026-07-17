@@ -331,6 +331,8 @@ std::string make_host_capabilities_metadata(const Profile& profile, const std::s
         contains_token(code, "setInterval") || contains_token(code, "clearInterval")) caps.emplace_back("timers");
     if (contains_token(code, "addEventListener") || contains_token(code, "removeEventListener") ||
         contains_token(code, "dispatchEvent")) caps.emplace_back("events");
+    if (contains_token(code, "localStorage") || contains_token(code, "sessionStorage") || contains_token(code, "indexedDB")) caps.emplace_back("storage");
+    if (contains_token(code, "crypto") || contains_token(code, "SubtleCrypto")) caps.emplace_back("crypto");
     caps.emplace_back("__venomRuntime");
     return caps;
   };
@@ -359,6 +361,8 @@ std::string make_host_capabilities_metadata(const Profile& profile, const std::s
       << "capability\tfetch\tasync-host-call\n"
       << "capability\ttimers\tasync-host-call\n"
       << "capability\tevents\tqueue\n"
+      << "capability\tstorage\tpolicy-controlled-browser-storage\n"
+      << "capability\tcrypto\tpolicy-controlled-webcrypto\n"
       << "capability\t__venomRuntime\tfrozen-bridge\n"
       << "default_capability_count=1\n"
       << "default_capabilities=__venomRuntime\n"
@@ -659,12 +663,18 @@ std::vector<venom::quickjs::BytecodeChunkRecord> make_quickjs_bytecode_records(c
     }
     const bool is_module = (chunk.flags & JsChunkModule) != 0u;
     const std::string record_source = redact_metadata ? ("s_" + short_hash_hex(venom::package::fnv1a64(bytes_from_string("source|" + chunk.route + "|" + chunk.source + "|" + std::to_string(chunk.order))), 16)) : chunk.source;
-    const auto bytecode = venom::quickjs::compile_native_quickjs_bytecode(
-        chunk.code,
-        record_source,
-        is_module,
-        redact_metadata,
-        is_module ? &module_sources : nullptr);
+    const bool module_requires_registry = is_module &&
+        (chunk.code.find("import ") != std::string::npos ||
+         chunk.code.find("export {") != std::string::npos ||
+         chunk.code.find("export *") != std::string::npos);
+    const auto bytecode = module_requires_registry && !bridge.bridge_registry_bytecode.empty()
+        ? bridge.bridge_registry_bytecode
+        : venom::quickjs::compile_native_quickjs_bytecode(
+            chunk.code,
+            record_source,
+            is_module,
+            redact_metadata,
+            is_module ? &module_sources : nullptr);
     if (bytecode.size() > limit) {
       throw std::runtime_error("QuickJS bytecode exceeds protected transfer limit: " + chunk.source +
                                " (" + std::to_string(bytecode.size()) + " bytes > " +

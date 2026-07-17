@@ -15,7 +15,7 @@ void write_text(const fs::path& path, const std::string& text, bool force) {
   out << text;
 }
 std::string project_config() {
-  return "[project]\nentry = \".\"\noutput = \"dist\"\n\n[build]\nprofile = \"dev\"\n\n[runtime]\nengine = \"quickjs-wasm\"\nfail_closed = true\n\n[security]\ndeny_host_js_fallback = true\n";
+  return "[project]\nentry = \".\"\noutput = \"dist\"\n\n[build]\nprofile = \"prod\"\n\n[runtime]\nengine = \"quickjs-wasm\"\nfail_closed = true\n\n[security]\ndeny_host_js_fallback = true\n";
 }
 }
 bool initialize_project(const InitProjectOptions& options) {

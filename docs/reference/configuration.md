@@ -1,6 +1,6 @@
 # Configuration Reference
 
-> **Applies to:** Venom 1.0.1
+> **Applies to:** Venom 1.1.0
 
 The canonical project configuration file is `venom.toml`. Generate a starting file with `venom init` or copy `venom.toml.example`.
 
@@ -26,6 +26,20 @@ Paths are resolved relative to the project or site root documented by the releva
 ## Limits
 
 Bridge payload, execution, memory, and queue limits should reflect measured application behavior. Resource limits are part of both availability and security policy.
+
+## Capability policy
+
+The `[capabilities]` table controls application-specialized browser host modules:
+
+```toml
+[capabilities]
+fetch = "auto"
+timers = "auto"
+storage = "auto"
+crypto = "auto"
+```
+
+Use `auto` for least-privilege specialization, `allow` to force inclusion, and `deny` to fail closed when the project requires a capability. `read-only` is reserved for restricted storage policy. See [Capability modules](../guides/capability-modules.md).
 
 ## Validation
 

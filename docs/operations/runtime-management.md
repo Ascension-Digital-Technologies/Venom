@@ -1,6 +1,6 @@
 # Runtime Management
 
-> **Applies to:** Venom 1.0.1
+> **Applies to:** Venom 1.1.0
 
 A Venom distribution binds its loader, package, workers, JavaScript runtime assets, and WebAssembly binaries as one verified release unit. Do not mix runtime files from different builds.
 
@@ -18,7 +18,7 @@ Before deployment:
 
 ```powershell
 venom verify-runtime dist
-venom release-check dist
+venom verify dist
 ```
 
 These checks validate runtime identity, package binding, asset hashes, expected exports, fail-closed policy, and production metadata.

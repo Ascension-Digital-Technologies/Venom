@@ -1,0 +1,171 @@
+{
+  "schema": "VENOM_RELEASE_CERTIFICATION_V1",
+  "version": 1,
+  "requiredPlatforms": [
+    "linux-x64",
+    "windows-x64",
+    "macos-arm64"
+  ],
+  "requiredBrowsers": [
+    "chromium",
+    "firefox",
+    "webkit"
+  ],
+  "staticGates": [
+    {
+      "id": "documentation",
+      "command": [
+        "{python}",
+        "tools/documentation_gate.py"
+      ]
+    },
+    {
+      "id": "source-layout",
+      "command": [
+        "{python}",
+        "tests/package/source-layout-smoke.py",
+        "{root}"
+      ]
+    },
+    {
+      "id": "contracts-layout",
+      "command": [
+        "{python}",
+        "tests/package/specification-layout-smoke.py"
+      ]
+    },
+    {
+      "id": "authoritative-wasm-abi",
+      "command": [
+        "{python}",
+        "tests/package/quickjs-wasm-authoritative-contract-smoke.py",
+        "{root}"
+      ]
+    },
+    {
+      "id": "runtime-api",
+      "command": [
+        "{python}",
+        "tests/package/runtime-api-contract-smoke.py"
+      ]
+    },
+    {
+      "id": "runtime-module-ownership",
+      "command": [
+        "{python}",
+        "tests/runtime/runtime-module-ownership-smoke.py"
+      ]
+    },
+    {
+      "id": "certification-contract",
+      "command": [
+        "{python}",
+        "tests/package/release-certification-contract-smoke.py",
+        "{root}"
+      ]
+    },
+    {
+      "id": "vite-integration",
+      "command": [
+        "{python}",
+        "tests/package/vite-plugin-integration-smoke.py",
+        "{root}"
+      ]
+    },
+    {
+      "id": "framework-fixtures",
+      "command": [
+        "{python}",
+        "tests/package/framework-vite-fixtures-smoke.py",
+        "{root}"
+      ]
+    }
+  ],
+  "examples": [
+    {
+      "id": "protected-chess",
+      "site": "examples/protected-chess",
+      "profile": "prod",
+      "verifyRuntime": true,
+      "leakScan": true,
+      "required": true
+    },
+    {
+      "id": "nova-trade",
+      "site": "examples/nova-trade",
+      "profile": "prod",
+      "verifyRuntime": true,
+      "leakScan": true,
+      "required": true
+    },
+    {
+      "id": "bot-detection",
+      "site": "examples/bot-detection",
+      "profile": "prod",
+      "verifyRuntime": true,
+      "leakScan": true,
+      "required": true
+    },
+    {
+      "id": "typescript-showcase",
+      "site": "examples/typescript-showcase",
+      "profile": "prod",
+      "verifyRuntime": true,
+      "leakScan": true,
+      "required": true
+    },
+    {
+      "id": "tsx-showcase",
+      "site": "examples/tsx-showcase",
+      "profile": "prod",
+      "verifyRuntime": true,
+      "leakScan": true,
+      "required": true
+    },
+    {
+      "id": "aegis-operations",
+      "site": "examples/aegis-operations",
+      "profile": "prod",
+      "verifyRuntime": true,
+      "leakScan": true,
+      "required": true
+    },
+    {
+      "id": "javascript-playground",
+      "site": "examples/javascript-playground",
+      "profile": "prod",
+      "verifyRuntime": true,
+      "leakScan": true,
+      "required": true
+    },
+    {
+      "id": "vite-framework-showcase",
+      "site": "examples/vite-framework-showcase",
+      "profile": "prod",
+      "verifyRuntime": true,
+      "leakScan": true,
+      "required": true
+    }
+  ],
+  "browserFixtures": [
+    {
+      "id": "javascript-playground",
+      "profile": "prod",
+      "required": true
+    },
+    {
+      "id": "aegis-operations",
+      "profile": "prod",
+      "required": true
+    }
+  ],
+  "releaseClaims": [
+    "QuickJS/WASM bytecode execution is required for protected browser code",
+    "Host JavaScript source fallback is denied",
+    "TypeScript and TSX are structurally lowered before runtime planning",
+    "Protected production distributions pass runtime verification and leak scanning",
+    "Playground executions use isolated, resource-bounded QuickJS contexts",
+    "Vite integration preserves explicit browser/protected runtime boundaries",
+    "Stable application integration uses the versioned @venom-js/runtime API"
+  ]
+}

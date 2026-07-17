@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07111f">
+  <title>Aegis Operations — Venom Enterprise Stress Test</title>
+  <link rel="stylesheet" href="styles/main.css">
+  <script type="application/json" id="aegis-config">
+    {"region":"North America","refreshSeconds":30,"environment":"production-simulation","features":["risk","forecast","reports","command-palette"]}
+  </script>
+  <script type="application/ld+json">
+    {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Aegis Operations","applicationCategory":"BusinessApplication"}
+  </script>
+</head>
+<body>
+  <div id="app"><div class="boot-shell"><div class="boot-spinner"></div><p>Starting protected operations console…</p></div></div>
+  <script type="module" src="browser/app.tsx"></script>
+</body>
+</html>

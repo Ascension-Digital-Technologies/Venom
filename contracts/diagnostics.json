@@ -1,0 +1,14 @@
+{
+  "schema": "VENOM_DIAGNOSTICS_CONTRACT_V1",
+  "version": 1,
+  "severity": ["info", "warning", "error"],
+  "codes": {
+    "VENOM-D1001": {"severity": "warning", "title": "Missing runtime directive", "remediation": "Add // @venom: browser or // @venom: protected near the start of the authored module."},
+    "VENOM-D1002": {"severity": "error", "title": "Conflicting runtime directives", "remediation": "Keep exactly one file-scope runtime directive."},
+    "VENOM-D1101": {"severity": "error", "title": "Relative module dependency unresolved", "remediation": "Correct the import path or add a supported JavaScript/TypeScript module with that basename."},
+    "VENOM-D1102": {"severity": "warning", "title": "Browser module imports protected module", "remediation": "Ensure the import is an intentional protected-call boundary and exported symbol is supported by the planner."},
+    "VENOM-D1201": {"severity": "warning", "title": "Build evidence missing", "remediation": "Run a Venom build first or pass --build-report/--performance-report explicitly."},
+    "VENOM-D1301": {"severity": "warning", "title": "Slow build phase", "remediation": "Inspect cache misses and split or cache the reported phase."},
+    "VENOM-D1401": {"severity": "error", "title": "Diagnostic contract mismatch", "remediation": "Regenerate or update diagnostics tooling and contract together."}
+  }
+}

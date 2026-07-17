@@ -14,7 +14,7 @@ native_out = pathlib.Path(sys.argv[4])
 key_file = pathlib.Path(sys.argv[5])
 
 subprocess.run([str(venom), 'build', str(site), '--out', str(browser_out), '--profile', 'prod'], check=True)
-browser_check = subprocess.run([str(venom), 'release-check', str(browser_out), '--target', 'browser'], check=True, text=True, capture_output=True)
+browser_check = subprocess.run([str(venom), 'verify', str(browser_out), '--target', 'browser'], check=True, text=True, capture_output=True)
 browser_required = [
     'release_profile: yes',
     'threat_model: browser-client-protection-v1',
@@ -43,7 +43,7 @@ if native_build.returncode != 0:
     print(native_build.stderr)
     raise SystemExit(native_build.returncode)
 
-native_check = subprocess.run([str(venom), 'release-check', str(native_out), '--target', 'native', '--key-file', str(key_file), '--require-audited-crypto'], check=True, text=True, capture_output=True)
+native_check = subprocess.run([str(venom), 'verify', str(native_out), '--target', 'native', '--key-file', str(key_file), '--require-audited-crypto'], check=True, text=True, capture_output=True)
 native_required = [
     'release_profile: yes',
     'threat_model: native-private-aead-v1',

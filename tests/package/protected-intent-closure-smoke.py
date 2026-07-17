@@ -5,7 +5,7 @@ venom=pathlib.Path(sys.argv[1]) if len(sys.argv)>1 else root/'build'/'venom'
 fixture=root/'tests/fixtures/sites/protected-intent-arrow'
 with tempfile.TemporaryDirectory() as td:
     out=pathlib.Path(td)/'dev'
-    p=subprocess.run([str(venom),'build',str(fixture),'--out',str(out),'--profile','dev'],text=True,capture_output=True)
+    p=subprocess.run([str(venom),'build',str(fixture),'--out',str(out),'--profile','prod'],text=True,capture_output=True)
     combined=p.stdout+p.stderr
     if p.returncode != 0: raise SystemExit('protected arrow function was not lowered\n'+combined)
     build=json.loads((out/'assets/app/build.json').read_text(encoding='utf-8'))

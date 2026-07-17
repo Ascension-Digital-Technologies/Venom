@@ -1,0 +1,30 @@
+{
+  "name": "@venom-js/vite",
+  "version": "2.0.0",
+  "description": "First-class Vite integration for the Venom protected JavaScript/TypeScript compiler.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": {
+      "import": "./src/index.js",
+      "types": "./src/index.d.ts"
+    }
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "peerDependencies": {
+    "vite": ">=5 <8",
+    "@venom-js/runtime": ">=2 <3"
+  },
+  "keywords": [
+    "venom",
+    "vite",
+    "quickjs",
+    "wasm",
+    "javascript",
+    "typescript"
+  ],
+  "license": "MIT",
+  "types": "./src/index.d.ts"
+}

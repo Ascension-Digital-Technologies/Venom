@@ -8,7 +8,7 @@
 
 namespace venom::compiler::detail {
 
-struct FunctionRealmRecord {
+struct FunctionRuntimeRecord {
   std::string route;
   std::string source;
   std::string name;
@@ -23,7 +23,7 @@ struct FunctionExtractionRecord {
   std::string route;
   std::string source;
   std::string name;
-  std::string requested_realm;
+  std::string requested_runtime;
   std::string disposition;
   std::string bridge_mode;
   std::string reason;
@@ -32,17 +32,17 @@ struct FunctionExtractionRecord {
   bool isolated = false;
 };
 
-std::vector<FunctionRealmRecord> scan_function_realm_directives(const JsChunk& chunk);
-std::vector<FunctionRealmRecord> apply_function_realm_planning(std::vector<JsChunk>& chunks);
-std::vector<FunctionRealmRecord> collect_function_realm_records(const std::vector<JsChunk>& chunks);
+std::vector<FunctionRuntimeRecord> scan_function_runtime_directives(const JsChunk& chunk);
+std::vector<FunctionRuntimeRecord> apply_function_runtime_planning(std::vector<JsChunk>& chunks);
+std::vector<FunctionRuntimeRecord> collect_function_runtime_records(const std::vector<JsChunk>& chunks);
 std::vector<FunctionExtractionRecord> analyze_function_extraction(
     const std::vector<JsChunk>& chunks,
-    const std::vector<FunctionRealmRecord>& functions);
+    const std::vector<FunctionRuntimeRecord>& functions);
 
-std::string make_function_plan_text(const std::vector<FunctionRealmRecord>& records);
-std::string make_function_plan_json(const std::vector<FunctionRealmRecord>& records);
+std::string make_function_plan_text(const std::vector<FunctionRuntimeRecord>& records);
+std::string make_function_plan_json(const std::vector<FunctionRuntimeRecord>& records);
 std::string make_extraction_plan_text(const std::vector<FunctionExtractionRecord>& records);
 std::string make_extraction_plan_json(const std::vector<FunctionExtractionRecord>& records);
-std::string make_realm_bridge_contract_json(const std::vector<FunctionExtractionRecord>& records);
+std::string make_runtime_bridge_contract_json(const std::vector<FunctionExtractionRecord>& records);
 
 } // namespace venom::compiler::detail

@@ -2,7 +2,7 @@
 
 > **Audience:** evaluators, integrators, security reviewers, and runtime contributors  
 > **Status:** Stable  
-> **Applies to:** Venom 1.0.1
+> **Applies to:** Venom 1.1.0
 
 This page maps Venom's public protection claims to the concrete mechanisms implemented in the repository. It is intentionally precise about what is protected and what remains observable in a browser controlled by an analyst.
 

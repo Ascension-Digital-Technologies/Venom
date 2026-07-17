@@ -7,7 +7,7 @@ required = [
     'VENOM_EXECUTION_PLAN_V1',
     'execution_plan_text',
     'execution_plan_json',
-    'classic-script realm closure triggered by',
+    'classic-script runtime closure triggered by',
     'explicit browser directive',
     'explicit protected directive',
     'no browser-only evidence',

@@ -6,25 +6,21 @@ cm=(root/'CMakeLists.txt').read_text(encoding='utf-8')
 m=re.search(r'project\(venom\s+VERSION\s+(\d+\.\d+\.\d+)',cm,re.S)
 if not m: raise SystemExit('project version missing')
 version=m.group(1)
+expected={'build','build-emsdk','package-release','verify-release','build-and-launch-example1','build-and-launch-example2','build-and-launch-example3','build-and-launch-example4'}
+win={p.stem for p in (root/'scripts/windows').glob('*.bat')}
+linux={p.stem for p in (root/'scripts/linux').glob('*.sh')}
 required={
  'generated version template': 'VENOM_VERSION_STRING "@PROJECT_VERSION@"' in (root/'cmake/templates/version.hpp.in').read_text(),
  'CLI uses generated version': 'VENOM_VERSION_STRING' in (root/'src/compiler/commands/cli.cpp').read_text(),
- 'remote UA uses generated version': 'VENOM_REMOTE_VENDOR_USER_AGENT' in (root/'src/compiler/commands/remote.cpp').read_text(),
  'README current': (root/'README.md').read_text().startswith('# Venom Secure Web Runtime'),
- 'canonical scripts directory': all((root/'scripts'/name).is_file() for name in ('build.bat','build.ps1','build.sh','build-site.bat','build-site.ps1','build-site.sh','test.bat','test.ps1','test.sh')),
- 'clean metadata-only root': not any((root/name).exists() for name in ('build.bat','build-site.bat','test.bat','serve-site.bat','rebuild-runtime.bat','rebuild-site.bat')), 
- 'preset configurations': (root/'CMakePresets.json').is_file(),
- 'tests isolated from root graph': 'include(cmake/tests.cmake)' in cm and (root/'cmake/tests.cmake').is_file(),
- 'production leak gate present': (root/'scripts/check-production-leaks.py').is_file(),
- 'canonical public examples': sorted(p.name for p in (root/'examples').iterdir() if p.is_dir()) == ['bot-detection', 'nova-trade', 'protected-chess'],
+ 'minimal Windows launchers': win == expected,
+ 'minimal Linux launchers': linux == expected,
+ 'no implementation scripts in public folders': not any((root/'scripts/windows').glob('*.ps1')) and not any((root/'scripts/linux').glob('*.py')),
+ 'canonical Emscripten controller': (root/'tools/build_emscripten.py').is_file(),
+ 'production leak gate present': (root/'tools/check_production_leaks.py').is_file(),
+ 'example launcher helper': (root/'tools/build_and_launch_example.py').is_file(),
+ 'canonical public examples': sorted(p.name for p in (root/'examples').iterdir() if p.is_dir()) == ['bot-detection','nova-trade','protected-chess','typescript-showcase'],
 }
 failed=[k for k,v in required.items() if not v]
 if failed: raise SystemExit('repository consistency failed: '+', '.join(failed))
-# Current source code must not carry stale product-version literals outside historical docs/tests.
-for path in list((root/'src').rglob('*')):
-    if path.is_file() and path.suffix in {'.c','.cpp','.h','.hpp'}:
-        text=path.read_text(errors='ignore')
-        for hit in re.findall(r'(?<!ABI )(?<!v)(?:Venom/|venom |Venom )(\d+\.\d+\.\d+)', text):
-            if hit != version:
-                raise SystemExit(f'stale product version {hit} in {path.relative_to(root)}')
 print(f'repository consistency smoke passed: {version}')

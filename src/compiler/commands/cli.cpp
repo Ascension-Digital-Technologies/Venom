@@ -21,13 +21,12 @@ std::string require_value(int& i, int argc, char** argv, const std::string& flag
 }
 
 void apply_profile_defaults(BuildOptions& build) {
-  if (build.profile != "dev" && build.profile != "prod") {
-    throw std::runtime_error("--profile must be dev or prod");
+  if (build.profile != "prod") {
+    if (build.profile == "dev") throw std::runtime_error("the dev build profile was removed; use --profile prod");
+    throw std::runtime_error("--profile must be prod");
   }
 
-  // Both profiles execute protected exports through the real QuickJS/WASM
-  // runtime. dev keeps readable generated JavaScript and diagnostics; prod
-  // enables the complete hardened, stripped, fail-closed distribution.
+  // Venom uses one production-grade QuickJS/WASM build path.
   build.package_mode = "external";
   build.runtime = "wasm";
   build.quickjs_backend = "wasm-real";
@@ -36,8 +35,8 @@ void apply_profile_defaults(BuildOptions& build) {
   build.deny_host_fallback = true;
   build.strict_release = true;
   build.security_target = "browser";
-  build.hashed_assets = build.profile == "prod";
-  build.emit_debug_manifest = build.profile == "dev";
+  build.hashed_assets = true;
+  build.emit_debug_manifest = false;
 }
 
 
@@ -54,6 +53,12 @@ Command parse_command(int argc, char** argv) {
     cmd.kind = CommandKind::Help;
     return cmd;
   }
+  if (first == "compile-snippet") {
+    cmd.kind = CommandKind::CompileSnippet;
+    if (argc != 2) throw std::runtime_error("usage: venom compile-snippet < source.js");
+    return cmd;
+  }
+
   if (first == "--version" || first == "version") {
     cmd.kind = CommandKind::Version;
     return cmd;
@@ -184,23 +189,8 @@ Command parse_command(int argc, char** argv) {
 
 
   if (first == "analyze") {
-    cmd.kind = CommandKind::Analyze;
-    if (argc < 3) throw std::runtime_error("usage: venom analyze <site-dir> [--format text|json]");
-    cmd.compatibility.input = argv[2];
-    for (int i = 3; i < argc; ++i) {
-      const std::string arg = argv[i];
-      if (arg == "--format") {
-        const auto value = require_value(i, argc, argv, arg);
-        if (value == "json") cmd.compatibility.format = OutputFormat::Json;
-        else if (value != "text") throw std::runtime_error("--format must be text or json");
-      } else throw std::runtime_error("unknown analyze option: " + arg);
-    }
-    return cmd;
-  }
-
-  if (first == "analyze-dist") {
     cmd.kind = CommandKind::AnalyzeDist;
-    if (argc < 3) throw std::runtime_error("usage: venom analyze-dist <dist-dir> [--format text|json]");
+    if (argc < 3) throw std::runtime_error("usage: venom analyze <dist-dir> [--verbose|--quiet] [--format text|json]");
     cmd.analyze_dist_input = argv[2];
     for (int i = 3; i < argc; ++i) {
       const std::string arg = argv[i];
@@ -208,14 +198,16 @@ Command parse_command(int argc, char** argv) {
         const auto value = require_value(i, argc, argv, arg);
         if (value == "json") cmd.analyze_dist_format = OutputFormat::Json;
         else if (value != "text") throw std::runtime_error("--format must be text or json");
-      } else throw std::runtime_error("unknown analyze-dist option: " + arg);
+      } else if (arg == "--verbose" || arg == "-v") cmd.analyze_dist_verbosity = 2;
+      else if (arg == "--quiet" || arg == "-q") cmd.analyze_dist_verbosity = 0;
+      else throw std::runtime_error("unknown analyze option: " + arg);
     }
     return cmd;
   }
 
   if (first == "compatibility") {
     cmd.kind = CommandKind::Compatibility;
-    if (argc < 4 || std::string(argv[2]) != "check") throw std::runtime_error("usage: venom compatibility check <site-dir> [--format text|json]");
+    if (argc < 4 || std::string(argv[2]) != "check") throw std::runtime_error("usage: venom compatibility check <site-dir> [--verbose|--quiet] [--format text|json]");
     cmd.compatibility.input = argv[3];
     for (int i = 4; i < argc; ++i) {
       const std::string arg = argv[i];
@@ -223,7 +215,9 @@ Command parse_command(int argc, char** argv) {
         const auto value = require_value(i, argc, argv, arg);
         if (value == "json") cmd.compatibility.format = OutputFormat::Json;
         else if (value != "text") throw std::runtime_error("--format must be text or json");
-      } else throw std::runtime_error("unknown compatibility option: " + arg);
+      } else if (arg == "--verbose" || arg == "-v") cmd.compatibility.verbosity = 2;
+      else if (arg == "--quiet" || arg == "-q") cmd.compatibility.verbosity = 0;
+      else throw std::runtime_error("unknown compatibility option: " + arg);
     }
     return cmd;
   }
@@ -258,23 +252,6 @@ Command parse_command(int argc, char** argv) {
   }
 
 
-  if (first == "inspect") {
-    cmd.kind = CommandKind::Inspect;
-    if (argc < 3) {
-      throw std::runtime_error("inspect requires a package path");
-    }
-    cmd.inspect.package = argv[2];
-    for (int i = 3; i < argc; ++i) {
-      const std::string arg = argv[i];
-      if (arg == "--key-file") {
-        cmd.inspect.key_file = require_value(i, argc, argv, arg);
-      } else {
-        throw std::runtime_error("unknown inspect option: " + arg);
-      }
-    }
-    return cmd;
-  }
-
   if (first == "keygen") {
     cmd.kind = CommandKind::Keygen;
     for (int i = 2; i < argc; ++i) {
@@ -290,8 +267,8 @@ Command parse_command(int argc, char** argv) {
     return cmd;
   }
 
-  if (first == "release-check" || first == "verify-runtime") {
-    cmd.kind = first == "verify-runtime" ? CommandKind::VerifyRuntime : CommandKind::ReleaseCheck;
+  if (first == "verify" || first == "verify-runtime") {
+    cmd.kind = first == "verify-runtime" ? CommandKind::VerifyRuntime : CommandKind::Verify;
     cmd.release_check.runtime_verification = first == "verify-runtime";
     if (argc < 3) {
       throw std::runtime_error(first + " requires a dist directory or package path");
@@ -310,6 +287,14 @@ Command parse_command(int argc, char** argv) {
         cmd.release_check.require_audited_crypto = true;
       } else if (arg == "--require-real-engine") {
         cmd.release_check.require_real_engine = true;
+      } else if (arg == "--verbose" || arg == "-v") {
+        cmd.release_check.verbosity = 2;
+      } else if (arg == "--quiet" || arg == "-q") {
+        cmd.release_check.verbosity = 0;
+      } else if (arg == "--format") {
+        const auto value = require_value(i, argc, argv, arg);
+        if (value == "json") cmd.release_check.format = OutputFormat::Json;
+        else if (value != "text") throw std::runtime_error("--format must be text or json");
       } else {
         throw std::runtime_error("unknown " + first + " option: " + arg);
       }
@@ -332,6 +317,7 @@ Command parse_command(int argc, char** argv) {
   std::filesystem::path config_path;
   bool saw_verbose = false;
   bool saw_quiet = false;
+  bool saw_strict_release = false;
   for (int i = option_start; i < argc; ++i) {
     const std::string arg = argv[i];
     if (arg == "--config") config_path = require_value(i, argc, argv, arg);
@@ -358,6 +344,10 @@ Command parse_command(int argc, char** argv) {
     } else if (arg == "--quiet" || arg == "-q") {
       saw_quiet = true;
       cmd.build.verbosity = 0;
+    } else if (arg == "--no-cache") {
+      cmd.build.cache_enabled = false;
+    } else if (arg == "--cache-dir") {
+      cmd.build.cache_directory = require_value(i, argc, argv, arg);
     } else if (arg == "--out") {
       cmd.build.output = require_value(i, argc, argv, arg);
     } else if (arg == "--profile") {
@@ -369,15 +359,10 @@ Command parse_command(int argc, char** argv) {
     } else if (arg == "--runtime") {
       cmd.build.runtime = require_value(i, argc, argv, arg);
       if (cmd.build.runtime != "js" && cmd.build.runtime != "wasm") throw std::runtime_error("--runtime must be js or wasm");
-    } else if (arg == "--quickjs-backend") {
-      cmd.build.quickjs_backend = require_value(i, argc, argv, arg);
-    } else if (arg == "--crypto-provider") {
-      cmd.build.crypto_provider = require_value(i, argc, argv, arg);
-    } else if (arg == "--allow-host-fallback" || arg == "--allow-release-host-fallback") {
-      cmd.build.allow_host_fallback = true;
     } else if (arg == "--deny-host-fallback") {
       cmd.build.deny_host_fallback = true;
     } else if (arg == "--strict-release") {
+      saw_strict_release = true;
       cmd.build.strict_release = true;
     } else if (arg == "--emit-debug-manifest") {
       cmd.build.emit_debug_manifest = true;
@@ -419,27 +404,11 @@ Command parse_command(int argc, char** argv) {
   }
 
   apply_profile_defaults(cmd.build);
+  if (saw_strict_release) cmd.build.strict_release = true;
 
   if (saw_verbose && saw_quiet) {
     throw std::runtime_error("--verbose and --quiet cannot be used together");
   }
-  if (cmd.build.allow_host_fallback && cmd.build.deny_host_fallback) {
-    throw std::runtime_error("--allow-host-fallback and --deny-host-fallback cannot be used together");
-  }
-  if (cmd.build.strict_release && cmd.build.allow_host_fallback) {
-    throw std::runtime_error("--strict-release cannot be combined with --allow-host-fallback");
-  }
-  const bool protected_profile = true;
-  if (protected_profile && cmd.build.allow_host_fallback) {
-    throw std::runtime_error("host fallback is not available in dev or prod builds");
-  }
-  if (cmd.build.quickjs_backend != "wasm-real") {
-    throw std::runtime_error("dev and prod require --quickjs-backend wasm-real");
-  }
-  if (cmd.build.crypto_provider != "runtime") {
-    throw std::runtime_error("dev and prod browser builds require --crypto-provider runtime");
-  }
-
   if (cmd.build.require_audited_crypto && cmd.build.crypto_provider != "libsodium") {
     throw std::runtime_error("--require-audited-crypto is not available for browser dev/prod builds");
   }
@@ -450,7 +419,7 @@ Command parse_command(int argc, char** argv) {
 void print_help() {
   std::cout << VENOM_PRODUCT_NAME << " " << VENOM_VERSION_STRING << "\n\n"
             << "Usage:\n"
-            << "  venom build [site-dir] --profile dev|prod [--protection standard|strong|maximum] [--verbose|--quiet]\n"
+            << "  venom build [site-dir] --profile prod [--protection standard|strong|maximum] [--verbose|--quiet] [--no-cache|--cache-dir <path>]\n"
             << "  venom plan [site-dir] [--protect <pattern>] [--browser <pattern>] [--min-confidence N] [--format text|json]\n"
             << "  venom dev [site-dir] [--out dist-dev] [--port 8080] [--open]\n"
             << "  venom new <name-or-path> [--force]\n"
@@ -459,17 +428,19 @@ void print_help() {
             << "  venom update [check|install|rollback|status] [--channel stable|preview]\n"
             << "  venom config validate|print [venom.toml] [--format text|json]\n"
             << "  venom doctor [--profile development|production|runtime-contributor] [--format text|json]\n"
-            << "  venom analyze <site-dir> [--format text|json]\n"
-            << "  venom analyze-dist <dist-dir> [--format text|json]\n"
-            << "  venom compatibility check <site-dir> [--format text|json]\n"
+            << "  venom analyze <dist-dir> [--verbose|--quiet] [--format text|json]\n"
+            << "  venom compatibility check <site-dir> [--verbose|--quiet] [--format text|json]\n"
             << "  venom contracts [--format text|json]\n"
-            << "  venom release-check <dist-or-package> [--target browser]\n"
-            << "  venom verify-runtime <dist-or-package> [--require-real-engine]\n"
-            << "  venom inspect <dist/assets/app/app.<hash>.vbc>\n"
+            << "  venom verify <dist-or-package> [--target browser|native] [--verbose|--quiet] [--format text|json]\n"
+            << "  venom verify-runtime <dist-or-package> [--require-real-engine] [--verbose|--quiet] [--format text|json]\n"
+            << "  venom inspect <dist/assets/app/<hash>.vbc>\n"
             << "  venom --version\n\n"
             << "Build output:\n"
             << "  Default  Structured phase-by-phase progress with timings and artifact counts.\n"
             << "  --verbose, -v  Include detailed planner, runtime, package, and hardener diagnostics.\n"
+            << "  Colors         Enabled automatically for interactive terminals.\n"
+            << "  --no-cache     Disable the content-addressed compiler cache for this build.\n"
+            << "  --cache-dir P  Store compiler cache entries under P.\n"
             << "  --quiet, -q    Suppress progress output; errors and the final result remain visible.\n\n"
             << "Build profiles:\n"
             << "  dev   Readable generated runtime, diagnostics, stable asset names, real QuickJS/WASM protection.\n"
@@ -481,11 +452,11 @@ void print_help() {
             << "  venom config validate\n\n"
             << "Examples:\n"
             << "  venom dev examples/protected-chess --open\n"
-            << "  venom build examples/protected-chess --out dist-dev --profile dev\n"
+            << "  venom build examples/protected-chess --out dist --profile prod\n"
             << "  venom build examples/protected-chess --out dist --profile prod\n"
             << "  venom build examples/protected-chess --out dist --profile prod --seed 123456\n"
-            << "  scripts\\build-site.bat examples\\protected-chess dist prod\n"
-            << "  scripts\\serve-site.bat 8080 dist\n";
+            << "  scripts\\windows\\build-and-launch-example1.bat\n"
+            << "  scripts/linux/build-and-launch-example1.sh\n";
 }
 
 void print_version() {

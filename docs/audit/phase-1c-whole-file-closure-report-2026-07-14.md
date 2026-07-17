@@ -6,8 +6,8 @@ Date: 2026-07-14
 
 - Whole-file protected JavaScript chunks now produce build-only protection-intent ledger entries.
 - The closure summary records requested, resolved, whole-file, and expected QuickJS record counts.
-- `release-check` independently reads `build.json` and compares requested versus resolved intents.
-- `release-check` compares expected protected QuickJS records against records found across all decoded package sections, including lazy script sections.
+- `verify` independently reads `build.json` and compares requested versus resolved intents.
+- `verify` compares expected protected QuickJS records against records found across all decoded package sections, including lazy script sections.
 - Detailed source paths and symbols remain outside `dist` under the sibling `.venom/<output>/protection-intents.json` report.
 
 ## New release failures

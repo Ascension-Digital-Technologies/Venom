@@ -39,7 +39,12 @@ bool js_regex_prefix(char ch);
 std::string minify_release_js(const std::string& input);
 std::string harden_release_js_asset(std::string js);
 std::filesystem::path find_js_hardener_script();
-std::string ast_harden_release_js(const std::string& kind, const std::string& js);
+struct HardenerCacheStats { std::size_t hits = 0; std::size_t misses = 0; std::size_t writes = 0; };
+HardenerCacheStats hardener_cache_stats();
+void reset_hardener_cache_stats();
+
+void configure_hardener_cache(bool enabled, const std::filesystem::path& directory, bool verbose = false);
+std::string ast_harden_release_js(const std::string& kind, const std::string& js, const std::string& build_salt = {});
 bool redact_release_metadata(const Profile& profile);
 std::string protected_route_label(const Profile& profile, const JsChunk& chunk);
 std::string protected_source_label(const Profile& profile, const JsChunk& chunk);

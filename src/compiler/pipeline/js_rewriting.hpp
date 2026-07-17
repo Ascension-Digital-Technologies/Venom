@@ -15,17 +15,31 @@ struct BridgeRewriteRecord {
   std::string status;
   std::string reason;
   std::vector<std::string> lifted_dependencies;
+  std::string input_contract_json;
+  std::string output_contract_json;
+  std::string input_typescript;
+  std::string output_typescript;
+};
+
+struct RegistrySourceChunk {
+  std::string id;
+  std::string source;
+  std::vector<std::string> candidates;
 };
 
 struct BridgeRewriteResult {
   std::string registry_source;
+  std::vector<RegistrySourceChunk> registry_chunks;
+  std::string typescript;
   std::vector<BridgeRewriteRecord> records;
 };
 
 struct ProtectedModuleRewriteResult {
   std::string registry_source;
+  std::vector<RegistrySourceChunk> registry_chunks;
   std::string typescript;
   std::vector<BridgeRewriteRecord> records;
+  std::vector<std::pair<std::string, std::string>> lowered_browser_imports;
 };
 
 ProtectedModuleRewriteResult apply_protected_module_rewrites(
@@ -39,6 +53,9 @@ BridgeRewriteResult apply_bridge_rewrites(
     const std::string& bridge_id_salt);
 
 std::string make_bridge_rewrite_report_json(
+    const std::vector<BridgeRewriteRecord>& records);
+
+std::string make_protected_contracts_json(
     const std::vector<BridgeRewriteRecord>& records);
 
 }  // namespace venom::compiler::detail

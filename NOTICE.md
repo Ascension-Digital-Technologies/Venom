@@ -28,3 +28,7 @@ example or generated distribution where required by the upstream license.
 
 This notice is informational and does not replace the complete license text of
 any third-party component.
+
+## TypeScript
+
+Venom vendors the TypeScript compiler API for deterministic structural TypeScript and TSX lowering. TypeScript is licensed under the Apache License 2.0; see `third_party/typescript/LICENSE.txt`.

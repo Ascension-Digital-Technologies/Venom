@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iterator>
+#include <regex>
 #include <sstream>
 #include <stdexcept>
 
@@ -139,7 +140,7 @@ std::filesystem::path resolve_package_path(const std::filesystem::path& target) 
     return target;
   }
   if (!std::filesystem::is_directory(target)) {
-    throw std::runtime_error("release-check target does not exist: " + target.string());
+    throw std::runtime_error("verify target does not exist: " + target.string());
   }
   const auto assets_dir = target / "assets";
   const auto stable = assets_dir / "app" / "app.vbc";
@@ -152,15 +153,17 @@ std::filesystem::path resolve_package_path(const std::filesystem::path& target) 
   }
   const auto app_dir = assets_dir / "app";
   if (std::filesystem::is_directory(app_dir)) {
+    std::filesystem::path discovered;
     for (const auto& entry : std::filesystem::directory_iterator(app_dir)) {
-      if (!entry.is_regular_file()) {
+      if (!entry.is_regular_file() || entry.path().extension() != ".vbc") {
         continue;
       }
-      const auto filename = entry.path().filename().string();
-      if (filename.rfind("app.", 0) == 0 && entry.path().extension() == ".vbc") {
-        return entry.path();
+      if (!discovered.empty()) {
+        throw std::runtime_error("verify found multiple VBC packages under " + app_dir.string());
       }
+      discovered = entry.path();
     }
+    if (!discovered.empty()) return discovered;
   }
   if (std::filesystem::is_directory(assets_dir)) {
     for (const auto& entry : std::filesystem::directory_iterator(assets_dir)) {
@@ -173,7 +176,7 @@ std::filesystem::path resolve_package_path(const std::filesystem::path& target) 
       }
     }
   }
-  throw std::runtime_error("release-check could not find assets/app/app.vbc or assets/app/app.<hash>.vbc under " + target.string());
+  throw std::runtime_error("verify could not find a VBC package under assets/app/ in " + target.string());
 }
 
 std::filesystem::path resolve_dist_root(const std::filesystem::path& target, const std::filesystem::path& package) {
@@ -267,32 +270,47 @@ std::vector<BoundAssetRecord> parse_bound_assets(const std::string& text) {
   return assets;
 }
 
+std::filesystem::path find_html_asset_reference(const std::filesystem::path& dist_root,
+                                                const std::regex& pattern) {
+  const auto index_path = dist_root / "index.html";
+  if (!std::filesystem::is_regular_file(index_path)) return {};
+  const auto html = read_text_file(index_path);
+  std::smatch match;
+  if (!std::regex_search(html, match, pattern) || match.size() < 2u) return {};
+  const auto candidate = (dist_root / std::filesystem::path(match[1].str())).lexically_normal();
+  const auto relative = candidate.lexically_relative(dist_root);
+  if (relative.empty() || relative.generic_string().rfind("..", 0) == 0) return {};
+  return std::filesystem::is_regular_file(candidate) ? candidate : std::filesystem::path{};
+}
+
 std::filesystem::path find_loader_asset(const std::filesystem::path& dist_root) {
-  const auto assets_dir = dist_root / "assets";
-  if (!std::filesystem::is_directory(assets_dir)) {
-    return {};
-  }
-  for (const auto& entry : std::filesystem::recursive_directory_iterator(assets_dir)) {
-    if (!entry.is_regular_file()) {
-      continue;
-    }
-    const auto filename = entry.path().filename().string();
-    if (filename.rfind("loader", 0) == 0 && entry.path().extension() == ".js") {
-      return entry.path();
+  const std::regex module_script(R"(<script[^>]*type=["']module["'][^>]*src=["']([^"']+\.js)["'][^>]*>)",
+                                 std::regex::icase);
+  auto from_html = find_html_asset_reference(dist_root, module_script);
+  if (!from_html.empty()) return from_html;
+
+  const auto javascript_dir = dist_root / "assets" / "javascript";
+  if (std::filesystem::is_directory(javascript_dir)) {
+    for (const auto& entry : std::filesystem::directory_iterator(javascript_dir)) {
+      if (entry.is_regular_file() && entry.path().extension() == ".js") {
+        const auto text = read_text_file(entry.path());
+        if (text.find("bindingToken") != std::string::npos) return entry.path();
+      }
     }
   }
   return {};
 }
 
 std::filesystem::path find_style_asset(const std::filesystem::path& dist_root) {
-  const auto style_dir = dist_root / "assets" / "style";
-  if (!std::filesystem::is_directory(style_dir)) {
-    return {};
-  }
-  for (const auto& entry : std::filesystem::directory_iterator(style_dir)) {
-    if (!entry.is_regular_file()) continue;
-    const auto filename = entry.path().filename().string();
-    if (filename.rfind("s.", 0) == 0 && entry.path().extension() == ".css") return entry.path();
+  const std::regex stylesheet(R"(<link[^>]*rel=["']stylesheet["'][^>]*href=["']([^"']+\.css)["'][^>]*>)",
+                              std::regex::icase);
+  auto from_html = find_html_asset_reference(dist_root, stylesheet);
+  if (!from_html.empty()) return from_html;
+
+  const auto app_dir = dist_root / "assets" / "app";
+  if (!std::filesystem::is_directory(app_dir)) return {};
+  for (const auto& entry : std::filesystem::directory_iterator(app_dir)) {
+    if (entry.is_regular_file() && entry.path().extension() == ".css") return entry.path();
   }
   return {};
 }

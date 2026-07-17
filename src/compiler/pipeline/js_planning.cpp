@@ -45,13 +45,13 @@ bool has_file_scope_venom_protected_directive(const std::string& source) {
 
 
 struct ParsedFunctionDirective {
-  std::string realm;
+  std::string runtime;
   bool isolated = false;
   bool module = false;
   bool malformed = false;
 };
 
-ParsedFunctionDirective parse_function_realm_directive(std::string text) {
+ParsedFunctionDirective parse_function_runtime_directive(std::string text) {
   text = lower_ascii(std::move(text));
   const auto marker = text.find("@venom:");
   if (marker == std::string::npos) return {};
@@ -65,7 +65,7 @@ ParsedFunctionDirective parse_function_realm_directive(std::string text) {
     return {};
   }
   ParsedFunctionDirective result;
-  result.realm = head;
+  result.runtime = head;
   std::string modifier;
   while (tokens >> modifier) {
     while (!modifier.empty() && (modifier.back() == ',' || modifier.back() == ';')) modifier.pop_back();
@@ -73,7 +73,7 @@ ParsedFunctionDirective parse_function_realm_directive(std::string text) {
     else if (modifier == "module") result.module = true;
     else { result.malformed = true; break; }
   }
-  if (result.realm == "browser" && (result.isolated || result.module)) result.malformed = true;
+  if (result.runtime == "browser" && (result.isolated || result.module)) result.malformed = true;
   if (result.isolated && result.module) result.malformed = true;
   return result;
 }
@@ -116,7 +116,8 @@ std::vector<std::string> js_comment_fragments(const std::string& line, bool& in_
 
 std::string json_escape_plan(const std::string& value) {
   std::ostringstream out;
-  for (const unsigned char c : value) {
+  for (const char raw_c : value) {
+    const auto c = static_cast<unsigned char>(raw_c);
     switch (c) {
       case '\\': out << "\\\\"; break;
       case '"': out << "\\\""; break;
@@ -135,18 +136,20 @@ std::string json_escape_plan(const std::string& value) {
 
 } // namespace
 
-std::vector<FunctionRealmRecord> scan_function_realm_directives(const JsChunk& chunk) {
-  std::vector<FunctionRealmRecord> records;
+std::vector<FunctionRuntimeRecord> scan_function_runtime_directives(const JsChunk& chunk) {
+  std::vector<FunctionRuntimeRecord> records;
   const std::regex function_declaration(
-      R"(^\s*(?:(?:export\s+)?(?:default\s+)?)?(?:async\s+)?function\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*\()");
+      R"(^\s*(?:(?:export\s+)?(?:default\s+)?)?(?:async\s+)?function\s*\*?\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*\()");
   const std::regex arrow_declaration_prefix(
       R"(^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*(?:async\s+)?)");
+  const std::regex function_expression_prefix(
+      R"(^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*(?:async\s+)?function(?:\s+[A-Za-z_$][A-Za-z0-9_$]*)?\s*\()" );
   std::istringstream input(chunk.code);
   std::vector<std::string> lines;
   std::string line;
   while (std::getline(input, line)) lines.push_back(line);
 
-  std::string pending_realm;
+  std::string pending_runtime;
   std::string pending_reason;
   bool pending_isolated = false;
   std::uint32_t pending_line = 0;
@@ -157,35 +160,35 @@ std::vector<FunctionRealmRecord> scan_function_realm_directives(const JsChunk& c
     const auto line_number = static_cast<std::uint32_t>(index + 1u);
     bool saw_directive_comment = false;
     for (const auto& fragment : js_comment_fragments(line, in_block_comment)) {
-      const auto parsed = parse_function_realm_directive(fragment);
-      if (parsed.realm.empty() && !parsed.malformed) continue;
+      const auto parsed = parse_function_runtime_directive(fragment);
+      if (parsed.runtime.empty() && !parsed.malformed) continue;
       saw_directive_comment = true;
-      if (parsed.module && !saw_noncomment_code && pending_realm.empty() &&
-          parsed.realm == "protected" && (chunk.flags & JsChunkBrowser) == 0u) {
+      if (parsed.module && !saw_noncomment_code && pending_runtime.empty() &&
+          parsed.runtime == "protected" && (chunk.flags & JsChunkBrowser) == 0u) {
         continue;
       }
       if (parsed.module) {
         throw std::runtime_error("protected module directive is only valid at file scope in " + chunk.source + ":" + std::to_string(line_number));
       }
       if (parsed.malformed) {
-        throw std::runtime_error("malformed function-level Venom realm directive in " + chunk.source + ":" + std::to_string(line_number));
+        throw std::runtime_error("malformed function-level Venom runtime directive in " + chunk.source + ":" + std::to_string(line_number));
       }
-      const bool browser = parsed.realm == "browser";
-      const bool protected_realm = parsed.realm == "protected";
-      if (browser || protected_realm) {
-        const std::string next_realm = parsed.realm;
-        const bool matches_file_realm = (next_realm == "browser") == ((chunk.flags & JsChunkBrowser) != 0u);
-        if (!saw_noncomment_code && pending_realm.empty() && matches_file_realm) {
-          // The leading realm annotation belongs to the file, not the next declaration.
+      const bool browser = parsed.runtime == "browser";
+      const bool protected_runtime = parsed.runtime == "protected";
+      if (browser || protected_runtime) {
+        const std::string next_runtime = parsed.runtime;
+        const bool matches_file_runtime = (next_runtime == "browser") == ((chunk.flags & JsChunkBrowser) != 0u);
+        if (!saw_noncomment_code && pending_runtime.empty() && matches_file_runtime) {
+          // The leading runtime annotation belongs to the file, not the next declaration.
           continue;
         }
-        if (!pending_realm.empty()) {
+        if (!pending_runtime.empty()) {
           throw std::runtime_error("ambiguous consecutive function-level Venom directives in " + chunk.source + ":" +
                                    std::to_string(pending_line) + " and " + std::to_string(line_number));
         }
-        pending_realm = next_realm;
+        pending_runtime = next_runtime;
         pending_reason = browser ? "explicit function-level browser directive" : "explicit function-level protected directive";
-        pending_isolated = protected_realm && parsed.isolated;
+        pending_isolated = protected_runtime && parsed.isolated;
         pending_line = line_number;
       }
     }
@@ -193,7 +196,7 @@ std::vector<FunctionRealmRecord> scan_function_realm_directives(const JsChunk& c
     const auto first_nonspace = line.find_first_not_of(" \t\r");
     if (first_nonspace != std::string::npos && line.compare(first_nonspace, 2, "//") != 0 &&
         line.compare(first_nonspace, 2, "/*") != 0 && line[first_nonspace] != '*') saw_noncomment_code = true;
-    if (pending_realm.empty()) continue;
+    if (pending_runtime.empty()) continue;
     if (first_nonspace == std::string::npos || line.compare(first_nonspace, 2, "//") == 0 ||
         line.compare(first_nonspace, 2, "/*") == 0 || line[first_nonspace] == '*') continue;
 
@@ -213,28 +216,30 @@ std::vector<FunctionRealmRecord> scan_function_realm_directives(const JsChunk& c
     } else if (header.find("=>") != std::string::npos &&
                std::regex_search(header, match, arrow_declaration_prefix) && match.size() > 1 && match[1].matched) {
       name = match[1].str();
+    } else if (std::regex_search(header, match, function_expression_prefix) && match.size() > 1 && match[1].matched) {
+      name = match[1].str();
     } else {
       throw std::runtime_error("orphaned function-level Venom directive in " + chunk.source + ":" +
                                std::to_string(pending_line) +
                                "; directive must bind to the immediately following supported declaration");
     }
-    if (!name.empty()) records.push_back({chunk.route, chunk.source, name, pending_realm, pending_reason, line_number, false, pending_isolated});
-    pending_realm.clear();
+    if (!name.empty()) records.push_back({chunk.route, chunk.source, name, pending_runtime, pending_reason, line_number, false, pending_isolated});
+    pending_runtime.clear();
     pending_reason.clear();
     pending_isolated = false;
     pending_line = 0;
   }
-  if (!pending_realm.empty()) {
+  if (!pending_runtime.empty()) {
     throw std::runtime_error("orphaned function-level Venom directive at end of file in " + chunk.source + ":" +
                              std::to_string(pending_line));
   }
   return records;
 }
 
-std::vector<FunctionRealmRecord> apply_function_realm_planning(std::vector<JsChunk>& chunks) {
-  std::vector<FunctionRealmRecord> records;
+std::vector<FunctionRuntimeRecord> apply_function_runtime_planning(std::vector<JsChunk>& chunks) {
+  std::vector<FunctionRuntimeRecord> records;
   for (auto& chunk : chunks) {
-    auto local = scan_function_realm_directives(chunk);
+    auto local = scan_function_runtime_directives(chunk);
     bool has_browser_function = false;
     std::string browser_function;
     for (const auto& record : local) {
@@ -261,10 +266,10 @@ std::vector<FunctionRealmRecord> apply_function_realm_planning(std::vector<JsChu
 }
 
 
-std::vector<FunctionRealmRecord> collect_function_realm_records(const std::vector<JsChunk>& chunks) {
-  std::vector<FunctionRealmRecord> all;
+std::vector<FunctionRuntimeRecord> collect_function_runtime_records(const std::vector<JsChunk>& chunks) {
+  std::vector<FunctionRuntimeRecord> all;
   for (const auto& chunk : chunks) {
-    auto local = scan_function_realm_directives(chunk);
+    auto local = scan_function_runtime_directives(chunk);
     const bool promoted = (chunk.flags & JsChunkBrowser) != 0u &&
                           chunk.execution_reason.find("function-level browser directive") != std::string::npos;
     for (auto& record : local) record.promoted_whole_file = promoted;
@@ -273,7 +278,7 @@ std::vector<FunctionRealmRecord> collect_function_realm_records(const std::vecto
   return all;
 }
 
-std::string make_function_plan_text(const std::vector<FunctionRealmRecord>& records) {
+std::string make_function_plan_text(const std::vector<FunctionRuntimeRecord>& records) {
   std::ostringstream out;
   out << "VENOM_FUNCTION_PLAN_V1\n";
   out << "route\tsource\tline\tfunction\texecution\tpromoted_whole_file\treason\n";
@@ -284,7 +289,7 @@ std::string make_function_plan_text(const std::vector<FunctionRealmRecord>& reco
   return out.str();
 }
 
-std::string make_function_plan_json(const std::vector<FunctionRealmRecord>& records) {
+std::string make_function_plan_json(const std::vector<FunctionRuntimeRecord>& records) {
   std::ostringstream out;
   out << "{\n  \"schema_version\": 1,\n  \"mode\": \"conservative-whole-file-promotion\",\n  \"functions\": [\n";
   for (std::size_t i = 0; i < records.size(); ++i) {
@@ -337,7 +342,7 @@ std::string function_window(const JsChunk& chunk, std::uint32_t line_number) {
 }
 
 std::vector<FunctionExtractionRecord> analyze_function_extraction(const std::vector<JsChunk>& chunks,
-                                                                   const std::vector<FunctionRealmRecord>& functions) {
+                                                                   const std::vector<FunctionRuntimeRecord>& functions) {
   std::vector<FunctionExtractionRecord> out;
   for (const auto& fn : functions) {
     const auto it = std::find_if(chunks.begin(), chunks.end(), [&](const JsChunk& c) {
@@ -350,29 +355,28 @@ std::vector<FunctionExtractionRecord> analyze_function_extraction(const std::vec
     if (fn.execution == "browser" && !file_browser) {
       rec.disposition = "whole-file-promotion";
       rec.reason = "browser function requires real DOM semantics; synchronous protected-to-browser invocation is not yet safely representable";
-      rec.blockers.push_back("synchronous cross-realm result bridge unavailable");
+      rec.blockers.push_back("synchronous cross-runtime result bridge unavailable");
     } else if (fn.execution == "protected" && file_browser) {
       // QuickJS supports ordinary JavaScript semantics such as `this`,
       // `arguments`, nested functions, and `with`. Only syntax that requires the
-      // browser realm or cannot be serialized across the JSON bridge is rejected.
+      // browser runtime or cannot be serialized across the JSON bridge is rejected.
       // Use member-access tokens to avoid false positives in comments such as
       // "documentation".
       static const std::vector<std::pair<std::string, std::string>> unsafe{
         {"eval(", "dynamic eval"}, {"super", "super binding"},
-        {"new.target", "new.target binding"}, {"yield", "generator semantics"},
-        {"import.meta", "module metadata"}
+        {"new.target", "new.target binding"}, {"import.meta", "module metadata"}
       };
       for (const auto& item : unsafe) if (contains_token_ci(body, item.first)) rec.blockers.push_back(item.second);
       if (rec.blockers.empty()) {
         rec.disposition = "bridge-candidate";
         rec.bridge_mode = "async-json-v1";
-        rec.reason = "function has no immediately unsafe realm-bound syntax; eligible for generated asynchronous JSON-value bridge";
+        rec.reason = "function has no immediately unsafe runtime-bound syntax; eligible for generated asynchronous JSON-value bridge";
       } else {
         rec.disposition = "retained-browser";
         rec.reason = "function cannot be extracted safely";
       }
     } else {
-      rec.reason = file_browser ? "function already resides in browser realm" : "function already resides in protected realm";
+      rec.reason = file_browser ? "function already resides in browser runtime" : "function already resides in protected runtime";
     }
     out.push_back(std::move(rec));
   }
@@ -382,9 +386,9 @@ std::vector<FunctionExtractionRecord> analyze_function_extraction(const std::vec
 std::string make_extraction_plan_text(const std::vector<FunctionExtractionRecord>& records) {
   std::ostringstream out;
   out << "VENOM_FUNCTION_EXTRACTION_PLAN_V1\n";
-  out << "route\tsource\tline\tfunction\trequested_realm\tdisposition\tbridge_mode\treason\tblockers\n";
+  out << "route\tsource\tline\tfunction\trequested_runtime\tdisposition\tbridge_mode\treason\tblockers\n";
   for (const auto& r : records) {
-    out << r.route << '\t' << r.source << '\t' << r.line << '\t' << r.name << '\t' << r.requested_realm
+    out << r.route << '\t' << r.source << '\t' << r.line << '\t' << r.name << '\t' << r.requested_runtime
         << '\t' << r.disposition << '\t' << r.bridge_mode << '\t' << r.reason << '\t';
     for (std::size_t i=0;i<r.blockers.size();++i) { if (i) out << ", "; out << r.blockers[i]; }
     out << '\n';
@@ -399,7 +403,7 @@ std::string make_extraction_plan_json(const std::vector<FunctionExtractionRecord
     const auto& r=records[i];
     out << "    {\"route\":\"" << json_escape_plan(r.route) << "\",\"source\":\"" << json_escape_plan(r.source)
         << "\",\"line\":" << r.line << ",\"function\":\"" << json_escape_plan(r.name)
-        << "\",\"requested_realm\":\"" << r.requested_realm << "\",\"disposition\":\"" << r.disposition
+        << "\",\"requested_runtime\":\"" << r.requested_runtime << "\",\"disposition\":\"" << r.disposition
         << "\",\"bridge_mode\":\"" << r.bridge_mode << "\",\"reason\":\"" << json_escape_plan(r.reason) << "\",\"blockers\":[";
     for (std::size_t j=0;j<r.blockers.size();++j) { if (j) out << ','; out << '\"' << json_escape_plan(r.blockers[j]) << '\"'; }
     out << "]}" << (i+1==records.size()?"":",") << '\n';
@@ -408,9 +412,9 @@ std::string make_extraction_plan_json(const std::vector<FunctionExtractionRecord
   return out.str();
 }
 
-std::string make_realm_bridge_contract_json(const std::vector<FunctionExtractionRecord>& records) {
+std::string make_runtime_bridge_contract_json(const std::vector<FunctionExtractionRecord>& records) {
   std::ostringstream out;
-  out << "{\n  \"schema_version\": 2,\n  \"transport\": \"binary-capability-v3-leased\",\n  \"value_contract\": \"json-value-v1\",\n  \"synchronous_calls\": false,\n  \"candidates\": [\n";
+  out << "{\n  \"schema_version\": 2,\n  \"runtime_api_version\": 1,\n  \"transport\": \"binary-capability-v3-leased\",\n  \"value_contract\": \"binary-json-v2\",\n  \"synchronous_calls\": false,\n  \"candidates\": [\n";
   bool first=true;
   for (const auto& r:records) if (r.disposition=="bridge-candidate") {
     if (!first) out << ",\n";

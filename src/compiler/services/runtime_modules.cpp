@@ -118,6 +118,7 @@ std::vector<std::string> RuntimeModulePlan::enabled_modules() const {
   if (timers) out.emplace_back("timers");
   if (events) out.emplace_back("events");
   if (storage) out.emplace_back("storage");
+  if (crypto) out.emplace_back("crypto");
   if (navigation) out.emplace_back("navigation");
   if (forms) out.emplace_back("forms");
   if (observers) out.emplace_back("observers");
@@ -125,7 +126,7 @@ std::vector<std::string> RuntimeModulePlan::enabled_modules() const {
   return out;
 }
 
-RuntimeModulePlan plan_runtime_modules(const SiteGraph& graph, const CapabilityGraph& c) {
+RuntimeModulePlan plan_runtime_modules(const SiteGraph& graph, const CapabilityGraph& c, const BuildOptions& options) {
   RuntimeModulePlan p;
   p.network = has(c.browser_apis, "fetch") || has(c.browser_apis, "XMLHttpRequest") ||
       has(c.browser_apis, "WebSocket") || has(c.browser_apis, "EventSource");
@@ -133,8 +134,19 @@ RuntimeModulePlan plan_runtime_modules(const SiteGraph& graph, const CapabilityG
       has(c.browser_apis, "requestAnimationFrame");
   p.events = has(c.browser_apis, "addEventListener") || has(c.browser_apis, "dispatchEvent") ||
       contains_inline_event_attribute(graph);
-  p.storage = has(c.browser_apis, "localStorage") || has(c.browser_apis, "sessionStorage") ||
+  const bool needs_storage = has(c.browser_apis, "localStorage") || has(c.browser_apis, "sessionStorage") ||
       has(c.browser_apis, "indexedDB");
+  const bool needs_crypto = has(c.browser_apis, "crypto.getRandomValues") || has(c.browser_apis, "crypto.subtle");
+  auto apply_policy = [](const char* name, const std::string& mode, bool needed) {
+    if (mode == "deny" && needed) throw std::runtime_error(std::string("capability '") + name + "' is required by the project but denied in venom.toml");
+    if (mode == "allow" || mode == "read-only") return true;
+    if (mode == "auto") return needed;
+    return false;
+  };
+  p.network = apply_policy("fetch", options.capability_fetch, p.network);
+  p.timers = apply_policy("timers", options.capability_timers, p.timers);
+  p.storage = apply_policy("storage", options.capability_storage, needs_storage);
+  p.crypto = apply_policy("crypto", options.capability_crypto, needs_crypto);
   p.navigation = has(c.browser_apis, "history") || has(c.browser_apis, "location") || graph.routes.size() > 1;
   p.forms = has(c.browser_apis, "FormData") || has(c.browser_apis, "SubmitEvent") ||
       has(c.browser_apis, "HTMLFormElement") || has(c.browser_apis, "form.submit") ||

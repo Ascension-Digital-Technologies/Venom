@@ -12,7 +12,7 @@ if out.exists():
     shutil.rmtree(out)
 
 subprocess.run([str(venom), 'build', str(site), '--out', str(out), '--profile', 'prod', '--runtime', 'wasm', '--hashed', '--strict-release'], check=True, text=True, capture_output=True)
-release = subprocess.run([str(venom), 'release-check', str(out), '--target', 'browser'], check=True, text=True, capture_output=True)
+release = subprocess.run([str(venom), 'verify', str(out), '--target', 'browser'], check=True, text=True, capture_output=True)
 text = release.stdout
 for marker in [
     'quickjs_host_js_fallback_allowed: no',

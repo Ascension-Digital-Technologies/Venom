@@ -93,7 +93,7 @@ def main() -> int:
     ap.add_argument('--repo-root', type=Path, default=Path(__file__).resolve().parents[1])
     ap.add_argument('--emsdk-dir', type=Path, default=None)
     ap.add_argument('--out-dir', type=Path, default=None)
-    ap.add_argument('--version', default='latest', help='emsdk version to install/activate; default latest')
+    ap.add_argument('--version', default='4.0.10', help='emsdk version to install/activate; default 4.0.10 (verified release toolchain)')
     ap.add_argument('--emcc', default=os.environ.get('EMCC', 'emcc'))
     ap.add_argument('--check-only', action='store_true')
     ap.add_argument('--allow-missing', action='store_true', help='return success from --check-only even when emcc is missing')

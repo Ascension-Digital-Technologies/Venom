@@ -1,7 +1,7 @@
 #include "compiler/core/compatibility.hpp"
 #include "compiler/pipeline/capability_analysis.hpp"
 #include "compiler/core/version.hpp"
-#include "contracts/product_contracts.hpp"
+#include "generated/contracts/product_contracts.hpp"
 
 #include <algorithm>
 #include <iostream>
@@ -22,7 +22,8 @@ struct Finding {
 
 std::string escape(const std::string& s) {
   std::string o;
-  for (unsigned char c : s) {
+  for (const char raw_c : s) {
+    const auto c = static_cast<unsigned char>(raw_c);
     if (c == '"' || c == '\\') o += '\\';
     if (c == '\n') o += "\\n";
     else if (c == '\r') o += "\\r";

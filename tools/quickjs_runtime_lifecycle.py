@@ -124,7 +124,7 @@ def main()->int:
         return 0
     if args.command=='resolve-emcc':
         if not emcc:
-            print('[venom] emcc was not found. Run scripts/setup-emscripten.ps1 or pass -Emcc.',file=sys.stderr); return 3
+            print('[venom] emcc was not found. Run scripts/windows/build-emsdk.bat or pass -Emcc.',file=sys.stderr); return 3
         print(str(emcc) if args.format=='path' else json.dumps({'emcc':str(emcc),'source':source}))
         return 0
     info=status(root,out,emcc,source,args.abi_mode,args.optimization_profile,args.memory_profile)

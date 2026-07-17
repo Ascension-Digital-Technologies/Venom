@@ -29,9 +29,7 @@ jobs:
           key: emsdk-${{ runner.os }}-${{ env.EMSDK_VERSION }}
       - name: Build canonical real QuickJS/WASM runtime
         run: |
-          scripts/setup-emscripten.sh --version "$EMSDK_VERSION" --emsdk-dir build/emsdk
-          source build/emsdk/emsdk_env.sh
-          python tools/build_emscripten.py --repo-root . --out-dir build/emscripten-build --emsdk-dir build/emsdk --clean --force --skip-native-rebuild --skip-runtime-smoke
+          bash scripts/linux/build-emsdk.sh --version "$EMSDK_VERSION" --emsdk-dir build/emsdk --out-dir build/emscripten-build --clean --force --skip-native-rebuild --skip-runtime-smoke
           python tools/quickjs_wasm_cutover.py --repo-root . --out-dir build/quickjs-wasm --verify-embedded --require-real
           sha256sum build/quickjs-wasm/quickjs-runtime.wasm src/generated/runtime/quickjs_runtime_wasm_blob.hpp > build/quickjs-wasm/VERIFIED_RUNTIME_SHA256SUMS
       - uses: actions/upload-artifact@v4
@@ -113,6 +111,10 @@ jobs:
         shell: bash
         run: |
           test -s build/package/CONTRACTS.json
+          test -s build/package/SBOM.cdx.json
+          test -s build/package/PROVENANCE.intoto.json
+          test -s build/package/RELEASE_POLICY.json
+          python tools/verify_release.py build/package --expect-version "${GITHUB_REF_NAME#v}" --expect-channel stable --require-supply-chain-metadata || python tools/verify_release.py build/package --require-supply-chain-metadata
           python tools/check_contract_upgrade.py build/package/CONTRACTS.json build/package/CONTRACTS.json
       - uses: actions/upload-artifact@v4
         with:

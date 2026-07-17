@@ -618,7 +618,7 @@ std::string make_quickjs_console_bridge_metadata(const Profile& profile, const s
 }
 
 std::string make_script_engine_policy_metadata(const Profile& profile, const std::string& runtime_mode, const JsBridge& bridge) {
-  const bool allow_function_constructor = profile.kind == ProfileKind::Dev;
+  const bool allow_function_constructor = false;
   std::ostringstream out;
   out << "VENOM_SCRIPT_ENGINE_POLICY_V4\n"
       << "version=4\n"

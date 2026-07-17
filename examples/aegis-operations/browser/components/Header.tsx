@@ -1,0 +1,4 @@
+// @venom: browser
+import React from "../jsx-runtime"; import Icon from "./Icon";
+interface HeaderProps { title:string; query:string; onQuery:(value:string)=>void; onCommand:()=>void; onRefresh:()=>void; loading:boolean; }
+export default function Header({title,query,onQuery,onCommand,onRefresh,loading}:HeaderProps){ return <header className="topbar"><div><p className="eyebrow">Enterprise operations</p><h1>{title}</h1></div><div className="header-actions"><label className="search"><Icon name="search"/><input value={query} placeholder="Search incidents, assets, owners…" onInput={(event)=>onQuery(event.target.value)}/><kbd>⌘ K</kbd></label><button className="secondary-button" onClick={onCommand}><Icon name="command"/>Commands</button><button className="primary-button" onClick={onRefresh}>{loading?"Analyzing…":"Refresh intelligence"}</button><div className="avatar">MV</div></div></header>; }

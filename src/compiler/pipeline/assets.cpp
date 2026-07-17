@@ -57,7 +57,10 @@ bool is_public_asset(const SiteFile& file, bool production) {
   if (production && (is_deployment_metadata(file) || is_third_party_notice(file))) return false;
   return
          file.extension != ".html" && file.extension != ".htm" &&
-         file.extension != ".css" && file.extension != ".js" && file.extension != ".mjs";
+         file.extension != ".css" &&
+         file.extension != ".js" && file.extension != ".mjs" && file.extension != ".cjs" &&
+         file.extension != ".jsx" && file.extension != ".ts" && file.extension != ".tsx" &&
+         file.extension != ".mts" && file.extension != ".cts";
 }
 
 bool is_image_asset(const std::string& mime) {
@@ -182,7 +185,7 @@ AssetPipeline build_asset_pipeline(const SiteGraph& graph, bool hashed, bool pro
     if (is_image_asset(record.mime)) {
       record.output_name = "images/" + record.output_name;
       record.public_path = "assets/" + record.output_name;
-      // Production CSS is emitted under assets/style/, so image URLs must step
+      // Production CSS is emitted under assets/app/, so image URLs must step
       // back to the shared assets root before entering assets/images/.
       record.css_url = "../" + record.output_name;
     } else if (is_third_party_notice(file)) {

@@ -7,18 +7,17 @@ from pathlib import Path
 HASH = r"[0-9a-f]{12}"
 ALLOWED = [
     re.compile(r"index\.html"),
-    re.compile(r"assets/app/build\.json"),
-    re.compile(rf"assets/app/app\.{HASH}\.vbc"),
-    re.compile(rf"assets/style/s\.{HASH}\.css"),
-    re.compile(rf"assets/loader/loader\.{HASH}\.js"),
-    re.compile(rf"assets/runtime/engine\.{HASH}\.js"),
-    re.compile(rf"assets/runtime/runtime\.{HASH}\.wasm"),
-    re.compile(rf"assets/runtime/r\.{HASH}\.js"),
-    re.compile(rf"assets/runtime/rw\.{HASH}\.wasm"),
+        re.compile(rf"assets/app/{HASH}\.vbc"),
+    re.compile(rf"assets/app/{HASH}\.css"),
+    re.compile(rf"assets/javascript/{HASH}\.js"),
+    re.compile(rf"assets/javascript/{HASH}\.js"),
+    re.compile(rf"assets/wasm/{HASH}\.wasm"),
+    re.compile(rf"assets/javascript/{HASH}\.js"),
+    re.compile(rf"assets/wasm/{HASH}\.wasm"),
     re.compile(r"assets/(?!app/|style/|loader/|runtime/|workers/).+"),  # public site assets
-    re.compile(r"assets/workers/worker\.[0-9a-f]{12}\.js"),
+    re.compile(r"assets/javascript/[0-9a-f]{12,16}\.js"),
     re.compile(r"build/reports/(?:execution-plan|function-plan|function-extraction-plan)\.(?:txt|json)"),
-    re.compile(r"build/reports/(?:realm-bridge-contract|bridge-rewrite-plan)\.json"),
+    re.compile(r"build/reports/(?:runtime-bridge-contract|bridge-rewrite-plan)\.json"),
 ]
 FORBIDDEN_TEXT = (
     "new Function", "eval(", "sourceMappingURL", "host-js-fallback",

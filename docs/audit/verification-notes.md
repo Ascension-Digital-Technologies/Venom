@@ -3,7 +3,7 @@
 ## Source-assisted checks completed
 
 - Reviewed package sealing and opening paths for browser, legacy, and libsodium formats.
-- Reviewed production release-check policy and browser/native threat-model separation.
+- Reviewed production verify policy and browser/native threat-model separation.
 - Reviewed protected-function extraction, bytecode record gates, source-leak checks, and opaque export transport.
 - Reviewed browser bridge frame validation and resource limits.
 - Reviewed bot-detection protected session and telemetry implementation.

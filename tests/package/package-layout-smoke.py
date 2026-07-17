@@ -13,10 +13,10 @@ for out in (out_a, out_b):
     if out.exists():
         shutil.rmtree(out)
     subprocess.check_call([str(venom), 'build', str(site), '--out', str(out), '--profile', 'prod', '--hashed'])
-    check = subprocess.check_output([str(venom), 'release-check', str(out), '--target', 'browser'], text=True)
+    check = subprocess.check_output([str(venom), 'verify', str(out), '--target', 'browser'], text=True)
     for needle in ('layout_polymorphic: yes', 'payload_padding_bytes:', 'release_status: PASS'):
         if needle not in check:
-            raise SystemExit(f'missing release-check layout marker {needle!r}\n{check}')
+            raise SystemExit(f'missing verify layout marker {needle!r}\n{check}')
     padding_line = next((line for line in check.splitlines() if 'payload_padding_bytes:' in line), '')
     padding = int(padding_line.rsplit(':', 1)[1].strip())
     if padding <= 0:

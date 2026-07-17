@@ -234,8 +234,8 @@ foreach(_venom_qjs_artifact_test IN ITEMS
 endforeach()
 
 add_test(
-  NAME venom_function_realm_plan_smoke
-  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/function-realm-plan-smoke.py
+  NAME venom_function_runtime_plan_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/function-runtime-plan-smoke.py
 )
 
 add_test(NAME venom_function_extraction_plan_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/function-extraction-plan-smoke.py)
@@ -246,10 +246,10 @@ add_test(NAME venom_wasm_owned_package_decoder_smoke COMMAND ${Python3_EXECUTABL
 add_test(NAME venom_full_section_layout_diversification_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/full-section-layout-diversification-smoke.py $<TARGET_FILE:venom>)
 add_test(NAME venom_release_artifact_leak_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/release-artifact-leak-smoke.py $<TARGET_FILE:venom>)
 add_test(NAME venom_function_dependency_lifting_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/function-dependency-lifting-smoke.py $<TARGET_FILE:venom>)
-add_test(NAME venom_realm_bridge_worker_protocol_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/realm-bridge-worker-protocol-smoke.py)
-add_test(NAME venom_realm_bridge_quickjs_abi_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/realm-bridge-quickjs-abi-smoke.py)
-add_test(NAME venom_browser_realm_payload_smoke
-  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/browser-realm-payload-smoke.py)
+add_test(NAME venom_runtime_bridge_worker_protocol_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/runtime-bridge-worker-protocol-smoke.py)
+add_test(NAME venom_runtime_bridge_quickjs_abi_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/runtime-bridge-quickjs-abi-smoke.py)
+add_test(NAME venom_browser_runtime_payload_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/browser-runtime-payload-smoke.py)
 
 add_test(NAME venom_quickjs_embedded_bridge_artifact_smoke
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/quickjs-embedded-bridge-artifact-smoke.py ${CMAKE_SOURCE_DIR})
@@ -354,6 +354,14 @@ add_test(NAME venom_split_trust_domain_smoke
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/split-trust-domain-smoke.py)
 set_tests_properties(venom_split_trust_domain_smoke PROPERTIES LABELS "security;static;runtime" TIMEOUT 60)
 
+add_test(NAME venom_quickjs_development_trust_domain_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/quickjs-development-trust-domain-smoke.py)
+set_tests_properties(venom_quickjs_development_trust_domain_smoke PROPERTIES LABELS "unit;security;static;runtime" TIMEOUT 30)
+
+add_test(NAME venom_quickjs_development_minimal_abi_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/quickjs-development-minimal-abi-smoke.py)
+set_tests_properties(venom_quickjs_development_minimal_abi_smoke PROPERTIES LABELS "unit;security;static;runtime" TIMEOUT 30)
+
 add_test(NAME venom_release_entrypoint_policy_smoke
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/release-entrypoint-policy-smoke.py)
 set_tests_properties(venom_release_entrypoint_policy_smoke PROPERTIES LABELS "release;static;security" TIMEOUT 60)
@@ -361,3 +369,62 @@ set_tests_properties(venom_release_entrypoint_policy_smoke PROPERTIES LABELS "re
 add_test(NAME venom_windows_launcher_policy_smoke
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/windows-launcher-policy-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
 set_tests_properties(venom_windows_launcher_policy_smoke PROPERTIES LABELS "static;release")
+
+add_test(NAME project_ir_cache_smoke
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/package/project-ir-cache-smoke.py" "${CMAKE_SOURCE_DIR}")
+
+add_test(NAME javascript_ast_lowering_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/javascript-ast-lowering-smoke.py $<TARGET_FILE:venom>)
+add_test(NAME source_aware_diagnostics_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/source-aware-diagnostics-smoke.py $<TARGET_FILE:venom>)
+add_test(NAME specification-layout-smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/specification-layout-smoke.py)
+
+add_test(NAME venom_browser_module_linker_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/browser-module-linker-smoke.py)
+set_tests_properties(venom_browser_module_linker_smoke PROPERTIES LABELS "runtime;browser;unit" TIMEOUT 60)
+
+
+add_test(NAME runtime_module_bundle_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/runtime/runtime-module-bundle-smoke.py)
+set_tests_properties(runtime_module_bundle_smoke PROPERTIES LABELS "unit;smoke;runtime" TIMEOUT 30)
+add_test(NAME quickjs_engine_module_bundle_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/runtime/quickjs-engine-module-bundle-smoke.py)
+set_tests_properties(quickjs_engine_module_bundle_smoke PROPERTIES LABELS "unit;smoke;runtime" TIMEOUT 30)
+add_test(NAME runtime_module_ownership_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/runtime/runtime-module-ownership-smoke.py)
+set_tests_properties(runtime_module_ownership_smoke PROPERTIES LABELS "unit;smoke;runtime" TIMEOUT 30)
+add_test(NAME javascript_playground_compiler_endpoint_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/javascript-playground-compiler-endpoint-smoke.py)
+set_tests_properties(javascript_playground_compiler_endpoint_smoke PROPERTIES LABELS "unit;smoke;runtime")
+add_test(NAME javascript_playground_minimal_result_abi_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/javascript-playground-minimal-result-abi-smoke.py)
+set_tests_properties(javascript_playground_minimal_result_abi_smoke PROPERTIES LABELS "unit;smoke;runtime;security" TIMEOUT 30)
+
+add_test(NAME javascript_playground_completion_value_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/javascript-playground-completion-value-smoke.py)
+set_tests_properties(javascript_playground_completion_value_smoke PROPERTIES LABELS "unit;smoke;runtime" TIMEOUT 30)
+
+add_test(NAME javascript_playground_isolation_policy_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/javascript-playground-isolation-policy-smoke.py)
+set_tests_properties(javascript_playground_isolation_policy_smoke PROPERTIES LABELS "unit;smoke;runtime;security" TIMEOUT 30)
+add_test(NAME javascript_playground_loopback_security_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/javascript-playground-loopback-security-smoke.py)
+set_tests_properties(javascript_playground_loopback_security_smoke PROPERTIES LABELS "unit;smoke;security" TIMEOUT 30)
+add_test(NAME javascript_playground_loopback_server_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/javascript-playground-loopback-server-smoke.py)
+set_tests_properties(javascript_playground_loopback_server_smoke PROPERTIES LABELS "integration;smoke;security" TIMEOUT 30)
+
+add_test(NAME typescript_runtime_directive_preservation_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/typescript-runtime-directive-preservation-smoke.py ${CMAKE_SOURCE_DIR} $<TARGET_FILE:venom>)
+set_tests_properties(typescript_runtime_directive_preservation_smoke PROPERTIES LABELS "integration;typescript;browser;runtime" TIMEOUT 240)
+
+if(Python3_EXECUTABLE)
+  add_test(NAME release_engineering_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/release-engineering-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
+endif()
+
+add_test(NAME venom_release_certification_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/release-certification-smoke.py ${CMAKE_SOURCE_DIR})
+set_tests_properties(venom_release_certification_smoke PROPERTIES LABELS "release;certification;static" TIMEOUT 180)
+
+add_test(NAME venom_aggregated_certification_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/aggregated-certification-smoke.py ${CMAKE_SOURCE_DIR})
+set_tests_properties(venom_aggregated_certification_smoke PROPERTIES LABELS "release;certification;static" TIMEOUT 60)

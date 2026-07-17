@@ -20,4 +20,4 @@ Venom production output is static and can be hosted by an ordinary HTTP server, 
 - long-lived immutable caching for hashed assets
 - short caching for `index.html` and release metadata
 
-Always run `venom release-check dist` before deployment.
+Always run `venom verify dist` before deployment.

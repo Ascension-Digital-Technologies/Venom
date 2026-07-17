@@ -5,18 +5,101 @@
 </p>
 
 <p align="center">
-  Venom compiles selected JavaScript into QuickJS bytecode, wraps it in polymorphic build-specific records, and executes it inside a dedicated, worker-isolated WebAssembly runtime.
+  Venom compiles selected JavaScript and TypeScript into QuickJS bytecode, packages it in build-specific protected records, and executes it inside a dedicated worker-hosted WebAssembly runtime.
 </p>
 
 <p align="center">
-  <code>QuickJS bytecode</code> · <code>Polymorphic builds</code> · <code>WebAssembly isolation</code> · <code>Secure binary bridge</code> · <code>Fail-closed releases</code>
+  <code>QuickJS bytecode</code> · <code>Typed runtime SDK</code> · <code>Polymorphic builds</code> · <code>WebAssembly isolation</code> · <code>Fail-closed releases</code>
 </p>
 
 <p align="center">
-  <strong>Version 1.0.0</strong> · <strong>Static-host compatible</strong>
+  <strong>Version 2.0.0</strong> · <strong>Static-host compatible</strong>
 </p>
 
 ---
+
+> [!IMPORTANT]
+> Venom 2.0.0 uses one production-grade build profile: `prod`. The former `dev` profile has been removed. The `venom dev` command remains available for watch-and-serve workflows and now compiles with the production runtime and protection pipeline.
+
+## Final 2.0.0 release status
+
+Venom 2.0.0 is consolidated around one production runtime, eight certified examples, Chromium/Firefox/WebKit browser contracts, a stable typed SDK, QuickJS/WASM ABI verification, startup performance budgets, deterministic packaging, SBOM/provenance generation, and signed fail-closed release gates. Checked-in final readiness evidence is available under [`docs/audit/final-release`](docs/audit/final-release).
+
+Stable releases must use `scripts/linux/release.sh` or `scripts/windows/release.ps1`. Both require offline Ed25519 key files, run the final repository gate, and force the `stable` release channel.
+
+## Example certification
+
+Venom 2.0.0 certifies every included example through one production-only pipeline. Run:
+
+```powershell
+python tools\certify_examples.py --venom build\venom.exe
+```
+
+The command builds all examples with `prod`, verifies package integrity, confirms the real QuickJS/WASM engine, runs protected-source leak scanning, and writes JSON and Markdown evidence under `build/example-certification`. The authoritative example inventory is `contracts/examples.json`.
+
+## Browser-certified startup in v2
+
+Venom v2 distinguishes worker bridge readiness from complete application boot. Generated applications publish `globalThis.__venomBootStatus` and emit `venom:boot-ready` only after package verification, QuickJS/WASM preparation, browser module linking, route execution, and startup scripts all succeed. Release certification exercises every included example in Chromium, Firefox, and WebKit and records structured startup evidence.
+
+## Venom v2.0.0 release
+
+> **Example 4 module-linking correction:** Protected imports are lowered inline to capability-bound runtime calls during compilation. Browser bundles no longer retain imports such as `../protected/pricing`, so protected facades do not depend on lazy-section placement or polymorphic module identifiers.
+
+
+Venom v2 turns the original protected web runtime into a broader, typed application platform while preserving the static-host deployment model established by v1.
+
+### Added in v2
+
+- **Stable `@venom-js/runtime` SDK** with idempotent initialization, typed protected calls, batching, preloading, cancellation, timeouts, lifecycle status, and explicit disposal.
+- **Generated application clients** through `venom-client.js` and `venom-client.d.ts`, derived from the protected export contract.
+- **Structural TypeScript and TSX frontend** with extensionless module resolution and deterministic JSX lowering.
+- **First-party Vite integration** for modern React, Vue, Svelte, and TypeScript projects.
+- **Content-addressed incremental compilation** for TypeScript lowering, QuickJS bytecode, and production JavaScript hardening.
+- **Contract-backed diagnostics**, module graph explanations, Graphviz output, command-line graph queries, and a dependency-free language-server foundation.
+- **Versioned release certification** spanning Windows, Linux, macOS, Chromium, Firefox, WebKit, package verification, runtime verification, and protected-source leak scans.
+- **Expanded release engineering** with CycloneDX SBOMs, SLSA provenance, release policy metadata, deterministic archives, and Ed25519 signing support.
+
+### Fixed and hardened in v2
+
+- Browser modules can import generated protected-module facades through relative paths such as `../protected/pricing`, including route-aliased dependency chunks. Production lazy-route sections carry the required dependency closure, and each browser module now embeds a normalized authored-path identity so the runtime can bind the final opaque package key back to the correct facade even when packaging changes that key.
+- QuickJS/WASM release verification now accepts the known Emscripten lifecycle exports `_initialize` and `__cxa_increment_exception_refcount` while continuing to reject unknown exports and wrong export kinds.
+- TypeScript runtime directives are captured before lowering, preventing browser modules from being incorrectly classified or omitted.
+- C++17 portability issues were removed from the structural TypeScript frontend and planner code.
+- Runtime terminology, public error handling, package integrity checks, and fail-closed behavior were made consistent across the compiler, SDK, diagnostics, examples, and documentation.
+
+### Upgrading from v1
+
+Existing v1 annotations and static-host deployment remain familiar. New applications should call protected exports through `@venom-js/runtime` or the generated typed client rather than depending on generated bridge internals. Review [`contracts/runtime-api.json`](contracts/runtime-api.json) and [`packages/runtime/README.md`](packages/runtime/README.md) before upgrading production integrations.
+
+### Runtime startup observability
+
+Venom records package, policy, runtime-installation, route-decoding, rendering, script, and navigation timings in `globalThis.__venomBootStatus`. Stable `VENOM_BOOT_*` codes and `venom:boot-phase` events make browser startup failures actionable, while explicit retry reloads a fresh document rather than reusing partial protected-runtime state.
+
+### Startup performance budgets
+
+Venom preloads content-addressed runtime assets and publishes contract-backed median and p95 startup metrics without caching decoded protected code or plaintext package sections.
+
+## Vite and framework integration
+
+Venom includes editor-ready diagnostics, a dependency-free language server, graph queries, and source-linked planner visibility alongside its certified QuickJS/WASM protection pipeline.
+
+Venom 1.4.0 includes the first-party [`@venom-js/vite`](integrations/vite/README.md) plugin. Vite continues to own React, Vue, Svelte, TypeScript, asset transforms, and HMR; Venom performs serialized incremental protected builds and emits the QuickJS/WASM distribution. The plugin exposes `virtual:venom-status` and `/__venom/status` for development tooling. See [the Vite integration guide](docs/guides/vite.md) and [`examples/vite-framework-showcase`](examples/vite-framework-showcase).
+
+## Release certification
+
+Venom ships a versioned certification contract at `contracts/release-certification.json`. A complete release must produce passing evidence for Linux x64, Windows x64, macOS arm64, Chromium, Firefox, and WebKit, while building and verifying the flagship protected examples.
+
+```bash
+python tools/certify_release.py --venom build/release/venom
+```
+
+See `docs/operations/release-certification.md` for platform reports, browser qualification, and final evidence aggregation.
+
+## Structural TypeScript frontend
+
+Venom 1.3.2 parses TypeScript and TSX with a vendored TypeScript compiler API before runtime planning. Type syntax is removed structurally, ES module semantics are preserved, source maps are generated, and TSX continues through Venom's deterministic JSX lowering stage. No package download occurs during a build.
+
+Venom 1.3.2 also includes measured incremental builds: structural TypeScript output, QuickJS bytecode, and release hardening are content-addressed; every build writes a private per-phase performance report; and unchanged generated runtime sources preserve timestamps to avoid needless native recompilation.
 
 ## Overview
 
@@ -125,6 +208,7 @@ Venom does not replace server-side authority. Credentials, private signing keys,
 | Dedicated worker isolation | No | No | Optional | **Built in** |
 | WebAssembly-owned package decoding | No | No | Manual | **Built in** |
 | Selective browser/protected execution | No | Limited | Manual | **First-class** |
+| Native TypeScript input | No | No | Manual | **Built in** |
 | Per-build polymorphic packaging and Route VM encoding | No | Limited | Manual | **Automatic** |
 | Static-host deployment | Yes | Yes | Usually | **Yes** |
 | Verified fail-closed production runtime | No | No | Manual | **Built in** |
@@ -142,7 +226,7 @@ Venom combines multiple independent layers. No single layer is treated as suffic
    Protected JavaScript is compiled into QuickJS bytecode instead of being shipped as ordinary source text.
 
 3. **Runtime isolation**  
-   Protected execution occurs inside QuickJS/WASM hosted by a dedicated worker, separating it from the page's primary JavaScript realm.
+   Protected execution occurs inside QuickJS/WASM hosted by a dedicated worker, separating it from the page's primary JavaScript runtime.
 
 4. **Constrained bridge**  
    Browser code communicates with protected exports through validated, JSON-safe arguments and results rather than unrestricted object access.
@@ -164,7 +248,7 @@ Venom combines multiple independent layers. No single layer is treated as suffic
 flowchart LR
     A[HTML, CSS, JavaScript, and assets] --> B[Site and route graph]
     B --> C[Browser compatibility analysis]
-    B --> D[Protected realm planning]
+    B --> D[Protected runtime planning]
     D --> E[QuickJS bytecode compiler]
     E --> F[Polymorphic VBC package]
     C --> G[Browser chunks and static assets]
@@ -227,8 +311,8 @@ venom dev path\to\site --open
 
 ```powershell
 venom build path\to\site --profile prod --out dist
-venom analyze-dist dist
-venom release-check dist
+venom analyze dist
+venom verify dist
 ```
 
 The generated application remains a static distribution and can be served by a conventional web server, object store, or CDN.
@@ -247,6 +331,7 @@ venom build . --profile prod --out dist --quiet
 - `--verbose` (`-v`) adds planner, module-graph, polymorphism, runtime, and package details.
 - `--quiet` (`-q`) emits only errors and the final output location.
 - `--format json` remains machine-readable and never mixes human progress lines into JSON output.
+- Production builds use a content-addressed compiler cache for embedded JavaScript hardening and native QuickJS bytecode by default. Use `--no-cache` for a clean diagnostic build or `--cache-dir <path>` to relocate it.
 
 ## Hybrid execution
 
@@ -285,6 +370,8 @@ Read the complete guides:
 
 - [Annotations](docs/guides/annotations.md)
 - [Protected functions](docs/guides/protected-functions.md)
+- [TypeScript input](docs/guides/typescript.md)
+- [Typed bridge contracts](docs/guides/typed-bridge-contracts.md)
 - [Browser bridge](docs/guides/browser-bridge.md)
 
 ## Build profiles
@@ -332,7 +419,7 @@ See the [production output layout](docs/reference/output-layout.md) for the comp
 Venom includes a one-command release-closure pipeline:
 
 ```powershell
-.\scripts\release-closure.ps1
+.\scripts\windows\release-closure.ps1
 ```
 
 The pipeline verifies:
@@ -370,7 +457,7 @@ The equivalence gate can evaluate:
 Run browser qualification as part of release closure:
 
 ```powershell
-.\scripts\release-closure.ps1 -BrowserRuntimeTests
+.\scripts\windows\release-closure.ps1 
 ```
 
 See [Browser equivalence testing](docs/operations/browser-equivalence.md).
@@ -401,6 +488,16 @@ A browser-intelligence dashboard that collects browser-exposed fingerprint, capa
 
 [Explore Venom Sentinel](examples/bot-detection/README.md)
 
+### TypeScript AST Showcase
+
+![TypeScript AST showcase](examples/typescript-showcase/screenshot.png)
+- `examples/tsx-showcase` — typed TSX UI calling protected TypeScript through QuickJS/WASM.
+- `examples/javascript-playground` — development-mode JavaScript compiler and execution playground powered directly by QuickJS/WASM.
+
+A complete typed application demonstrating AST-backed runtime planning, TypeScript erasure, symbol-level module closure, protected QuickJS/WASM execution, browser-module linking, and non-JavaScript `<script>` data handling.
+
+[Explore the TypeScript AST Showcase](examples/typescript-showcase/README.md)
+
 ## Build from source
 
 ### Windows
@@ -415,7 +512,7 @@ A browser-intelligence dashboard that collects browser-exposed fingerprint, capa
 git clone https://github.com/Ascension-Digital-Technologies/Venom.git
 cd Venom
 
-.\scripts\build.ps1 -Config Release
+.\scripts\windows\build.ps1 -Config Release
 
 .\build\Release\venom.exe doctor --profile production
 .\build\Release\venom.exe --version
@@ -429,7 +526,7 @@ Windows `.bat` launchers remain open after both success and failure when double-
 git clone https://github.com/Ascension-Digital-Technologies/Venom.git
 cd Venom
 
-bash scripts/build.sh --config Release
+bash scripts/linux/build.sh --config Release
 
 ./build/venom doctor --profile production
 ./build/venom --version
@@ -443,6 +540,8 @@ Detailed setup documentation:
 - [Production build profiles](docs/operations/build-profiles.md)
 
 ## Documentation
+
+- [TypeScript compatibility](docs/reference/typescript-compatibility.md)
 
 | Goal | Start here |
 |---|---|
@@ -491,8 +590,23 @@ Report suspected vulnerabilities privately through [SECURITY.md](SECURITY.md). D
 
 ## Versioning
 
-Venom follows [Semantic Versioning](docs/operations/versioning.md). The current public release is **1.0.0**. Internal commits and CI runs do not create new public version numbers.
+Venom follows [Semantic Versioning](docs/operations/versioning.md). The current public release is **1.2.3**. Internal commits and CI runs do not create new public version numbers.
 
 ## License
 
 See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md) for licensing terms and third-party notices.
+
+> **Verified WASM toolchain:** Venom pins Emscripten 4.0.10 for reproducible release builds. The minimal QuickJS/WASM target excludes QuickJS POSIX libc helpers, allowing newer Emscripten releases to compile the web/worker runtime without `environ` or `sighandler_t` compatibility failures.
+
+### Aegis Operations enterprise stress test
+
+A 40-file TypeScript/TSX operations dashboard with five protected QuickJS/WASM analytics services, deep browser module linking, interactive views, and production verification. Run `./scripts/linux/build-and-launch-example6.sh` or `.\scripts\windows\build-and-launch-example6.bat`.
+
+
+## Aegis Operations Screenshot
+
+![Aegis Operations](docs/assets/examples/aegis-operations/application.png)
+
+## Runtime ABI qualification
+
+Venom's embedded QuickJS/WASM runtime is governed by `contracts/quickjs-wasm-abi.json`. Native builds parse the actual embedded WebAssembly export section before packaging. The generated browser engine consumes the same required-export and toolchain-export sets. Playwright qualification covers the JavaScript Playground and Aegis Operations in Chromium on normal CI runs and Chromium, Firefox, and WebKit during nightly qualification.

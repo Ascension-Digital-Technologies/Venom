@@ -67,7 +67,8 @@ const char kRunHardener[] = R"JS(
     const kind = globalThis.__venom_hardener_kind;
     const source = globalThis.__venom_hardener_source;
     const seed = globalThis.__venom_hardener_seed >>> 0;
-    const moduleKind = kind === 'loader' || kind === 'engine' || kind === 'runtime';
+    const moduleKind = kind === 'loader' || kind === 'engine' || kind === 'runtime' || kind === 'protected-module';
+    const protectedKind = kind === 'protected-script' || kind === 'protected-module';
     const bindingMatch = kind === 'loader' ? source.match(/bindingToken\s*:\s*['\"]([^'\"]+)['\"]/) : null;
     const minified = await globalThis.Terser.minify(source, {
       module: moduleKind,
@@ -96,23 +97,23 @@ const char kRunHardener[] = R"JS(
     if (!minified.code) throw new Error('terser produced no output');
     const hardened = globalThis.JavaScriptObfuscator.obfuscate(minified.code, {
       target: 'browser-no-eval', compact: true, seed,
-      identifierNamesGenerator: 'hexadecimal', identifiersPrefix: '_v',
+      identifierNamesGenerator: 'hexadecimal', identifiersPrefix: '_v' + seed.toString(36) + '_',
       renameGlobals: false, renameProperties: false,
       stringArray: true, stringArrayEncoding: ['rc4'],
-      stringArrayThreshold: kind === 'runtime' ? 0.42 : 0.58,
-      stringArrayCallsTransform: kind === 'loader',
-      stringArrayCallsTransformThreshold: 0.35,
+      stringArrayThreshold: protectedKind ? 0.86 : (kind === 'runtime' ? 0.42 : 0.58),
+      stringArrayCallsTransform: kind === 'loader' || protectedKind,
+      stringArrayCallsTransformThreshold: protectedKind ? 0.72 : 0.35,
       stringArrayIndexesType: ['hexadecimal-number'],
       stringArrayRotate: true, stringArrayShuffle: true,
       stringArrayWrappersCount: 1, stringArrayWrappersChainedCalls: true,
       stringArrayWrappersParametersMaxCount: 4, stringArrayWrappersType: 'function',
-      splitStrings: kind === 'loader', splitStringsChunkLength: 12,
+      splitStrings: kind === 'loader' || protectedKind, splitStringsChunkLength: protectedKind ? 7 : 12,
       numbersToExpressions: kind !== 'worker', simplify: kind !== 'worker',
       transformObjectKeys: kind !== 'worker', unicodeEscapeSequence: false,
-      controlFlowFlattening: kind === 'loader',
-      controlFlowFlatteningThreshold: kind === 'loader' ? 0.22 : 0.12,
-      deadCodeInjection: kind === 'loader',
-      deadCodeInjectionThreshold: kind === 'loader' ? 0.035 : 0.02,
+      controlFlowFlattening: kind === 'loader' || protectedKind,
+      controlFlowFlatteningThreshold: protectedKind ? 0.34 : (kind === 'loader' ? 0.22 : 0.12),
+      deadCodeInjection: kind === 'loader' || protectedKind,
+      deadCodeInjectionThreshold: protectedKind ? 0.045 : (kind === 'loader' ? 0.035 : 0.02),
       selfDefending: kind !== 'worker', debugProtection: false,
       disableConsoleOutput: false, sourceMap: false
     }).getObfuscatedCode();

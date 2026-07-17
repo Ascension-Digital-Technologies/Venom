@@ -1,6 +1,8 @@
 #include "compiler/services/runtime_modules.hpp"
 #include "compiler/pipeline/build.hpp"
 #include "compiler/core/version.hpp"
+#include "generated/contracts/quickjs_wasm_abi.hpp"
+#include "compiler/services/quickjs_wasm_contract.hpp"
 
 #include "compiler/pipeline/assets.hpp"
 #include "compiler/pipeline/capability_analysis.hpp"
@@ -30,6 +32,8 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <mutex>
+#include <atomic>
 #include <random>
 #include <sstream>
 #include <stdexcept>
@@ -41,6 +45,43 @@
 #include "compiler/pipeline/native_js_hardener.hpp"
 
 namespace venom::compiler::build_detail {
+namespace {
+std::mutex g_hardener_cache_mutex;
+bool g_hardener_cache_enabled = true;
+bool g_hardener_cache_verbose = false;
+std::filesystem::path g_hardener_cache_directory;
+std::atomic<std::size_t> g_hardener_cache_hits{0};
+std::atomic<std::size_t> g_hardener_cache_misses{0};
+std::atomic<std::size_t> g_hardener_cache_writes{0};
+
+
+std::string read_text_if_present(const std::filesystem::path& path) {
+  std::ifstream in(path, std::ios::binary);
+  if (!in) return {};
+  return std::string(std::istreambuf_iterator<char>(in), {});
+}
+
+void write_text_atomic(const std::filesystem::path& path, const std::string& content) {
+  std::filesystem::create_directories(path.parent_path());
+  const auto temporary = path.string() + ".tmp";
+  {
+    std::ofstream out(temporary, std::ios::binary | std::ios::trunc);
+    if (!out) throw std::runtime_error("failed to write hardener cache entry " + temporary);
+    out.write(content.data(), static_cast<std::streamsize>(content.size()));
+  }
+  std::error_code error;
+  std::filesystem::rename(temporary, path, error);
+  if (error) {
+    std::filesystem::remove(path, error);
+    error.clear();
+    std::filesystem::rename(temporary, path, error);
+  }
+  if (error) {
+    std::filesystem::remove(temporary);
+    throw std::runtime_error("failed to publish hardener cache entry " + path.string());
+  }
+}
+}
 std::string json_escape(const std::string& value) {
   std::string out;
   for (char c : value) {
@@ -116,7 +157,7 @@ void require_real_embedded_quickjs_runtime() {
           "production browser build refused: embedded QuickJS/WASM provenance " + key +
           "=" + (actual.empty() ? std::string("<missing>") : actual) +
           ", expected " + expected +
-          "; run scripts/build-quickjs-wasm to build and embed the verified real runtime");
+          "; run scripts/linux/build-emsdk.sh or scripts/windows/build-emsdk.bat to build and embed the verified real runtime");
     }
   };
   require_value("contract_only", "false");
@@ -128,28 +169,15 @@ void require_real_embedded_quickjs_runtime() {
   require_value("source_materialization", "false");
   require_value("native_object_reader", "JS_ReadObject");
   require_value("bytecode_format", "VQJSBC03");
-  require_value("required_export_count", "23");
-  require_value("release_export_count", "23");
-  const auto embedded_exports = metadata_value_from_text(provenance, "exports");
-  for (const auto* required_bridge_export : {
-           "venom_qjs_bridge_abi",
-           "venom_qjs_bridge_input_alloc",
-           "venom_qjs_bridge_input_capacity",
-           "venom_qjs_bridge_invoke",
-           "venom_qjs_bridge_result_ptr",
-           "venom_qjs_bridge_result_size",
-           "venom_qjs_bridge_release"}) {
-    if (embedded_exports.find(required_bridge_export) == std::string::npos) {
-      throw std::runtime_error(
-          std::string("production browser build refused: embedded QuickJS/WASM provenance is missing protected bridge export ") +
-          required_bridge_export + "; run scripts/build-quickjs-wasm to rebuild and embed the current runtime");
-    }
-  }
+  require_value("required_export_count", std::to_string(venom::generated::quickjs_wasm_abi::required_exports.size() - 1u));
+  require_value("release_export_count", std::to_string(venom::generated::quickjs_wasm_abi::required_exports.size() - 1u));
+  require_value("bytecode_format", std::string(venom::generated::quickjs_wasm_abi::bytecode_format));
+  venom::compiler::verify_embedded_quickjs_wasm_contract();
   const auto artifact_kind = metadata_value_from_text(provenance, "artifact_kind");
   if (artifact_kind.empty() || artifact_kind == "contract-scaffold") {
     throw std::runtime_error(
         "production browser build refused: embedded QuickJS/WASM is a scaffold; "
-        "run scripts/build-quickjs-wasm before building a site");
+        "run scripts/linux/build-emsdk.sh or scripts/windows/build-emsdk.bat before building a site");
   }
 }
 
@@ -174,15 +202,22 @@ void require_embedded_quickjs_module_bundle_runtime(const JsBridge& bridge) {
   if (contract != "VQJSMB04" || dynamic_import != "true") {
     throw std::runtime_error(
         "protected module graph requires QuickJS/WASM module bundle contract VQJSMB04; "
-        "run scripts/build-quickjs-wasm to rebuild and embed the current runtime");
+        "run scripts/linux/build-emsdk.sh or scripts/windows/build-emsdk.bat to rebuild and embed the current runtime");
   }
 }
 
 std::string named_output(const std::string& stem, const std::string& ext, const std::vector<unsigned char>& bytes, bool hashed) {
-  if (!hashed) {
-    return stem + ext;
+  const auto normalized_ext = ext.empty() || ext.front() == '.' ? ext : "." + ext;
+  // Empty stems are role-redacted assets. They must always receive a
+  // content-derived filename, even when ordinary hashed naming is disabled.
+  // Returning only ".js"/".css" creates invalid SRI-bound asset URLs.
+  if (!hashed && !stem.empty()) {
+    return stem + normalized_ext;
   }
-  return stem + "." + short_hash_hex(venom::package::fnv1a64(bytes), 12) + ext;
+  const auto hash = short_hash_hex(venom::package::fnv1a64(bytes), 16);
+  // Empty stems are the canonical production form. Build the filename directly
+  // from the hash so it can never become .<hash>.<ext> or expose an asset role.
+  return stem.empty() ? hash + normalized_ext : stem + "." + hash + normalized_ext;
 }
 
 std::string named_output(const std::string& stem, const std::string& ext, const std::string& text, bool hashed) {
@@ -398,14 +433,56 @@ std::string harden_release_js_asset(std::string js) {
 }
 
 
-std::string ast_harden_release_js(const std::string& kind, const std::string& js) {
+HardenerCacheStats hardener_cache_stats() { return {g_hardener_cache_hits.load(), g_hardener_cache_misses.load(), g_hardener_cache_writes.load()}; }
+void reset_hardener_cache_stats() { g_hardener_cache_hits = 0; g_hardener_cache_misses = 0; g_hardener_cache_writes = 0; }
+
+void configure_hardener_cache(bool enabled, const std::filesystem::path& directory, bool verbose) {
+  std::lock_guard<std::mutex> lock(g_hardener_cache_mutex);
+  g_hardener_cache_enabled = enabled;
+  g_hardener_cache_verbose = verbose;
+  g_hardener_cache_directory = directory;
+}
+
+std::string ast_harden_release_js(const std::string& kind, const std::string& js, const std::string& build_salt) {
   const auto nonce = short_hash_hex(
-      venom::package::fnv1a64(bytes_from_string(kind + "|" + js)), 16);
+      venom::package::fnv1a64(bytes_from_string("hardener-v2|" + build_salt + "|" + kind + "|" + js)), 16);
   const auto seed = static_cast<std::uint32_t>(
       venom::package::fnv1a64(bytes_from_string("obfuscate|" + kind + "|" + nonce)) & 0xffffffffu);
+
+  std::filesystem::path cache_file;
+  bool cache_enabled = false;
+  bool cache_verbose = false;
+  {
+    std::lock_guard<std::mutex> lock(g_hardener_cache_mutex);
+    cache_enabled = g_hardener_cache_enabled && !g_hardener_cache_directory.empty();
+    cache_verbose = g_hardener_cache_verbose;
+    if (cache_enabled) {
+      const auto identity = std::string{"venom-hardener-cache-v2|"} + build_salt + "|" + + native_js_hardener::terser_version() + "|" +
+          native_js_hardener::obfuscator_version() + "|" + kind + "|" + std::to_string(seed) + "|" + js;
+      const auto digest = venom::package::sha256_hex(bytes_from_string(identity));
+      cache_file = g_hardener_cache_directory / digest.substr(0, 2) / (digest + ".js");
+    }
+  }
+
+  if (cache_enabled) {
+    const auto cached = read_text_if_present(cache_file);
+    if (!cached.empty()) {
+      ++g_hardener_cache_hits;
+      if (cache_verbose) std::cout << "[CACHE]    hardener hit: " << kind << " (" << cached.size() << " bytes)\n";
+      return cached;
+    }
+    ++g_hardener_cache_misses;
+    if (cache_verbose) std::cout << "[CACHE]    hardener miss: " << kind << "\n";
+  }
+
   const auto output = native_js_hardener::harden(kind, js, seed);
   if (output.empty()) {
     throw std::runtime_error("embedded protected release JS hardener produced empty output for " + kind);
+  }
+  if (cache_enabled) {
+    std::lock_guard<std::mutex> lock(g_hardener_cache_mutex);
+    write_text_atomic(cache_file, output);
+    ++g_hardener_cache_writes;
   }
   return output;
 }

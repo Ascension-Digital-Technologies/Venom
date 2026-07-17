@@ -13,7 +13,8 @@ def main() -> int:
         return 2
     root = Path(sys.argv[1]).resolve()
     expected = {
-        'src/compiler/pipeline/build.cpp': 900,
+        'src/compiler/pipeline/build.cpp': 850,
+        'src/compiler/pipeline/build_report.cpp': 180,
         'src/compiler/pipeline/build_package_metadata.cpp': 650,
         'src/compiler/pipeline/build_runtime_metadata.cpp': 700,
         'src/compiler/pipeline/build_runtime_audit_metadata.cpp': 700,
@@ -23,6 +24,7 @@ def main() -> int:
         'src/compiler/pipeline/security_analysis.cpp': 800,
         'src/compiler/pipeline/security_artifact_inspection.cpp': 400,
         'src/compiler/pipeline/js.cpp': 500,
+        'src/compiler/pipeline/js_bundle_encoding.cpp': 360,
         'src/compiler/pipeline/js_rewriting.cpp': 1000,
         'src/compiler/pipeline/js_planning.cpp': 450,
         'src/compiler/pipeline/js_discovery.cpp': 800,
@@ -103,8 +105,14 @@ def main() -> int:
 
     cmake = (root / 'CMakeLists.txt').read_text(encoding='utf-8')
     for rel in expected:
+        if rel == 'src/generated/runtime/quickjs_engine_module.cpp':
+            if 'VENOM_QUICKJS_ENGINE_CPP' not in cmake or 'generate_quickjs_engine_module.py' not in cmake:
+                failures.append('CMakeLists.txt does not generate the QuickJS engine module from authored runtime modules')
+            continue
         if rel not in cmake:
             failures.append(f'CMakeLists.txt does not include {rel}')
+    if 'src/runtime/js/browser/*.js' not in cmake or 'src/runtime/js/quickjs-engine/*.js' not in cmake:
+        failures.append('CMakeLists.txt does not register authored JavaScript runtime modules')
 
     # Production source packages intentionally omit contributor-only source-layout documentation.
 

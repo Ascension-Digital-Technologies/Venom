@@ -1,0 +1,4 @@
+// @venom: browser
+import React from "../jsx-runtime"; import type { Asset } from "../data/types"; import { money, percent } from "../utils/format";
+interface AssetGridProps { assets:Asset[]; }
+export default function AssetGrid({assets}:AssetGridProps){ return <section className="asset-grid">{assets.map(asset=><article className="asset-card"><div className="asset-top"><span className="asset-icon">◇</span><span className={`health-dot ${asset.health<75?"weak":""}`}></span></div><h3>{asset.name}</h3><p>{asset.id} · {asset.category}</p><div className="asset-meter"><span>Utilization</span><strong>{percent(asset.utilization)}</strong><div><i style={`width:${asset.utilization}%`}></i></div></div><div className="asset-meta"><span><small>Health</small><strong>{percent(asset.health)}</strong></span><span><small>Monthly</small><strong>{money(asset.cost)}</strong></span><span><small>Alerts</small><strong>{asset.alerts}</strong></span></div></article>)}</section>; }

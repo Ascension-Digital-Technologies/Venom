@@ -18,7 +18,7 @@ checks = {
     'unsafe sinks': 'unsafe DOM attribute denied' in runtime and "attr.startsWith('on')" in runtime,
     'url normalization': 'normalizeHostUrl' in runtime and 'cross-origin host request denied' in runtime,
     'fetch hardening': "credentials: 'same-origin'" in runtime and "redirect: 'error'" in runtime,
-    'no inline host eval': 'Protected runtime never evaluates inline event source in the host realm.' in runtime,
+    'no inline host eval': 'Protected runtime never evaluates inline event source in the host runtime.' in runtime,
     'route revocation': "advanceDomGeneration" in runtime,
 }
 failed = [name for name, ok in checks.items() if not ok]

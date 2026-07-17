@@ -1,6 +1,6 @@
 # Build Venom from Source
 
-> **Applies to:** Venom 1.0.1  
+> **Applies to:** Venom 1.1.0  
 > **Purpose:** produce the production compiler from the released source package
 
 Normal users may use a prebuilt release when one is available. Building from source is supported for teams that require reproducible local binaries, internal qualification, or platform-specific packaging.
@@ -28,7 +28,7 @@ The normal compiler build uses the verified QuickJS/WASM runtime embedded in the
 From a PowerShell prompt in the extracted repository:
 
 ```powershell
-.\scripts\build.ps1 -Config Release
+.\scripts\windows\build.ps1 -Config Release
 ```
 
 The default Visual Studio output is usually:
@@ -47,14 +47,14 @@ Verify the binary:
 For an explicit clean build:
 
 ```powershell
-.\scripts\clean.ps1 -NoPause
-.\scripts\build.ps1 -Config Release
+.\scripts\windows\clean.ps1 -NoPause
+.\scripts\windows\build.ps1 -Config Release
 ```
 
 ## Linux build
 
 ```bash
-bash scripts/build.sh --config Release
+bash scripts/linux/build.sh --config Release
 ```
 
 Verify the binary:
@@ -127,13 +127,13 @@ Normal users do not need Emscripten because the verified QuickJS/WASM runtime is
 ### Windows
 
 ```powershell
-.\scripts\build-emscripten.ps1 -OutDir build\emscripten-build -Clean -Force
+.\scripts\windows\build-emscripten.ps1 -OutDir build\emscripten-build -Clean -Force
 ```
 
 ### Linux and macOS
 
 ```bash
-bash scripts/build-emscripten.sh --out-dir build/emscripten-build --clean --force
+bash scripts/linux/build-emsdk.sh --out-dir build/emscripten-build --clean --force
 ```
 
 The controller performs Emscripten setup, a strict QuickJS/WASM preflight, runtime compilation, ABI verification, embedding, native compiler rebuild, and protected-runtime smoke verification. The output directory is a controller workspace; the actual runtime artifact is written once under `quickjs-wasm/` without recursively nesting that directory.
@@ -146,6 +146,8 @@ The controller invokes `emcc.exe` and PowerShell scripts through argument arrays
 Use preflight-only mode to validate the pinned toolchain and repository inputs without rebuilding the runtime:
 
 ```powershell
-.\scripts\build-emscripten.ps1 -OutDir build\emscripten-build -PreflightOnly -AllowMissing
+.\scripts\windows\build-emscripten.ps1 -OutDir build\emscripten-build -PreflightOnly -AllowMissing
 ```
 
+
+> **Verified WASM toolchain:** Venom pins Emscripten 4.0.10 for reproducible release builds. The minimal QuickJS/WASM target excludes QuickJS POSIX libc helpers, allowing newer Emscripten releases to compile the web/worker runtime without `environ` or `sighandler_t` compatibility failures.

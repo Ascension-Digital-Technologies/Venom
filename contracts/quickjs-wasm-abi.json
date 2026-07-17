@@ -1,0 +1,47 @@
+{
+  "schema": "venom.quickjs-wasm-abi.v1",
+  "runtimeAbi": 12,
+  "bridgeAbi": 1,
+  "bytecodeFormat": "VQJSBC03",
+  "requiredExports": [
+    "memory",
+    "venom_qjs_context_alloc",
+    "venom_qjs_context_free",
+    "venom_qjs_context_set_limits",
+    "venom_qjs_context_set_execution_limits",
+    "venom_qjs_script_buffer_alloc",
+    "venom_qjs_script_buffer_capacity",
+    "venom_qjs_script_buffer_set_expected_hash",
+    "venom_qjs_script_buffer_free",
+    "venom_qjs_bytecode_validate",
+    "venom_qjs_execute_bytecode",
+    "venom_qjs_compact_result_ptr",
+    "venom_qjs_diversification_install",
+    "venom_qjs_exception_message_ptr",
+    "venom_qjs_exception_message_size",
+    "venom_qjs_exception_clear",
+    "venom_qjs_upstream_quickjs_ready",
+    "venom_qjs_bridge_abi",
+    "venom_qjs_bridge_input_alloc",
+    "venom_qjs_bridge_input_capacity",
+    "venom_qjs_bridge_invoke",
+    "venom_qjs_bridge_result_ptr",
+    "venom_qjs_bridge_result_size",
+    "venom_qjs_bridge_release"
+  ],
+  "optionalExports": [
+    "venom_qjs_result_ptr",
+    "venom_qjs_result_size"
+  ],
+  "allowedToolchainExports": [
+    "__indirect_function_table",
+    "_emscripten_stack_restore",
+    "emscripten_stack_get_current",
+    "_initialize",
+    "__cxa_increment_exception_refcount"
+  ],
+  "trustDomains": {
+    "development": ["development-quickjs-compiler"],
+    "release": ["package-decoder-wasm"]
+  }
+}

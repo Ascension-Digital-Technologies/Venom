@@ -16,7 +16,7 @@ jobs:
         with:
           path: build/emsdk
           key: emsdk-${{ runner.os }}-${{ env.EMSDK_VERSION }}
-      - run: scripts/setup-emscripten.sh --version "$EMSDK_VERSION" --emsdk-dir build/emsdk
+      - run: bash scripts/linux/build-emsdk.sh --version "$EMSDK_VERSION" --emsdk-dir build/emsdk
       - run: |
           source build/emsdk/emsdk_env.sh
           python tools/build_emscripten.py --repo-root . --out-dir build/emscripten-build --emsdk-dir build/emsdk --skip-native-rebuild --skip-runtime-smoke

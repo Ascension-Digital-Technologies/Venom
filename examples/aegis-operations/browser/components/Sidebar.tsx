@@ -1,0 +1,5 @@
+// @venom: browser
+import React from "../jsx-runtime"; import Icon from "./Icon"; import type { ViewName } from "../data/types";
+interface SidebarProps { view:ViewName; onNavigate:(view:ViewName)=>void; }
+const items=[{view:"overview",label:"Command Center",icon:"overview"},{view:"incidents",label:"Incidents",icon:"incidents"},{view:"assets",label:"Asset Inventory",icon:"assets"},{view:"reports",label:"Executive Reports",icon:"reports"},{view:"settings",label:"Settings",icon:"settings"}];
+export default function Sidebar({view,onNavigate}:SidebarProps){ return <aside className="sidebar"><div className="brand"><div className="brand-mark"><Icon name="shield"/></div><div><strong>AEGIS</strong><small>Operations Cloud</small></div></div><nav>{items.map(item=><button className={`nav-item ${view===item.view?"active":""}`} onClick={()=>onNavigate(item.view)}><Icon name={item.icon}/><span>{item.label}</span></button>)}</nav><div className="sidebar-status"><span className="status-dot"></span><div><strong>All systems linked</strong><small>QuickJS/WASM protected</small></div></div></aside>; }

@@ -199,19 +199,19 @@ The default is empty, so the example performs no public-IP or geolocation reques
 ### One command on Windows
 
 ```powershell
-.\scripts\bot-detection.ps1
+.\scripts\windows\bot-detection.ps1
 ```
 
 or:
 
 ```bat
-scripts\bot-detection.bat
+scripts\windows\bot-detection.bat
 ```
 
 ### Development build
 
 ```powershell
-.\scripts\build-site.ps1 `
+.\scripts\windows\build-site.ps1 `
   -Site examples\bot-detection `
   -Dist dist-bot-detection-dev `
   -Profile dev
@@ -220,7 +220,7 @@ scripts\bot-detection.bat
 ### Production build
 
 ```powershell
-.\scripts\build-site.ps1 `
+.\scripts\windows\build-site.ps1 `
   -Site examples\bot-detection `
   -Dist dist-bot-detection-prod `
   -Profile prod
@@ -229,7 +229,7 @@ scripts\bot-detection.bat
 ### Serve an existing build
 
 ```powershell
-.\scripts\serve-site.ps1 -Dist dist-bot-detection-prod -Port 8082
+.\scripts\windows\serve-site.ps1 -Dist dist-bot-detection-prod -Port 8082
 ```
 
 Open `http://127.0.0.1:8082/`.
@@ -239,7 +239,7 @@ Open `http://127.0.0.1:8082/`.
 ```powershell
 python .\scripts\check-production-leaks.py dist-bot-detection-prod
 build\Release\venom.exe verify-runtime dist-bot-detection-prod --require-real-engine
-build\Release\venom.exe release-check dist-bot-detection-prod
+build\Release\venom.exe verify dist-bot-detection-prod
 ```
 
 The browser qualification contract verifies that:

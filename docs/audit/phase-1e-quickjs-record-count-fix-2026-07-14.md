@@ -2,7 +2,7 @@
 
 ## Finding
 
-`release-check` counted every decoded occurrence of `VQJSE006`. The runtime metadata section documents `package_envelope_magic=VQJSE006`, so a distribution with one executable protected record was reported as containing two records. The protection-closure gate then rejected the valid build.
+`verify` counted every decoded occurrence of `VQJSE006`. The runtime metadata section documents `package_envelope_magic=VQJSE006`, so a distribution with one executable protected record was reported as containing two records. The protection-closure gate then rejected the valid build.
 
 ## Fix
 

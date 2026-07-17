@@ -19,17 +19,17 @@ if len(key_text) != 64 or any(ch not in "0123456789abcdefABCDEF" for ch in key_t
 
 browser_out = out_root / "browser"
 subprocess.run([str(venom), "build", str(site), "--out", str(browser_out), "--profile", "prod"], check=True)
-browser_check = subprocess.run([str(venom), "release-check", str(browser_out), "--target", "browser"], check=True, text=True, stdout=subprocess.PIPE)
+browser_check = subprocess.run([str(venom), "verify", str(browser_out), "--target", "browser"], check=True, text=True, stdout=subprocess.PIPE)
 if "release_status: PASS" not in browser_check.stdout:
-    raise SystemExit("browser-protect release-check did not pass")
+    raise SystemExit("browser-protect verify did not pass")
 if "provider_runtime_sections: 0" in browser_check.stdout:
     raise SystemExit("browser-protect did not use runtime-decodable protected sections")
 if (browser_out / "assets" / "asset-manifest.txt").exists():
     raise SystemExit("browser-protect emitted external asset-manifest.txt")
 
-audited_fail = subprocess.run([str(venom), "release-check", str(browser_out), "--target", "native", "--require-audited-crypto"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+audited_fail = subprocess.run([str(venom), "verify", str(browser_out), "--target", "native", "--require-audited-crypto"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 if audited_fail.returncode == 0 or "release_status: FAIL" not in audited_fail.stdout:
-    raise SystemExit("release-check should fail when audited crypto is required for a browser-protect package")
+    raise SystemExit("verify should fail when audited crypto is required for a browser-protect package")
 
 native_out = out_root / "native"
 native_build = subprocess.run([str(venom), "build", str(site), "--out", str(native_out), "--profile", "prod", "--key-file", str(key_file), "--require-audited-crypto"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -42,14 +42,14 @@ if native_build.returncode != 0:
 if "provider_libsodium_sections: 0" in native_build.stdout or "native_private_crypto: yes" not in native_build.stdout:
     raise SystemExit("native-protect build did not report libsodium private crypto")
 
-native_check = subprocess.run([str(venom), "release-check", str(native_out), "--target", "native", "--key-file", str(key_file), "--require-audited-crypto"], check=True, text=True, stdout=subprocess.PIPE)
+native_check = subprocess.run([str(venom), "verify", str(native_out), "--target", "native", "--key-file", str(key_file), "--require-audited-crypto"], check=True, text=True, stdout=subprocess.PIPE)
 if "release_status: PASS" not in native_check.stdout:
-    raise SystemExit("native-protect release-check did not pass")
+    raise SystemExit("native-protect verify did not pass")
 if "provider_libsodium_sections: 0" in native_check.stdout:
-    raise SystemExit("native-protect release-check did not detect libsodium sections")
+    raise SystemExit("native-protect verify did not detect libsodium sections")
 
-missing_key_check = subprocess.run([str(venom), "release-check", str(native_out), "--target", "native", "--require-audited-crypto"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+missing_key_check = subprocess.run([str(venom), "verify", str(native_out), "--target", "native", "--require-audited-crypto"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 if missing_key_check.returncode == 0 or "--key-file" not in missing_key_check.stdout:
-    raise SystemExit("native release-check without --key-file should fail closed")
+    raise SystemExit("native verify without --key-file should fail closed")
 
 print("production release gates smoke passed")

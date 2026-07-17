@@ -3,7 +3,7 @@ entry = "."
 output = "dist"
 
 [build]
-profile = "dev"
+profile = "prod"
 
 [runtime]
 engine = "quickjs-wasm"

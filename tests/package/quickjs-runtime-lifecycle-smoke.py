@@ -18,8 +18,8 @@ def main()->int:
     cp=subprocess.run([sys.executable,str(tool),'status','--repo-root',str(root),'--out-dir',str(out/'runtime'),'--emcc',str(fake),'--format','json'],text=True,stdout=subprocess.PIPE)
     info=json.loads(cp.stdout)
     if info['emcc_source']!='explicit' or 'artifact-missing' not in info['reasons'] or info['embedded_real_engine'] is not True: return 1
-    ps=(root/'scripts/build-quickjs-wasm.ps1').read_text(encoding='utf-8')
-    sh=(root/'scripts/build-quickjs-wasm.sh').read_text(encoding='utf-8')
+    ps=(root/'scripts'/'windows'/'build-quickjs-wasm.ps1').read_text(encoding='utf-8')
+    sh=(root/'scripts'/'linux'/'build-quickjs-wasm.sh').read_text(encoding='utf-8')
     for marker in ('quickjs_runtime_lifecycle.py','New-LifecycleArguments','$env:EMCC','$resolvedEmccPath','[switch]$Force','[switch]$Status'):
         if marker not in ps: print('missing ps marker',marker); return 1
     if '"--emcc", $Emcc' in ps or '--emcc $Emcc `' in ps:

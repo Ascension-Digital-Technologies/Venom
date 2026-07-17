@@ -105,7 +105,7 @@ def cache_path(dist: pathlib.Path) -> pathlib.Path:
 def cache_key(venom: pathlib.Path, site_manifest: dict[str, str]) -> dict[str, object]:
     return {
         'schema': 2,
-        'profile': 'dev',
+        'profile': 'prod',
         'siteDigest': manifest_digest(site_manifest),
         'venomDigest': executable_digest(venom),
     }
@@ -149,7 +149,7 @@ def atomic_swap(staged: pathlib.Path, dist: pathlib.Path) -> None:
 def run_build(venom: pathlib.Path, site: pathlib.Path, dist: pathlib.Path, manifest: dict[str, str]) -> tuple[bool, str]:
     dist.parent.mkdir(parents=True, exist_ok=True)
     staged = pathlib.Path(tempfile.mkdtemp(prefix=dist.name + '.venom-stage-', dir=dist.parent))
-    cmd = [str(venom), 'build', str(site), '--out', str(staged), '--profile', 'dev']
+    cmd = [str(venom), 'build', str(site), '--out', str(staged), '--profile', 'prod']
     print('[venom] build:', ' '.join(cmd), flush=True)
     try:
         cp = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)

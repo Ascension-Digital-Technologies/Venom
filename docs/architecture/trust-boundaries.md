@@ -1,6 +1,6 @@
 # Trust Boundaries
 
-> **Applies to:** Venom 1.0.1
+> **Applies to:** Venom 1.1.0
 
 Venom uses multiple software boundaries to reduce exposure and make generic instrumentation less reusable. None of these boundaries should be treated as equivalent to trusted hardware or a server-controlled environment.
 
@@ -14,7 +14,7 @@ The production distribution is public and attacker-controlled after delivery. Pa
 
 ## Browser/runtime boundary
 
-The page and protected worker use separate JavaScript realms and a private message channel. Browser code cannot directly call internal QuickJS objects, but a browser owner can instrument both realms.
+The page and protected worker use separate JavaScript runtimes and a private message channel. Browser code cannot directly call internal QuickJS objects, but a browser owner can instrument both runtimes.
 
 ## Decoder/executor boundary
 

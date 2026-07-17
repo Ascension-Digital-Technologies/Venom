@@ -1,6 +1,6 @@
 # Runtime Integrity Seals
 
-> **Applies to:** Venom 1.0.1
+> **Applies to:** Venom 1.1.0
 
 Venom computes and rechecks integrity seals over critical browser and worker runtime state. The checks are distributed across startup and execution boundaries rather than concentrated in one optional boot check.
 

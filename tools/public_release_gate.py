@@ -6,7 +6,7 @@ from pathlib import Path
 REQUIRED = [
     'README.md','CHANGES.md','LICENSE','NOTICE.md','SECURITY.md','SUPPORT.md',
     'docs/README.md','docs/getting-started/build-from-source.md','docs/operations/release-verification.md',
-    'examples/protected-chess/README.md','examples/nova-trade/README.md','examples/bot-detection/README.md','.github/workflows/release.yml',
+    'packages/runtime/package.json','packages/runtime/src/index.js','packages/runtime/src/index.d.ts','contracts/runtime-api.json','examples/protected-chess/README.md','examples/nova-trade/README.md','examples/bot-detection/README.md','examples/typescript-showcase/README.md','examples/tsx-showcase/README.md','examples/aegis-operations/README.md','examples/javascript-playground/README.md','.github/workflows/release.yml',
 ]
 FORBIDDEN_DIRS = {'.git','build','dist','node_modules','__pycache__','.pytest_cache','.mypy_cache'}
 FORBIDDEN_SUFFIXES = {'.pyc','.pyo','.key','.pem'}
@@ -67,14 +67,14 @@ def main() -> int:
     readme=(root/'README.md').read_text(encoding='utf-8',errors='replace') if (root/'README.md').exists() else ''
     if version!='unknown' and not (f'**Version:** {version}' in readme or f'Version {version}</strong>' in readme):
         errors.append(f'README version does not match {version}')
-    changes=(root/'CHANGELOG.md').read_text(encoding='utf-8',errors='replace') if (root/'CHANGELOG.md').exists() else ''
+    changes=(root/'CHANGES.md').read_text(encoding='utf-8',errors='replace') if (root/'CHANGES.md').exists() else ''
     if version!='unknown' and version not in changes:
-        errors.append(f'CHANGELOG.md does not mention {version}')
+        errors.append(f'CHANGES.md does not mention {version}')
 
     examples=root/'examples'
     public=[p.name for p in examples.iterdir() if p.is_dir()] if examples.exists() else []
-    if sorted(public) != ['bot-detection', 'nova-trade', 'protected-chess']:
-        errors.append(f'public examples must contain bot-detection, protected-chess and nova-trade; found {sorted(public)}')
+    if sorted(public) != ['aegis-operations', 'bot-detection', 'javascript-playground', 'nova-trade', 'protected-chess', 'tsx-showcase', 'typescript-showcase', 'vite-framework-showcase']:
+        errors.append(f'public examples must contain all supported flagship and framework showcase projects; found {sorted(public)}')
     for name in FORBIDDEN_PUBLIC_EXAMPLES:
         if (examples/name).exists(): errors.append(f'legacy public example remains: examples/{name}')
 

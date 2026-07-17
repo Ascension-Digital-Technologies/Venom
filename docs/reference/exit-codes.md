@@ -1,6 +1,6 @@
 # Exit Codes
 
-> **Applies to:** Venom 1.0.1
+> **Applies to:** Venom 1.1.0
 
 Venom returns nonzero process codes for configuration, build, runtime-verification, compatibility, packaging, and release-policy failures. Automation should treat any nonzero result as failure and preserve standard output and error logs.
 
@@ -21,14 +21,14 @@ The exact numeric values are emitted by the CLI and should be read from the inst
 ## PowerShell
 
 ```powershell
-venom release-check dist
+venom verify dist
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 ```
 
 ## Shell
 
 ```bash
-venom release-check dist
+venom verify dist
 ```
 
 With `set -e`, the shell exits immediately on failure. Preserve the command logs as release evidence.

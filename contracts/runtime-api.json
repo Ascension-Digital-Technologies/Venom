@@ -1,0 +1,42 @@
+{
+  "schema": "VENOM_RUNTIME_API_V1",
+  "version": 1,
+  "package": "@venom-js/runtime",
+  "global": "venom",
+  "compatibility": {
+    "semver": "stable-within-major",
+    "wasmAbi": "exact",
+    "bytecodeFormat": "exact",
+    "packageSchema": "backward-compatible-within-major",
+    "generatedClient": "compiler-runtime-version-matched",
+    "diagnosticCodes": "additive"
+  },
+  "methods": [
+    "initializeVenom",
+    "callProtected",
+    "batchProtected",
+    "preloadProtected",
+    "getRuntimeStatus",
+    "disposeRuntime",
+    "createProtectedClient"
+  ],
+  "states": ["uninitialized", "initializing", "ready", "error", "disposed"],
+  "errorCodes": [
+    "RUNTIME_NOT_READY",
+    "RUNTIME_INITIALIZATION_FAILED",
+    "RUNTIME_TIMEOUT",
+    "RUNTIME_ABORTED",
+    "RUNTIME_DISPOSED",
+    "UNKNOWN_EXPORT",
+    "INVALID_BATCH",
+    "BATCH_LIMIT",
+    "ABI_MISMATCH",
+    "BYTECODE_REJECTED",
+    "MEMORY_LIMIT",
+    "EXECUTION_TIMEOUT",
+    "RESULT_INVALID",
+    "PACKAGE_INTEGRITY",
+    "NETWORK_FAILURE",
+    "BRIDGE_ERROR"
+  ]
+}

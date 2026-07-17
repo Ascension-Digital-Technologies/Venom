@@ -12,7 +12,7 @@ def main() -> int:
     ap.add_argument('--public-key',type=Path)
     ap.add_argument('--key-id')
     ap.add_argument('--openssl',default='openssl')
-    a=ap.parse_args(); root=a.release.resolve(); manifest=root/'RELEASE_MANIFEST.txt'
+    a=ap.parse_args(); root=a.prod.resolve(); manifest=root/'RELEASE_MANIFEST.txt'
     if not manifest.is_file(): raise SystemExit('missing RELEASE_MANIFEST.txt')
     pub=a.public_key.resolve() if a.public_key else root/'.venom-signing-public.pem'
     generated=not a.public_key

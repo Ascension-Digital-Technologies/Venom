@@ -52,7 +52,7 @@ def main() -> int:
         print('repo inputs should pass in preflight mode', file=sys.stderr)
         return 1
 
-    shell_script = root / 'scripts' / 'build-emscripten.sh'
+    shell_script = root / 'scripts' / 'linux' / 'build-emscripten.sh'
     run([str(shell_script), '--preflight-only', '--allow-missing', '--out-dir', str(out / 'script')])
     if not (out / 'script' / 'emscripten-build.txt').exists():
         print('build-emscripten.sh did not write status manifest', file=sys.stderr)
@@ -108,13 +108,13 @@ def main() -> int:
         return 1
 
 
-    ps_text = (root / 'scripts' / 'build-quickjs-wasm.ps1').read_text(encoding='utf-8')
+    ps_text = (root / 'scripts' / 'windows' / 'build-quickjs-wasm.ps1').read_text(encoding='utf-8')
     for marker in ('Invoke-VenomExternal', '$LASTEXITCODE', 'New-LifecycleArguments', '$env:EMCC', '$resolvedEmccPath', 'emcc failed with exit code', 'quickjs_wasm_cutover.py', 'exit code ${code}:', '-sSTACK_SIZE=4194304'):
         if marker not in ps_text:
             print(f'build-quickjs-wasm.ps1 should enforce external command failure marker {marker!r}', file=sys.stderr)
             return 1
 
-    shell_quickjs_text = (root / 'scripts' / 'build-quickjs-wasm.sh').read_text(encoding='utf-8')
+    shell_quickjs_text = (root / 'scripts' / 'linux' / 'build-quickjs-wasm.sh').read_text(encoding='utf-8')
     for marker in ('--detect-features', '--enable-bulk-memory-opt', '--enable-nontrapping-float-to-int'):
         if marker not in ps_text or marker not in shell_quickjs_text:
             print(f'QuickJS Binaryen post-processing must propagate WebAssembly feature marker {marker!r}', file=sys.stderr)

@@ -6,7 +6,6 @@
 namespace venom::compiler {
 
 enum class ProfileKind {
-  Dev,
   Prod,
 };
 

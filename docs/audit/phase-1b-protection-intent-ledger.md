@@ -24,4 +24,4 @@ Historical note: at the time of this audit, the former external JavaScript harde
 
 ## Residual risk
 
-The ledger currently covers function/module bridge rewrite records. Whole-file protected chunks are represented by package bytecode records but do not yet receive individual intent entries. A later pass should unify whole-file, extracted-function, and remote-operation intents under one schema and make `release-check` independently compare the signed package closure summary against the private compiler ledger.
+The ledger currently covers function/module bridge rewrite records. Whole-file protected chunks are represented by package bytecode records but do not yet receive individual intent entries. A later pass should unify whole-file, extracted-function, and remote-operation intents under one schema and make `verify` independently compare the signed package closure summary against the private compiler ledger.

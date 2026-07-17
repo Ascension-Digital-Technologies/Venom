@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include <string>
-#include "contracts/product_contracts.hpp"
+#include "generated/contracts/product_contracts.hpp"
 
 namespace venom::package {
 

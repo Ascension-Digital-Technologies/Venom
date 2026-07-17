@@ -1,6 +1,6 @@
 # Protected Runtime
 
-> **Applies to:** Venom 1.0.1
+> **Applies to:** Venom 1.1.0
 
 The protected runtime executes compiled QuickJS bytecode inside WebAssembly hosted by a dedicated worker. The browser page communicates through a narrow asynchronous API rather than receiving direct access to protected modules or runtime memory.
 

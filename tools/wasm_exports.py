@@ -24,6 +24,14 @@ STANDALONE_WASM_SUPPORT_EXPORTS = {
     '__indirect_function_table',
     '_emscripten_stack_restore',
     'emscripten_stack_get_current',
+    # Reactor-style STANDALONE_WASM modules expose their initializer even
+    # when it is not part of Venom's public runtime ABI.
+    '_initialize',
+    # Emscripten 4.0.x may retain this libc++ no-exception support helper in
+    # the final export section. It is toolchain-owned and never called by
+    # Venom's loader. Keep it explicitly allowlisted rather than weakening
+    # exact export verification globally.
+    '__cxa_increment_exception_refcount',
 }
 
 RUNTIME_VALUE_EXPORTS = (
@@ -216,6 +224,7 @@ def manifest_text(
     exports: list[str],
     required: list[str],
     missing: list[str],
+    unexpected: list[str],
     runtime_abi: int,
     package_version: int,
     runtime_values: dict[str, Any],
@@ -223,7 +232,7 @@ def manifest_text(
     runtime_value_checked: bool,
 ) -> str:
     data = wasm.read_bytes()
-    has_required_shape = bool(required) and not missing
+    has_required_shape = bool(required) and not missing and not unexpected
     runtime_values_ok = (not runtime_value_checked) or not runtime_value_errors
     ok = has_required_shape and runtime_values_ok
     lines = [
@@ -246,7 +255,9 @@ def manifest_text(
         f'export_count={len(exports)}',
         f'required_export_count={len(required)}',
         f'missing_export_count={len(missing)}',
+        f'unexpected_export_count={len(unexpected)}',
         'required_exports_satisfied=true' if bool(required) and not missing else 'required_exports_satisfied=false',
+        'exact_exports_satisfied=true' if not unexpected else 'exact_exports_satisfied=false',
         'runtime_values_checked=true' if runtime_value_checked else 'runtime_values_checked=false',
         'runtime_values_satisfied=true' if runtime_value_checked and not runtime_value_errors else ('runtime_values_satisfied=not-checked' if not runtime_value_checked else 'runtime_values_satisfied=false'),
     ]
@@ -257,6 +268,10 @@ def manifest_text(
         lines.append('missing_exports=' + ','.join(missing))
     else:
         lines.append('missing_exports=')
+    if unexpected:
+        lines.append('unexpected_exports=' + ','.join(unexpected))
+    else:
+        lines.append('unexpected_exports=')
     if runtime_value_errors:
         lines.append('runtime_value_errors=' + '|'.join(runtime_value_errors))
     else:
@@ -303,8 +318,6 @@ def main() -> int:
         # Venom exports while tolerating these documented toolchain exports.
         allowed = set(required) | STANDALONE_WASM_SUPPORT_EXPORTS
         exact_extra = sorted(name for name in exports if name not in allowed)
-        if exact_extra:
-            missing.extend('unexpected:' + name for name in exact_extra)
 
     runtime_values: dict[str, Any] = {}
     runtime_value_errors: list[str] = []
@@ -334,6 +347,7 @@ def main() -> int:
             'missing_exports': missing,
             'unexpected_exports': exact_extra,
             'required_exports_satisfied': bool(required) and not missing,
+            'exact_exports_satisfied': not exact_extra,
             'runtime_values_checked': args.validate_runtime_values,
             'runtime_values': runtime_values,
             'runtime_value_errors': runtime_value_errors,
@@ -347,6 +361,7 @@ def main() -> int:
             exports=exports,
             required=required,
             missing=missing,
+            unexpected=exact_extra,
             runtime_abi=args.runtime_abi,
             package_version=args.package_version,
             runtime_values=runtime_values,
@@ -360,12 +375,16 @@ def main() -> int:
         print(f'[venom] missing ABI exports: {len(missing)}')
         if missing:
             print('[venom] missing: ' + ', '.join(missing[:32]) + (' ...' if len(missing) > 32 else ''), file=sys.stderr)
+        if args.exact_exports:
+            print(f'[venom] unexpected ABI exports: {len(exact_extra)}')
+            if exact_extra:
+                print('[venom] unexpected: ' + ', '.join(exact_extra[:32]) + (' ...' if len(exact_extra) > 32 else ''), file=sys.stderr)
     if args.validate_runtime_values:
         print(f'[venom] runtime value checks: {"PASS" if not runtime_value_errors else "FAIL"}')
         if runtime_value_errors:
             for err in runtime_value_errors[:16]:
                 print(f'[venom] runtime value error: {err}', file=sys.stderr)
-    if (missing or runtime_value_errors) and args.fail_missing:
+    if (missing or exact_extra or runtime_value_errors) and args.fail_missing:
         return 2
     return 0
 

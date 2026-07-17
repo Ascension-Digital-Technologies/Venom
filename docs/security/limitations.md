@@ -1,6 +1,6 @@
 # Limitations
 
-> **Applies to:** Venom 1.0.1
+> **Applies to:** Venom 1.1.0
 
 Venom provides reverse-engineering resistance for software that must be delivered to a browser. It does not provide a trusted execution environment.
 
@@ -8,7 +8,7 @@ Venom provides reverse-engineering resistance for software that must be delivere
 
 A user controlling the browser can inspect network responses, workers, WebAssembly memory, runtime state, and decoded values. The exact original protected source is absent, but behavior and equivalent logic may still be reconstructed.
 
-## No protection for browser-realm code
+## No protection for browser-runtime code
 
 Code marked `@venom: browser`, framework renderers, DOM manipulation, and other browser-native responsibilities remain JavaScript and can be inspected. Production hardening makes generated assets harder to read but does not remove browser-executed logic.
 

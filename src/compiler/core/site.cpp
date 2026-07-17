@@ -96,7 +96,7 @@ SiteGraph collect_site(const std::filesystem::path& input_root) {
       graph.routes.push_back(route_from_html_path(relative));
     } else if (ext == ".css") {
       graph.styles.push_back(relative);
-    } else if (ext == ".js" || ext == ".mjs") {
+    } else if (ext == ".js" || ext == ".mjs" || ext == ".ts" || ext == ".tsx" || ext == ".mts" || ext == ".cts") {
       graph.scripts.push_back(relative);
     } else {
       graph.assets.push_back(relative);

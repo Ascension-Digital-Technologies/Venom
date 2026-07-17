@@ -21,9 +21,9 @@ def shell_build_command(repo: Path, emsdk_dir: Path, out_dir: Path, emcc: str) -
     if is_windows():
         powershell = shutil.which('powershell.exe') or shutil.which('pwsh.exe') or 'powershell.exe'
         return [powershell, '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
-                str(repo / 'scripts' / 'build-quickjs-wasm.ps1'),
+                str(repo / 'tools' / 'windows-scripts' / 'build-quickjs-wasm.ps1'),
                 '-ControllerBuild', '-OutDir', str(out_dir), '-Emcc', emcc, '-Force']
-    return [str(repo / 'scripts' / 'build-quickjs-wasm.sh'),
+    return ['bash', str(repo / 'tools' / 'linux-scripts' / 'build-quickjs-wasm.sh'),
             '--controller-build', '--out-dir', str(out_dir), '--emcc', emcc, '--force']
 
 
@@ -85,7 +85,7 @@ def main() -> int:
     ap.add_argument('--out-dir', type=Path, default=None)
     ap.add_argument('--emsdk-dir', type=Path, default=None)
     ap.add_argument('--emcc', default='')
-    ap.add_argument('--version', default='latest')
+    ap.add_argument('--version', default='4.0.10')
     ap.add_argument('--preflight-only', action='store_true')
     ap.add_argument('--allow-missing', action='store_true')
     ap.add_argument('--skip-download', action='store_true')

@@ -1,5 +1,6 @@
 #include "compiler/pipeline/security.hpp"
 #include "compiler/pipeline/security_analysis.hpp"
+#include "compiler/core/console.hpp"
 
 #include "package/crypto.hpp"
 
@@ -32,6 +33,44 @@ std::string hex64(std::uint64_t value) {
 }
 
 void print_release_report(const ReleaseCheckReport& report, const ReleaseCheckOptions& options) {
+  const bool ok = report.failures.empty();
+  const std::string operation = options.runtime_verification ? "QuickJS runtime verification" : "Package integrity verification";
+  if (options.format == OutputFormat::Json) {
+    std::cout << "{\"ok\":" << (ok ? "true" : "false")
+              << ",\"operation\":\"" << operation << "\""
+              << ",\"package\":\"" << report.package_path.generic_string() << "\""
+              << ",\"sections\":" << report.section_count
+              << ",\"protectedSections\":" << report.encrypted_sections
+              << ",\"runtimeAbi\":" << report.quickjs_runtime_abi
+              << ",\"failures\":[";
+    for (std::size_t i = 0; i < report.failures.size(); ++i) {
+      if (i) std::cout << ',';
+      std::cout << "\"" << report.failures[i] << "\"";
+    }
+    std::cout << "]}\n";
+    return;
+  }
+  if (options.verbosity == 0) {
+    if (!ok) print_status("FAIL", operation);
+    return;
+  }
+  if (options.verbosity < 2) {
+    if (ok) {
+      print_pass(operation + " passed");
+      std::cout << "  Package: " << report.package_path.filename().string()
+                << " / " << report.section_count << " sections / "
+                << report.encrypted_sections << " protected\n";
+      if (options.runtime_verification) {
+        std::cout << "  Runtime: QuickJS/WASM ABI " << report.quickjs_runtime_abi
+                  << " / real engine " << (report.quickjs_runtime_real_engine_candidate ? "confirmed" : "unconfirmed") << "\n";
+      }
+    } else {
+      print_status("FAIL", operation + " failed");
+      for (const auto& failure : report.failures) std::cout << "  - " << failure << "\n";
+      std::cout << "  Run again with --verbose for complete verification evidence.\n";
+    }
+    return;
+  }
   std::cout << (options.runtime_verification ? "Runtime verification report:\n" : "Protection report:\n")
             << "  target: " << options.security_target << "\n"
             << "  package: " << report.package_path.string() << "\n"
@@ -147,7 +186,8 @@ bool generate_key_file(const KeygenOptions& options) {
 
   std::ostringstream hex;
   hex << std::hex << std::setfill('0');
-  for (unsigned char byte : key) {
+  for (const unsigned char raw_byte : key) {
+    const auto byte = static_cast<unsigned char>(raw_byte);
     hex << std::setw(2) << static_cast<unsigned int>(byte);
   }
   const auto text = hex.str() + "\n";

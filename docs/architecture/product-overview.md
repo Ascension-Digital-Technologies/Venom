@@ -26,7 +26,7 @@ A higher-precedence decision cannot be overwritten by the planner. Conflicts are
 
 ## Function-level planning
 
-Alpha.2 analyzes named function declarations and arrow functions independently. Each recommendation records the function name, source line, proposed realm, confidence, a protected-execution purity score, decision source, and human-readable reasons.
+Alpha.2 analyzes named function declarations and arrow functions independently. Each recommendation records the function name, source line, proposed runtime, confidence, a protected-execution purity score, decision source, and human-readable reasons.
 
 Dynamic source generation and unresolved runtime loading are never auto-approved. Strict mode fails until those findings are resolved with an annotation, CLI override, or configuration rule.
 

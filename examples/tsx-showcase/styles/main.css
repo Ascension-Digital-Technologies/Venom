@@ -1,0 +1,7 @@
+:root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background:#080d1a; color:#edf6ff; }
+body { margin:0; min-height:100vh; display:grid; place-items:center; background:radial-gradient(circle at top right,#17284f,#080d1a 55%); }
+#app { width:min(720px,calc(100% - 40px)); }
+.card { padding:36px; border:1px solid #283754; border-radius:22px; background:rgba(13,20,38,.92); box-shadow:0 24px 80px rgba(0,0,0,.35); }
+h1 { margin:0 0 20px; font-size:clamp(2rem,6vw,4rem); }
+strong { display:block; color:#7de7d3; font-size:2.25rem; margin-bottom:24px; }
+.tag { display:inline-block; margin-right:8px; padding:7px 11px; border-radius:999px; background:#162a52; color:#8fdcff; font-size:.85rem; }

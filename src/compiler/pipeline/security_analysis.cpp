@@ -113,6 +113,26 @@ ReleaseCheckReport analyze_package_for_release(const ReleaseCheckOptions& option
   report.integrity_metadata = (pkg.flags & venom::package::PackageFlagIntegrityMetadata) != 0u;
   report.payload_padding_bytes = decoded_payload_padding_bytes(pkg);
 
+  if (!report.protection_closure_present) {
+    for (const auto& section : pkg.sections) {
+      if (section.type != venom::package::SectionType::Integrity ||
+          !venom::package::section_name_matches(section.type, section.name, "protection-closure.vpcl")) continue;
+      const auto text = std::string(reinterpret_cast<const char*>(section.data.data()), section.data.size());
+      if (text.rfind("VENOM_PROTECTION_CLOSURE_V1", 0) != 0) {
+        add_failure(report, "protection closure metadata has invalid header");
+        break;
+      }
+      report.protection_closure_present = true;
+      const auto requested = metadata_value(text, "requested");
+      const auto resolved = metadata_value(text, "resolved");
+      const auto expected = metadata_value(text, "expected_quickjs_records");
+      report.protection_intents_requested = requested.empty() ? 0u : static_cast<std::size_t>(std::stoull(requested));
+      report.protection_intents_resolved = resolved.empty() ? 0u : static_cast<std::size_t>(std::stoull(resolved));
+      report.protection_expected_quickjs_records = expected.empty() ? 0u : static_cast<std::size_t>(std::stoull(expected));
+      break;
+    }
+  }
+
   const venom::package::Section* release_profile_section = nullptr;
   for (const auto& section : pkg.sections) {
     if (section.type == venom::package::SectionType::Integrity && venom::package::section_name_matches(section.type, section.name, "release-profile.vrpf")) {
@@ -628,7 +648,7 @@ ReleaseCheckReport analyze_package_for_release(const ReleaseCheckOptions& option
 
   // Hybrid and browser-only applications are valid release targets. A package
   // may intentionally contain zero protected JavaScript records when every
-  // script is selected for the native browser realm. QuickJS-specific gates
+  // script is selected for the native browser runtime. QuickJS-specific gates
   // below remain conditional on actual VQJSBC03 records.
   if (report.release_or_protect && report.quickjs_bytecode_records != 0u && !report.quickjs_wasm_execution) {
     add_failure(report, "protected package with scripts is missing quickjs-wasm-execution.vqwe metadata");
@@ -692,7 +712,7 @@ ReleaseCheckReport analyze_package_for_release(const ReleaseCheckOptions& option
     add_failure(report, "package has zero encrypted/protected sections");
   }
   if (report.v_legacy_sections != 0u) {
-    add_failure(report, "legacy VSEAL001 sections are not allowed in production release-check");
+    add_failure(report, "legacy VSEAL001 sections are not allowed in production verify");
   }
   if (report.external_manifest) {
     add_failure(report, "external assets/asset-manifest.txt is present; use --emit-debug-manifest only for debug builds");

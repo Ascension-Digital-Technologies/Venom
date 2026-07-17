@@ -1,6 +1,6 @@
 # Update and Rollback Management
 
-> **Applies to:** Venom 1.0.1
+> **Applies to:** Venom 1.1.0
 
 Venom release metadata supports signed update discovery, package verification, installation, and rollback. Stable channels must reject unsigned metadata and packages signed by an untrusted key.
 

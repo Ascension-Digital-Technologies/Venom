@@ -14,7 +14,7 @@ with tempfile.TemporaryDirectory(prefix='venom-protected-module-') as temp:
     out = temp_root / 'dist'
     subprocess.run([
         str(venom), 'build', str(site), '--out', str(out),
-        '--profile', 'dev', '--seed', '1400001'
+        '--profile', 'prod', '--seed', '1400001'
     ], check=True, stdout=subprocess.DEVNULL)
 
     report = json.loads((out / 'build/reports/bridge-rewrite-plan.json').read_text())
@@ -47,10 +47,10 @@ with tempfile.TemporaryDirectory(prefix='venom-protected-module-') as temp:
     (invalid / 'venom.lock').write_text('VENOM_VENDOR_LOCK_V1\nversion=1\nentry_count=0\nurl\tsha256\tbytes\tintegrity\n')
     failed = subprocess.run([
         str(venom), 'build', str(invalid), '--out', str(temp_root / 'invalid-dist'),
-        '--profile', 'dev', '--seed', '1420001'
+        '--profile', 'prod', '--seed', '1420001'
     ], text=True, capture_output=True)
     assert failed.returncode != 0
-    assert 'VENOM-E2302' in (failed.stdout + failed.stderr)
+    assert 'VENOM-E2402' in (failed.stdout + failed.stderr)
 
     # Multiple modules intentionally use the same private helper name. A successful build
     # proves that each module is wrapped in an independent lexical scope.
@@ -63,7 +63,7 @@ with tempfile.TemporaryDirectory(prefix='venom-protected-module-') as temp:
     (cycle / 'venom.lock').write_text('VENOM_VENDOR_LOCK_V1\nversion=1\nentry_count=0\nurl\tsha256\tbytes\tintegrity\n')
     failed = subprocess.run([
         str(venom), 'build', str(cycle), '--out', str(temp_root / 'cycle-dist'),
-        '--profile', 'dev', '--seed', '1400002'
+        '--profile', 'prod', '--seed', '1400002'
     ], text=True, capture_output=True)
     assert failed.returncode != 0
     assert 'VENOM-E2216' in (failed.stdout + failed.stderr)
@@ -76,9 +76,23 @@ with tempfile.TemporaryDirectory(prefix='venom-protected-module-') as temp:
     (dynamic / 'venom.lock').write_text('VENOM_VENDOR_LOCK_V1\nversion=1\nentry_count=0\nurl\tsha256\tbytes\tintegrity\n')
     failed = subprocess.run([
         str(venom), 'build', str(dynamic), '--out', str(temp_root / 'dynamic-dist'),
-        '--profile', 'dev', '--seed', '1400003'
+        '--profile', 'prod', '--seed', '1400003'
     ], text=True, capture_output=True)
     assert failed.returncode != 0
     assert 'VENOM-E2205' in (failed.stdout + failed.stderr)
+
+    unsupported = temp_root / 'unsupported-export'
+    unsupported.mkdir()
+    (unsupported / 'index.html').write_text('<!doctype html><script type="module" src="main.js"></script>')
+    (unsupported / 'main.js').write_text('// @venom: protected module\nexport const value = 1;\n')
+    (unsupported / 'venom.lock').write_text('VENOM_VENDOR_LOCK_V1\nversion=1\nentry_count=0\nurl\tsha256\tbytes\tintegrity\n')
+    failed = subprocess.run([
+        str(venom), 'build', str(unsupported), '--out', str(temp_root / 'unsupported-dist'),
+        '--profile', 'prod', '--seed', '1400004'
+    ], text=True, capture_output=True)
+    assert failed.returncode != 0
+    failure_text = failed.stdout + failed.stderr
+    assert 'VENOM-E2202' in failure_text
+    assert 'Const@2:1' in failure_text, failure_text
 
 print('protected module graph smoke: PASS')

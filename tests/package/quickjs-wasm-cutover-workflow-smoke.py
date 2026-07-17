@@ -42,7 +42,7 @@ def main() -> int:
         print('unexpected setup package version', file=sys.stderr)
         return 1
 
-    setup_script = root / 'scripts' / 'setup-emscripten.sh'
+    setup_script = root / 'scripts' / 'linux' / 'setup-emscripten.sh'
     run([str(setup_script), '--check-only', '--allow-missing', '--out-dir', str(out / 'setup-script')])
     if not (out / 'setup-script' / 'emscripten-setup.txt').exists():
         print('setup-emscripten.sh did not write setup report', file=sys.stderr)

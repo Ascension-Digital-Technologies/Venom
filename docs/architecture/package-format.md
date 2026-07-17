@@ -282,7 +282,7 @@ Protected/release packages keep the v40 outer container format, but v0.45 adds a
 - the writer adds randomized payload-layout jitter/padding between section payload offsets;
 - padding bytes are randomized and are covered by the package hash;
 - an encrypted `package-layout.vlay` metadata section records the layout policy, seed, section-order digest, and jitter limit;
-- `venom release-check` requires the decoded layout metadata and reports `layout_polymorphic: yes` plus payload padding bytes.
+- `venom verify` requires the decoded layout metadata and reports `layout_polymorphic: yes` plus payload padding bytes.
 
 The layout metadata is protected like other internal integrity sections, so raw `app.vbc` bytes must not expose `package-layout.vlay`, `VENOM_PACKAGE_LAYOUT_V1`, or the layout seed.
 

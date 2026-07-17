@@ -863,6 +863,7 @@ function enforceRuntimePolicy(pkg, policy, options) {
     runtimeHardened: hardenedFlag,
     freezeHostBridge: policy.get('freeze_host_bridge') === 'true',
     stripDebugMetadata: policy.get('strip_debug_metadata') === 'true',
+    releaseProfile: releaseFlag,
   });
 }
 
@@ -2376,7 +2377,7 @@ function bindInlineEventAttribute(target, attrName, source, hostBridgePlan = nul
       if (typeof bridge.dispatchEventBinding === 'function') {
         bridge.dispatchEventBinding({ event, element: target, eventName, source, attrName, routeGeneration: boundGeneration });
       }
-      // Protected runtime never evaluates inline event source in the host realm.
+      // Protected runtime never evaluates inline event source in the host runtime.
       // The source is treated as metadata and must be dispatched through QuickJS.
       return undefined;
     });
@@ -3648,7 +3649,157 @@ function removeInjectedScript(script) {
   if (parent && typeof parent.removeChild === 'function') parent.removeChild(script);
 }
 
-async function executeBrowserScriptChunk(chunk) {
+function normalizeBrowserModulePath(value) {
+  const parts = [];
+  for (const part of String(value || '').replace(/\\/g, '/').split('/')) {
+    if (!part || part === '.') continue;
+    if (part === '..') { if (parts.length) parts.pop(); continue; }
+    parts.push(part);
+  }
+  return parts.join('/');
+}
+
+function browserModuleDirectory(value) {
+  const normalized = normalizeBrowserModulePath(value);
+  const slash = normalized.lastIndexOf('/');
+  return slash < 0 ? '' : normalized.slice(0, slash + 1);
+}
+
+
+function parseBrowserModuleIdentity(source) {
+  const match = String(source || '').match(/\/\*@venom-module-source-v1(?:\r?\n)([0-9a-f]+)\r?\n\*\/(?:\r?\n)?/i);
+  if (!match || (match[1].length & 1) !== 0) return '';
+  const bytes = new Uint8Array(match[1].length / 2);
+  for (let i = 0; i < bytes.length; ++i) bytes[i] = Number.parseInt(match[1].slice(i * 2, i * 2 + 2), 16);
+  return normalizeBrowserModulePath(textDecoder.decode(bytes));
+}
+
+function parseBrowserModuleMap(source) {
+  const match = String(source || '').match(/\/\*@venom-module-map-v1(?:\r?\n)([\s\S]*?)\*\/(?:\r?\n)?/);
+  const map = new Map();
+  if (!match) return map;
+  const decodeHex = (value) => {
+    if (!value || (value.length & 1) !== 0 || !/^[0-9a-f]+$/i.test(value)) return '';
+    const bytes = new Uint8Array(value.length / 2);
+    for (let i = 0; i < bytes.length; ++i) bytes[i] = Number.parseInt(value.slice(i * 2, i * 2 + 2), 16);
+    return textDecoder.decode(bytes);
+  };
+  for (const line of match[1].split('\n')) {
+    if (!line) continue;
+    const fields = line.split('\t');
+    if (fields.length !== 2) continue;
+    const specifier = decodeHex(fields[0]);
+    const target = decodeHex(fields[1]);
+    if (specifier && target) map.set(specifier, normalizeBrowserModulePath(target));
+  }
+  return map;
+}
+
+function createBrowserModuleLinker(chunks, routeName) {
+  const modules = new Map();
+  const importMaps = new Map();
+  const urls = new Map();
+  const state = new Map();
+  const authoredAliases = new Map();
+  const ambiguousAliases = new Set();
+  const route = String(routeName || '');
+  for (const chunk of chunks || []) {
+    if (!chunk || (chunk.flags & SCRIPT_FLAG.BROWSER) === 0 || (chunk.flags & SCRIPT_FLAG.MODULE) === 0) continue;
+    const routeMatches = chunk.route === route || chunk.route === '*' || chunk.route === '';
+    const dependencyChunk = (chunk.flags & SCRIPT_FLAG.DEPENDENCY) !== 0;
+    if (!routeMatches && !dependencyChunk) continue;
+    const normalizedSource = normalizeBrowserModulePath(chunk.source);
+    modules.set(normalizedSource, chunk);
+    importMaps.set(normalizedSource, parseBrowserModuleMap(chunk.code));
+    const authoredSource = parseBrowserModuleIdentity(chunk.code);
+    if (authoredSource) {
+      const prior = authoredAliases.get(authoredSource);
+      if (prior && prior !== normalizedSource) {
+        authoredAliases.delete(authoredSource);
+        ambiguousAliases.add(authoredSource);
+      } else if (!ambiguousAliases.has(authoredSource)) {
+        authoredAliases.set(authoredSource, normalizedSource);
+      }
+    }
+  }
+
+  const resolve = (referrer, specifier) => {
+    if (!specifier || specifier[0] !== '.') return '';
+    const normalizedReferrer = normalizeBrowserModulePath(referrer);
+    const mapped = importMaps.get(normalizedReferrer);
+    const opaqueTarget = mapped && mapped.get(specifier);
+    if (opaqueTarget && modules.has(opaqueTarget)) return opaqueTarget;
+
+    // Production packaging can replace source labels at more than one stage. If
+    // the compiler-authored map is present but attached to a different opaque
+    // alias, accept it only when the specifier resolves uniquely. This remains
+    // fail-closed for ambiguous graphs.
+    let uniqueMappedTarget = '';
+    for (const candidateMap of importMaps.values()) {
+      const candidate = candidateMap && candidateMap.get(specifier);
+      if (!candidate || !modules.has(candidate)) continue;
+      if (uniqueMappedTarget && uniqueMappedTarget !== candidate) {
+        uniqueMappedTarget = '';
+        break;
+      }
+      uniqueMappedTarget = candidate;
+    }
+    if (uniqueMappedTarget) return uniqueMappedTarget;
+    const base = normalizeBrowserModulePath(browserModuleDirectory(referrer) + specifier);
+    const candidates = [base];
+    if (!/\.[A-Za-z0-9]+$/.test(base)) {
+      for (const ext of ['.js','.mjs','.cjs','.jsx','.ts','.tsx','.mts','.cts']) candidates.push(base + ext);
+      for (const ext of ['.js','.mjs','.jsx','.ts','.tsx','.mts']) candidates.push(base + '/index' + ext);
+    } else if (base.endsWith('.js')) {
+      const stem = base.slice(0, -3);
+      candidates.push(stem + '.ts', stem + '.tsx', stem + '.mts');
+    }
+    for (const candidate of candidates) {
+      if (modules.has(candidate)) return candidate;
+      const aliased = authoredAliases.get(candidate);
+      if (aliased && modules.has(aliased)) return aliased;
+    }
+    return '';
+  };
+
+  const rewrite = (source, referrer, buildUrl) => {
+    const patterns = [
+      /((?:^|[;\n\r])\s*import\s+(?:[^'";]+?\s+from\s*)?)(['"])([^'"]+)\2/g,
+      /(\bexport\s+(?:\*|\{[^}]*\})\s+from\s*)(['"])([^'"]+)\2/g
+    ];
+    let output = source;
+    for (const pattern of patterns) {
+      output = output.replace(pattern, (whole, prefix, quote, specifier) => {
+        if (!String(specifier).startsWith('.')) return whole;
+        const dependency = resolve(referrer, specifier);
+        if (!dependency) throw new Error('browser module dependency not found: ' + referrer + ' -> ' + specifier);
+        return prefix + quote + buildUrl(dependency) + quote;
+      });
+    }
+    return output;
+  };
+
+  const buildUrl = (sourceName) => {
+    const normalized = normalizeBrowserModulePath(sourceName);
+    if (urls.has(normalized)) return urls.get(normalized);
+    if (state.get(normalized) === 1) throw new Error('browser module cycle requires bundling support: ' + normalized);
+    const chunk = modules.get(normalized);
+    if (!chunk) throw new Error('browser module is unavailable: ' + normalized);
+    state.set(normalized, 1);
+    const linked = rewrite(String(chunk.code || ''), normalized, buildUrl) + '\n//# sourceURL=venom-browser://' + safeSourceUrl(normalized);
+    const url = URL.createObjectURL(new Blob([linked], { type: 'text/javascript' }));
+    urls.set(normalized, url);
+    state.set(normalized, 2);
+    return url;
+  };
+
+  return {
+    urlFor(chunk) { return buildUrl(normalizeBrowserModulePath(chunk && chunk.source)); },
+    dispose() { for (const url of urls.values()) URL.revokeObjectURL(url); urls.clear(); }
+  };
+}
+
+async function executeBrowserScriptChunk(chunk, moduleLinker = null) {
   if (chunk && chunk.bytecodeBytes && chunk.bytecodeBytes.length) {
     throw new Error('browser script chunk was packaged as QuickJS bytecode: ' + (chunk.source || '<script>'));
   }
@@ -3662,15 +3813,16 @@ async function executeBrowserScriptChunk(chunk) {
   const target = document.head || document.body || document.documentElement;
   if (!target || !target.appendChild) throw new Error('no document insertion target for browser script');
   if (isModule) {
-    const blob = new Blob([source], { type: 'text/javascript' });
-    const url = URL.createObjectURL(blob);
+    const linkedUrl = moduleLinker ? moduleLinker.urlFor(chunk) : '';
+    const ownedUrl = !linkedUrl;
+    const url = linkedUrl || URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
     try { await new Promise((resolve, reject) => { script.src=url; script.onload=resolve; script.onerror=()=>reject(new Error('browser module execution failed: '+chunk.source)); target.appendChild(script); }); }
-    finally { URL.revokeObjectURL(url); removeInjectedScript(script); }
+    finally { if (ownedUrl) URL.revokeObjectURL(url); removeInjectedScript(script); }
   } else { script.textContent = source; target.appendChild(script); removeInjectedScript(script); }
   return Object.freeze({ ...chunk, executed: true, browser: true });
 }
 
-async function executeScriptChunk(chunk, route, scriptIsolationPlan = null, scriptPolicyPlan = null, quickJsChunkPlan = null, quickJsEnginePlan = null, scriptEnginePolicyPlan = null) {
+async function executeScriptChunk(chunk, route, scriptIsolationPlan = null, scriptPolicyPlan = null, quickJsChunkPlan = null, quickJsEnginePlan = null, scriptEnginePolicyPlan = null, browserModuleLinker = null) {
   const bridge = globalThis.__venomRuntime || null;
   if (bridge && typeof bridge.checkScriptPolicy === 'function') bridge.checkScriptPolicy(chunk);
   if (bridge && typeof bridge.createScriptScope === 'function') bridge.createScriptScope(route && route.route ? route.route : chunk.route, chunk.source, chunk.order);
@@ -3684,7 +3836,7 @@ async function executeScriptChunk(chunk, route, scriptIsolationPlan = null, scri
     }
   }
   let executed;
-  if ((chunk.flags & SCRIPT_FLAG.BROWSER) !== 0) executed = await executeBrowserScriptChunk(chunk);
+  if ((chunk.flags & SCRIPT_FLAG.BROWSER) !== 0) executed = await executeBrowserScriptChunk(chunk, browserModuleLinker);
   else if (bridge && typeof bridge.executeQuickJsChunk === 'function') {
     executed = await bridge.executeQuickJsChunk(chunk, route);
   } else {
@@ -3734,12 +3886,14 @@ async function executeScriptsForRoute(route, jsBundle, scriptIsolationPlan = nul
     return originalWindowAdd.call(this, type, listener, options);
   };
 
+  const browserModuleLinker = createBrowserModuleLinker(jsBundle.chunks, route.route);
   try {
     for (const chunk of selected) {
       // Keep script execution deterministic: execute in document order.
-      executed.push(await executeScriptChunk(chunk, route, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan));
+      executed.push(await executeScriptChunk(chunk, route, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan, browserModuleLinker));
     }
   } finally {
+    browserModuleLinker.dispose();
     document.addEventListener = originalDocumentAdd;
     globalThis.addEventListener = originalWindowAdd;
   }
@@ -4081,8 +4235,8 @@ export async function bootVenom(options) {
   const packageFeatures = verifyPackageFeatures(pkg);
   const packageBinding = await verifyPackageBinding(pkg, options);
   const runtimePolicy = enforceRuntimePolicy(pkg, parseRuntimePolicy(findOptionalSection(pkg, SECTION.INTEGRITY, 'runtime-policy.vhrd')), options);
-  activeReleaseDiversification = parseReleaseDiversification(findOptionalSection(pkg, SECTION.INTEGRITY, 'release-diversification.vrd3'), runtimePolicy.failClosed);
-  activeQuickJsAbiFingerprint = parseQuickJsAbiFingerprint(findOptionalSection(pkg, SECTION.INTEGRITY, 'quickjs-abi-fingerprint.vqaf'), runtimePolicy.failClosed);
+  activeReleaseDiversification = parseReleaseDiversification(findOptionalSection(pkg, SECTION.INTEGRITY, 'release-diversification.vrd3'), runtimePolicy.releaseProfile);
+  activeQuickJsAbiFingerprint = parseQuickJsAbiFingerprint(findOptionalSection(pkg, SECTION.INTEGRITY, 'quickjs-abi-fingerprint.vqaf'), runtimePolicy.releaseProfile);
   const strings = parseStringTable(findSection(pkg, SECTION.STRINGS, 'strings.vstr'));
   const routes = parseRouteTable(findSection(pkg, SECTION.ROUTES, 'routes.vbrt'), strings);
   const lazySectionsPlan = parseLazySectionsMetadata(findOptionalSection(pkg, SECTION.INTEGRITY, 'lazy-sections.vlazy'));

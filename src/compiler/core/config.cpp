@@ -89,10 +89,24 @@ void apply_project_config(const std::filesystem::path& path, BuildOptions& optio
     else if (full=="planner.protect" || full=="planner.protected") options.force_protected=parse_string_list(value,full);
     else if (full=="planner.browser") options.force_browser=parse_string_list(value,full);
     else if (full=="security.require_audited_crypto") options.require_audited_crypto=parse_bool(value,full);
+    else if (full=="runtime.lazy_loading.enabled") options.lazy_loading_enabled=parse_bool(value,full);
+    else if (full=="runtime.lazy_loading.preload") options.lazy_preload=parse_string_list(value,full);
+    else if (section=="capabilities" || section=="runtime.lazy_loading") {
+      const auto mode = unquote(value);
+      if (mode != "auto" && mode != "allow" && mode != "deny" && mode != "read-only")
+        throw std::runtime_error("venom.toml: " + full + " must be auto, allow, deny, or read-only");
+      if (mode == "read-only" && key != "storage")
+        throw std::runtime_error("venom.toml: read-only is supported only for capabilities.storage");
+      if (key=="fetch") options.capability_fetch=mode;
+      else if (key=="timers") options.capability_timers=mode;
+      else if (key=="storage") options.capability_storage=mode;
+      else if (key=="crypto") options.capability_crypto=mode;
+      else throw std::runtime_error("venom.toml:"+std::to_string(line_no)+": unknown capability: "+key);
+    }
     else if (full=="security.deny_host_js_fallback" && !parse_bool(value,full)) throw std::runtime_error("Venom production policy requires security.deny_host_js_fallback=true");
     else if (full=="runtime.engine" && unquote(value)!="quickjs-wasm") throw std::runtime_error("Venom production policy requires runtime.engine=\"quickjs-wasm\"");
     else if (full=="runtime.fail_closed" && !parse_bool(value,full)) throw std::runtime_error("Venom production policy requires runtime.fail_closed=true");
-    else if (section=="project" || section=="build" || section=="runtime" || section=="security" || section=="compatibility" || section=="protection" || section=="planner") {
+    else if (section=="project" || section=="build" || section=="runtime" || section=="security" || section=="compatibility" || section=="protection" || section=="planner" || section=="capabilities" || section=="runtime.lazy_loading") {
       // Forward-compatible: recognized sections may contain fields consumed by newer runtimes.
     } else throw std::runtime_error("venom.toml:"+std::to_string(line_no)+": unknown section or key: "+full);
   }
@@ -114,7 +128,7 @@ bool validate_project_config(const std::filesystem::path& path, std::string* err
     BuildOptions options;
     apply_project_config(path, options);
     if (options.input.empty()) throw std::runtime_error("venom.toml: project.entry or project.input is required");
-    if (options.profile != "dev" && options.profile != "prod") throw std::runtime_error("venom.toml: build.profile must be dev or prod");
+    if (options.profile != "prod") throw std::runtime_error("venom.toml: build.profile must be prod; the dev profile was removed");
     return true;
   } catch (const std::exception& ex) {
     if (error) *error = ex.what();
@@ -125,13 +139,17 @@ void print_project_config(const std::filesystem::path& path, OutputFormat format
   BuildOptions options;
   apply_project_config(path, options);
   if (options.input.empty()) throw std::runtime_error("venom.toml: project.entry or project.input is required");
-  if (options.profile != "dev" && options.profile != "prod") throw std::runtime_error("venom.toml: build.profile must be dev or prod");
+  if (options.profile != "prod") throw std::runtime_error("venom.toml: build.profile must be prod; the dev profile was removed");
   if (format == OutputFormat::Json) {
     std::cout << "{\"config\":\"" << std::filesystem::absolute(path).generic_string()
       << "\",\"entry\":\"" << options.input.generic_string()
       << "\",\"output\":\"" << options.output.generic_string()
       << "\",\"profile\":\"" << options.profile
-      << "\",\"runtime\":\"quickjs-wasm\",\"fail_closed\":true}\n";
+      << "\",\"runtime\":\"quickjs-wasm\",\"fail_closed\":true"
+      << ",\"capabilities\":{\"fetch\":\"" << options.capability_fetch
+      << "\",\"timers\":\"" << options.capability_timers
+      << "\",\"storage\":\"" << options.capability_storage
+      << "\",\"crypto\":\"" << options.capability_crypto << "\"}}\n";
   } else {
     std::cout << "Venom project configuration\n"
       << "  file: " << std::filesystem::absolute(path).string() << "\n"
@@ -139,7 +157,11 @@ void print_project_config(const std::filesystem::path& path, OutputFormat format
       << "  output: " << options.output.string() << "\n"
       << "  profile: " << options.profile << "\n"
       << "  runtime: quickjs-wasm\n"
-      << "  host fallback: denied\n";
+      << "  host fallback: denied\n"
+      << "  capabilities: fetch=" << options.capability_fetch
+      << ", timers=" << options.capability_timers
+      << ", storage=" << options.capability_storage
+      << ", crypto=" << options.capability_crypto << "\n";
   }
 }
 }

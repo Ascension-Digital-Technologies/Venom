@@ -12,10 +12,10 @@ if dist.exists():
     shutil.rmtree(dist)
 
 subprocess.run([str(venom), 'build', str(site), '--out', str(dist), '--profile', 'prod', '--hashed'], check=True)
-passed = subprocess.run([str(venom), 'release-check', str(dist), '--target', 'browser'], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
+passed = subprocess.run([str(venom), 'verify', str(dist), '--target', 'browser'], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True)
 if 'package_binding: yes' not in passed.stdout or 'loader_binding: yes' not in passed.stdout or 'bound_assets: 6' not in passed.stdout:
     print(passed.stdout)
-    raise SystemExit('release-check did not report package/loader binding')
+    raise SystemExit('verify did not report package/loader binding')
 
 runtime_files = sorted(p for p in (dist / 'assets' / 'runtime').glob('*.js') if not p.name.startswith('engine.'))
 if not runtime_files:
@@ -23,10 +23,10 @@ if not runtime_files:
 with runtime_files[0].open('ab') as f:
     f.write(b'\n// tamper package binding smoke\n')
 
-failed = subprocess.run([str(venom), 'release-check', str(dist), '--target', 'browser'], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+failed = subprocess.run([str(venom), 'verify', str(dist), '--target', 'browser'], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 if failed.returncode == 0:
     print(failed.stdout)
-    raise SystemExit('release-check accepted tampered bound runtime asset')
+    raise SystemExit('verify accepted tampered bound runtime asset')
 if 'bound asset hash mismatch: runtime' not in failed.stdout:
     print(failed.stdout)
-    raise SystemExit('release-check failed for the wrong reason')
+    raise SystemExit('verify failed for the wrong reason')

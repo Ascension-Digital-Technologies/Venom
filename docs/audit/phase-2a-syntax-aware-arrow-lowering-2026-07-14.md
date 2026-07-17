@@ -4,7 +4,7 @@ Date: 2026-07-14
 
 ## Implemented
 
-The mixed-realm rewrite pipeline now recognizes and extracts:
+The mixed-runtime rewrite pipeline now recognizes and extracts:
 
 - named function declarations;
 - `const`, `let`, and `var` arrow functions;

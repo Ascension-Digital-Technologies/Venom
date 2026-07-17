@@ -95,7 +95,7 @@ bool run_doctor(const DoctorOptions& options) {
   add(checks, "quickjs-wasm-verification", quickjs.ok ? "strict embedded provenance verified" : "strict embedded provenance verification failed", quickjs.ok, "Rebuild and verify the canonical QuickJS/WASM runtime.");
 
   const auto emcc = probe("emcc --version");
-  add(checks, "emscripten", emcc.ok ? first_line(emcc.output) : "emcc not available", emcc.ok, "Run scripts/setup-emscripten.* before rebuilding the runtime.", required("emscripten"));
+  add(checks, "emscripten", emcc.ok ? first_line(emcc.output) : "emcc not available", emcc.ok, "Run scripts/linux/build-emsdk.sh or scripts/windows/build-emsdk.bat before rebuilding the runtime.", required("emscripten"));
 
   const auto git = probe("git --version");
   add(checks, "git", git.ok ? first_line(git.output) : "git not available", git.ok, "Install Git for release provenance.", false);

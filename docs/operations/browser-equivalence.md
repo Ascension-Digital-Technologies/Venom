@@ -1,7 +1,7 @@
 # Browser equivalence testing
 
 > **Audience:** integrators, release engineers, and compatibility contributors  
-> **Applies to:** Venom 1.0.1
+> **Applies to:** Venom 1.1.0
 Venom browser equivalence testing executes the same compatibility scenario against an original website and its Venom production distribution in a real Playwright browser.
 
 The gate checks three things for every declared observation:
@@ -50,7 +50,7 @@ A scenario may set `compare_snapshot: true` to additionally compare normalized p
 Enable real-browser equivalence for the complete compatibility corpus with:
 
 ```powershell
-.\scripts\release-closure.ps1 -BrowserRuntimeTests
+.\scripts\windows\release-closure.ps1 
 ```
 
 This builds every fixture in `tests/compatibility-suite.json` with the production profile and writes evidence beneath:
@@ -63,3 +63,14 @@ build/release-closure-output/compatibility/
 ```
 
 The release closure fails when either side violates the manifest, when observable values diverge, or when either page emits a console or page error.
+
+
+## Runtime qualification
+
+The focused release runtime gate is separate from broad source-versus-distribution equivalence testing. Run it with:
+
+```bash
+python tools/browser_validation.py dist --browser chromium --manifest examples/protected-chess/venom.browser.json
+```
+
+This gate checks Venom runtime invariants only: successful navigation, protected runtime readiness, one real protected export invocation, and absence of unexpected page, console, or request failures.

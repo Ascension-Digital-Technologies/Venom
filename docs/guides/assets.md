@@ -1,6 +1,6 @@
 # Assets
 
-> **Applies to:** Venom 1.0.1
+> **Applies to:** Venom 1.1.0
 
 Venom copies and rewrites site assets into the generated static distribution while preserving route-relative behavior. Production assets are content addressed where required and are bound to the generated loader and package metadata.
 
@@ -29,8 +29,8 @@ Remote dependencies should be explicitly qualified. When remote vendoring is ena
 After building, run:
 
 ```powershell
-venom analyze-dist dist
-venom release-check dist
+venom analyze dist
+venom verify dist
 ```
 
 Confirm that every expected image, font, and stylesheet is present, that no source-only files were copied, and that routes load correctly from the intended hosting base path.

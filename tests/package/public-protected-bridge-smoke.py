@@ -7,7 +7,7 @@ with tempfile.TemporaryDirectory() as td:
     out=Path(td)/'dist'
     subprocess.run([str(venom),'build',str(root/'examples/protected-chess'),'--out',str(out)],check=True,stdout=subprocess.DEVNULL)
     subprocess.run([str(venom),'verify-runtime',str(out),'--target','browser','--require-real-engine'],check=True,stdout=subprocess.DEVNULL)
-    subprocess.run([sys.executable,str(root/'scripts/check-production-leaks.py'),str(out)],check=True,stdout=subprocess.DEVNULL)
+    subprocess.run([sys.executable,str(root/'tools/check_production_leaks.py'),str(out)],check=True,stdout=subprocess.DEVNULL)
     loader=next((out/'assets'/'loader').glob('loader.*.js'))
     worker=next((out/'assets'/'workers').glob('worker.*.js'))
     subprocess.run(['node','--check',str(loader)],check=True,stdout=subprocess.DEVNULL)

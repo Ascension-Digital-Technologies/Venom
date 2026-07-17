@@ -14,7 +14,7 @@ source += (root / 'src/compiler/pipeline/js_rewriting.cpp').read_text(encoding='
 for marker in [
     'FunctionDependencyResolution', 'index_declarations',
     'resolve_liftable_function_dependencies', 'lifted_dependencies',
-    'PrimitiveConstant', 'helper "+capture+" is realm-bound',
+    'frontend::analyze_function_scope', 'dependency.unsafe_features.front()',
 ]:
     assert marker in source, marker
 
@@ -40,7 +40,7 @@ if venom is not None:
             encoding='utf-8',
         )
         subprocess.run(
-            [str(venom), 'build', str(site), '--out', str(dist), '--format', 'text', '--profile', 'dev'],
+            [str(venom), 'build', str(site), '--out', str(dist), '--format', 'text', '--profile', 'prod'],
             check=True,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE,

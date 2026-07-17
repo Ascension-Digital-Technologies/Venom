@@ -1,0 +1,30 @@
+{
+  "schema": "VENOM_RUNTIME_STARTUP_V1",
+  "version": 1,
+  "phases": [
+    "loader",
+    "worker-preparation",
+    "package-load",
+    "package-policy",
+    "runtime-install",
+    "route-decode",
+    "route-render",
+    "script-execution",
+    "navigation-install",
+    "complete"
+  ],
+  "errorCodes": [
+    "VENOM_BOOT_MODULE_DEPENDENCY",
+    "VENOM_BOOT_WASM_EXPORT_SURFACE",
+    "VENOM_BOOT_INVALID_UTF8",
+    "VENOM_BOOT_INTEGRITY",
+    "VENOM_BOOT_WORKER",
+    "VENOM_BOOT_TIMEOUT",
+    "VENOM_BOOT_APPLICATION"
+  ],
+  "retryPolicy": {
+    "mode": "full-page-reload",
+    "maximumAutomaticRetries": 0,
+    "reason": "A failed protected runtime may retain partially initialized worker, package, or DOM state. Recovery is explicit and starts from a fresh document."
+  }
+}

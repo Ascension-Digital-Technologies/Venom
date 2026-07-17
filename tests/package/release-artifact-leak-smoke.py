@@ -11,7 +11,7 @@ with tempfile.TemporaryDirectory(prefix='venom-release-leak-') as temp:
     files = [p for p in out.rglob('*') if p.is_file()]
     blob = b'\n'.join(p.read_bytes() for p in files)
     forbidden = [
-        b'bridge-rewrite-plan', b'function-extraction-plan', b'realm-bridge-contract',
+        b'bridge-rewrite-plan', b'function-extraction-plan', b'runtime-bridge-contract',
         b'js/ai-engine.js::', b'"source_root"', b'"config_file"',
         b'venom_qjs_context_alloc', b'venom_qjs_bridge_invoke'
     ]

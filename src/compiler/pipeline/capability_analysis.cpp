@@ -180,7 +180,7 @@ void analyze_tokens(CapabilityGraph& g, const std::filesystem::path& file, const
     "Headers", "IntersectionObserver", "MutationObserver", "Notification", "ResizeObserver", "Request",
     "Response", "RTCPeerConnection", "SharedArrayBuffer", "SubmitEvent", "URL", "URLSearchParams", "WebSocket", "Worker",
     "XMLHttpRequest", "indexedDB", "localStorage", "sessionStorage", "history", "location",
-    "setTimeout", "setInterval", "requestAnimationFrame", "cancelAnimationFrame", "addEventListener", "removeEventListener", "dispatchEvent"
+    "setTimeout", "setInterval", "requestAnimationFrame", "cancelAnimationFrame", "addEventListener", "removeEventListener", "dispatchEvent", "crypto"
   };
   for (std::size_t i = 0; i < t.size(); ++i) {
     const auto& token = t[i];
@@ -211,6 +211,10 @@ void analyze_tokens(CapabilityGraph& g, const std::filesystem::path& file, const
       bump(g.node_apis, name); add_occurrence(g, file, token, "node", name);
     } else if (member_chain(t, i, "process", "env") || token.text == "process") {
       bump(g.node_apis, "process"); add_occurrence(g, file, token, "node", "process");
+    } else if (member_chain(t, i, "crypto", "getRandomValues")) {
+      bump(g.browser_apis, "crypto.getRandomValues"); add_occurrence(g, file, token, "browser", "crypto.getRandomValues");
+    } else if (member_chain(t, i, "crypto", "subtle")) {
+      bump(g.browser_apis, "crypto.subtle"); add_occurrence(g, file, token, "browser", "crypto.subtle");
     } else if (member_chain(t, i, "navigator", "gpu")) {
       bump(g.browser_apis, "WebGPU"); add_occurrence(g, file, token, "browser", "WebGPU");
     } else if (member_chain(t, i, "navigator", "mediaDevices")) {
@@ -264,7 +268,8 @@ void analyze_tokens(CapabilityGraph& g, const std::filesystem::path& file, const
 
 std::string escape_json(const std::string& s) {
   std::string out;
-  for (unsigned char c : s) {
+  for (const char raw_c : s) {
+    const auto c = static_cast<unsigned char>(raw_c);
     switch (c) {
       case '"': out += "\\\""; break;
       case '\\': out += "\\\\"; break;

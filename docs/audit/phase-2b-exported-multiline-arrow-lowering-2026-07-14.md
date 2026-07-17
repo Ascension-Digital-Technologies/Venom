@@ -17,7 +17,7 @@ Venom now recognizes and lowers protected variable-bound arrows whose declaratio
 ## Security invariants
 
 - Unsupported syntax remains fail-closed.
-- Unawaited cross-realm calls remain rejected.
+- Unawaited cross-runtime calls remain rejected.
 - Each successful protected declaration resolves to exactly one intent and one registry envelope.
 - Original protected implementations are removed from browser-executable JavaScript.
 

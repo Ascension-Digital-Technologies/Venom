@@ -854,7 +854,7 @@ typedef struct JSFunctionBytecode {
     uint16_t var_ref_count; /* number of local variable references */
     uint16_t closure_var_count;
     int cpool_count;
-    JSContext *realm; /* function realm */
+    JSContext *runtime; /* function runtime */
     JSValue *cpool; /* constant pool (self pointer) */
     JSAtom filename;
     int line_num;
@@ -1055,9 +1055,9 @@ typedef struct JSProperty {
         } getset;
         JSVarRef *var_ref;  /* JS_PROP_VARREF */
         struct {            /* JS_PROP_AUTOINIT */
-            /* in order to use only 2 pointers, we compress the realm
+            /* in order to use only 2 pointers, we compress the runtime
                and the init function pointer */
-            uintptr_t realm_and_id; /* realm and init_id (JS_AUTOINIT_ID_x)
+            uintptr_t runtime_and_id; /* runtime and init_id (JS_AUTOINIT_ID_x)
                                        in the 2 low bits */
             void *opaque;
         } init;
@@ -1139,7 +1139,7 @@ struct JSObject {
             JSObject *home_object; /* for 'super' access */
         } func;
         struct { /* JS_CLASS_C_FUNCTION: 12/20 bytes */
-            JSContext *realm;
+            JSContext *runtime;
             JSCFunctionType c_function;
             uint8_t length;
             uint8_t cproto;
@@ -6522,7 +6522,7 @@ JSValue JS_NewCFunction3(JSContext *ctx, JSCFunction *func,
     if (JS_IsException(func_obj))
         return func_obj;
     p = JS_VALUE_GET_OBJ(func_obj);
-    p->u.cfunc.realm = JS_DupContext(ctx);
+    p->u.cfunc.runtime = JS_DupContext(ctx);
     p->u.cfunc.c_function.generic = func;
     p->u.cfunc.length = length;
     p->u.cfunc.cproto = cproto;
@@ -6618,7 +6618,7 @@ static JSValue js_call_c_function_data(JSContext *ctx, JSValueConst func_obj,
     prev_sf = rt->current_stack_frame;
     sf->prev_frame = prev_sf;
     rt->current_stack_frame = sf;
-    // TODO(bnoordhuis) switch realms like js_call_c_function does
+    // TODO(bnoordhuis) switch runtimes like js_call_c_function does
     sf->is_strict_mode = false;
     sf->cur_func = unsafe_unconst(func_obj);
     sf->arg_count = argc;
@@ -6673,25 +6673,25 @@ JSValue JS_NewCFunctionData(JSContext *ctx, JSCFunctionData *func,
     return JS_NewCFunctionData2(ctx, func, NULL, length, magic, data_len, data);
 }
 
-static JSContext *js_autoinit_get_realm(JSProperty *pr)
+static JSContext *js_autoinit_get_runtime(JSProperty *pr)
 {
-    return (JSContext *)(pr->u.init.realm_and_id & ~3);
+    return (JSContext *)(pr->u.init.runtime_and_id & ~3);
 }
 
 static JSAutoInitIDEnum js_autoinit_get_id(JSProperty *pr)
 {
-    return pr->u.init.realm_and_id & 3;
+    return pr->u.init.runtime_and_id & 3;
 }
 
 static void js_autoinit_free(JSRuntime *rt, JSProperty *pr)
 {
-    JS_FreeContext(js_autoinit_get_realm(pr));
+    JS_FreeContext(js_autoinit_get_runtime(pr));
 }
 
 static void js_autoinit_mark(JSRuntime *rt, JSProperty *pr,
                              JS_MarkFunc *mark_func)
 {
-    mark_func(rt, &js_autoinit_get_realm(pr)->header);
+    mark_func(rt, &js_autoinit_get_runtime(pr)->header);
 }
 
 typedef struct JSCClosureRecord {
@@ -6743,7 +6743,7 @@ static JSValue js_call_c_closure(JSContext *ctx, JSValueConst func_obj,
     prev_sf = rt->current_stack_frame;
     sf->prev_frame = prev_sf;
     rt->current_stack_frame = sf;
-    // TODO(bnoordhuis) switch realms like js_call_c_function does
+    // TODO(bnoordhuis) switch runtimes like js_call_c_function does
     sf->is_strict_mode = false;
     sf->cur_func = unsafe_unconst(func_obj);
     sf->arg_count = argc;
@@ -6908,8 +6908,8 @@ static void js_c_function_finalizer(JSRuntime *rt, JSValueConst val)
 {
     JSObject *p = JS_VALUE_GET_OBJ(val);
 
-    if (p->u.cfunc.realm)
-        JS_FreeContext(p->u.cfunc.realm);
+    if (p->u.cfunc.runtime)
+        JS_FreeContext(p->u.cfunc.runtime);
 }
 
 static void js_c_function_mark(JSRuntime *rt, JSValueConst val,
@@ -6917,8 +6917,8 @@ static void js_c_function_mark(JSRuntime *rt, JSValueConst val,
 {
     JSObject *p = JS_VALUE_GET_OBJ(val);
 
-    if (p->u.cfunc.realm)
-        mark_func(rt, &p->u.cfunc.realm->header);
+    if (p->u.cfunc.runtime)
+        mark_func(rt, &p->u.cfunc.runtime->header);
 }
 
 static void js_bytecode_function_finalizer(JSRuntime *rt, JSValueConst val)
@@ -7278,8 +7278,8 @@ static void mark_children(JSRuntime *rt, JSGCObjectHeader *gp,
             for(i = 0; i < b->cpool_count; i++) {
                 JS_MarkValue(rt, b->cpool[i], mark_func);
             }
-            if (b->realm)
-                mark_func(rt, &b->realm->header);
+            if (b->runtime)
+                mark_func(rt, &b->runtime->header);
         }
         break;
     case JS_GC_OBJ_TYPE_VAR_REF:
@@ -9043,16 +9043,16 @@ static int JS_AutoInitProperty(JSContext *ctx, JSObject *p, JSAtom prop,
                                JSProperty *pr, JSShapeProperty *prs)
 {
     JSValue val;
-    JSContext *realm;
+    JSContext *runtime;
     JSAutoInitFunc *func;
 
     if (js_shape_prepare_update(ctx, p, &prs))
         return -1;
 
-    realm = js_autoinit_get_realm(pr);
+    runtime = js_autoinit_get_runtime(pr);
     func = js_autoinit_func_table[js_autoinit_get_id(pr)];
     /* 'func' shall not modify the object properties 'pr' */
-    val = func(realm, p, prop, pr->u.init.opaque);
+    val = func(runtime, p, prop, pr->u.init.opaque);
     js_autoinit_free(ctx->rt, pr);
     prs->flags &= ~JS_PROP_TMASK;
     pr->u.value = JS_UNDEFINED;
@@ -11444,10 +11444,10 @@ static int JS_DefineAutoInitProperty(JSContext *ctx, JSValueConst this_obj,
     pr = add_property(ctx, p, prop, (flags & JS_PROP_C_W_E) | JS_PROP_AUTOINIT);
     if (unlikely(!pr))
         return -1;
-    pr->u.init.realm_and_id = (uintptr_t)JS_DupContext(ctx);
-    assert((pr->u.init.realm_and_id & 3) == 0);
+    pr->u.init.runtime_and_id = (uintptr_t)JS_DupContext(ctx);
+    assert((pr->u.init.runtime_and_id & 3) == 0);
     assert(id <= 3);
-    pr->u.init.realm_and_id |= id;
+    pr->u.init.runtime_and_id |= id;
     pr->u.init.opaque = opaque;
     return true;
 }
@@ -14786,7 +14786,7 @@ static __maybe_unused void JS_DumpObject(JSRuntime *rt, JSObject *p)
                     printf("[varref %p]", (void *)pr->u.var_ref);
                 } else if ((prs->flags & JS_PROP_TMASK) == JS_PROP_AUTOINIT) {
                     printf("[autoinit %p %d %p]",
-                           (void *)js_autoinit_get_realm(pr),
+                           (void *)js_autoinit_get_runtime(pr),
                            js_autoinit_get_id(pr),
                            (void *)pr->u.init.opaque);
                 } else {
@@ -17773,7 +17773,7 @@ static JSValue js_call_c_function(JSContext *ctx, JSValueConst func_obj,
     prev_sf = rt->current_stack_frame;
     sf->prev_frame = prev_sf;
     rt->current_stack_frame = sf;
-    ctx = p->u.cfunc.realm; /* change the current realm */
+    ctx = p->u.cfunc.runtime; /* change the current runtime */
 
     sf->is_strict_mode = false;
     sf->cur_func = unsafe_unconst(func_obj);
@@ -17990,7 +17990,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             sf = &s->frame;
             p = JS_VALUE_GET_OBJ(sf->cur_func);
             b = p->u.func.function_bytecode;
-            ctx = b->realm;
+            ctx = b->runtime;
             var_refs = p->u.func.var_refs;
             local_buf = arg_buf = sf->arg_buf;
             var_buf = sf->var_buf;
@@ -18067,7 +18067,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
     sf->cur_pc = NULL;
     sf->prev_frame = rt->current_stack_frame;
     rt->current_stack_frame = sf;
-    ctx = b->realm; /* set the current realm */
+    ctx = b->runtime; /* set the current runtime */
 
 #ifdef ENABLE_DUMPS // JS_DUMP_BYTECODE_STEP
     if (check_dump_flag(ctx->rt, JS_DUMP_BYTECODE_STEP))
@@ -20867,17 +20867,17 @@ static JSValue JS_CallFree(JSContext *ctx, JSValue func_obj, JSValueConst this_o
 
 /* warning: the refcount of the context is not incremented. Return
    NULL in case of exception (case of revoked proxy only) */
-static JSContext *JS_GetFunctionRealm(JSContext *ctx, JSValueConst func_obj)
+static JSContext *JS_GetFunctionRuntime(JSContext *ctx, JSValueConst func_obj)
 {
     JSObject *p;
-    JSContext *realm;
+    JSContext *runtime;
 
     if (JS_VALUE_GET_TAG(func_obj) != JS_TAG_OBJECT)
         return ctx;
     p = JS_VALUE_GET_OBJ(func_obj);
     switch(p->class_id) {
     case JS_CLASS_C_FUNCTION:
-        realm = p->u.cfunc.realm;
+        runtime = p->u.cfunc.runtime;
         break;
     case JS_CLASS_BYTECODE_FUNCTION:
     case JS_CLASS_GENERATOR_FUNCTION:
@@ -20886,7 +20886,7 @@ static JSContext *JS_GetFunctionRealm(JSContext *ctx, JSValueConst func_obj)
         {
             JSFunctionBytecode *b;
             b = p->u.func.function_bytecode;
-            realm = b->realm;
+            runtime = b->runtime;
         }
         break;
     case JS_CLASS_PROXY:
@@ -20898,28 +20898,28 @@ static JSContext *JS_GetFunctionRealm(JSContext *ctx, JSValueConst func_obj)
                 JS_ThrowTypeErrorRevokedProxy(ctx);
                 return NULL;
             } else {
-                realm = JS_GetFunctionRealm(ctx, s->target);
+                runtime = JS_GetFunctionRuntime(ctx, s->target);
             }
         }
         break;
     case JS_CLASS_BOUND_FUNCTION:
         {
             JSBoundFunction *bf = p->u.bound_function;
-            realm = JS_GetFunctionRealm(ctx, bf->func_obj);
+            runtime = JS_GetFunctionRuntime(ctx, bf->func_obj);
         }
         break;
     default:
-        realm = ctx;
+        runtime = ctx;
         break;
     }
-    return realm;
+    return runtime;
 }
 
 static JSValue js_create_from_ctor(JSContext *ctx, JSValueConst ctor,
                                    int class_id)
 {
     JSValue proto, obj;
-    JSContext *realm;
+    JSContext *runtime;
 
     if (JS_IsUndefined(ctor)) {
         proto = js_dup(ctx->class_proto[class_id]);
@@ -20929,10 +20929,10 @@ static JSValue js_create_from_ctor(JSContext *ctx, JSValueConst ctor,
             return proto;
         if (!JS_IsObject(proto)) {
             JS_FreeValue(ctx, proto);
-            realm = JS_GetFunctionRealm(ctx, ctor);
-            if (!realm)
+            runtime = JS_GetFunctionRuntime(ctx, ctor);
+            if (!runtime)
                 return JS_EXCEPTION;
-            proto = js_dup(realm->class_proto[class_id]);
+            proto = js_dup(runtime->class_proto[class_id]);
         }
     }
     obj = JS_NewObjectProtoClass(ctx, proto, class_id);
@@ -28556,7 +28556,7 @@ static void emit_return(JSParseState *s, bool hasval)
         }
 
         /* XXX: if this is not initialized, should throw the
-           ReferenceError in the caller realm */
+           ReferenceError in the caller runtime */
         emit_op(s, OP_scope_get_var);
         emit_atom(s, JS_ATOM_this);
         emit_u16(s, 0);
@@ -36804,7 +36804,7 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
     b->super_allowed = fd->super_allowed;
     b->arguments_allowed = fd->arguments_allowed;
     b->backtrace_barrier = fd->backtrace_barrier;
-    b->realm = JS_DupContext(ctx);
+    b->runtime = JS_DupContext(ctx);
 
     add_gc_object(ctx->rt, &b->header, JS_GC_OBJ_TYPE_FUNCTION_BYTECODE);
 
@@ -36846,8 +36846,8 @@ static void free_function_bytecode(JSRuntime *rt, JSFunctionBytecode *b)
         JSClosureVar *cv = &b->closure_var[i];
         JS_FreeAtomRT(rt, cv->var_name);
     }
-    if (b->realm)
-        JS_FreeContext(b->realm);
+    if (b->runtime)
+        JS_FreeContext(b->runtime);
 
     JS_FreeAtomRT(rt, b->func_name);
     JS_FreeAtomRT(rt, b->filename);
@@ -39599,7 +39599,7 @@ static JSValue JS_ReadFunctionTag(BCReaderState *s)
     bc_read_trace(s, "}\n");
 
  nodebug:
-    b->realm = JS_DupContext(ctx);
+    b->runtime = JS_DupContext(ctx);
     return obj;
 
  fail:
@@ -42064,12 +42064,12 @@ static JSValue js_function_constructor(JSContext *ctx, JSValueConst new_target,
         if (JS_IsException(proto))
             goto fail1;
         if (!JS_IsObject(proto)) {
-            JSContext *realm;
+            JSContext *runtime;
             JS_FreeValue(ctx, proto);
-            realm = JS_GetFunctionRealm(ctx, new_target);
-            if (!realm)
+            runtime = JS_GetFunctionRuntime(ctx, new_target);
+            if (!runtime)
                 goto fail1;
-            proto = js_dup(realm->class_proto[func_kind_to_class_id[func_kind]]);
+            proto = js_dup(runtime->class_proto[func_kind_to_class_id[func_kind]]);
         }
         ret = JS_SetPrototypeInternal(ctx, obj, proto, true);
         JS_FreeValue(ctx, proto);
@@ -42413,17 +42413,17 @@ static JSValue js_error_constructor(JSContext *ctx, JSValueConst new_target,
     if (JS_IsException(proto))
         return proto;
     if (!JS_IsObject(proto)) {
-        JSContext *realm;
+        JSContext *runtime;
         JSValue proto1;
 
         JS_FreeValue(ctx, proto);
-        realm = JS_GetFunctionRealm(ctx, new_target);
-        if (!realm)
+        runtime = JS_GetFunctionRuntime(ctx, new_target);
+        if (!runtime)
             return JS_EXCEPTION;
         if (magic < 0) {
-            proto1 = realm->class_proto[JS_CLASS_ERROR];
+            proto1 = runtime->class_proto[JS_CLASS_ERROR];
         } else {
-            proto1 = realm->native_error_proto[magic];
+            proto1 = runtime->native_error_proto[magic];
         }
         proto = js_dup(proto1);
     }
@@ -42907,7 +42907,7 @@ static JSValue JS_ArraySpeciesCreate(JSContext *ctx, JSValueConst obj,
 {
     JSValue ctor, ret, species;
     int res;
-    JSContext *realm;
+    JSContext *runtime;
 
     res = js_is_array(ctx, obj);
     if (res < 0)
@@ -42919,13 +42919,13 @@ static JSValue JS_ArraySpeciesCreate(JSContext *ctx, JSValueConst obj,
         return ctor;
     if (JS_IsConstructor(ctx, ctor)) {
         /* legacy web compatibility */
-        realm = JS_GetFunctionRealm(ctx, ctor);
-        if (!realm) {
+        runtime = JS_GetFunctionRuntime(ctx, ctor);
+        if (!runtime) {
             JS_FreeValue(ctx, ctor);
             return JS_EXCEPTION;
         }
-        if (realm != ctx &&
-            js_same_value(ctx, ctor, realm->array_ctor)) {
+        if (runtime != ctx &&
+            js_same_value(ctx, ctor, runtime->array_ctor)) {
             JS_FreeValue(ctx, ctor);
             ctor = JS_UNDEFINED;
         }

@@ -11,7 +11,7 @@ def render_py(d):
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('--repo-root',default='.'); ap.add_argument('--check',action='store_true'); a=ap.parse_args()
     root=Path(a.repo_root).resolve(); d=json.loads((root/'contracts/product-contracts.json').read_text())
-    outputs={root/'src/contracts/product_contracts.hpp':render_h(d), root/'tools/product_contracts.py':render_py(d)}
+    outputs={root/'src/generated/contracts/product_contracts.hpp':render_h(d), root/'tools/product_contracts.py':render_py(d)}
     bad=[]
     for p,text in outputs.items():
         if a.check:

@@ -3,10 +3,16 @@
 #include "package/hash.hpp"
 
 #include <algorithm>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <iterator>
+#include <mutex>
 #include <cstring>
 #include <sstream>
 #include <stdexcept>
 #include <unordered_map>
+#include <atomic>
 
 #if defined(VENOM_ENABLE_FULL_QUICKJS)
 #include "quickjs.h"
@@ -20,6 +26,62 @@ constexpr std::uint32_t kNativeRecordVersion = 3u;
 constexpr std::uint32_t kNativeHeaderSize = 48u;
 constexpr std::uint32_t kFlagModule = 1u << 0u;
 constexpr std::uint32_t kQuickJsBytecodeAbi = 0x01000300u;
+
+std::mutex g_bytecode_cache_mutex;
+bool g_bytecode_cache_enabled = false;
+bool g_bytecode_cache_verbose = false;
+std::filesystem::path g_bytecode_cache_directory;
+std::atomic<std::size_t> g_bytecode_cache_hits{0};
+std::atomic<std::size_t> g_bytecode_cache_misses{0};
+std::atomic<std::size_t> g_bytecode_cache_writes{0};
+
+std::vector<unsigned char> read_binary_if_present(const std::filesystem::path& path) {
+  std::ifstream in(path, std::ios::binary);
+  if (!in) return {};
+  return std::vector<unsigned char>(std::istreambuf_iterator<char>(in), {});
+}
+
+void write_binary_atomic(const std::filesystem::path& path, const std::vector<unsigned char>& content) {
+  std::filesystem::create_directories(path.parent_path());
+  const auto temporary = path.string() + ".tmp";
+  {
+    std::ofstream out(temporary, std::ios::binary | std::ios::trunc);
+    if (!out) throw std::runtime_error("failed to write QuickJS bytecode cache entry " + temporary);
+    out.write(reinterpret_cast<const char*>(content.data()), static_cast<std::streamsize>(content.size()));
+  }
+  std::error_code error;
+  std::filesystem::rename(temporary, path, error);
+  if (error) {
+    std::filesystem::remove(path, error);
+    error.clear();
+    std::filesystem::rename(temporary, path, error);
+  }
+  if (error) {
+    std::filesystem::remove(temporary);
+    throw std::runtime_error("failed to publish QuickJS bytecode cache entry " + path.string());
+  }
+}
+
+std::string bytecode_cache_key(const std::string& source,
+                               const std::string& source_name,
+                               bool is_module,
+                               bool redact_source_metadata,
+                               const std::vector<ModuleSourceRecord>* module_sources) {
+  std::string material = "venom-qjs-bytecode-cache-v1\nabi=" + std::to_string(kQuickJsBytecodeAbi) +
+      "\nmodule=" + std::string(is_module ? "1" : "0") +
+      "\nredact=" + std::string(redact_source_metadata ? "1" : "0") +
+      "\nname=" + source_name + "\nsource=" + source;
+  if (module_sources) {
+    material += "\nmodule-count=" + std::to_string(module_sources->size());
+    for (const auto& record : *module_sources) {
+      material += "\nsource-name=" + record.source_name +
+                  "\ncompile-name=" + record.compile_name +
+                  "\nmodule-source=" + record.source;
+    }
+  }
+  return venom::package::sha256_hex(
+      reinterpret_cast<const unsigned char*>(material.data()), material.size());
+}
 
 void append_u32(std::vector<unsigned char>& out, std::uint32_t value) {
   out.push_back(static_cast<unsigned char>(value & 0xffu));
@@ -104,7 +166,43 @@ char* normalize_module_name(JSContext* ctx,
     base = it->second;
   }
   const auto original = normalize_module_path(base, module_name);
-  const auto mapped = state->compile_by_original.find(original);
+  auto mapped = state->compile_by_original.find(original);
+  if (mapped == state->compile_by_original.end()) {
+    for (const auto* extension : {".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx", ".mts", ".cts"}) {
+      mapped = state->compile_by_original.find(original + extension);
+      if (mapped != state->compile_by_original.end()) break;
+    }
+  }
+  if (mapped == state->compile_by_original.end()) {
+    for (const auto* extension : {".js", ".mjs", ".jsx", ".ts", ".tsx", ".mts", ".cts"}) {
+      mapped = state->compile_by_original.find(original + "/index" + extension);
+      if (mapped != state->compile_by_original.end()) break;
+    }
+  }
+  if (mapped == state->compile_by_original.end()) {
+    auto without_known_extension = [](std::string value) {
+      for (const auto* extension : {".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx", ".mts", ".cts"}) {
+        const std::string ext(extension);
+        if (value.size() >= ext.size() && value.compare(value.size() - ext.size(), ext.size(), ext) == 0) {
+          value.resize(value.size() - ext.size());
+          break;
+        }
+      }
+      return value;
+    };
+    const auto extensionless = without_known_extension(original);
+    for (auto it = state->compile_by_original.begin(); it != state->compile_by_original.end(); ++it) {
+      const auto candidate = without_known_extension(normalize_module_path("", it->first));
+      const auto requested_slash = extensionless.find_last_of('/');
+      const auto candidate_slash = candidate.find_last_of('/');
+      const auto requested_basename = extensionless.substr(requested_slash == std::string::npos ? 0u : requested_slash + 1u);
+      const auto candidate_basename = candidate.substr(candidate_slash == std::string::npos ? 0u : candidate_slash + 1u);
+      if (candidate == extensionless || candidate == extensionless + "/index" || candidate_basename == requested_basename) {
+        mapped = it;
+        break;
+      }
+    }
+  }
   if (mapped == state->compile_by_original.end()) {
     JS_ThrowReferenceError(ctx, "could not resolve protected module '%s' from '%s'", module_name, base.c_str());
     return nullptr;
@@ -147,6 +245,17 @@ JSModuleDef* load_module_source(JSContext* ctx, const char* module_name, void* o
 
 } // namespace
 
+BytecodeCacheStats bytecode_cache_stats() { return {g_bytecode_cache_hits.load(), g_bytecode_cache_misses.load(), g_bytecode_cache_writes.load()}; }
+void reset_bytecode_cache_stats() { g_bytecode_cache_hits = 0; g_bytecode_cache_misses = 0; g_bytecode_cache_writes = 0; }
+
+void configure_bytecode_cache(bool enabled, const std::filesystem::path& directory, bool verbose) {
+  std::lock_guard<std::mutex> lock(g_bytecode_cache_mutex);
+  g_bytecode_cache_enabled = enabled;
+  g_bytecode_cache_verbose = verbose;
+  g_bytecode_cache_directory = directory;
+  if (enabled && !directory.empty()) std::filesystem::create_directories(directory);
+}
+
 std::vector<unsigned char> compile_protected_portable_bytecode(const std::string& source) {
   return compile_native_quickjs_bytecode(source, "<venom-script>", false);
 }
@@ -164,6 +273,26 @@ std::vector<unsigned char> compile_native_quickjs_bytecode(const std::string& so
   (void)module_sources;
   throw std::runtime_error("production QuickJS bytecode generation requires VENOM_ENABLE_FULL_QUICKJS=ON");
 #else
+  std::filesystem::path cache_file;
+  bool cache_enabled = false;
+  bool cache_verbose = false;
+  {
+    std::lock_guard<std::mutex> lock(g_bytecode_cache_mutex);
+    cache_enabled = g_bytecode_cache_enabled && !g_bytecode_cache_directory.empty();
+    cache_verbose = g_bytecode_cache_verbose;
+    if (cache_enabled) {
+      const auto digest = bytecode_cache_key(source, source_name, is_module, redact_source_metadata, module_sources);
+      cache_file = g_bytecode_cache_directory / digest.substr(0, 2) / (digest + ".vqbc");
+      const auto cached = read_binary_if_present(cache_file);
+      if (is_native_quickjs_bytecode(cached)) {
+        ++g_bytecode_cache_hits;
+        if (cache_verbose) std::cerr << "[CACHE]    QuickJS bytecode hit: " << source_name << "\n";
+        return cached;
+      }
+      ++g_bytecode_cache_misses;
+      if (cache_verbose) std::cerr << "[CACHE]    QuickJS bytecode miss: " << source_name << "\n";
+    }
+  }
   (void)redact_source_metadata; // Public manifests are redacted; VQJSBC03 integrity fields remain authenticated.
   JSRuntime* runtime = JS_NewRuntime();
   if (!runtime) throw std::runtime_error("failed to create QuickJS compiler runtime");
@@ -256,6 +385,11 @@ std::vector<unsigned char> compile_native_quickjs_bytecode(const std::string& so
   js_free(context, bytecode);
   JS_FreeContext(context);
   JS_FreeRuntime(runtime);
+  if (cache_enabled) {
+    std::lock_guard<std::mutex> lock(g_bytecode_cache_mutex);
+    write_binary_atomic(cache_file, out);
+    ++g_bytecode_cache_writes;
+  }
   return out;
 #endif
 }

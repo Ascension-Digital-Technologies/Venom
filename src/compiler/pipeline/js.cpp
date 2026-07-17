@@ -1,8 +1,12 @@
 #include "compiler/pipeline/js.hpp"
+#include "compiler/pipeline/js_bundle_encoding.hpp"
+#include "compiler/pipeline/build_support.hpp"
 #include "compiler/pipeline/function_dependencies.hpp"
 #include "compiler/pipeline/js_discovery.hpp"
+#include "compiler/pipeline/js_frontend.hpp"
 #include "compiler/pipeline/js_planning.hpp"
 #include "compiler/pipeline/js_rewriting.hpp"
+#include "compiler/pipeline/native_js_hardener.hpp"
 #include "generated/runtime/wasm_runtime_blob.hpp"
 #include "generated/runtime/quickjs_runtime_wasm_blob.hpp"
 #include "quickjs/bytecode.hpp"
@@ -28,170 +32,6 @@ namespace venom::compiler {
 
 namespace {
 
-constexpr unsigned char kQuickJsEnvelopeMagic[8] = {'V','Q','J','S','E','0','0','6'}; // VQJSE006
-
-void append_u32(std::vector<unsigned char>& out, std::uint32_t value) {
-  out.push_back(static_cast<unsigned char>(value & 0xffu));
-  out.push_back(static_cast<unsigned char>((value >> 8u) & 0xffu));
-  out.push_back(static_cast<unsigned char>((value >> 16u) & 0xffu));
-  out.push_back(static_cast<unsigned char>((value >> 24u) & 0xffu));
-}
-
-std::uint32_t envelope_seed(const std::string& salt, const JsChunk& chunk) {
-  std::uint32_t h = 2166136261u;
-  const auto mix = [&](unsigned char value) { h ^= value; h *= 16777619u; };
-  for (const unsigned char c : salt) mix(c);
-  for (const unsigned char c : chunk.route) mix(c);
-  for (const unsigned char c : chunk.source) mix(c);
-  for (int shift = 0; shift < 32; shift += 8) mix(static_cast<unsigned char>((chunk.order >> shift) & 0xffu));
-  h ^= 0xA5C31F27u;
-  return h ? h : 0x6D2B79F5u;
-}
-
-std::uint32_t xorshift32(std::uint32_t& state) {
-  state ^= state << 13u;
-  state ^= state >> 17u;
-  state ^= state << 5u;
-  return state;
-}
-
-std::array<unsigned char, 16> bytecode_lane_map(std::uint32_t seed) {
-  std::array<unsigned char, 16> map{};
-  for (unsigned char i = 0; i < map.size(); ++i) map[i] = i;
-  std::uint32_t state = seed ^ 0xC6EF3720u;
-  for (std::size_t i = map.size() - 1; i > 0; --i) {
-    const std::size_t j = xorshift32(state) % (i + 1u);
-    std::swap(map[i], map[j]);
-  }
-  return map;
-}
-
-std::uint32_t bytecode_lane_fingerprint(const std::array<unsigned char, 16>& map) {
-  std::uint32_t h = 2166136261u;
-  for (const auto value : map) { h ^= value; h *= 16777619u; }
-  return h;
-}
-
-std::vector<unsigned char> wrap_quickjs_record(const std::vector<unsigned char>& raw,
-                                                const std::string& salt,
-                                                const JsChunk& chunk) {
-  if (raw.size() > 0xffffffffu) throw std::runtime_error("QuickJS envelope payload exceeds u32 limits");
-  constexpr std::uint32_t header_size = 48u;
-  constexpr std::uint32_t lane_width = 16u;
-  const std::uint32_t seed = envelope_seed(salt, chunk);
-  const auto lane_map = bytecode_lane_map(seed);
-  const std::uint32_t lane_fingerprint = bytecode_lane_fingerprint(lane_map);
-  const std::uint64_t raw_hash = venom::package::fnv1a64(raw);
-  std::vector<unsigned char> out;
-  out.reserve(header_size + raw.size());
-  out.insert(out.end(), std::begin(kQuickJsEnvelopeMagic), std::end(kQuickJsEnvelopeMagic));
-  append_u32(out, 2u);
-  append_u32(out, static_cast<std::uint32_t>(raw.size()));
-  append_u32(out, seed);
-  append_u32(out, 0x01000300u); // QuickJS bytecode ABI fingerprint.
-  for (int i = 0; i < 8; ++i) out.push_back(static_cast<unsigned char>((raw_hash >> (i * 8)) & 0xffu));
-  append_u32(out, header_size);
-  append_u32(out, chunk.flags);
-  append_u32(out, lane_width);
-  append_u32(out, lane_fingerprint);
-  std::uint32_t stream = seed ^ 0x9E3779B9u;
-  for (std::size_t block = 0; block < raw.size(); block += lane_width) {
-    const std::size_t block_size = std::min<std::size_t>(lane_width, raw.size() - block);
-    std::array<unsigned char, lane_width> block_map{};
-    std::size_t block_map_size = 0;
-    for (const auto lane : lane_map) if (lane < block_size) block_map[block_map_size++] = lane;
-    for (std::size_t stored_lane = 0; stored_lane < block_size; ++stored_lane) {
-      const std::size_t source_lane = block_map[stored_lane];
-      const unsigned char value = raw[block + source_lane];
-      if (((block + stored_lane) & 3u) == 0u) xorshift32(stream);
-      const auto mask = static_cast<unsigned char>((stream >> (((block + stored_lane) & 3u) * 8u)) & 0xffu);
-      out.push_back(static_cast<unsigned char>(value ^ mask));
-    }
-  }
-  return out;
-}
-
-std::vector<unsigned char> encode_js_bundle(const std::vector<JsChunk>& chunks, const std::string& diversification_salt) {
-  struct Entry {
-    std::uint32_t route_offset = 0;
-    std::uint32_t route_size = 0;
-    std::uint32_t source_offset = 0;
-    std::uint32_t source_size = 0;
-    std::uint32_t code_offset = 0;
-    std::uint32_t code_size = 0;
-    std::uint32_t order = 0;
-    std::uint32_t flags = 0;
-    std::uint32_t kind = 0;
-    std::uint32_t reserved = 0;
-  };
-
-  std::vector<Entry> entries;
-  std::vector<unsigned char> text_blob;
-  std::vector<unsigned char> code_blob;
-  std::vector<venom::quickjs::ModuleSourceRecord> module_sources;
-  entries.reserve(chunks.size());
-  module_sources.reserve(chunks.size());
-
-  for (const auto& chunk : chunks) {
-    if ((chunk.flags & JsChunkModule) == 0u) continue;
-    module_sources.push_back({chunk.source, chunk.source, chunk.code});
-  }
-
-  for (const auto& chunk : chunks) {
-    Entry entry;
-    entry.route_offset = static_cast<std::uint32_t>(text_blob.size());
-    entry.route_size = static_cast<std::uint32_t>(chunk.route.size());
-    text_blob.insert(text_blob.end(), chunk.route.begin(), chunk.route.end());
-
-    entry.source_offset = static_cast<std::uint32_t>(text_blob.size());
-    entry.source_size = static_cast<std::uint32_t>(chunk.source.size());
-    text_blob.insert(text_blob.end(), chunk.source.begin(), chunk.source.end());
-
-    const bool browser_side = (chunk.flags & JsChunkBrowser) != 0u;
-    const bool is_module = (chunk.flags & JsChunkModule) != 0u;
-    const bool is_dependency = (chunk.flags & JsChunkDependency) != 0u;
-    const bool has_module_requests = is_module && detail::has_module_references(chunk.code);
-    std::vector<unsigned char> payload;
-    if (browser_side) payload.assign(chunk.code.begin(), chunk.code.end());
-    else {
-      const auto raw = (is_module && !is_dependency && has_module_requests)
-          ? venom::quickjs::compile_native_quickjs_module_bundle(chunk.source, module_sources, false)
-          : venom::quickjs::compile_native_quickjs_bytecode(chunk.code, chunk.source, is_module, false, is_module ? &module_sources : nullptr);
-      payload = wrap_quickjs_record(raw, diversification_salt, chunk);
-    }
-    entry.code_offset = static_cast<std::uint32_t>(code_blob.size());
-    entry.code_size = static_cast<std::uint32_t>(payload.size());
-    code_blob.insert(code_blob.end(), payload.begin(), payload.end());
-    entry.order = chunk.order;
-    entry.flags = browser_side ? chunk.flags : (chunk.flags | JsChunkBytecodeEncoded);
-    entry.kind = chunk.kind;
-    entries.push_back(entry);
-  }
-
-  std::vector<unsigned char> out;
-  out.insert(out.end(), {'V', 'J', 'S', 'B', '0', '0', '0', '6'});
-  append_u32(out, 1);
-  append_u32(out, static_cast<std::uint32_t>(entries.size()));
-  append_u32(out, static_cast<std::uint32_t>(text_blob.size()));
-  append_u32(out, 0);
-
-  for (const auto& entry : entries) {
-    append_u32(out, entry.route_offset);
-    append_u32(out, entry.route_size);
-    append_u32(out, entry.source_offset);
-    append_u32(out, entry.source_size);
-    append_u32(out, entry.code_offset);
-    append_u32(out, entry.code_size);
-    append_u32(out, entry.order);
-    append_u32(out, entry.flags);
-    append_u32(out, entry.kind);
-    append_u32(out, entry.reserved);
-  }
-  out.insert(out.end(), text_blob.begin(), text_blob.end());
-  out.insert(out.end(), code_blob.begin(), code_blob.end());
-  return out;
-}
-
 std::string make_js_diagnostics(const std::vector<JsChunk>& chunks) {
   std::ostringstream out;
   out << "VJSD0006\n";
@@ -211,11 +51,12 @@ std::string make_js_diagnostics(const std::vector<JsChunk>& chunks) {
 
 std::string json_escape_plan(const std::string& value) {
   std::ostringstream out;
-  for (const unsigned char c : value) {
+  for (const char raw_c : value) {
+    const auto c = static_cast<unsigned char>(raw_c);
     switch (c) {
       case '\\': out << "\\\\"; break;
       case '"': out << "\\\""; break;
-      case '\n': out << "\\n"; break;
+      case '\n': out << '\n'; break;
       case '\r': out << "\\r"; break;
       case '\t': out << "\\t"; break;
       default:
@@ -225,6 +66,34 @@ std::string json_escape_plan(const std::string& value) {
   }
   return out.str();
 }
+std::string make_protected_client_javascript(
+    const std::vector<std::pair<std::string, std::string>>& protected_exports) {
+  std::ostringstream out;
+  out << "// Generated by Venom. Do not edit.\n"
+      << "import { callProtected } from '@venom-js/runtime';\n";
+  for (const auto& entry : protected_exports) {
+    out << "export function " << entry.first
+        << "(input, options) { return callProtected(\"" << json_escape_plan(entry.first)
+        << "\", input, options); }\n";
+  }
+  return out.str();
+}
+
+std::string make_protected_client_typescript(const std::string& declarations) {
+  if (declarations.empty()) return {};
+  std::istringstream input(declarations);
+  std::ostringstream out;
+  out << "// Generated by Venom. Do not edit.\n"
+      << "import type { VenomCallOptions } from '@venom-js/runtime';\n";
+  std::string line;
+  while (std::getline(input, line)) {
+    if (line.find("// Generated by Venom") == 0) continue;
+    if (line.find("export interface VenomCallOptions") == 0) continue;
+    if (!line.empty()) out << line << '\n';
+  }
+  return out.str();
+}
+
 
 std::string make_protection_intent_ledger_json(
     const std::vector<detail::BridgeRewriteRecord>& records,
@@ -238,7 +107,7 @@ std::string make_protection_intent_ledger_json(
     out << "    {\"intent_id\":\"" << json_escape_plan(record.candidate)
         << "\",\"source\":\"" << json_escape_plan(record.source)
         << "\",\"symbol\":\"" << json_escape_plan(record.function)
-        << "\",\"requested_realm\":\"protected\",\"terminal_status\":\""
+        << "\",\"requested_runtime\":\"protected\",\"terminal_status\":\""
         << (record.status == "extracted" ? "extracted-protected-function" : json_escape_plan(record.status))
         << "\",\"protected_record_id\":";
     if (record.status == "extracted") out << "\"" << json_escape_plan(record.candidate) << "\"";
@@ -251,10 +120,10 @@ std::string make_protection_intent_ledger_json(
   for (const auto& chunk : chunks) {
     if ((chunk.flags & JsChunkBrowser) != 0u) continue;
     if (emitted++ != 0u) out << ",\n";
-    const auto id = "whole-file-" + std::to_string(chunk.order) + "-" + std::to_string(envelope_seed("intent", chunk));
+    const auto id = "whole-file-" + std::to_string(chunk.order) + "-" + std::to_string(js_envelope_seed("intent", chunk));
     out << "    {\"intent_id\":\"" << id
         << "\",\"source\":\"" << json_escape_plan(chunk.source)
-        << "\",\"symbol\":null,\"requested_realm\":\"protected\",\"terminal_status\":\"compiled-protected-whole-file\",\"protected_record_id\":\""
+        << "\",\"symbol\":null,\"requested_runtime\":\"protected\",\"terminal_status\":\"compiled-protected-whole-file\",\"protected_record_id\":\""
         << id << "\",\"reason\":\"protected script chunk compiled to QuickJS bytecode\"}";
   }
   if (emitted != 0u) out << '\n';
@@ -334,6 +203,7 @@ std::string js_flags_summary(std::uint32_t flags) {
   if ((flags & JsChunkDynamicImport) != 0) names.push_back("dynamic-import");
   if ((flags & JsChunkModulePreload) != 0) names.push_back("modulepreload");
   if ((flags & JsChunkBrowser) != 0) names.push_back("browser");
+  if ((flags & JsChunkProtectedModule) != 0) names.push_back("protected-module");
   if (names.empty()) return "none";
   std::ostringstream out;
   for (std::size_t i = 0; i < names.size(); ++i) {
@@ -346,18 +216,34 @@ std::string js_flags_summary(std::uint32_t flags) {
 JsBridge compile_js_bridge(const SiteGraph& graph, const RemoteVendorOptions& remote_options, bool development) {
   JsBridge bridge;
   bridge.chunks = detail::collect_script_chunks(graph, remote_options, bridge.remote_vendors, bridge.module_edges);
-  const auto initial_function_realm_records = detail::apply_function_realm_planning(bridge.chunks);
-  detail::close_classic_browser_realms(bridge.chunks);
+  const auto initial_function_runtime_records = detail::apply_function_runtime_planning(bridge.chunks);
+  detail::close_classic_browser_runtimes(bridge.chunks);
   const auto module_rewrite_result = detail::apply_protected_module_rewrites(bridge.chunks, remote_options.bridge_id_salt, development);
-  const auto function_records = initial_function_realm_records;
+  if (!module_rewrite_result.lowered_browser_imports.empty()) {
+    bridge.module_edges.erase(std::remove_if(bridge.module_edges.begin(), bridge.module_edges.end(), [&](const auto& edge) {
+      const auto referrer = graph::normalize_module_path(edge.referrer);
+      return std::any_of(module_rewrite_result.lowered_browser_imports.begin(), module_rewrite_result.lowered_browser_imports.end(), [&](const auto& lowered) {
+        return graph::normalize_module_path(lowered.first) == referrer && lowered.second == edge.specifier;
+      });
+    }), bridge.module_edges.end());
+  }
+  const auto function_records = initial_function_runtime_records;
   const auto extraction_records = detail::analyze_function_extraction(bridge.chunks, function_records);
   auto rewrite_result = detail::apply_bridge_rewrites(bridge.chunks, extraction_records, remote_options.bridge_id_salt);
   if (!module_rewrite_result.registry_source.empty()) {
     if (rewrite_result.registry_source.empty()) rewrite_result.registry_source = module_rewrite_result.registry_source;
     else rewrite_result.registry_source += "\n" + module_rewrite_result.registry_source;
+    rewrite_result.registry_chunks.insert(rewrite_result.registry_chunks.begin(),
+        module_rewrite_result.registry_chunks.begin(), module_rewrite_result.registry_chunks.end());
     rewrite_result.records.insert(rewrite_result.records.begin(), module_rewrite_result.records.begin(), module_rewrite_result.records.end());
   }
-  bridge.protected_api_typescript = module_rewrite_result.typescript;
+  if (!module_rewrite_result.typescript.empty() || !rewrite_result.typescript.empty()) {
+    bridge.protected_api_typescript =
+        "// Generated by Venom. Do not edit.\n"
+        "export interface VenomCallOptions { timeout?: number; signal?: AbortSignal; }\n";
+    bridge.protected_api_typescript += module_rewrite_result.typescript;
+    bridge.protected_api_typescript += rewrite_result.typescript;
+  }
   bridge.diagnostics = make_js_diagnostics(bridge.chunks);
   for (const auto& record : rewrite_result.records) {
     if (record.status == "extracted") continue;
@@ -374,17 +260,45 @@ JsBridge compile_js_bridge(const SiteGraph& graph, const RemoteVendorOptions& re
   bridge.function_plan_json = detail::make_function_plan_json(function_records);
   bridge.extraction_plan_text = detail::make_extraction_plan_text(extraction_records);
   bridge.extraction_plan_json = detail::make_extraction_plan_json(extraction_records);
-  bridge.realm_bridge_contract_json = detail::make_realm_bridge_contract_json(extraction_records);
+  bridge.runtime_bridge_contract_json = detail::make_runtime_bridge_contract_json(extraction_records);
   bridge.bridge_rewrite_report_json = detail::make_bridge_rewrite_report_json(rewrite_result.records);
+  bridge.protected_contracts_json = detail::make_protected_contracts_json(rewrite_result.records);
   for (const auto& record : rewrite_result.records) {
     if (record.status == "extracted") {
       bridge.bridge_candidate_ids.push_back(record.candidate);
       bridge.protected_exports.emplace_back(record.function, record.candidate);
+      bridge.protected_export_sources.push_back(record.source);
     }
+  }
+  if (!bridge.protected_exports.empty()) {
+    bridge.protected_api_client_javascript = make_protected_client_javascript(bridge.protected_exports);
+    bridge.protected_api_client_typescript = make_protected_client_typescript(bridge.protected_api_typescript);
+  }
+
+  {
+    std::ostringstream lazy;
+    lazy << "{\n  \"schema_version\": 2,\n  \"loading_mode\": \"candidate-chunk-activation\",\n  \"exports\": [\n";
+    for (std::size_t i = 0; i < bridge.protected_exports.size(); ++i) {
+      if (i) lazy << ",\n";
+      std::string chunk_id;
+      for (const auto& chunk : rewrite_result.registry_chunks) {
+        if (std::find(chunk.candidates.begin(), chunk.candidates.end(), bridge.protected_exports[i].second) != chunk.candidates.end()) {
+          chunk_id = chunk.id;
+          break;
+        }
+      }
+      lazy << "    {\"name\":\"" << json_escape_plan(bridge.protected_exports[i].first)
+           << "\",\"candidate\":\"" << json_escape_plan(bridge.protected_exports[i].second)
+           << "\",\"source\":\"" << json_escape_plan(i < bridge.protected_export_sources.size() ? bridge.protected_export_sources[i] : std::string{})
+           << "\",\"chunk\":\"" << json_escape_plan(chunk_id)
+           << "\",\"activation\":\"lazy\"}";
+    }
+    lazy << "\n  ]\n}\n";
+    bridge.lazy_protected_manifest_json = lazy.str();
   }
   if (!rewrite_result.registry_source.empty()) {
     bridge.bridge_registry_bytecode = venom::quickjs::compile_native_quickjs_bytecode(
-        rewrite_result.registry_source, "venom://protected-bridge-registry", false, false, nullptr);
+        development ? rewrite_result.registry_source : build_detail::ast_harden_release_js("protected-registry", rewrite_result.registry_source, remote_options.bridge_id_salt), "v://" + opaque_js_bytecode_label(remote_options.bridge_id_salt, "registry", "root"), false, !development, nullptr);
     const bool native_record = bridge.bridge_registry_bytecode.size() >= 8u &&
         (std::equal(bridge.bridge_registry_bytecode.begin(), bridge.bridge_registry_bytecode.begin() + 8,
                     reinterpret_cast<const unsigned char*>("VQJSBC03")) ||
@@ -393,6 +307,15 @@ JsBridge compile_js_bridge(const SiteGraph& graph, const RemoteVendorOptions& re
     if (!native_record) {
       throw std::runtime_error("protected bridge extraction did not produce a native QuickJS bytecode record");
     }
+  }
+  for (const auto& source_chunk : rewrite_result.registry_chunks) {
+    ProtectedRegistryChunk compiled_chunk;
+    compiled_chunk.id = source_chunk.id;
+    compiled_chunk.candidates = source_chunk.candidates;
+    compiled_chunk.bytecode = venom::quickjs::compile_native_quickjs_bytecode(
+        development ? source_chunk.source : build_detail::ast_harden_release_js("protected-registry-chunk", source_chunk.source, remote_options.bridge_id_salt), development ? ("venom://protected-registry/" + source_chunk.id) : ("v://" + opaque_js_bytecode_label(remote_options.bridge_id_salt, "registry-chunk", source_chunk.id)), false, !development, nullptr);
+    if (compiled_chunk.bytecode.empty()) throw std::runtime_error("protected registry chunk compilation failed: " + source_chunk.id);
+    bridge.bridge_registry_chunks.push_back(std::move(compiled_chunk));
   }
   if (!bridge.protected_exports.empty() && bridge.bridge_registry_bytecode.empty()) {
     throw std::runtime_error("protected exports exist but the protected QuickJS bridge registry is empty");
@@ -409,7 +332,9 @@ JsBridge compile_js_bridge(const SiteGraph& graph, const RemoteVendorOptions& re
   enforce_protection_intent_closure(rewrite_result.records, !bridge.bridge_registry_bytecode.empty());
   bridge.protection_intent_ledger_json = make_protection_intent_ledger_json(
       rewrite_result.records, bridge.chunks, !bridge.bridge_registry_bytecode.empty());
-  bridge.bundle = encode_js_bundle(bridge.chunks, remote_options.bridge_id_salt);
+  bridge.module_graph = graph::build_canonical_module_graph(
+      bridge.chunks, bridge.module_edges, remote_options.bridge_id_salt, !development);
+  bridge.bundle = encode_js_bundle(bridge.chunks, bridge.module_graph, remote_options.bridge_id_salt, development);
 
   std::ostringstream preview;
   for (const auto& chunk : bridge.chunks) {
@@ -431,7 +356,7 @@ std::vector<unsigned char> encode_protected_bridge_registry(const JsBridge& brid
   synthetic.order = 0u;
   synthetic.flags = JsChunkBytecodeEncoded;
   synthetic.kind = 0u;
-  return wrap_quickjs_record(bridge.bridge_registry_bytecode, diversification_salt, synthetic);
+  return wrap_quickjs_record_for_bundle(bridge.bridge_registry_bytecode, diversification_salt, synthetic);
 }
 
 std::string js_hash64_literal(std::uint64_t value) {
@@ -464,6 +389,14 @@ std::string make_loader_js(const std::string& runtime_asset_name, const std::str
   if (!quickjs_runtime_wasm_sha256.empty()) out << "  expectedQuickJsWasmSha256: '" << quickjs_runtime_wasm_sha256 << "',\n";
   if (!worker_asset_name.empty()) out << "  workerUrl: new URL('" << worker_asset_name << "', import.meta.url).href,\n";
   out << "};\n";
+  out << "const __venomBootStarted=Date.now(),__venomBootTimeline=[],__venomBootAttempt=1;\n"
+      << "const __venomFreezeTimeline=()=>Object.freeze(__venomBootTimeline.map((entry)=>Object.freeze({...entry})));\n"
+      << "const __venomSetBootStatus=(state,phase,detail)=>{const status=Object.freeze({state,phase,attempt:__venomBootAttempt,startedAt:__venomBootStarted,finishedAt:state==='ready'||state==='error'?Date.now():null,durationMs:Date.now()-__venomBootStarted,timeline:__venomFreezeTimeline(),detail:detail||null});try{Object.defineProperty(globalThis,'__venomBootStatus',{value:status,writable:false,configurable:true});}catch(_){globalThis.__venomBootStatus=status;}return status;};\n"
+      << "const __venomRecordBootPhase=(entry)=>{if(!entry||typeof entry.phase!=='string')return;__venomBootTimeline.push({phase:entry.phase,state:String(entry.state||'unknown'),at:Number(entry.at||Date.now()),durationMs:Number(entry.durationMs||0),detail:entry.detail||null});__venomSetBootStatus('initializing',entry.phase,entry.detail||null);try{globalThis.dispatchEvent(new CustomEvent('venom:boot-phase',{detail:Object.freeze({...entry})}));}catch(_){}};\n"
+      << "const __venomClassifyBootError=(error)=>{const message=String(error&&error.message||error||'unknown error').toLowerCase();if(message.includes('module dependency not found'))return 'VENOM_BOOT_MODULE_DEPENDENCY';if(message.includes('export surface mismatch'))return 'VENOM_BOOT_WASM_EXPORT_SURFACE';if(message.includes('invalid utf-8'))return 'VENOM_BOOT_INVALID_UTF8';if(message.includes('integrity')||message.includes('hash'))return 'VENOM_BOOT_INTEGRITY';if(message.includes('worker'))return 'VENOM_BOOT_WORKER';if(message.includes('timed out')||message.includes('timeout'))return 'VENOM_BOOT_TIMEOUT';return 'VENOM_BOOT_APPLICATION';};\n"
+      << "const __venomSerializeBootError=(error)=>Object.freeze({name:String(error&&error.name||'Error'),message:String(error&&error.message||error||'unknown error'),code:error&&error.code?String(error.code):__venomClassifyBootError(error),recoverable:false,stack:error&&error.stack?String(error.stack):null});\n"
+      << "bootOptions.onBootPhase=__venomRecordBootPhase;Object.defineProperty(globalThis,'__venomRetryBoot',{value:()=>{const status=globalThis.__venomBootStatus;if(!status||status.state!=='error')return false;location.reload();return true;},writable:false,configurable:false});\n"
+      << "__venomSetBootStatus('initializing','loader',null);\n";
   if (!worker_asset_name.empty()) {
     out << "const __venomInvokeOp=" << bridge_invoke_opcode << ",__venomCancelOp=" << bridge_cancel_opcode << ",__venomResultOp=" << bridge_result_opcode << ",__venomErrorOp=" << bridge_error_opcode << ";\n";
     out << "let __venomReadyResolve,__venomReadyReject; const __venomReadyPromise=new Promise((resolve,reject)=>{__venomReadyResolve=resolve;__venomReadyReject=reject;});\n"
@@ -481,19 +414,22 @@ std::string make_loader_js(const std::string& runtime_asset_name, const std::str
         << "  });\n"
         << "  bootOptions.packageBytes = prepared.packageBytes;\n"
         << "  if (prepared.quickJsModule) globalThis.__venomWorkerQuickJsModule = prepared.quickJsModule;\n"
-        << "  const pendingBridge=new Map(),protectedExports=new Map(),protectedCandidates=new Map(),bridgePort=bridgeChannel.port1;let bridgeSequence=0,bridgeCounter=0;const bridgeGeneration=Number(prepared.bridgeGeneration)>>>0,bridgeKey=Number(prepared.bridgeKey)>>>0;if(!bridgeGeneration||!bridgeKey)throw new Error('worker binary bridge attestation missing');\n"
-        << "  const MAX_PUBLIC_PAYLOAD_BYTES=1048576,MAX_PUBLIC_TIMEOUT_MS=30000,DEFAULT_PUBLIC_TIMEOUT_MS=5000,MAX_PUBLIC_PENDING_CALLS=32,MAX_PUBLIC_JSON_DEPTH=24,MAX_PUBLIC_JSON_NODES=16384,BRIDGE_MAGIC=0x32524256,BRIDGE_HEADER_BYTES=26,BRIDGE_TAG_BYTES=4;const rotateSessionOpcode=(base,lane)=>{let value=((base>>>0)^(bridgeGeneration>>>0)^((bridgeKey<<((lane+3)&15))|(bridgeKey>>>(32-((lane+3)&15)))))>>>0;value=(value+Math.imul(lane+1,0x9e37))&0xffff;return value||((lane+1)*257);};const sessionInvokeOp=rotateSessionOpcode(__venomInvokeOp,0),sessionCancelOp=rotateSessionOpcode(__venomCancelOp,1),sessionResultOp=rotateSessionOpcode(__venomResultOp,2),sessionErrorOp=rotateSessionOpcode(__venomErrorOp,3);if(new Set([sessionInvokeOp,sessionCancelOp,sessionResultOp,sessionErrorOp]).size!==4)throw new Error('worker session opcode collision');const textEncoder=new TextEncoder(),textDecoder=new TextDecoder('utf-8',{fatal:true});\n"
+        << "  const pendingBridge=new Map(),protectedExports=new Map(),protectedCandidates=new Map(),bridgePort=bridgeChannel.port1;let bridgeSequence=0,bridgeCounter=0,publicRuntimeState='initializing';const bridgeGeneration=Number(prepared.bridgeGeneration)>>>0,bridgeKey=Number(prepared.bridgeKey)>>>0;if(!bridgeGeneration||!bridgeKey)throw new Error('worker binary bridge attestation missing');\n"
+        << "  const MAX_PUBLIC_PAYLOAD_BYTES=1048576,MAX_PUBLIC_TIMEOUT_MS=30000,DEFAULT_PUBLIC_TIMEOUT_MS=5000,MAX_PUBLIC_PENDING_CALLS=32,MAX_PUBLIC_JSON_DEPTH=24,MAX_PUBLIC_JSON_NODES=16384,MAX_PUBLIC_BINARY_OBJECTS=64,BINARY_CODEC_VERSION=1,BRIDGE_MAGIC=0x32524256,BRIDGE_HEADER_BYTES=26,BRIDGE_TAG_BYTES=4;const rotateSessionOpcode=(base,lane)=>{let value=((base>>>0)^(bridgeGeneration>>>0)^((bridgeKey<<((lane+3)&15))|(bridgeKey>>>(32-((lane+3)&15)))))>>>0;value=(value+Math.imul(lane+1,0x9e37))&0xffff;return value||((lane+1)*257);};const sessionInvokeOp=rotateSessionOpcode(__venomInvokeOp,0),sessionCancelOp=rotateSessionOpcode(__venomCancelOp,1),sessionResultOp=rotateSessionOpcode(__venomResultOp,2),sessionErrorOp=rotateSessionOpcode(__venomErrorOp,3);if(new Set([sessionInvokeOp,sessionCancelOp,sessionResultOp,sessionErrorOp]).size!==4)throw new Error('worker session opcode collision');const textEncoder=new TextEncoder(),textDecoder=new TextDecoder('utf-8',{fatal:true});\n"
         << "  class VenomBridgeError extends Error{constructor(code,message){super(message);this.name='VenomBridgeError';this.code=code||'BRIDGE_ERROR';}}\n"
         << "  class VenomTimeoutError extends VenomBridgeError{constructor(){super('TIMEOUT','Protected operation timed out');this.name='VenomTimeoutError';}}\n"
         << "  function publicBridgeError(code,message){return new VenomBridgeError(String(code||'BRIDGE_ERROR').toUpperCase().replace(/-/g,'_'),String(message||'Protected operation failed'));}\n"
         << "  function keyedFrameTag(bytes,key){let hash=(2166136261^(key>>>0))>>>0;for(let i=0;i<bytes.length;++i){hash^=bytes[i];hash=Math.imul(hash,16777619)>>>0;}return(hash^((key<<13)|(key>>>19)))>>>0;}\n"
-        << "  function encodeFrame(op,counter,capability,requestId,value){const r=textEncoder.encode(String(requestId||'')),p=value===undefined?new Uint8Array(0):textEncoder.encode(JSON.stringify(value));if(r.byteLength>96||p.byteLength>MAX_PUBLIC_PAYLOAD_BYTES)throw new RangeError('bridge frame exceeds protocol limit');const b=new ArrayBuffer(BRIDGE_HEADER_BYTES+r.byteLength+p.byteLength+BRIDGE_TAG_BYTES),v=new DataView(b),a=new Uint8Array(b);v.setUint32(0,BRIDGE_MAGIC,true);v.setUint16(4,1,true);v.setUint16(6,op>>>0,true);v.setUint32(8,bridgeGeneration,true);v.setUint32(12,counter>>>0,true);v.setUint32(16,capability>>>0,true);v.setUint16(20,r.byteLength,true);v.setUint32(22,p.byteLength,true);a.set(r,BRIDGE_HEADER_BYTES);a.set(p,BRIDGE_HEADER_BYTES+r.byteLength);v.setUint32(b.byteLength-BRIDGE_TAG_BYTES,keyedFrameTag(a.subarray(0,b.byteLength-BRIDGE_TAG_BYTES),bridgeKey),true);return b;}\n"
-        << "  function decodeFrame(b){if(!(b instanceof ArrayBuffer)||b.byteLength<BRIDGE_HEADER_BYTES+BRIDGE_TAG_BYTES)throw new Error('invalid bridge frame');const v=new DataView(b),a=new Uint8Array(b);if(v.getUint32(0,true)!==BRIDGE_MAGIC||v.getUint16(4,true)!==1||v.getUint32(8,true)!==bridgeGeneration)throw new Error('bridge frame attestation mismatch');const rl=v.getUint16(20,true),pl=v.getUint32(22,true);if(BRIDGE_HEADER_BYTES+rl+pl+BRIDGE_TAG_BYTES!==b.byteLength)throw new Error('bridge frame length mismatch');if(v.getUint32(b.byteLength-BRIDGE_TAG_BYTES,true)!==keyedFrameTag(a.subarray(0,b.byteLength-BRIDGE_TAG_BYTES),bridgeKey))throw new Error('bridge frame integrity mismatch');const id=textDecoder.decode(a.subarray(BRIDGE_HEADER_BYTES,BRIDGE_HEADER_BYTES+rl)),ps=BRIDGE_HEADER_BYTES+rl,t=pl?textDecoder.decode(a.subarray(ps,ps+pl)):'';return{op:v.getUint16(6,true)>>>0,counter:v.getUint32(12,true)>>>0,id,value:t?JSON.parse(t):undefined};}\n"
+        << "  function binaryTypeName(v){if(v instanceof ArrayBuffer)return 'ArrayBuffer';if(!ArrayBuffer.isView(v)||v instanceof DataView)return '';const n=v.constructor&&v.constructor.name;return ['Uint8Array','Uint8ClampedArray','Int8Array','Uint16Array','Int16Array','Uint32Array','Int32Array','Float32Array','Float64Array'].includes(n)?n:'';}\n"
+        << "  function encodePayload(value){const blobs=[];let nodes=0;const visit=(v,d)=>{if(++nodes>MAX_PUBLIC_JSON_NODES||d>MAX_PUBLIC_JSON_DEPTH)throw new RangeError('Protected value exceeds structural limits');const t=binaryTypeName(v);if(t){if(blobs.length>=MAX_PUBLIC_BINARY_OBJECTS)throw new RangeError('Protected value exceeds binary object limit');const b=v instanceof ArrayBuffer?new Uint8Array(v):new Uint8Array(v.buffer,v.byteOffset,v.byteLength),i=blobs.length;blobs.push(b.slice());return{__venomBinary:i,type:t,byteLength:b.byteLength};}if(v===null||typeof v==='string'||typeof v==='boolean')return v;if(typeof v==='number'){if(!Number.isFinite(v))throw new TypeError('Protected value contains a non-finite number');return v;}if(Array.isArray(v))return v.map(x=>visit(x,d+1));if(typeof v==='object'){const p=Object.getPrototypeOf(v);if(p!==Object.prototype&&p!==null)throw new TypeError('Protected value contains unsupported object');const o=Object.create(null);for(const k of Object.keys(v)){if(k==='__proto__'||k==='prototype'||k==='constructor'||k==='__venomBinary')throw new TypeError('Protected value contains forbidden property');o[k]=visit(v[k],d+1);}return o;}throw new TypeError('Protected value contains unsupported type');};const m=textEncoder.encode(JSON.stringify(visit(value,0)));let z=7+m.byteLength;for(const b of blobs)z+=4+b.byteLength;if(z>MAX_PUBLIC_PAYLOAD_BYTES)throw new RangeError('Protected value exceeds the 1 MiB bridge limit');const p=new Uint8Array(z),dv=new DataView(p.buffer);p[0]=BINARY_CODEC_VERSION;dv.setUint32(1,m.byteLength,true);dv.setUint16(5,blobs.length,true);p.set(m,7);let o=7+m.byteLength;for(const b of blobs){dv.setUint32(o,b.byteLength,true);o+=4;p.set(b,o);o+=b.byteLength;b.fill(0);}return p;}\n"
+        << "  function decodePayload(p){if(!p.byteLength)return undefined;if(p[0]!==BINARY_CODEC_VERSION||p.byteLength<7)throw new Error('unsupported bridge payload codec');const dv=new DataView(p.buffer,p.byteOffset,p.byteLength),ml=dv.getUint32(1,true),bc=dv.getUint16(5,true);if(bc>MAX_PUBLIC_BINARY_OBJECTS||7+ml>p.byteLength)throw new Error('invalid bridge payload');const meta=JSON.parse(textDecoder.decode(p.subarray(7,7+ml))),blobs=[];let o=7+ml;for(let i=0;i<bc;i++){if(o+4>p.byteLength)throw new Error('invalid bridge blob table');const l=dv.getUint32(o,true);o+=4;if(o+l>p.byteLength)throw new Error('invalid bridge blob length');blobs.push(p.slice(o,o+l));o+=l;}if(o!==p.byteLength)throw new Error('bridge payload trailing bytes');const revive=(v,d=0)=>{if(d>MAX_PUBLIC_JSON_DEPTH)throw new Error('bridge payload exceeds depth limit');if(v&&typeof v==='object'&&!Array.isArray(v)&&Number.isInteger(v.__venomBinary)){const b=blobs[v.__venomBinary];if(!b||b.byteLength!==Number(v.byteLength))throw new Error('invalid bridge binary reference');const ab=b.slice().buffer;if(v.type==='ArrayBuffer')return ab;const C=globalThis[v.type];if(typeof C!=='function'||!['Uint8Array','Uint8ClampedArray','Int8Array','Uint16Array','Int16Array','Uint32Array','Int32Array','Float32Array','Float64Array'].includes(v.type)||ab.byteLength%C.BYTES_PER_ELEMENT)throw new Error('unsupported bridge binary type');return new C(ab);}if(Array.isArray(v))return v.map(x=>revive(x,d+1));if(v&&typeof v==='object')for(const k of Object.keys(v))v[k]=revive(v[k],d+1);return v;};return revive(meta);};\n"
+        << "  function encodeFrame(op,counter,capability,requestId,value){const r=textEncoder.encode(String(requestId||'')),p=value===undefined?new Uint8Array(0):encodePayload(value);if(r.byteLength>96||p.byteLength>MAX_PUBLIC_PAYLOAD_BYTES)throw new RangeError('bridge frame exceeds protocol limit');const b=new ArrayBuffer(BRIDGE_HEADER_BYTES+r.byteLength+p.byteLength+BRIDGE_TAG_BYTES),v=new DataView(b),a=new Uint8Array(b);v.setUint32(0,BRIDGE_MAGIC,true);v.setUint16(4,1,true);v.setUint16(6,op>>>0,true);v.setUint32(8,bridgeGeneration,true);v.setUint32(12,counter>>>0,true);v.setUint32(16,capability>>>0,true);v.setUint16(20,r.byteLength,true);v.setUint32(22,p.byteLength,true);a.set(r,BRIDGE_HEADER_BYTES);a.set(p,BRIDGE_HEADER_BYTES+r.byteLength);v.setUint32(b.byteLength-BRIDGE_TAG_BYTES,keyedFrameTag(a.subarray(0,b.byteLength-BRIDGE_TAG_BYTES),bridgeKey),true);p.fill(0);return b;}\n"
+        << "  function decodeFrame(b){if(!(b instanceof ArrayBuffer)||b.byteLength<BRIDGE_HEADER_BYTES+BRIDGE_TAG_BYTES)throw new Error('invalid bridge frame');const v=new DataView(b),a=new Uint8Array(b);if(v.getUint32(0,true)!==BRIDGE_MAGIC||v.getUint16(4,true)!==1||v.getUint32(8,true)!==bridgeGeneration)throw new Error('bridge frame attestation mismatch');const rl=v.getUint16(20,true),pl=v.getUint32(22,true);if(BRIDGE_HEADER_BYTES+rl+pl+BRIDGE_TAG_BYTES!==b.byteLength)throw new Error('bridge frame length mismatch');if(v.getUint32(b.byteLength-BRIDGE_TAG_BYTES,true)!==keyedFrameTag(a.subarray(0,b.byteLength-BRIDGE_TAG_BYTES),bridgeKey))throw new Error('bridge frame integrity mismatch');const id=textDecoder.decode(a.subarray(BRIDGE_HEADER_BYTES,BRIDGE_HEADER_BYTES+rl)),ps=BRIDGE_HEADER_BYTES+rl;return{op:v.getUint16(6,true)>>>0,counter:v.getUint32(12,true)>>>0,id,value:decodePayload(a.subarray(ps,ps+pl))};}\n"
         << "  function sendFrame(op,counter,capability,id,value){const frame=encodeFrame(op,counter,capability,id,value);bridgePort.postMessage(frame,[frame]);}\n"
         << "  bridgePort.onmessage=(event)=>{let m;try{m=decodeFrame(event.data);}catch(_){return;}const p=pendingBridge.get(m.id);if(!p||m.counter!==p.counter||(m.op!==sessionResultOp&&m.op!==sessionErrorOp))return;pendingBridge.delete(m.id);clearTimeout(p.timer);if(p.abortCleanup)p.abortCleanup();if(m.op===sessionResultOp)p.resolve(m.value);else p.reject(publicBridgeError(m.value&&m.value.code,m.value&&m.value.message));};bridgePort.start();\n"
-        << "  function validatePublicJson(value,label){let nodes=0;const visit=(v,depth)=>{if(++nodes>MAX_PUBLIC_JSON_NODES)throw new RangeError(label+' exceeds the JSON node limit');if(depth>MAX_PUBLIC_JSON_DEPTH)throw new RangeError(label+' exceeds the JSON depth limit');if(v===null||typeof v==='string'||typeof v==='boolean')return;if(typeof v==='number'){if(!Number.isFinite(v))throw new TypeError(label+' contains a non-finite number');return;}if(Array.isArray(v)){for(const item of v)visit(item,depth+1);return;}if(typeof v==='object'){const proto=Object.getPrototypeOf(v);if(proto!==Object.prototype&&proto!==null)throw new TypeError(label+' contains a non-plain object');for(const key of Object.keys(v)){if(key==='__proto__'||key==='prototype'||key==='constructor')throw new TypeError(label+' contains a forbidden property');visit(v[key],depth+1);}return;}throw new TypeError(label+' contains an unsupported value');};visit(value,0);}function encodeJson(value,label){validatePublicJson(value,label);let encoded;try{encoded=JSON.stringify(value);}catch(error){throw new TypeError(label+' must contain only JSON-serializable values');}if(typeof encoded!=='string')throw new TypeError(label+' must be a JSON value');if(textEncoder.encode(encoded).byteLength>MAX_PUBLIC_PAYLOAD_BYTES)throw new RangeError(label+' exceeds the 1 MiB bridge limit');return JSON.parse(encoded); }\n"
+        << "  function validatePublicJson(value,label){let nodes=0;const visit=(v,depth)=>{if(++nodes>MAX_PUBLIC_JSON_NODES)throw new RangeError(label+' exceeds the JSON node limit');if(depth>MAX_PUBLIC_JSON_DEPTH)throw new RangeError(label+' exceeds the JSON depth limit');if(binaryTypeName(v)){if(v.byteLength>MAX_PUBLIC_PAYLOAD_BYTES)throw new RangeError(label+' binary value exceeds the bridge limit');return;}if(v===null||typeof v==='string'||typeof v==='boolean')return;if(typeof v==='number'){if(!Number.isFinite(v))throw new TypeError(label+' contains a non-finite number');return;}if(Array.isArray(v)){for(const item of v)visit(item,depth+1);return;}if(typeof v==='object'){const proto=Object.getPrototypeOf(v);if(proto!==Object.prototype&&proto!==null)throw new TypeError(label+' contains a non-plain object');for(const key of Object.keys(v)){if(key==='__proto__'||key==='prototype'||key==='constructor')throw new TypeError(label+' contains a forbidden property');visit(v[key],depth+1);}return;}throw new TypeError(label+' contains an unsupported value');};visit(value,0);}function encodePublicValue(value,label){validatePublicJson(value,label);encodePayload(value);return value;}\n"
         << "  function baseCapabilityForSlot(slot){return((((__venomInvokeOp>>>0)^0x9e3779b9)+((slot+1)>>>0)*0x85ebca6b)>>>0)|1;}function leaseCapabilityForSlot(slot,counter){let value=(baseCapabilityForSlot(slot)^bridgeGeneration^Math.imul(counter>>>0,0x85ebca6b)^bridgeKey)>>>0;value^=value>>>16;value=Math.imul(value,0x7feb352d)>>>0;value^=value>>>15;return(value|1)>>>0;}\n"
-        << "  function invokeCandidate(candidateSlot,args,options){options=options||{};if(pendingBridge.size>=MAX_PUBLIC_PENDING_CALLS)return Promise.reject(publicBridgeError('BUSY','Too many protected operations are pending'));let normalized;try{normalized=encodeJson(Array.isArray(args)?args:[],'Protected arguments');}catch(error){error.code='INVALID_ARGUMENTS';return Promise.reject(error);}candidateSlot=Number(candidateSlot);if(!Number.isInteger(candidateSlot)||candidateSlot<0)return Promise.reject(publicBridgeError('UNKNOWN_EXPORT','Unknown protected export'));const timeout=Math.max(1,Math.min(MAX_PUBLIC_TIMEOUT_MS,Number(options.timeout)||DEFAULT_PUBLIC_TIMEOUT_MS)),signal=options.signal;if(signal&&signal.aborted)return Promise.reject(new DOMException('The protected operation was aborted','AbortError'));return new Promise((resolve,reject)=>{const requestId='v'+Date.now().toString(36)+(++bridgeSequence).toString(36)+crypto.getRandomValues(new Uint32Array(1))[0].toString(36),counter=++bridgeCounter,capability=leaseCapabilityForSlot(candidateSlot,counter);let settled=false;const finish=(fn,value)=>{if(settled)return;settled=true;pendingBridge.delete(requestId);clearTimeout(timer);if(abortCleanup)abortCleanup();fn(value);};const timer=setTimeout(()=>{sendFrame(sessionCancelOp,++bridgeCounter,0,requestId);finish(reject,new VenomTimeoutError());},timeout);let abortCleanup=null;if(signal){const onAbort=()=>{sendFrame(sessionCancelOp,++bridgeCounter,0,requestId);finish(reject,new DOMException('The protected operation was aborted','AbortError'));};signal.addEventListener('abort',onAbort,{once:true});abortCleanup=()=>signal.removeEventListener('abort',onAbort);}pendingBridge.set(requestId,{resolve:(v)=>finish(resolve,v),reject:(e)=>finish(reject,e),timer,abortCleanup,counter});sendFrame(sessionInvokeOp,counter,capability,requestId,normalized);});}\n"
+        << "  function invokeCandidate(candidateSlot,args,options){options=options||{};if(pendingBridge.size>=MAX_PUBLIC_PENDING_CALLS)return Promise.reject(publicBridgeError('BUSY','Too many protected operations are pending'));let normalized;try{normalized=encodePublicValue(Array.isArray(args)?args:[],'Protected arguments');}catch(error){error.code='INVALID_ARGUMENTS';return Promise.reject(error);}candidateSlot=Number(candidateSlot);if(!Number.isInteger(candidateSlot)||candidateSlot<0)return Promise.reject(publicBridgeError('UNKNOWN_EXPORT','Unknown protected export'));const timeout=Math.max(1,Math.min(MAX_PUBLIC_TIMEOUT_MS,Number(options.timeout)||DEFAULT_PUBLIC_TIMEOUT_MS)),signal=options.signal;if(signal&&signal.aborted)return Promise.reject(new DOMException('The protected operation was aborted','AbortError'));return new Promise((resolve,reject)=>{const requestId='v'+Date.now().toString(36)+(++bridgeSequence).toString(36)+crypto.getRandomValues(new Uint32Array(1))[0].toString(36),counter=++bridgeCounter,capability=leaseCapabilityForSlot(candidateSlot,counter);let settled=false;const finish=(fn,value)=>{if(settled)return;settled=true;pendingBridge.delete(requestId);clearTimeout(timer);if(abortCleanup)abortCleanup();fn(value);};const timer=setTimeout(()=>{sendFrame(sessionCancelOp,++bridgeCounter,0,requestId);finish(reject,new VenomTimeoutError());},timeout);let abortCleanup=null;if(signal){const onAbort=()=>{sendFrame(sessionCancelOp,++bridgeCounter,0,requestId);finish(reject,new DOMException('The protected operation was aborted','AbortError'));};signal.addEventListener('abort',onAbort,{once:true});abortCleanup=()=>signal.removeEventListener('abort',onAbort);}pendingBridge.set(requestId,{resolve:(v)=>finish(resolve,v),reject:(e)=>finish(reject,e),timer,abortCleanup,counter});sendFrame(sessionInvokeOp,counter,capability,requestId,normalized);});}\n"
         << "  globalThis.__venomInvokeProtected=(candidateSlot,args,options)=>invokeCandidate(candidateSlot,args,options);\n"
         << "  globalThis.__venomInvokeProtectedById=(candidate,args,options)=>{const candidateSlot=protectedCandidates.get(String(candidate||''));if(candidateSlot===undefined)return Promise.reject(publicBridgeError('UNKNOWN_EXPORT','Unknown protected export'));return invokeCandidate(candidateSlot,args,options);};\n"
         << "  globalThis.__venomRegisterProtectedExport=(name,candidate,candidateSlot)=>{name=String(name||'');candidate=String(candidate||'');candidateSlot=Number(candidateSlot);if(!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name)||!candidate||!Number.isInteger(candidateSlot)||candidateSlot<0)throw new Error('invalid protected export registration');const prior=protectedExports.get(name),priorCandidate=protectedCandidates.get(candidate);if((prior!==undefined&&prior!==candidateSlot)||(priorCandidate!==undefined&&priorCandidate!==candidateSlot))throw new Error('duplicate protected export registration');protectedExports.set(name,candidateSlot);protectedCandidates.set(candidate,candidateSlot);};\n";
@@ -501,13 +437,19 @@ std::string make_loader_js(const std::string& runtime_asset_name, const std::str
       const auto& entry = protected_exports[export_index];
       out << "  globalThis.__venomRegisterProtectedExport(\"" << json_escape_plan(entry.first) << "\",\"" << json_escape_plan(entry.second) << "\"," << export_index << ");\n";
     }
-    out        << "  const venomApi=Object.freeze({ready:()=>__venomReadyPromise,call:(name,input,options)=>{const candidateSlot=protectedExports.get(String(name||''));if(candidateSlot===undefined)return Promise.reject(publicBridgeError('UNKNOWN_EXPORT','Unknown protected export'));return invokeCandidate(candidateSlot,[input],options);},info:()=>Object.freeze({protocol:1,transport:'binary-capability-v3-leased',valueContract:'json-value-v1',maxPayloadBytes:MAX_PUBLIC_PAYLOAD_BYTES,maxTimeoutMs:MAX_PUBLIC_TIMEOUT_MS,maxPendingCalls:MAX_PUBLIC_PENDING_CALLS,maxJsonDepth:MAX_PUBLIC_JSON_DEPTH,maxJsonNodes:MAX_PUBLIC_JSON_NODES,exports:Array.from(protectedExports.keys()).sort()}),exports:new Proxy(Object.create(null),{get:(_,name)=>typeof name==='string'&&protectedExports.has(name)?((input,options)=>venomApi.call(name,input,options)):undefined,has:(_,name)=>typeof name==='string'&&protectedExports.has(name),ownKeys:()=>Array.from(protectedExports.keys()).sort(),getOwnPropertyDescriptor:(_,name)=>typeof name==='string'&&protectedExports.has(name)?{enumerable:true,configurable:true}:undefined,set:()=>false})});\n"
+    out        << "  const assertPublicRuntimeActive=()=>{if(publicRuntimeState==='disposed')throw publicBridgeError('RUNTIME_DISPOSED','Venom runtime has been disposed');};\n"
+        << "  const callProtected=(name,input,options)=>{try{assertPublicRuntimeActive();}catch(error){return Promise.reject(error);}const candidateSlot=protectedExports.get(String(name||''));if(candidateSlot===undefined)return Promise.reject(publicBridgeError('UNKNOWN_EXPORT','Unknown protected export'));return invokeCandidate(candidateSlot,[input],options);};\n"
+        << "  const batchProtected=(calls,options)=>{try{assertPublicRuntimeActive();}catch(error){return Promise.reject(error);}if(!Array.isArray(calls))return Promise.reject(publicBridgeError('INVALID_BATCH','Protected batch must be an array'));if(calls.length===0)return Promise.resolve([]);if(calls.length>MAX_PUBLIC_PENDING_CALLS)return Promise.reject(publicBridgeError('BATCH_LIMIT','Protected batch exceeds the pending-call limit'));const normalized=[];for(let i=0;i<calls.length;i++){const item=calls[i];if(!item||typeof item!=='object'||Array.isArray(item))return Promise.reject(publicBridgeError('INVALID_BATCH','Protected batch item '+i+' must be an object'));const name=String(item.name||'');if(!protectedExports.has(name))return Promise.reject(publicBridgeError('UNKNOWN_EXPORT','Unknown protected export in batch: '+name));normalized.push({name,input:item.input,options:item.options||options});}return Promise.all(normalized.map(item=>callProtected(item.name,item.input,item.options)));};\n"
+        << "  const preloadProtected=(names)=>{try{assertPublicRuntimeActive();}catch(error){return Promise.reject(error);}const requested=(Array.isArray(names)?names:[names]).map(String),missing=requested.filter(name=>!protectedExports.has(name));if(missing.length)return Promise.reject(publicBridgeError('UNKNOWN_EXPORT','Unknown protected exports: '+missing.join(', ')));return Promise.resolve(Object.freeze({ready:Object.freeze(requested.slice()),loaded:false}));};\n"
+        << "  const runtimeStatus=()=>Object.freeze({state:publicRuntimeState,ready:publicRuntimeState==='ready',disposed:publicRuntimeState==='disposed',pendingCalls:pendingBridge.size,exports:Object.freeze(Array.from(protectedExports.keys()).sort())});\n"
+        << "  const disposeProtectedRuntime=(reason)=>{if(publicRuntimeState==='disposed')return runtimeStatus();publicRuntimeState='disposed';const error=publicBridgeError('RUNTIME_DISPOSED',String(reason||'Venom runtime disposed'));for(const [id,pending] of pendingBridge){pendingBridge.delete(id);clearTimeout(pending.timer);if(pending.abortCleanup)pending.abortCleanup();pending.reject(error);}try{bridgePort.close();}catch(_){}try{worker.terminate();}catch(_){}try{const internal=globalThis.__venomRuntime;if(internal&&typeof internal.teardownRoute==='function')internal.teardownRoute(String(reason||'runtime-disposed'));}catch(_){}try{globalThis.dispatchEvent(new CustomEvent('venom:disposed',{detail:runtimeStatus()}));}catch(_){}return runtimeStatus();};\n"
+        << "  const venomApi=Object.freeze({apiVersion:1,ready:()=>__venomReadyPromise,call:callProtected,batch:batchProtected,preload:preloadProtected,status:runtimeStatus,dispose:disposeProtectedRuntime,info:()=>Object.freeze({runtimeApiVersion:1,protocol:1,transport:'binary-capability-v3-leased',valueContract:'binary-json-v2',batching:'parallel-v1',maxBatchCalls:MAX_PUBLIC_PENDING_CALLS,maxPayloadBytes:MAX_PUBLIC_PAYLOAD_BYTES,maxTimeoutMs:MAX_PUBLIC_TIMEOUT_MS,maxPendingCalls:MAX_PUBLIC_PENDING_CALLS,maxJsonDepth:MAX_PUBLIC_JSON_DEPTH,maxJsonNodes:MAX_PUBLIC_JSON_NODES,maxBinaryObjects:MAX_PUBLIC_BINARY_OBJECTS,binaryTypes:Object.freeze(['ArrayBuffer','Uint8Array','Uint8ClampedArray','Int8Array','Uint16Array','Int16Array','Uint32Array','Int32Array','Float32Array','Float64Array']),exports:Array.from(protectedExports.keys()).sort()}),exports:new Proxy(Object.create(null),{get:(_,name)=>typeof name==='string'&&protectedExports.has(name)?((input,options)=>venomApi.call(name,input,options)):undefined,has:(_,name)=>typeof name==='string'&&protectedExports.has(name),ownKeys:()=>Array.from(protectedExports.keys()).sort(),getOwnPropertyDescriptor:(_,name)=>typeof name==='string'&&protectedExports.has(name)?{enumerable:true,configurable:true}:undefined,set:()=>false})});\n"
         << "  Object.defineProperty(globalThis,'venom',{value:venomApi,writable:false,configurable:false,enumerable:true});\n"
-        << "  __venomReadyResolve(venomApi);\n"
+        << "  publicRuntimeState='ready';__venomReadyResolve(venomApi);try{globalThis.dispatchEvent(new CustomEvent('venom:ready',{detail:venomApi}));}catch(_){}\n"
         << "}\n"
-        << "prepareWorkerOwnedRuntime().then(() => bootVenom(bootOptions)).catch((error) => { __venomReadyReject(error); console.error('[venom] boot failed', error); renderVenomFailure(bootOptions.root, error); });\n";
+        << "prepareWorkerOwnedRuntime().then(()=>{__venomSetBootStatus('initializing','application',null);return bootVenom(bootOptions);}).then((report)=>{const status=__venomSetBootStatus('ready','complete',report);try{globalThis.dispatchEvent(new CustomEvent('venom:boot-ready',{detail:status}));}catch(_){}return report;}).catch((error) => { __venomReadyReject(error); const status=__venomSetBootStatus('error','application',__venomSerializeBootError(error)); try{globalThis.dispatchEvent(new CustomEvent('venom:error',{detail:error}));globalThis.dispatchEvent(new CustomEvent('venom:boot-error',{detail:status}));}catch(_){} console.error('[venom] boot failed', error); renderVenomFailure(bootOptions.root, error); });\n";
   } else {
-    out << "bootVenom(bootOptions).catch((error) => { console.error('[venom] boot failed', error); renderVenomFailure(bootOptions.root, error); });\n";
+    out << "bootVenom(bootOptions).then((report)=>{const status=__venomSetBootStatus('ready','complete',report);try{globalThis.dispatchEvent(new CustomEvent('venom:boot-ready',{detail:status}));}catch(_){}return report;}).catch((error) => { const status=__venomSetBootStatus('error','application',__venomSerializeBootError(error)); try{globalThis.dispatchEvent(new CustomEvent('venom:boot-error',{detail:status}));}catch(_){} console.error('[venom] boot failed', error); renderVenomFailure(bootOptions.root, error); });\n";
   }
   return out.str();
 }

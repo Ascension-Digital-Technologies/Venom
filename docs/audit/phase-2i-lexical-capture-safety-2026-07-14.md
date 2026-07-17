@@ -12,7 +12,7 @@ This pass hardens protected-function dependency analysis and narrows the `isolat
 - Adds nested-function and arrow-parameter recognition.
 - Masks regular-expression literals during identifier scanning.
 - Includes the first unresolved function and reason in `VNM-PROT-1004`.
-- Allows the large chess engine's explicit `isolated` unit only after separate realm-safety verification; small units cannot use this fallback.
+- Allows the large chess engine's explicit `isolated` unit only after separate runtime-safety verification; small units cannot use this fallback.
 
 ## Verification
 

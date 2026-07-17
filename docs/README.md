@@ -1,6 +1,6 @@
 # Venom Production Documentation
 
-> **Applies to:** Venom 1.0.0  
+> **Applies to:** Venom 1.1.0  
 > **Audience:** application teams, release engineers, security reviewers, and operators
 
 This documentation describes the supported production use of Venom: installing the compiler, protecting an existing website, integrating browser and protected execution, building and verifying distributions, deploying static output, and operating signed releases.
@@ -24,11 +24,16 @@ Internal implementation history and engineering-process records are intentionall
 | Plan protected and browser execution | [Protection planner](guides/protection-planner.md) |
 | Select browser or protected execution | [Annotations](guides/annotations.md) |
 | Expose protected functions | [Protected functions](guides/protected-functions.md) |
+| Define typed protected API boundaries | [Typed bridge contracts](guides/typed-bridge-contracts.md) |
+| Compile TypeScript source directly | [TypeScript input](guides/typescript.md) |
 | Package protected ES modules | [Protected modules](guides/protected-modules.md) |
 | Call protected exports safely | [Browser bridge](guides/browser-bridge.md) |
+| Transfer binary arrays | [Binary protected values](guides/binary-protected-values.md) |
+| Execute independent protected calls together | [Batched protected calls](guides/batched-protected-calls.md) |
 | Configure routes and navigation | [Routing](guides/routing.md) |
 | Manage images, fonts, CSS, and other assets | [Assets](guides/assets.md) |
 | Configure a site | [Configuration](guides/configuration.md) |
+| Control browser host access | [Capability modules](guides/capability-modules.md) |
 | Diagnose build and runtime failures | [Debugging](guides/debugging.md) |
 
 ## Understand the runtime
@@ -89,6 +94,7 @@ Internal implementation history and engineering-process records are intentionall
 | [JavaScript API](reference/javascript-api.md) | `venom.ready`, protected exports, values, and errors |
 | [Output layout](reference/output-layout.md) | Production distribution paths and responsibilities |
 | [Exit codes](reference/exit-codes.md) | Stable process-result categories for automation |
+| [Compiler diagnostics](reference/diagnostics.md) | Stable error codes, source locations, and remediation guidance |
 | [Host API contract](generated/host-api-contract.md) | Generated browser-host capability contract |
 
 ## Public examples

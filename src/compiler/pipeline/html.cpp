@@ -30,6 +30,7 @@ struct Token {
   std::vector<Attribute> attributes;
   std::string text;
   bool self_closing = false;
+  bool executable_script = false;
 };
 
 void append_u32(std::vector<unsigned char>& out, std::uint32_t value) {
@@ -53,6 +54,29 @@ std::string lower_ascii(std::string value) {
 bool is_name_char(char c) {
   const auto u = static_cast<unsigned char>(c);
   return std::isalnum(u) != 0 || c == '-' || c == '_' || c == ':' || c == '.';
+}
+
+
+std::string trim_ascii_copy(std::string value) {
+  while (!value.empty() && std::isspace(static_cast<unsigned char>(value.front())) != 0) value.erase(value.begin());
+  while (!value.empty() && std::isspace(static_cast<unsigned char>(value.back())) != 0) value.pop_back();
+  return value;
+}
+
+bool script_is_executable(const std::vector<Attribute>& attributes) {
+  std::string type;
+  for (const auto& attribute : attributes) {
+    if (lower_ascii(attribute.name) == "type") { type = attribute.value; break; }
+  }
+  type = lower_ascii(trim_ascii_copy(std::move(type)));
+  if (const auto semi = type.find(';'); semi != std::string::npos) type.resize(semi);
+  type = trim_ascii_copy(std::move(type));
+  if (type.empty() || type == "module") return true;
+  static const std::vector<std::string> javascript_types = {
+    "text/javascript", "application/javascript", "text/ecmascript", "application/ecmascript",
+    "application/x-javascript", "text/jscript", "text/livescript"
+  };
+  return std::find(javascript_types.begin(), javascript_types.end(), type) != javascript_types.end();
 }
 
 bool is_void_element(const std::string& name) {
@@ -295,22 +319,31 @@ std::vector<Token> tokenize_html(std::string_view source) {
     }
 
     const auto token_name = token.name;
+    if (token_name == "script") token.executable_script = script_is_executable(token.attributes);
+    const bool executable_script = token.executable_script;
     tokens.push_back(std::move(token));
-    if (is_preformatted_element(token_name)) {
-      ++preformatted_depth;
-    }
+    if (is_preformatted_element(token_name)) ++preformatted_depth;
 
     if (token_name == "script" || token_name == "style") {
       const std::string end_tag = "</" + token_name;
       const auto end = find_case_insensitive(source, end_tag, i);
       if (end == std::string::npos) {
+        if (token_name == "script" && !executable_script && i < source.size()) {
+          Token text_token; text_token.kind = Token::Kind::Text; text_token.text = std::string(source.substr(i));
+          tokens.push_back(std::move(text_token));
+        }
         i = source.size();
       } else {
+        if (token_name == "script" && !executable_script && end > i) {
+          Token text_token; text_token.kind = Token::Kind::Text; text_token.text = std::string(source.substr(i, end - i));
+          tokens.push_back(std::move(text_token));
+        }
         const auto close = source.find('>', end);
         i = close == std::string::npos ? source.size() : close + 1;
         Token end_token;
         end_token.kind = Token::Kind::EndTag;
         end_token.name = token_name;
+        end_token.executable_script = executable_script;
         tokens.push_back(std::move(end_token));
       }
     }
@@ -363,7 +396,8 @@ std::vector<unsigned char> encode_string_table(const std::vector<std::string>& s
   for (std::uint32_t i = 0; i < strings.size(); ++i) {
     const auto& value = strings[i];
     std::uint32_t state = table_seed ^ (0xC3D2E1F0u ^ (i * 0x45D9F3Bu) ^ static_cast<std::uint32_t>(value.size())) ^ (static_cast<std::uint32_t>(value.size()) * 0x27D4EB2Du);
-    for (unsigned char ch : value) {
+    for (const char raw_ch : value) {
+    const auto ch = static_cast<unsigned char>(raw_ch);
       const auto word = string_stream_next(state);
       out.push_back(static_cast<unsigned char>(ch ^ static_cast<unsigned char>(word & 0xffu)));
     }
@@ -545,9 +579,7 @@ void compile_tokens_to_program(const std::vector<Token>& tokens, StringPool& str
     }
 
     if (token.kind == Token::Kind::StartTag) {
-      if (token.name == "script" || token.name == "style") {
-        continue;
-      }
+      if ((token.name == "script" && token.executable_script) || token.name == "style") continue;
       apply_implied_start_closures(token.name);
       const auto tag_id = strings.intern(token.name);
       program.push_back({venom::vm::LogicalOpcode::CreateElement, tag_id, 0, 0});
@@ -569,9 +601,7 @@ void compile_tokens_to_program(const std::vector<Token>& tokens, StringPool& str
     }
 
     if (token.kind == Token::Kind::EndTag) {
-      if (token.name == "script" || token.name == "style" || is_void_element(token.name)) {
-        continue;
-      }
+      if ((token.name == "script" && token.executable_script) || token.name == "style" || is_void_element(token.name)) continue;
 
       // Browsers ignore unmatched closing tags. Do the same rather than
       // emitting a VM pop that can underflow the synthetic route root.
@@ -692,7 +722,8 @@ std::string make_bootstrap_html(const SiteGraph& graph,
                                 const std::string& loader_public_path,
                                 const std::string& style_public_path,
                                 const std::string& loader_integrity,
-                                const std::string& style_integrity) {
+                                const std::string& style_integrity,
+                                const std::vector<HtmlPreloadHint>& preload_hints) {
   const auto shell = parse_document_shell(graph);
   const auto style_sri = style_integrity.empty() ? std::string{} : " integrity=\"" + style_integrity + "\" crossorigin=\"anonymous\"";
   const auto loader_sri = loader_integrity.empty() ? std::string{} : " integrity=\"" + loader_integrity + "\" crossorigin=\"anonymous\"";
@@ -704,8 +735,17 @@ std::string make_bootstrap_html(const SiteGraph& graph,
       << "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
       << "  <title>" << escape_html_text(shell.title) << "</title>\n"
       << "  <link rel=\"icon\" href=\"data:,\">\n"
-      << "  <link rel=\"stylesheet\" href=\"" << style_public_path << "\"" << style_sri << ">\n"
-      << "</head>\n"
+      << "  <link rel=\"stylesheet\" href=\"" << style_public_path << "\"" << style_sri << ">\n";
+  for (const auto& hint : preload_hints) {
+    if (hint.href.empty() || hint.relation.empty()) continue;
+    out << "  <link rel=\"" << escape_html_attribute(hint.relation) << "\" href=\""
+        << escape_html_attribute(hint.href) << "\"";
+    if (!hint.as_type.empty()) out << " as=\"" << escape_html_attribute(hint.as_type) << "\"";
+    if (!hint.mime_type.empty()) out << " type=\"" << escape_html_attribute(hint.mime_type) << "\"";
+    if (hint.crossorigin) out << " crossorigin=\"anonymous\"";
+    out << ">\n";
+  }
+  out << "</head>\n"
       << "<body" << render_shell_attributes(shell.body_attributes, false) << ">\n"
       << "  <noscript>This protected runtime requires JavaScript.</noscript>\n"
       << "  <div id=\"venom-root\"></div>\n"

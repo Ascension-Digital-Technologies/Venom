@@ -3,7 +3,7 @@ from pathlib import Path
 import sys
 
 root = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path(__file__).resolve().parents[2]
-scripts = root / "scripts"
+scripts = root / "scripts" / "windows"
 helper = (scripts / "internal" / "invoke-powershell.bat").read_text(encoding="utf-8").lower()
 required = ["command completed successfully", "command failed with exit code", "press any key to close", "venom_no_pause", "github_actions"]
 for marker in required:

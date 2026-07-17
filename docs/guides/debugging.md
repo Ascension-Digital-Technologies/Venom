@@ -1,16 +1,16 @@
 # Debugging
 
-> **Applies to:** Venom 1.0.1
+> **Applies to:** Venom 1.1.0
 
-Use the development profile to diagnose application behavior while still executing protected code through the real QuickJS/WASM path. Do not debug a production failure by disabling verification or introducing host-JavaScript fallback behavior.
+Use the production-grade build path to diagnose application behavior while still executing protected code through the real QuickJS/WASM path. Do not debug a production failure by disabling verification or introducing host-JavaScript fallback behavior.
 
 ## First checks
 
 ```powershell
 venom doctor --profile production
 venom compatibility check path\to\site
-venom build path\to\site --profile dev --out build\dev-dist
-venom analyze-dist build\dev-dist
+venom build path\to\site --profile prod --out build\dev-dist
+venom analyze build\dev-dist
 ```
 
 Inspect the browser console, network panel, worker errors, route requests, and generated compatibility report.
@@ -36,7 +36,7 @@ Run:
 
 ```powershell
 venom verify-runtime dist
-venom release-check dist
+venom verify dist
 ```
 
 Never replace a failed production runtime with a development asset. Rebuild the complete distribution so all hashes and package bindings are generated together.

@@ -137,9 +137,9 @@ std::string make_quickjs_release_failclosed_metadata(const Profile& profile, con
 
 
 std::size_t quickjs_module_count(const JsBridge& bridge) {
-  return std::count_if(bridge.chunks.begin(), bridge.chunks.end(), [](const JsChunk& chunk) {
+  return static_cast<std::size_t>(std::count_if(bridge.chunks.begin(), bridge.chunks.end(), [](const JsChunk& chunk) {
     return (chunk.flags & JsChunkModule) != 0u;
-  });
+  }));
 }
 
 std::string make_quickjs_module_graph_metadata(const Profile& profile, const std::string& runtime_mode, const JsBridge& bridge) {
@@ -304,7 +304,8 @@ std::string make_runtime_policy_metadata(const Profile& profile, const std::stri
     };
     auto fnv32 = [](const std::string& text) {
       std::uint32_t h = 2166136261u;
-      for (unsigned char c : text) { h ^= c; h *= 16777619u; }
+      for (const char raw_c : text) {
+    const auto c = static_cast<unsigned char>(raw_c); h ^= c; h *= 16777619u; }
       return h;
     };
     std::uint32_t flags = 0u;

@@ -1,6 +1,6 @@
 # JavaScript API
 
-> **Applies to:** Venom 1.0.1
+> **Applies to:** Venom 1.1.0
 
 The browser-facing API provides readiness and asynchronous access to protected exports. It intentionally does not expose internal QuickJS contexts, package records, workers, message ports, or runtime memory.
 
@@ -45,3 +45,20 @@ Failures reject the promise with a sanitized bridge/runtime error. Applications 
 Calls are subject to configured queue, payload, execution, and memory limits. Use application-level timeouts and avoid sending large data structures when a compact input is sufficient.
 
 See [Browser bridge](../guides/browser-bridge.md) and [Binary capability bridge](../security/binary-capability-bridge.md).
+
+## `venom.batch`
+
+Schedules multiple independent protected export calls and resolves their results in input order.
+
+```javascript
+const [first, second] = await venom.batch([
+  { name: "score", input: { value: 10 } },
+  { name: "score", input: { value: 20 } }
+]);
+```
+
+Each item accepts `name`, `input`, and optional per-call `options`. A shared options object may be supplied as the second argument. The batch is validated before dispatch, is limited by the public pending-call limit, and retains an independent capability lease, timeout, cancellation path, replay counter, and response validation for every call.
+
+## Binary protected values
+
+Protected calls accept `ArrayBuffer` and common numeric typed arrays in addition to JSON-safe values. See [Binary protected values](../guides/binary-protected-values.md). `venom.info().valueContract` reports `binary-json-v2`.

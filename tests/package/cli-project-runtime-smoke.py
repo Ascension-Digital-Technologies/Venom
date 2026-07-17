@@ -12,7 +12,7 @@ try:
     subprocess.run([str(exe), 'config', 'validate', str(project/'venom.toml')], check=True)
     result = subprocess.run([str(exe), 'config', 'print', str(project/'venom.toml'), '--format', 'json'], check=True, capture_output=True, text=True)
     payload=json.loads(result.stdout)
-    assert payload['profile']=='dev' and payload['runtime']=='quickjs-wasm' and payload['fail_closed'] is True
+    assert payload['profile']=='prod' and payload['runtime']=='quickjs-wasm' and payload['fail_closed'] is True
     runtime=root/'runtime'
     subprocess.run([str(exe), 'runtime', 'install', '--dir', str(runtime)], check=True)
     subprocess.run([str(exe), 'runtime', 'verify', '--dir', str(runtime)], check=True)

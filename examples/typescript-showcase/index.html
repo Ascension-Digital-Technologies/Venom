@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Venom TypeScript AST and protected QuickJS/WASM showcase">
+  <title>Venom TypeScript Showcase</title>
+  <link rel="stylesheet" href="./styles/main.css">
+  <script type="application/ld+json">
+    {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Venom TypeScript Showcase"}
+  </script>
+  <script id="demo-config" type="application/json">
+    {"defaultTier":"pro","coupons":["VENOM20","TYPESCRIPT10"]}
+  </script>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">VENOM 1.2 · TYPESCRIPT</p>
+        <h1>Typed source.<br><span>Protected execution.</span></h1>
+        <p class="lede">A complete TypeScript project compiled through Venom’s AST planner into browser UI and protected QuickJS/WASM modules.</p>
+      </div>
+      <div id="runtime-badge" class="badge" data-status="loading">Initializing protected runtime…</div>
+    </section>
+
+    <section class="grid">
+      <form id="quote-form" class="panel">
+        <h2>Protected quote engine</h2>
+        <label>Unit price<input name="basePrice" type="number" min="0" step="0.01" value="149.99"></label>
+        <label>Quantity<input name="quantity" type="number" min="1" step="1" value="8"></label>
+        <label>Customer tier
+          <select name="customerTier">
+            <option value="standard">Standard</option>
+            <option value="pro" selected>Pro</option>
+            <option value="enterprise">Enterprise</option>
+          </select>
+        </label>
+        <label>Coupon<input name="coupon" value="TYPESCRIPT10"></label>
+        <button type="submit">Calculate in QuickJS/WASM</button>
+      </form>
+
+      <section class="panel result-panel">
+        <h2>Protected result</h2>
+        <div id="result" aria-live="polite">Waiting for runtime…</div>
+      </section>
+    </section>
+
+    <section class="features">
+      <article><strong>AST planning</strong><span>No regex function discovery</span></article>
+      <article><strong>Type erasure</strong><span>Interfaces, aliases and annotations</span></article>
+      <article><strong>Symbol closure</strong><span>Default and barrel exports</span></article>
+      <article><strong>Safe cycles</strong><span>Cross-module recursive helpers</span></article>
+      <article><strong>HTML-aware</strong><span>JSON script blocks stay data</span></article>
+      <article><strong>Fail closed</strong><span>No browser JS fallback</span></article>
+    </section>
+  </main>
+  <script type="module" src="./browser/app.ts"></script>
+</body>
+</html>

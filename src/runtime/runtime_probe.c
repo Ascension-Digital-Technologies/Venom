@@ -4,7 +4,12 @@
 #include <stdlib.h>
 
 static unsigned char* read_file(const char* path, unsigned long* out_size) {
-  FILE* file = fopen(path, "rb");
+  FILE* file = NULL;
+#if defined(_WIN32)
+  if (fopen_s(&file, path, "rb") != 0) file = NULL;
+#else
+  file = fopen(path, "rb");
+#endif
   if (!file) return NULL;
   if (fseek(file, 0, SEEK_END) != 0) { fclose(file); return NULL; }
   long size = ftell(file);

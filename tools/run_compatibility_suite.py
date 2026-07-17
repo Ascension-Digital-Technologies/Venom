@@ -23,7 +23,7 @@ def main() -> int:
     parser.add_argument("--venom", type=Path, required=True)
     parser.add_argument("--suite", type=Path, default=Path("tests/compatibility-suite.json"))
     parser.add_argument("--browser", default="all", choices=["all", "chromium", "firefox", "webkit"])
-    parser.add_argument("--profile", default="dev", choices=["dev", "prod"])
+    parser.add_argument("--profile", default="prod", choices=["prod"])
     parser.add_argument("--out", type=Path, default=Path("build/compatibility"))
     parser.add_argument("--skip-build", action="store_true")
     parser.add_argument("--required-browsers", default="chromium,firefox,webkit")

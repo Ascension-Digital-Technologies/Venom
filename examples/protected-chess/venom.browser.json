@@ -1,12 +1,20 @@
 {
-  "id": "protected-chess",
+  "schema_version": 2,
+  "id": "protected-chess-runtime",
+  "profile": "prod",
+  "claims": [
+    "protected-runtime-boots",
+    "protected-export-executes",
+    "malformed-protected-call-rejected",
+    "runtime-is-error-free"
+  ],
   "scenarios": [
     {
-      "id": "protected-runtime-boot",
+      "id": "protected-runtime",
       "path": "/",
       "timeout_ms": 30000,
       "wait_for": {
-        "selector": "#runtime-state"
+        "expression": "() => document.querySelector('#runtime-state')?.textContent.includes('Protected')"
       },
       "checks": [
         {
@@ -14,15 +22,18 @@
           "type": "contains-text",
           "selector": "#runtime-state",
           "contains": "Protected"
+        },
+        {
+          "id": "protected-export-identity",
+          "type": "evaluate",
+          "expression": "(async () => { await globalThis.venom.ready(); const value = await globalThis.venom.exports.runChessEngine({action:'identity'}); return value && value.protected === true && typeof value.runtime === 'string'; })()"
+        },
+        {
+          "id": "invalid-action-rejected",
+          "type": "evaluate",
+          "expression": "(async () => { try { await globalThis.venom.exports.runChessEngine({action:'__invalid_runtime_probe__'}); return false; } catch (error) { return String(error).includes('unsupported chess engine action'); } })()"
         }
       ]
     }
-  ],
-  "schema_version": 1,
-  "profile": "prod",
-  "evidence_level": "release-qualification",
-  "support_tier": "flagship",
-  "claims": [
-    "protected-engine-boots"
   ]
 }

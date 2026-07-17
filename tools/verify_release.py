@@ -145,7 +145,7 @@ def verify_manifest_files(release_root: Path, entries: list[ManifestEntry]) -> l
 
 def verify_supply_chain_metadata(release_root: Path, meta: dict[str, str], entries: list[ManifestEntry]) -> list[str]:
     failures: list[str] = []
-    required = ('SBOM.cdx.json', 'PROVENANCE.intoto.json', 'toolchains.lock.json')
+    required = ('SBOM.cdx.json', 'PROVENANCE.intoto.json', 'RELEASE_POLICY.json', 'toolchains.lock.json')
     manifest_paths = {e.relpath for e in entries}
     for name in required:
         if name not in manifest_paths:
@@ -165,8 +165,20 @@ def verify_supply_chain_metadata(release_root: Path, meta: dict[str, str], entri
         if provenance.get('predicateType') != 'https://slsa.dev/provenance/v1': failures.append('provenance predicate type is invalid')
         params=provenance.get('predicate',{}).get('buildDefinition',{}).get('externalParameters',{})
         if params.get('version') != meta.get('version'): failures.append('provenance version does not match release manifest')
+        subjects={x.get('name'):x.get('digest',{}).get('sha256') for x in provenance.get('subject',[])}
+        binary_name='bin/venom.exe' if (release_root/'bin'/'venom.exe').is_file() else 'bin/venom'
+        if subjects.get(binary_name) != sha256(release_root/binary_name): failures.append('provenance binary subject digest mismatch')
     except Exception as exc:
         failures.append(f'invalid PROVENANCE.intoto.json: {exc}')
+    try:
+        policy=json.loads((release_root/'RELEASE_POLICY.json').read_text(encoding='utf-8'))
+        if policy.get('schema') != 'VENOM_RELEASE_POLICY_V1': failures.append('release policy schema is invalid')
+        if policy.get('version') != meta.get('version'): failures.append('release policy version does not match manifest')
+        if str(policy.get('releaseSequence')) != meta.get('release_sequence'): failures.append('release policy sequence does not match manifest')
+        if policy.get('channel') != meta.get('release_channel'): failures.append('release policy channel does not match manifest')
+        if policy.get('security',{}).get('hostSourceFallbackAllowed') is not False: failures.append('release policy permits host source fallback')
+    except Exception as exc:
+        failures.append(f'invalid RELEASE_POLICY.json: {exc}')
     if 'source_date_epoch' not in meta: failures.append('release manifest is missing source_date_epoch')
     return failures
 

@@ -22,6 +22,8 @@ def main()->int:
     ap.add_argument('--dist',type=Path,default=Path('build/qualified-chess-dist'))
     ap.add_argument('--seed',type=int,default=1350001)
     ap.add_argument('--skip-reproducibility',action='store_true')
+    ap.add_argument('--browser', choices=('chromium','firefox','webkit','all'))
+    ap.add_argument('--browser-report', type=Path, default=Path('build/protected-chess-browser.json'))
     args=ap.parse_args()
     root=Path(__file__).resolve().parents[1]
     venom=args.venom.resolve(); site=(root/args.site).resolve() if not args.site.is_absolute() else args.site.resolve(); dist=(root/args.dist).resolve() if not args.dist.is_absolute() else args.dist.resolve()
@@ -29,8 +31,11 @@ def main()->int:
     if dist.exists(): shutil.rmtree(dist)
     run([venom,'build',site,'--out',dist,'--seed',str(args.seed)],cwd=root,env=env)
     run([venom,'verify-runtime',dist,'--target','browser','--require-real-engine'],cwd=root,env=env)
-    run([sys.executable,root/'scripts/check-production-leaks.py',dist],cwd=root,env=env)
+    run([sys.executable,root/'tools/check_production_leaks.py',dist],cwd=root,env=env)
     run([sys.executable,root/'tools/tamper_gate.py',dist,'--venom',venom],cwd=root,env=env)
+    if args.browser:
+        report=(root/args.browser_report).resolve() if not args.browser_report.is_absolute() else args.browser_report.resolve()
+        run([sys.executable,root/'tools/browser_validation.py',dist,'--browser',args.browser,'--manifest',site/'venom.browser.json','--json-out',report],cwd=root,env=env)
     if not args.skip_reproducibility:
         a=dist.parent/'repro-a'; b=dist.parent/'repro-b'; c=dist.parent/'repro-different-seed'
         for x in (a,b,c):

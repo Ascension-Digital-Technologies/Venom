@@ -2,7 +2,7 @@
 
 > **Audience:** integrators and security reviewers  
 > **Status:** production protocol  
-> **Applies to:** Venom 1.0.1
+> **Applies to:** Venom 1.1.0
 Venom 1.57 replaces the readable array-based worker bridge with a private `MessagePort` carrying transferable binary frames. The public `venom.exports.*` API remains unchanged.
 
 ## Frame design

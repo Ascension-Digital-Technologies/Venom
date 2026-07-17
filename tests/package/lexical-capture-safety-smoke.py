@@ -12,7 +12,7 @@ def run_case(code: str, expect_ok: bool, marker: str = '') -> None:
         (site/'index.html').write_text('<script data-venom="browser" src="app.js"></script>',encoding='utf-8')
         (site/'app.js').write_text(code,encoding='utf-8')
         (site/'venom.lock').write_text(lock,encoding='utf-8')
-        p=subprocess.run([str(venom),'build',str(site),'--out',str(out),'--profile','dev'],text=True,capture_output=True)
+        p=subprocess.run([str(venom),'build',str(site),'--out',str(out),'--profile','prod'],text=True,capture_output=True)
         text=p.stdout+p.stderr
         if expect_ok and p.returncode != 0: raise SystemExit(text)
         if not expect_ok and (p.returncode == 0 or marker not in text):

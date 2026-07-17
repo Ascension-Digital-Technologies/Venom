@@ -1,6 +1,6 @@
 # Annotation Reference
 
-> **Applies to:** Venom 1.0.1
+> **Applies to:** Venom 1.1.0
 
 Venom protects JavaScript by default. Annotations select browser execution where compatibility requires it or explicitly document protected intent.
 

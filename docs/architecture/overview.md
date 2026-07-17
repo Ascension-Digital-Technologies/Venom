@@ -7,7 +7,7 @@ Venom is a compiler, package system, loader, worker runtime, QuickJS execution e
 ```text
 HTML / CSS / JavaScript
         │
-        ├─ execution-realm analysis
+        ├─ execution-runtime analysis
         ├─ route and asset compilation
         ├─ protected function/module extraction
         ├─ QuickJS bytecode compilation

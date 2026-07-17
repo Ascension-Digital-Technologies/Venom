@@ -6,7 +6,7 @@ engine = (root/'src/generated/runtime/quickjs_engine_module.cpp').read_text()
 runtime = (root/'src/generated/runtime/runtime_js.cpp').read_text()
 runtime += (root / 'src/runtime/templates/runtime.js').read_text(encoding='utf-8')
 build = (root/'src/compiler/pipeline/build.cpp').read_text() + (root/'src/compiler/pipeline/build_package_metadata.cpp').read_text() + (root/'src/compiler/pipeline/build_runtime_metadata.cpp').read_text() + (root/'src/compiler/pipeline/build_runtime_audit_metadata.cpp').read_text() + (root/'src/compiler/pipeline/build_runtime_module_metadata.cpp').read_text()
-sh = (root/'scripts/build-quickjs-wasm.sh').read_text()
+sh = (root/'scripts'/'linux'/'build-quickjs-wasm.sh').read_text()
 assert 'venom_qjs_compact_result_ptr' in abi
 assert abi.count("'venom_qjs_") <= 23
 start = engine.index("const compactPtr = typeof e.venom_qjs_compact_result_ptr")

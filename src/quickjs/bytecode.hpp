@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -28,6 +30,12 @@ struct ModuleSourceRecord {
   std::string compile_name;
   std::string source;
 };
+
+struct BytecodeCacheStats { std::size_t hits = 0; std::size_t misses = 0; std::size_t writes = 0; };
+BytecodeCacheStats bytecode_cache_stats();
+void reset_bytecode_cache_stats();
+
+void configure_bytecode_cache(bool enabled, const std::filesystem::path& directory, bool verbose = false);
 
 std::vector<unsigned char> compile_protected_portable_bytecode(const std::string& source);
 std::vector<unsigned char> compile_native_quickjs_bytecode(const std::string& source,

@@ -1,6 +1,7 @@
 #include "compiler/pipeline/build_package_metadata.hpp"
 #include "compiler/pipeline/build_support.hpp"
 #include "compiler/pipeline/assets.hpp"
+#include "compiler/graph/module_graph.hpp"
 
 #include "package/crypto.hpp"
 #include "package/hash.hpp"
@@ -12,6 +13,7 @@
 #include <sstream>
 #include <random>
 #include <stdexcept>
+#include <unordered_map>
 
 namespace venom::compiler::build_package_detail {
 using namespace venom::compiler::build_detail;
@@ -83,11 +85,8 @@ std::string make_release_build_policy_metadata(const Profile& profile,
   return out.str();
 }
 
-
-
-
 std::string selected_section_sealer_name(const Profile& profile, const std::string& crypto_provider) {
-  if (!profile.crypto_provider_ready || profile.kind == ProfileKind::Dev) {
+  if (!profile.crypto_provider_ready) {
     return "none";
   }
   if (crypto_provider == "libsodium") {
@@ -104,12 +103,11 @@ venom::package::SectionCryptoProvider selected_writer_crypto_provider(const std:
 }
 
 std::string stored_section_name_for_metadata(const Profile& profile, venom::package::SectionType type, const std::string& name) {
-  if (profile.strip_debug_metadata && profile.kind != ProfileKind::Dev && venom::package::should_redact_section_name(type)) {
+  if (profile.strip_debug_metadata && venom::package::should_redact_section_name(type)) {
     return venom::package::protected_section_alias(type, name);
   }
   return name;
 }
-
 
 std::string make_package_binding_token(bool deterministic, const std::string& seed) {
   if (deterministic) {
@@ -122,7 +120,6 @@ std::string make_package_binding_token(bool deterministic, const std::string& se
   }
   return venom::package::sha256_hex(bytes);
 }
-
 
 std::string package_section_order_digest(const Profile& profile, const std::vector<PendingPackageSection>& sections) {
   std::ostringstream canonical;
@@ -152,12 +149,11 @@ std::string make_package_layout_metadata(const Profile& profile,
       << "payload_jitter=true\n"
       << "payload_jitter_max=" << max_padding << "\n"
       << "layout_seed_commitment=" << poly.seed_commitment << "\n"
-      << "section_name_redaction=" << ((profile.strip_debug_metadata && profile.kind != ProfileKind::Dev) ? "true" : "false") << "\n"
+      << "section_name_redaction=" << ((profile.strip_debug_metadata) ? "true" : "false") << "\n"
       << "section_count_before_layout=" << sections.size() << "\n"
       << "section_order_digest=" << package_section_order_digest(profile, sections) << "\n";
   return out.str();
 }
-
 
 void append_u32_local(std::vector<unsigned char>& out, std::uint32_t value) {
   out.push_back(static_cast<unsigned char>(value & 0xffu));
@@ -222,7 +218,8 @@ std::vector<unsigned char> make_single_route_bytecode_section(const venom::vm::P
   return out;
 }
 
-std::vector<unsigned char> encode_route_script_bundle(const std::vector<JsChunk>& chunks, bool opaque_metadata) {
+
+std::vector<unsigned char> encode_route_script_bundle(const std::vector<JsChunk>& chunks, const graph::CanonicalModuleGraph& module_graph, bool opaque_metadata) {
   struct Entry {
     std::uint32_t route_offset = 0;
     std::uint32_t route_size = 0;
@@ -241,22 +238,41 @@ std::vector<unsigned char> encode_route_script_bundle(const std::vector<JsChunk>
   std::vector<venom::quickjs::ModuleSourceRecord> module_sources;
   entries.reserve(chunks.size());
   module_sources.reserve(chunks.size());
+
+  std::vector<std::string> stored_sources;
+  stored_sources.reserve(chunks.size());
   for (const auto& chunk : chunks) {
-    if ((chunk.flags & JsChunkModule) == 0u) continue;
-    const std::string compile_name = opaque_metadata
-        ? ("s_" + short_hash_hex(venom::package::fnv1a64(bytes_from_string("source|" + chunk.route + "|" + chunk.source + "|" + std::to_string(chunk.order))), 16))
-        : chunk.source;
-    module_sources.push_back({chunk.source, compile_name, chunk.code});
+    const auto* module = module_graph.find_by_source(chunk.route, chunk.source);
+    if (module == nullptr) throw std::runtime_error("canonical module graph is missing route source: " + chunk.source);
+    stored_sources.push_back(module->runtime_source);
   }
+
+  std::vector<std::string> compiled_sources;
+  compiled_sources.reserve(chunks.size());
   for (const auto& chunk : chunks) {
+    if ((chunk.flags & JsChunkBrowser) != 0u && (chunk.flags & JsChunkModule) != 0u) {
+      const auto* module = module_graph.find_by_source(chunk.route, chunk.source);
+      if (module == nullptr) throw std::runtime_error("canonical module graph is missing browser route source: " + chunk.source);
+      compiled_sources.push_back(graph::browser_module_identity_prefix(*module) + graph::browser_module_map_prefix(module_graph, *module) + chunk.code);
+    } else {
+      compiled_sources.push_back(chunk.code);
+    }
+  }
+
+  for (std::size_t chunk_index = 0; chunk_index < chunks.size(); ++chunk_index) {
+    const auto& chunk = chunks[chunk_index];
+    if ((chunk.flags & JsChunkModule) == 0u) continue;
+    const std::string& compile_name = stored_sources[chunk_index];
+    module_sources.push_back({chunk.source, compile_name, compiled_sources[chunk_index]});
+  }
+  for (std::size_t chunk_index = 0; chunk_index < chunks.size(); ++chunk_index) {
+    const auto& chunk = chunks[chunk_index];
     Entry entry;
     // Route labels remain executable routing keys. Hiding them without a separate
     // authenticated route-id map prevents the browser runtime from selecting the
     // route's script bundle. Source labels are hardened independently below.
     const std::string route_label = chunk.route;
-    const std::string source_label = opaque_metadata
-        ? ("s_" + short_hash_hex(venom::package::fnv1a64(bytes_from_string("source|" + chunk.route + "|" + chunk.source + "|" + std::to_string(chunk.order))), 16))
-        : chunk.source;
+    const std::string& source_label = stored_sources[chunk_index];
     entry.route_offset = static_cast<std::uint32_t>(text_blob.size());
     entry.route_size = static_cast<std::uint32_t>(route_label.size());
     text_blob.insert(text_blob.end(), route_label.begin(), route_label.end());
@@ -267,10 +283,11 @@ std::vector<unsigned char> encode_route_script_bundle(const std::vector<JsChunk>
     const bool is_module = (chunk.flags & JsChunkModule) != 0u;
     std::vector<unsigned char> payload;
     if (browser_side) {
-      // Browser-realm chunks must remain browser-executable source. Encoding
+      // Browser-runtime chunks must remain browser-executable source. Encoding
       // them as QuickJS bytecode leaves chunk.code empty at runtime and causes
       // the browser executor to silently skip the script.
-      payload.assign(chunk.code.begin(), chunk.code.end());
+      const auto& browser_source = compiled_sources[chunk_index];
+      payload.assign(browser_source.begin(), browser_source.end());
     } else {
       payload = venom::quickjs::compile_native_quickjs_bytecode(
           chunk.code,
@@ -350,7 +367,6 @@ std::string make_lazy_sections_metadata(const Profile& profile,
   }
   return out.str();
 }
-
 
 std::string release_threat_model_id(const BuildOptions& options) {
   if (options.security_target == "native" || options.crypto_provider == "libsodium" || options.require_audited_crypto) {
@@ -463,7 +479,7 @@ std::string make_integrity_metadata(const Profile& profile, const std::string& r
       << "scope=decoded-sections\n"
       << "aead_provider=" << selected_section_sealer_name(profile, crypto_provider) << "\n"
       << "section_sealer=" << selected_section_sealer_name(profile, crypto_provider) << "\n"
-      << "section_name_redaction=" << ((profile.strip_debug_metadata && profile.kind != ProfileKind::Dev) ? "true" : "false") << "\n"
+      << "section_name_redaction=" << ((profile.strip_debug_metadata) ? "true" : "false") << "\n"
       << "profile=" << profile.name << "\n"
       << "runtime_mode=" << runtime_mode << "\n"
       << "wasm_runtime=" << (runtime_mode == "wasm" ? "true" : "false") << "\n"
@@ -477,9 +493,6 @@ std::string make_integrity_metadata(const Profile& profile, const std::string& r
   }
   return out.str();
 }
-
-
-
 
 bool package_feature_required_in_release(const PendingPackageSection& section) {
   if (section.type == venom::package::SectionType::Asset ||
@@ -524,10 +537,10 @@ std::string make_package_features_metadata(const Profile& profile,
       << "integrity_provider_ready=" << (profile.integrity_metadata ? "true" : "false") << "\n"
       << "aead_provider_ready=" << (profile.aead_provider_ready ? "true" : "false") << "\n"
       << "section_sealer=" << selected_section_sealer_name(profile, crypto_provider) << "\n"
-      << "sealed_sections=" << ((profile.crypto_provider_ready && profile.kind != ProfileKind::Dev) ? "true" : "false") << "\n"
-      << "section_name_redaction=" << ((profile.strip_debug_metadata && profile.kind != ProfileKind::Dev) ? "true" : "false") << "\n"
+      << "sealed_sections=" << ((profile.crypto_provider_ready) ? "true" : "false") << "\n"
+      << "section_name_redaction=" << ((profile.strip_debug_metadata) ? "true" : "false") << "\n"
       << "signature_provider_ready=false\n"
-      << "production_metadata_profile=" << ((profile.strip_debug_metadata && profile.kind != ProfileKind::Dev) ? "minimal-v1" : "diagnostic-v1") << "\n"
+      << "production_metadata_profile=" << ((profile.strip_debug_metadata) ? "minimal-v1" : "diagnostic-v1") << "\n"
       << "feature_count=" << feature_count << "\n"
       << "required_in_release_count=" << release_required_count << "\n";
 
@@ -548,6 +561,5 @@ std::string make_package_features_metadata(const Profile& profile,
   }
   return out.str();
 }
-
 
 } // namespace venom::compiler::build_package_detail

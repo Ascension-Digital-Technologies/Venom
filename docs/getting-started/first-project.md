@@ -24,6 +24,6 @@ Build production output:
 
 ```powershell
 venom build . --profile prod --out dist
-venom analyze-dist dist
-venom release-check dist
+venom analyze dist
+venom verify dist
 ```

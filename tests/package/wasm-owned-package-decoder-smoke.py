@@ -16,5 +16,5 @@ if venom:
             data = path.read_bytes()
             for marker in forbidden:
                 assert marker not in data, f'{marker!r} leaked into {path.name}'
-        subprocess.run([sys.executable, str(root / 'scripts/check-production-leaks.py'), str(out)], check=True, cwd=root, stdout=subprocess.DEVNULL)
+        subprocess.run([sys.executable, str(root / 'tools/check_production_leaks.py'), str(out)], check=True, cwd=root, stdout=subprocess.DEVNULL)
 print('WASM-owned package decoder smoke: PASS')

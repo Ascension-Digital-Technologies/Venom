@@ -1,6 +1,6 @@
 # Security Model
 
-> **Applies to:** Venom 1.0.1  
+> **Applies to:** Venom 1.1.0  
 > **Audience:** application architects, security reviewers, and release owners
 
 Venom is a client-side reverse-engineering resistance system. It removes the exact protected source from the production distribution, changes the stored representation, isolates execution, narrows the public bridge, applies per-build polymorphism, and verifies the production runtime and release artifacts. It does not create a secret execution environment on a device controlled by an adversary.

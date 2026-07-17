@@ -22,3 +22,9 @@ require_audited_crypto = false
 minimum_chrome = 120
 minimum_firefox = 121
 minimum_safari = 17
+
+[capabilities]
+fetch = "auto"
+timers = "auto"
+storage = "auto"
+crypto = "auto"

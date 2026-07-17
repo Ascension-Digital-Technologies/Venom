@@ -24,20 +24,20 @@ std::vector<Node> hydrate(const std::string& html) {
   if (compiled.routes.size() != 1) throw std::runtime_error("expected one route");
 
   std::vector<Node> nodes{{"#root", -1}};
-  std::vector<int> stack{0};
-  int pending = -1;
+  std::vector<std::size_t> stack{0};
+  std::size_t pending = nodes.size();
   for (const auto& ins : compiled.routes[0].program) {
     using venom::vm::LogicalOpcode;
     switch (ins.opcode) {
       case LogicalOpcode::CreateElement:
         if (ins.a >= compiled.strings.size()) throw std::runtime_error("bad string id");
         nodes.push_back({compiled.strings[ins.a], -1});
-        pending = static_cast<int>(nodes.size() - 1);
+        pending = nodes.size() - 1;
         break;
       case LogicalOpcode::EnterElement:
-        if (pending < 0) throw std::runtime_error("enter without element");
+        if (pending == nodes.size()) throw std::runtime_error("enter without element");
         stack.push_back(pending);
-        pending = -1;
+        pending = nodes.size();
         break;
       case LogicalOpcode::LeaveElement:
         if (stack.size() <= 1) throw std::runtime_error("route stack underflow");
@@ -45,9 +45,9 @@ std::vector<Node> hydrate(const std::string& html) {
         stack.pop_back();
         break;
       case LogicalOpcode::AppendChild:
-        if (pending < 0 || stack.empty()) throw std::runtime_error("append without child");
-        nodes[pending].parent = stack.back();
-        pending = -1;
+        if (pending == nodes.size() || stack.empty()) throw std::runtime_error("append without child");
+        nodes[pending].parent = static_cast<int>(stack.back());
+        pending = nodes.size();
         break;
       default:
         break;
@@ -57,8 +57,8 @@ std::vector<Node> hydrate(const std::string& html) {
   return nodes;
 }
 
-int find_nth(const std::vector<Node>& nodes, const std::string& tag, int nth) {
-  for (int i = 0; i < static_cast<int>(nodes.size()); ++i) {
+std::size_t find_nth(const std::vector<Node>& nodes, const std::string& tag, int nth) {
+  for (std::size_t i = 0; i < nodes.size(); ++i) {
     if (nodes[i].tag == tag && --nth == 0) return i;
   }
   throw std::runtime_error("missing node: " + tag);
@@ -68,7 +68,7 @@ void require_siblings(const std::string& html, const std::string& tag, int count
   auto nodes = hydrate(html);
   int parent = -2;
   for (int n = 1; n <= count; ++n) {
-    const int id = find_nth(nodes, tag, n);
+    const std::size_t id = find_nth(nodes, tag, n);
     if (n == 1) parent = nodes[id].parent;
     if (nodes[id].parent != parent) throw std::runtime_error(tag + " elements were not siblings");
   }

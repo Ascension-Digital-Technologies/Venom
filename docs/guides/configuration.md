@@ -1,6 +1,6 @@
 # Site Configuration
 
-> **Applies to:** Venom 1.0.1
+> **Applies to:** Venom 1.1.0
 
 Venom uses `venom.toml` to describe the site root, build profile defaults, route behavior, runtime limits, asset handling, and production policy. Start from `venom.toml.example` or run `venom init` against an existing site.
 

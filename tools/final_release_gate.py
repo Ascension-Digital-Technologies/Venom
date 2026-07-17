@@ -6,8 +6,15 @@ from pathlib import Path
 
 REQUIRED = [
     'CMakeLists.txt', 'README.md', 'CHANGES.md',
+    'scripts/windows/release.ps1', 'scripts/linux/release.sh',
     '.github/workflows/release.yml', '.github/workflows/release-hardening.yml',
     'tools/package_release_set.py', 'tools/verify_release_set.py', 'tools/documentation_gate.py',
+    'tools/certify_release.py', 'tools/aggregate_certification.py',
+    'contracts/release-certification.json', '.github/workflows/certification.yml',
+    'docs/operations/release-certification.md',
+    'contracts/runtime-api.json', 'contracts/final-release.json', 'tools/final_readiness_report.py',
+    'packages/runtime/package.json',
+    'packages/runtime/src/index.js', 'packages/runtime/src/index.d.ts',
     'cmake/build_acceleration.cmake',
     'docs/README.md', 'docs/getting-started/build-from-source.md',
     'docs/operations/release-verification.md', 'docs/security/security-model.md',

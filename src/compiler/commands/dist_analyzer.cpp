@@ -39,7 +39,7 @@ std::string category_for(const std::filesystem::path& path) {
   if (ext == ".wasm") return "WebAssembly";
   if (ext == ".vbc" || ext == ".pax") return "Protected package";
   if (ext == ".js" || ext == ".mjs" || ext == ".cjs") {
-    if (generic.find("assets/runtime/") != std::string::npos || generic.find("assets/loader/") != std::string::npos || generic.find("assets/workers/") != std::string::npos) return "Venom runtime JavaScript";
+    if (generic.find("assets/javascript/") != std::string::npos || generic.find("assets/runtime/") != std::string::npos || generic.find("assets/loader/") != std::string::npos || generic.find("assets/workers/") != std::string::npos) return "Venom runtime JavaScript";
     return "Browser JavaScript";
   }
   if (ext == ".css") return "Styles";
@@ -52,7 +52,8 @@ std::string category_for(const std::filesystem::path& path) {
 
 std::string escape_json(const std::string& value) {
   std::ostringstream out;
-  for (unsigned char c : value) {
+  for (const char raw_c : value) {
+    const auto c = static_cast<unsigned char>(raw_c);
     switch (c) {
       case '"': out << "\\\""; break;
       case '\\': out << "\\\\"; break;
@@ -97,7 +98,7 @@ bool contains_forbidden_marker(const std::filesystem::path& path, std::string& m
 
 bool analyze_distribution(const DistAnalyzeOptions& options) {
   const auto root = std::filesystem::absolute(options.input);
-  if (!std::filesystem::is_directory(root)) throw std::runtime_error("analyze-dist requires a distribution directory");
+  if (!std::filesystem::is_directory(root)) throw std::runtime_error("analyze requires a distribution directory");
 
   std::vector<FileInfo> files;
   std::map<std::string, std::uintmax_t> category_sizes;
@@ -125,10 +126,12 @@ bool analyze_distribution(const DistAnalyzeOptions& options) {
   std::sort(files.begin(), files.end(), [](const FileInfo& a, const FileInfo& b) { return a.size > b.size; });
   std::uintmax_t duplicate_waste = 0;
   std::vector<std::vector<std::filesystem::path>> duplicates;
-  for (const auto& [digest, paths] : duplicate_groups) {
+  for (const auto& duplicate_entry : duplicate_groups) {
+    const auto& digest = duplicate_entry.first;
+    const auto& paths = duplicate_entry.second;
     if (paths.size() < 2) continue;
     duplicates.push_back(paths);
-    const auto it = std::find_if(files.begin(), files.end(), [&](const FileInfo& info) { return info.digest == digest; });
+    const auto it = std::find_if(files.begin(), files.end(), [&digest](const FileInfo& info) { return info.digest == digest; });
     if (it != files.end()) duplicate_waste += it->size * (paths.size() - 1);
   }
 

@@ -8,7 +8,7 @@ site = pathlib.Path(sys.argv[2])
 out = pathlib.Path(sys.argv[3])
 
 subprocess.run([str(venom), 'build', str(site), '--out', str(out), '--profile', 'prod'], check=True)
-check = subprocess.run([str(venom), 'release-check', str(out), '--target', 'browser'], check=True, text=True, capture_output=True)
+check = subprocess.run([str(venom), 'verify', str(out), '--target', 'browser'], check=True, text=True, capture_output=True)
 stdout = check.stdout
 required = [
     'lazy_sections: yes',
@@ -18,7 +18,7 @@ required = [
 ]
 for marker in required:
     if marker not in stdout:
-        raise SystemExit(f'missing release-check marker: {marker}\n{stdout}')
+        raise SystemExit(f'missing verify marker: {marker}\n{stdout}')
 
 packages = list((out / 'assets').glob('app*.vbc'))
 if not packages:

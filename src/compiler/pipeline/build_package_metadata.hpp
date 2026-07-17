@@ -1,6 +1,7 @@
 #pragma once
 
 #include "compiler/pipeline/build.hpp"
+#include "compiler/package/package_plan.hpp"
 #include "compiler/pipeline/js.hpp"
 #include "compiler/core/profile.hpp"
 #include "package/format.hpp"
@@ -15,12 +16,7 @@
 
 namespace venom::compiler::build_package_detail {
 
-struct PendingPackageSection {
-  venom::package::SectionType type = venom::package::SectionType::Manifest;
-  std::uint32_t flags = venom::package::SectionFlagNone;
-  std::string name;
-  std::vector<unsigned char> data;
-};
+using PendingPackageSection = venom::compiler::package_plan::Section;
 
 struct ReleaseBuildPolicy {
   bool release_like = false;
@@ -48,7 +44,7 @@ void append_u32_local(std::vector<unsigned char>&, std::uint32_t);
 std::vector<unsigned char> make_quickjs_abi_fingerprint();
 std::vector<unsigned char> make_release_diversification_table(const venom::vm::PolymorphicPlan&);
 std::vector<unsigned char> make_single_route_bytecode_section(const venom::vm::Program&, const venom::vm::PolymorphicPlan&);
-std::vector<unsigned char> encode_route_script_bundle(const std::vector<JsChunk>&, bool);
+std::vector<unsigned char> encode_route_script_bundle(const std::vector<JsChunk>&, const graph::CanonicalModuleGraph&, bool);
 std::string lazy_route_section_name(const std::string&);
 std::string lazy_script_section_name(const std::string&);
 struct LazySectionPlanRow {

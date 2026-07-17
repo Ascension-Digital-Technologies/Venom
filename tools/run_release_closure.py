@@ -167,15 +167,15 @@ def main() -> int:
                 ])
 
         if args.build_examples:
-            leak_scan = root / "scripts/check-production-leaks.py"
-            for example in ("protected-chess", "nova-trade", "bot-detection"):
+            leak_scan = root / "tools/check_production_leaks.py"
+            for example in ("protected-chess", "nova-trade", "bot-detection", "typescript-showcase", "tsx-showcase", "aegis-operations"):
                 site = root / "examples" / example
                 step(f"analyze-{example}", [str(venom), "analyze", str(site), "--format", "json"])
-                for profile in ("dev", "prod"):
+                for profile in ("prod",):
                     dist = out_dir / "examples" / example / profile
                     shutil.rmtree(dist, ignore_errors=True)
                     step(f"build-{example}-{profile}", [str(venom), "build", str(site), "--out", str(dist), "--profile", profile])
-                    step(f"analyze-dist-{example}-{profile}", [str(venom), "analyze-dist", str(dist), "--format", "json"])
+                    step(f"analyze-{example}-{profile}", [str(venom), "analyze", str(dist), "--format", "json"])
                     if profile == "prod":
                         step(f"leak-scan-{example}", [python, str(leak_scan), str(dist)])
 

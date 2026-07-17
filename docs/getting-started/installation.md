@@ -1,7 +1,7 @@
 # Installation
 
 > **Audience:** users building or running Venom  
-> **Applies to:** Venom 1.0.1
+> **Applies to:** Venom 1.1.0
 ## Windows requirements
 
 - Windows 10 or newer
@@ -12,7 +12,7 @@
 ```powershell
 git clone https://github.com/Ascension-Digital-Technologies/Venom.git
 cd Venom
-.\scripts\build.ps1 -Config Release
+.\scripts\windows\build.ps1 -Config Release
 .\build\Release\venom.exe doctor --profile production
 ```
 
@@ -23,7 +23,7 @@ The compiler is written to `build\Release\venom.exe` for Visual Studio multi-con
 Install a C++17 compiler, CMake, and Python. Then run:
 
 ```bash
-./scripts/build.sh --config Release
+./scripts/linux/build.sh --config Release
 ./build/venom doctor --profile production
 ```
 
@@ -35,6 +35,6 @@ Ordinary users do not need to rebuild QuickJS/WASM. Contributors changing the em
 
 ```powershell
 venom --version
-venom doctor --profile development
+venom doctor --profile prodelopment
 venom doctor --profile production
 ```

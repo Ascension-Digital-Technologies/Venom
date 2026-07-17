@@ -21,7 +21,7 @@ browser_build = subprocess.run([str(venom), 'build', str(site), '--out', str(bro
 if 'quickjs_backend=wasm-real' not in browser_build.stdout + browser_build.stderr:
     raise SystemExit('browser-protect did not default to wasm-real backend')
 
-browser_check = subprocess.run([str(venom), 'release-check', str(browser_out), '--target', 'browser'], check=True, text=True, capture_output=True)
+browser_check = subprocess.run([str(venom), 'verify', str(browser_out), '--target', 'browser'], check=True, text=True, capture_output=True)
 required = [
     'quickjs_wasm_execution: yes',
     'quickjs_execution_backend: quickjs-wasm-real',
@@ -55,7 +55,7 @@ if native_build.returncode != 0:
     print(native_build.stderr)
     raise SystemExit(native_build.returncode)
 
-native_check = subprocess.run([str(venom), 'release-check', str(native_out), '--target', 'native', '--key-file', str(key_file), '--require-audited-crypto'], check=True, text=True, capture_output=True)
+native_check = subprocess.run([str(venom), 'verify', str(native_out), '--target', 'native', '--key-file', str(key_file), '--require-audited-crypto'], check=True, text=True, capture_output=True)
 for marker in required:
     if marker not in native_check.stdout:
         raise SystemExit(f'missing native QuickJS/WASM execution marker: {marker}\n{native_check.stdout}')
