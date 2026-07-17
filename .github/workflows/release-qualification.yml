@@ -13,7 +13,7 @@ jobs:
     env:
       SOURCE_DATE_EPOCH: 1704067200
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
       - run: cmake --preset release -DVENOM_ENABLE_IPO=OFF
@@ -31,7 +31,7 @@ jobs:
     env:
       SOURCE_DATE_EPOCH: 1704067200
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
       - run: cmake --preset release -DVENOM_ENABLE_IPO=OFF
