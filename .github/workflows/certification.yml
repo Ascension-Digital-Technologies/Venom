@@ -38,7 +38,7 @@ jobs:
           "path=$($candidate.FullName)" >> $env:GITHUB_OUTPUT
       - shell: bash
         run: python tools/certify_release.py --venom "${{ steps.resolve-venom.outputs.path }}" --output-dir "build/certification-${{ matrix.id }}"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: certification-${{ matrix.id }}
           path: build/certification-${{ matrix.id }}/certification.*
@@ -57,7 +57,7 @@ jobs:
       - run: cmake --preset release -DVENOM_ENABLE_IPO=OFF
       - run: cmake --build --preset release --parallel 2
       - run: python tests/browser/venom_examples_e2e.py --venom build/release/venom --browser all --json-out build/browser-certification.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: certification-browsers
           path: build/browser-certification.json
@@ -83,7 +83,7 @@ jobs:
             --browser-matrix build/evidence/certification-browsers/browser-certification.json \
             --json-out build/final-certification.json \
             --markdown-out build/final-certification.md
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: final-release-certification
           path: build/final-certification.*
