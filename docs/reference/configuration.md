@@ -1,0 +1,39 @@
+# Configuration Reference
+
+> **Applies to:** Venom 1.0.1
+
+The canonical project configuration file is `venom.toml`. Generate a starting file with `venom init` or copy `venom.toml.example`.
+
+## Configuration categories
+
+- project and source root;
+- route and entry behavior;
+- browser/protected execution policy;
+- runtime resource limits;
+- asset handling and remote vendoring;
+- production hardening and verification;
+- compatibility qualification;
+- output location and hosting base path.
+
+## Production behavior
+
+Production configuration must preserve fail-closed runtime operation, verified QuickJS/WASM execution, locked hardener use, source-leakage scanning, and asset binding. Unsupported keys or invalid values should fail configuration rather than silently weakening the build.
+
+## Path values
+
+Paths are resolved relative to the project or site root documented by the relevant key. Prefer forward-compatible relative paths and do not depend on machine-specific drive letters or parent-directory traversal.
+
+## Limits
+
+Bridge payload, execution, memory, and queue limits should reflect measured application behavior. Resource limits are part of both availability and security policy.
+
+## Validation
+
+Run:
+
+```powershell
+venom compatibility check path\to\site
+venom doctor --profile production
+```
+
+The exact accepted keys are also illustrated in `venom.toml.example`. See [Configuration guide](../guides/configuration.md) for deployment recommendations.

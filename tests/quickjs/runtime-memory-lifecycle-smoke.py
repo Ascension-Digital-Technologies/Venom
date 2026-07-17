@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from pathlib import Path
 root = Path(__file__).resolve().parents[2]
-engine = (root / 'src/compiler/quickjs_engine_module.cpp').read_text(encoding='utf-8')
+engine = (root / 'src/generated/runtime/quickjs_engine_module.cpp').read_text(encoding='utf-8')
 runtime = (root / 'src/runtime/quickjs_runtime_scaffold.c').read_text(encoding='utf-8')
 checks = {
     'serialized wasm execution': 'let wasmExecutionQueue = Promise.resolve();' in engine and 'enqueueWasmExecution(() => executeWithWasmScaffold' in engine,

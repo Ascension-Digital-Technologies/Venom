@@ -7,7 +7,7 @@ from release_crypto import key_id_from_public_key, public_key_from_private, sign
 
 def main() -> int:
     ap=argparse.ArgumentParser(description=__doc__)
-    ap.add_argument('release',type=Path)
+    ap.add_argument('prod',type=Path)
     ap.add_argument('--private-key',type=Path,required=True)
     ap.add_argument('--public-key',type=Path)
     ap.add_argument('--key-id')

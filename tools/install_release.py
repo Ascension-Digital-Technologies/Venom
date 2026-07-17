@@ -93,10 +93,11 @@ def parse_version(root: Path) -> str:
 
 def release_binary(root: Path) -> Path:
     names = ("venom.exe", "venom") if os.name == "nt" else ("venom", "venom.exe")
-    for name in names:
-        candidate = root / name
-        if candidate.is_file():
-            return candidate
+    for base in (root / "bin", root):
+        for name in names:
+            candidate = base / name
+            if candidate.is_file():
+                return candidate
     raise SystemExit("release is missing the Venom executable")
 
 
@@ -148,7 +149,7 @@ def install(source: Path, prefix: Path, bin_dir: Path, verifier: Path, public_ke
         shutil.copytree(extracted, stage, symlinks=False)
         os.replace(stage, final_root)
 
-    installed_binary = final_root / binary.name
+    installed_binary = final_root / binary.relative_to(extracted)
     command_path = bin_dir / ("venom.exe" if os.name == "nt" else "venom")
     temp_command = bin_dir / (command_path.name + ".tmp")
     shutil.copy2(installed_binary, temp_command)
@@ -216,6 +217,8 @@ def output(data: dict, format_name: str) -> None:
         print(f"  command: {data['command']} ({'present' if data['command_exists'] else 'missing'})")
         print(f"  release: {data['release_root']} ({'present' if data['release_exists'] else 'missing'})")
         print(f"  status: {'healthy' if data['healthy'] else 'repair required'}")
+    elif data.get("verified"):
+        print(f"Verified Venom release: {data['release']}")
     elif "version" in data:
         print(f"Installed Venom {data['version']}")
         print(f"  command: {data['command']}")
@@ -243,6 +246,14 @@ def main() -> int:
     install_ap.add_argument("--force", action="store_true")
     install_ap.add_argument("--format", choices=("text", "json"), default="text")
 
+    verify_ap = sub.add_parser("verify", help="verify a release archive without installing it")
+    verify_ap.add_argument("release", type=Path)
+    verify_ap.add_argument("--verifier", type=Path, default=repo_root / "tools" / "verify_release.py")
+    verify_ap.add_argument("--public-key", type=Path)
+    verify_ap.add_argument("--require-signature", action="store_true")
+    verify_ap.add_argument("--openssl", default=os.environ.get("OPENSSL", "openssl"))
+    verify_ap.add_argument("--format", choices=("text", "json"), default="text")
+
     status_ap = sub.add_parser("status", help="inspect the recorded installation")
     status_ap.add_argument("--prefix", type=Path, default=default_prefix())
     status_ap.add_argument("--format", choices=("text", "json"), default="text")
@@ -256,6 +267,9 @@ def main() -> int:
     if args.command == "install":
         data = install(args.release, args.prefix, args.bin_dir, args.verifier, args.public_key,
                        args.require_signature, args.openssl, args.force)
+    elif args.command == "verify":
+        verify_release(args.release.resolve(), args.verifier.resolve(), public_key=args.public_key.resolve() if args.public_key else None, require_signature=args.require_signature, openssl=args.openssl)
+        data = {"verified": True, "release": str(args.release.resolve())}
     elif args.command == "status":
         data = status(args.prefix)
     else:

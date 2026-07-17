@@ -49,7 +49,7 @@ def main() -> int:
         p=repo/rel
         if p.is_file(): materials.append({'uri':rel,'digest':{'sha256':sha256(p)}})
     prov={
-      '_type':'https://in-toto.io/Statement/v1','subject':[{'name':'venom','digest':{'sha256':sha256(out/('venom.exe' if (out/'venom.exe').exists() else 'venom'))}}],
+      '_type':'https://in-toto.io/Statement/v1','subject':[{'name':'venom','digest':{'sha256':sha256((out/'bin'/'venom.exe') if (out/'bin'/'venom.exe').exists() else (out/'bin'/'venom'))}}],
       'predicateType':'https://slsa.dev/provenance/v1',
       'predicate':{
         'buildDefinition':{'buildType':'https://venom.dev/build/release/v1','externalParameters':{'version':args.version,'release_sequence':args.release_sequence,'release_channel':args.release_channel},'internalParameters':{'source_date_epoch':args.source_date_epoch},'resolvedDependencies':materials},

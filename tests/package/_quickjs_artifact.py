@@ -9,7 +9,7 @@ REQUIRED_PROVENANCE = (
 
 
 def artifact_is_current(root: Path) -> bool:
-    header = (root / 'src' / 'compiler' / 'quickjs_runtime_wasm_blob.hpp').read_text(encoding='utf-8')
+    header = (root / 'src' / 'generated' / 'runtime' / 'quickjs_runtime_wasm_blob.hpp').read_text(encoding='utf-8')
     return all(token in header for token in REQUIRED_PROVENANCE)
 
 

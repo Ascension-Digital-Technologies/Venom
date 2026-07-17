@@ -1,7 +1,8 @@
 from pathlib import Path
 root = Path(__file__).resolve().parents[2]
-build = (root/'src/compiler/build.cpp').read_text()
-runtime = (root/'src/compiler/runtime_js.cpp').read_text()
+build = (root/'src/compiler/pipeline/build.cpp').read_text() + (root/'src/compiler/pipeline/build_package_metadata.cpp').read_text() + (root/'src/compiler/pipeline/build_runtime_metadata.cpp').read_text() + (root/'src/compiler/pipeline/build_runtime_audit_metadata.cpp').read_text() + (root/'src/compiler/pipeline/build_runtime_module_metadata.cpp').read_text()
+runtime = (root/'src/generated/runtime/runtime_js.cpp').read_text()
+runtime += (root / 'src/runtime/templates/runtime.js').read_text(encoding='utf-8')
 doc = (root/'docs/capability-secure-browser-bridge.md').read_text()
 for needle in ['VENOM_HOST_BRIDGE_V14', 'capability_model=application-specialized-schema-v1', 'unknown_host_call=deny', 'application_specialized=true', 'fetch_enabled=', 'timers_enabled=', 'events_enabled=']:
     assert needle in build, needle

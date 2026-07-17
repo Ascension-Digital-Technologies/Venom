@@ -2,9 +2,10 @@
 from pathlib import Path
 import re
 root = Path(__file__).resolve().parents[2]
-worker = (root/'src/compiler/worker_runtime_js.cpp').read_text(encoding='utf-8')
-loader = (root/'src/compiler/js.cpp').read_text(encoding='utf-8')
-build = (root/'src/compiler/build.cpp').read_text(encoding='utf-8')
+worker = (root/'src/generated/runtime/worker_runtime_js.cpp').read_text(encoding='utf-8')
+loader = (root/'src/compiler/pipeline/js.cpp').read_text(encoding='utf-8')
+loader += (root / 'src/compiler/pipeline/js_discovery.cpp').read_text(encoding='utf-8')
+build = (root / 'src/compiler/pipeline/build.cpp').read_text(encoding='utf-8') + (root / 'src/compiler/pipeline/build_package_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/compiler/pipeline/build_runtime_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/compiler/pipeline/build_runtime_audit_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/compiler/pipeline/build_runtime_module_metadata.cpp').read_text(encoding='utf-8')
 for token in ['BRIDGE_INVOKE_OP', 'BRIDGE_CANCEL_OP', 'BRIDGE_RESULT_OP', 'BRIDGE_ERROR_OP']:
     if token not in worker:
         raise SystemExit(f'missing worker opcode: {token}')
@@ -28,7 +29,7 @@ if 'BRIDGE_CANDIDATES[candidateSlot]' not in worker:
     raise SystemExit('worker does not resolve numeric candidate slots')
 if 'counter <= bridgeCounter' not in worker:
     raise SystemExit('worker replay counter enforcement missing')
-if '__venomInvokeProtectedByName' not in loader:
+if '__venomInvokeProtectedById' not in loader:
     raise SystemExit('generated protected stubs are not name-routed')
 
 legacy = ["type: 'invoke'", "type:'invoke'", "type: 'cancel'", "type:'cancel'", "type: 'bridge-result'", "type:'bridge-result'", "type: 'bridge-error'", "type:'bridge-error'"]

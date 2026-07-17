@@ -41,7 +41,10 @@ def main() -> int:
     ap.add_argument('--public-key', type=Path)
     ap.add_argument('--key-id')
     ap.add_argument('--openssl', default='openssl')
+    ap.add_argument('--require-signature', action='store_true', help='fail unless both signing keys are supplied')
     args=ap.parse_args()
+    if args.require_signature and (not args.private_key or not args.public_key):
+        raise SystemExit('--require-signature requires --private-key and --public-key')
     if args.source_date_epoch is None:
         raw=os.environ.get('SOURCE_DATE_EPOCH','0')
         try: epoch=int(raw)
@@ -78,7 +81,7 @@ def main() -> int:
       'policy':{
         'platform_packages_required':True,
         'compatibility_evidence_required':evidence is not None,
-        'signature_required_for_stable':False,
+        'signature_required_for_stable':bool(args.require_signature),
         'verified_runtime_required':runtime is not None
       },
       'packages':packages,

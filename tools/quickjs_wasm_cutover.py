@@ -193,7 +193,7 @@ def main() -> int:
 
     repo_root = args.repo_root.resolve()
     out_dir = (args.out_dir or (repo_root / 'build' / 'quickjs-wasm-cutover')).resolve()
-    embed_out = (args.embed_out or (repo_root / 'src' / 'compiler' / 'quickjs_runtime_wasm_blob.hpp')).resolve()
+    embed_out = (args.embed_out or (repo_root / 'src' / 'generated' / 'runtime' / 'quickjs_runtime_wasm_blob.hpp')).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if args.preflight_only:

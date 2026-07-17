@@ -1,18 +1,19 @@
-# Code of Conduct
+# Community Code of Conduct
 
-Venom contributors and users are expected to communicate professionally,
-respectfully, and constructively.
+Venom welcomes constructive participation from people of all backgrounds and experience levels.
 
 ## Expected behavior
 
-- Focus discussion on technical facts and reproducible evidence.
-- Respect different experience levels and viewpoints.
-- Give actionable review feedback without personal attacks.
-- Avoid harassment, discrimination, threats, or deliberate disruption.
-- Protect private reports, credentials, and customer information.
+- Be respectful, specific, and technically constructive.
+- Assume good intent while addressing ideas and evidence directly.
+- Keep reviews focused on the change, not the person.
+- Respect privacy, confidentiality, and responsible disclosure boundaries.
+- Help maintain a professional environment where questions and corrections are welcome.
+
+## Unacceptable behavior
+
+Harassment, threats, discriminatory language, personal attacks, deliberate disruption, publication of private information, and irresponsible disclosure of security issues are not acceptable.
 
 ## Enforcement
 
-Unacceptable behavior may result in content removal, participation limits, or
-loss of access to project spaces. Report conduct concerns privately to
-mario.appledev@gmail.com.
+Project maintainers may edit or remove inappropriate content and may temporarily or permanently restrict participation when necessary to protect the community or project. Concerns should be reported privately to **mario.appledev@gmail.com**.

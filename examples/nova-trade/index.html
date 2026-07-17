@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NOVA TRADE - Professional Trading Terminal</title>
+<link href="assets/css/base-layout.css" rel="stylesheet"/>
+<link href="assets/css/panels.css" rel="stylesheet"/>
+<link href="assets/css/trading.css" rel="stylesheet"/>
+<link href="assets/css/extra.css" rel="stylesheet"/>
+<meta content="NOVA TRADE — a Venom protected trading terminal showcase with browser-native UI and protected risk, order, and market analytics." name="description"/></head>
+<body>
+<div class="app">
+<!-- TOP BAR -->
+<div class="top-bar">
+<div class="top-bar-left">
+<div class="logo">
+<div class="logo-icon">N</div>
+<div class="logo-text">NOVA<br/><span>TRADE</span></div>
+</div>
+<div aria-label="Symbol search" class="search-box" id="searchBox" role="search" tabindex="0">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
+<span style="pointer-events:none;">Search <span class="kbd">Ctrl</span>+<span class="kbd">K</span></span>
+</div>
+<div class="workspace-switcher" id="workspaceSwitcher" title="Workspace manager">
+<span class="workspace-dot"></span>
+<span class="workspace-label">Workspace</span>
+<strong id="workspaceName">Default</strong>
+<button id="workspaceSaveBtn" type="button">Save</button>
+<button id="workspaceManageBtn" type="button">Manage</button>
+</div>
+<div class="ticker-info">
+<div class="ticker-pair">BTC/USDT</div>
+<div class="ticker-price" id="tickerPrice">66,247.5</div>
+<div class="ticker-change">
+<span class="main" id="tickerChange">+1,428.6 (+2.21%)</span>
+<span class="sub">24h Change</span>
+</div>
+<div class="ticker-stat"><span class="value" id="tickerHigh">66,650.0</span><span class="label">24h High</span></div>
+<div class="ticker-stat"><span class="value" id="tickerLow">64,425.0</span><span class="label">24h Low</span></div>
+<div class="ticker-stat"><span class="value" id="tickerVol">18,304.21 BTC</span><span class="label">24h Volume</span></div>
+</div>
+</div>
+<div class="top-bar-right">
+<div class="account-dropdown" id="accountDropdown">
+<span>Account</span> PAPER TRADING
+      <svg fill="none" height="12" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg>
+</div>
+<div class="equity-dropdown" id="equityDropdown">
+<span>Equity</span> <span id="equityValue">$100,000.00</span>
+<svg fill="none" height="12" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="m6 9 6 6 6-6"></path></svg>
+</div>
+<div class="ticker-stat"><span class="value" id="unrealizedPnl" style="color:var(--green)">$2,341.72 (2.34%)</span><span class="label">Unrealized PnL</span></div>
+<div class="top-icons">
+<svg fill="none" stroke="currentColor" stroke-width="2" title="Refresh" viewbox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
+<svg fill="none" stroke="currentColor" stroke-width="2" title="Notifications" viewbox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+<svg fill="none" id="settingsButton" stroke="currentColor" stroke-width="2" title="Settings" viewbox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+</div>
+<div class="user-avatar" id="userAvatar">JD</div>
+</div>
+</div>
+<div class="main-layout">
+<!-- LEFT SIDEBAR -->
+<div class="left-sidebar" id="leftSidebar">
+<div class="nav-item" data-page="markets"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path></svg><span>Markets</span><div class="tooltip">Markets Overview</div></div>
+<div class="nav-item active" data-page="watchlist"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg><span>Watchlist</span><div class="tooltip">Watchlist</div></div>
+<div class="nav-item" data-page="portfolio"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="14" rx="2" ry="2" width="20" x="2" y="7"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg><span>Portfolio</span><div class="tooltip">Portfolio</div></div>
+<div class="nav-item" data-page="orders"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg><span>Orders</span><div class="tooltip">Orders</div></div>
+<div class="nav-item" data-page="positions"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg><span>Positions</span><div class="tooltip">Positions</div></div>
+<div class="nav-item" data-page="alerts"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg><span>Alerts</span><div class="tooltip">Alerts</div></div>
+<div class="nav-item" data-page="scanner"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg><span>Scanner</span><div class="tooltip">Scanner</div></div>
+<div class="nav-item" data-page="news"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"></path><path d="M18 14h-8"></path><path d="M15 18h-5"></path><path d="M10 6h8v4h-8V6Z"></path></svg><span>News</span><div class="tooltip">News</div></div>
+<div class="nav-item" data-page="calendar"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="18" rx="2" ry="2" width="18" x="3" y="4"></rect><line x1="16" x2="16" y1="2" y2="6"></line><line x1="8" x2="8" y1="2" y2="6"></line><line x1="3" x2="21" y1="10" y2="10"></line></svg><span>Calendar</span><div class="tooltip">Calendar</div></div>
+<div class="nav-item" data-page="backtest"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="m22 12-4-4v3H6v2h12v3l4-4z"></path><path d="M2 12l4-4v3h12v2H6v3l-4-4z"></path></svg><span>Backtest</span><div class="tooltip">Backtest</div></div>
+<div class="nav-divider"></div>
+<div class="nav-item" data-page="settings"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg><span>Settings</span><div class="tooltip">Settings</div></div>
+<div class="connection-status" id="connectionStatus"><div class="dot"></div>Connected</div>
+<div style="color:var(--text-muted);font-size:9px;margin-top:2px;">Binance</div>
+</div>
+<!-- CENTER AREA -->
+<div class="center-area">
+<div class="center-top" id="centerTop">
+<!-- WATCHLIST PANEL -->
+<div class="watchlist-panel" id="watchlistPanel">
+<div class="panel-header">
+<span>Watchlist</span>
+<div class="actions">
+<svg fill="none" id="addWatchlist" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+</div>
+</div>
+<div class="watchlist-tabs">
+<div class="watchlist-tab active" data-tab="favorites">Favorites</div>
+<div class="watchlist-tab" data-tab="top">Top</div>
+<div class="watchlist-tab" data-tab="gainers">Gainers</div>
+</div>
+<div class="watchlist-table" id="watchlistTable">
+<div class="watchlist-table-header"><span>Symbol</span><span>Last</span><span>Chg%</span></div>
+<div id="watchlistRows"></div>
+<div class="add-symbol" id="addSymbolBtn">
+<svg fill="none" height="12" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="12"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg> Add Symbol
+          </div>
+</div>
+<div class="market-scanner">
+<div class="scanner-header">
+<span>Market Scanner</span>
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="m21 21-4.35-4.35"></path><circle cx="11" cy="11" r="8"></circle></svg>
+</div>
+<select class="scanner-select"><option>Top Gainers (24h)</option><option>Top Losers (24h)</option><option>Most Volume</option></select>
+<div id="scannerRows"></div>
+</div>
+</div>
+<!-- Resize handle watchlist -->
+<div class="resize-handle watchlist" id="resizeWatchlist"></div>
+<!-- CHART AREA -->
+<div class="chart-area">
+<div class="chart-tabs">
+<div class="chart-tab active">Chart</div>
+<div class="chart-tab">Info</div>
+<div class="chart-tab">Trading Data <span class="close-x">✕</span></div>
+</div>
+<div class="chart-toolbar">
+<div class="timeframes">
+<button class="tf-btn" data-tf="1m">1m</button>
+<button class="tf-btn" data-tf="5m">5m</button>
+<button class="tf-btn" data-tf="15m">15m</button>
+<button class="tf-btn active" data-tf="1h">1h</button>
+<button class="tf-btn" data-tf="4h">4h</button>
+<button class="tf-btn" data-tf="D">D</button>
+<button class="tf-btn" data-tf="W">W</button>
+<button class="tf-btn" style="display:flex;align-items:center;gap:2px;"><svg fill="none" height="10" stroke="currentColor" stroke-width="3" viewbox="0 0 24 24" width="10"><path d="m6 9 6 6 6-6"></path></svg></button>
+</div>
+<div aria-label="Layout presets" class="layout-presets" id="layoutPresets">
+<button class="layout-preset active" data-layout-preset="default" type="button">Default</button>
+<button class="layout-preset" data-layout-preset="chart" type="button">Chart Focus</button>
+<button class="layout-preset" data-layout-preset="scalping" type="button">Scalping</button>
+<button class="layout-preset" data-layout-preset="portfolio" type="button">Portfolio</button>
+<button class="layout-preset" data-layout-preset="compact" type="button">Compact</button>
+</div>
+<div class="chart-tools">
+<svg fill="none" stroke="currentColor" stroke-width="2" title="Crosshair" viewbox="0 0 24 24"><path d="M3 3v18h18"></path></svg>
+<svg fill="none" stroke="currentColor" stroke-width="2" title="Rectangle" viewbox="0 0 24 24"><rect height="18" rx="2" width="18" x="3" y="3"></rect><path d="M3 9h18"></path><path d="M9 21V9"></path></svg>
+<svg fill="none" stroke="currentColor" stroke-width="2" title="Measure" viewbox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="m16.2 7.8-2 6.3-6.4 2.1 2-6.3z"></path></svg>
+<div class="sep"></div>
+<svg fill="none" stroke="currentColor" stroke-width="2" title="Trend Line" viewbox="0 0 24 24"><path d="M2 12h10"></path><path d="M9 4v16"></path><path d="m3 9 6 6-6 6"></path></svg>
+<svg fill="none" stroke="currentColor" stroke-width="2" title="Ray" viewbox="0 0 24 24"><path d="M3 3v18h18"></path></svg>
+<div class="sep"></div>
+<span style="color:var(--text-secondary);font-size:11px;font-weight:600;">Indicators</span>
+<div class="sep"></div>
+<svg fill="none" stroke="currentColor" stroke-width="2" title="Save" viewbox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline></svg>
+<svg fill="none" stroke="currentColor" stroke-width="2" title="Settings" viewbox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+<svg fill="none" stroke="currentColor" stroke-width="2" title="Fullscreen" viewbox="0 0 24 24"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><path d="M21 3l-7 7"></path><path d="M3 21l7-7"></path></svg>
+</div>
+</div>
+<div class="chart-canvas-container" id="chartContainer">
+<canvas id="tradingChart"></canvas>
+<div class="chart-overlay-info" id="chartOverlay">
+<div><span class="highlight">BTC/USDT</span> · <span id="chartTf">1h</span> · <span class="highlight">Binance</span>    O<span class="highlight" id="ohlcO">66,100.0</span> H<span class="highlight" id="ohlcH">66,350.0</span> L<span class="highlight" id="ohlcL">66,050.0</span> C<span class="highlight ema20" id="ohlcC">66,247.5</span> <span id="ohlcChange" style="color:var(--green)">+147.5 (+0.22%)</span></div>
+<div class="ema20">EMA 20 close 0  <span id="ema20">65,742.3</span></div>
+<div class="ema50">EMA 50 close 0  <span id="ema50">65,185.6</span></div>
+<div class="ema200">EMA 200 close 0  <span id="ema200">63,478.9</span></div>
+<div class="vol">Volume SMA 9  <span id="volSma">1.118K</span></div>
+</div>
+<!-- Crosshair -->
+<div class="crosshair" id="crosshair">
+<div class="crosshair-line-v" id="crosshairV"></div>
+<div class="crosshair-line-h" id="crosshairH"></div>
+<div class="crosshair-label" id="crosshairPriceLabel" style="right:4px;"></div>
+<div class="crosshair-label" id="crosshairTimeLabel" style="bottom:4px;"></div>
+</div>
+<div class="crosshair-tooltip" id="crosshairTooltip">
+<div class="row"><span class="label">Open</span><span class="value" id="tipOpen"></span></div>
+<div class="row"><span class="label">High</span><span class="value" id="tipHigh"></span></div>
+<div class="row"><span class="label">Low</span><span class="value" id="tipLow"></span></div>
+<div class="row"><span class="label">Close</span><span class="value" id="tipClose"></span></div>
+<div class="row"><span class="label">Volume</span><span class="value" id="tipVol"></span></div>
+<div class="row"><span class="label">Change</span><span class="value" id="tipChange"></span></div>
+</div>
+</div>
+<div class="chart-bottom-bar">
+<div class="chart-bottom-left">
+<span>1D</span><span>5D</span><span>1M</span><span>3M</span><span>6M</span><span style="color:var(--text-primary);font-weight:600;">YTD</span><span>1Y</span><span>5Y</span><span>All</span>
+<svg fill="none" height="14" stroke="currentColor" stroke-width="2" style="margin-left:8px;cursor:pointer;" viewbox="0 0 24 24" width="14"><rect height="18" rx="2" width="18" x="3" y="3"></rect><path d="M3 9h18"></path><path d="M9 21V9"></path></svg>
+</div>
+<div class="chart-bottom-right">
+<span id="chartTime">16:32:45 (UTC-4)</span><span>%</span><span>log</span><span>auto</span>
+<svg fill="none" stroke="currentColor" stroke-width="2" style="cursor:pointer;" viewbox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+</div>
+</div>
+</div>
+<!-- Resize handle right panels -->
+<div class="resize-handle right" id="resizeRight"></div>
+<!-- RIGHT PANELS -->
+<div class="right-panels" id="rightPanels">
+<div class="right-top">
+<!-- ORDER BOOK -->
+<div class="orderbook-panel" id="orderbookPanel">
+<div class="ob-header">
+<span style="font-weight:600;">Order Book</span>
+<div style="display:flex;align-items:center;gap:8px;">
+<div class="ob-view-modes">
+<svg class="active" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="18" rx="2" width="18" x="3" y="3"></rect><path d="M3 9h18"></path><path d="M9 21V9"></path></svg>
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M3 3v18h18"></path></svg>
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+</div>
+<select class="ob-precision"><option>0.1</option><option>0.01</option><option>1</option></select>
+</div>
+</div>
+<div class="ob-table-header"><span>Price (USDT)</span><span style="text-align:right;">Amount (BTC)</span><span style="text-align:right;">Total (BTC)</span></div>
+<div class="ob-rows" id="askRows"></div>
+<div class="ob-spread" id="obSpread">66,247.5 <span class="arrow">▲</span></div>
+<div class="ob-rows" id="bidRows"></div>
+</div>
+<!-- TAPE + ENTRY -->
+<div class="tape-entry-column">
+<div class="tape-panel">
+<div class="tape-header">
+<span class="title">Trade Tape</span>
+<div class="actions">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><path d="M21 3l-7 7"></path><path d="M3 21l7-7"></path></svg>
+</div>
+</div>
+<div class="tape-table-header"><span>Price (USDT)</span><span style="text-align:right;">Amount (BTC)</span><span style="text-align:right;">Time</span></div>
+<div class="tape-rows" id="tapeRows"></div>
+</div>
+<div class="depth-panel">
+<div class="depth-header">
+<span class="title">Depth Chart</span>
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><path d="M21 3l-7 7"></path><path d="M3 21l7-7"></path></svg>
+</div>
+<div class="depth-canvas-container"><canvas id="depthChart"></canvas></div>
+</div>
+<div class="order-entry-panel">
+<div class="oe-header">
+<span class="title">Order Entry</span>
+<div class="actions">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><path d="M21 3l-7 7"></path><path d="M3 21l7-7"></path></svg>
+</div>
+</div>
+<div class="oe-tabs">
+<div class="oe-tab active limit" data-type="limit">Limit</div>
+<div class="oe-tab" data-type="market">Market</div>
+<div class="oe-tab" data-type="stop">Stop Limit</div>
+</div>
+<div class="oe-input-group"><label>Price</label><div class="oe-input"><input id="oePrice" type="text" value="66250"/><span class="suffix">USDT</span></div></div>
+<div class="oe-input-group"><label>Amount</label><div class="oe-input"><input id="oeAmount" type="text" value="0.25"/><span class="suffix">BTC</span></div></div>
+<div class="oe-slider-container">
+<input class="oe-slider" id="oeSlider" max="100" min="0" type="range" value="25"/>
+<div class="oe-slider-labels"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
+</div>
+<div class="oe-input-group"><label>Total</label><div class="oe-input"><input id="oeTotal" type="text" value="16,562.50"><span class="suffix">USDT</span></input></div></div>
+<div aria-live="polite" class="oe-validation" id="oeValidation"></div>
+<div class="oe-meta-row">
+<div class="oe-chip">TIF <strong id="oeTif">GTC</strong></div>
+<div class="oe-chip">Spread <strong id="oeSpread">0.8</strong></div>
+<div class="oe-chip">Risk <strong id="oeRisk">Low</strong></div>
+</div>
+<div class="oe-checkboxes">
+<div class="oe-check" id="tpCheck"><div class="oe-check-box"><svg fill="none" stroke="currentColor" stroke-width="3" viewbox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></div><span>Take Profit</span></div>
+<div class="oe-check" id="slCheck"><div class="oe-check-box"><svg fill="none" stroke="currentColor" stroke-width="3" viewbox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></div><span>Stop Loss</span></div>
+<div class="oe-check" id="postOnlyCheck"><div class="oe-check-box"><svg fill="none" stroke="currentColor" stroke-width="3" viewbox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></div><span>Post Only</span></div>
+<div class="oe-check" id="reduceOnlyCheck"><div class="oe-check-box"><svg fill="none" stroke="currentColor" stroke-width="3" viewbox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></div><span>Reduce Only</span></div>
+</div>
+<div class="advanced-order-row" id="advancedOrderRow">
+<label>TP % <input id="tpPct" min="0.10" step="0.10" type="number" value="1.50"/></label>
+<label>SL % <input id="slPct" min="0.10" step="0.10" type="number" value="0.80"/></label>
+<label>TIF <select id="orderTif"><option value="GTC">GTC</option><option value="IOC">IOC</option><option value="FOK">FOK</option><option value="DAY">DAY</option></select></label>
+</div>
+<div class="oe-buttons">
+<button class="oe-btn buy" id="btnBuy">Buy / Long</button>
+<button class="oe-btn sell" id="btnSell">Sell / Short</button>
+</div>
+<div class="oe-footer">
+<div class="oe-footer-item"><span class="label">Max Buy</span><span class="value" id="maxBuy">1.505 BTC</span></div>
+<div class="oe-footer-item"><span class="label">Max Sell</span><span class="value" id="maxSell">1.505 BTC</span></div>
+<div class="oe-footer-item"><span class="label">Est. Fee</span><span class="value" id="estFee">8.28 USDT</span></div>
+<div class="oe-footer-item"><span class="label">Liq. Buffer</span><span class="value" id="riskPreview">Safe</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- BOTTOM PANEL -->
+<div class="bottom-panel" id="bottomPanel">
+<div class="bottom-resize" id="bottomResize"></div>
+<div class="bottom-tabs">
+<div class="bottom-tab active" data-tab="positions">Positions <span class="badge" id="posBadge">(2)</span></div>
+<div class="bottom-tab" data-tab="openorders">Open Orders <span class="badge">(3)</span></div>
+<div class="bottom-tab" data-tab="orderhistory">Order History</div>
+<div class="bottom-tab" data-tab="tradehistory">Trade History</div>
+<div class="bottom-tab" data-tab="balances">Balances</div>
+<div class="bottom-tab" data-tab="performance">Performance</div>
+<div class="bottom-tab" data-tab="risk">Risk</div>
+<div class="bottom-tab" data-tab="brackets">Brackets</div>
+<div class="bottom-tab" data-tab="diagnostics">Diagnostics</div>
+<div class="bottom-tab" data-tab="audit">Audit</div>
+<div class="bottom-tab" data-tab="alerts">Alerts</div>
+<div class="bottom-tab" data-tab="logs">Logs</div>
+</div>
+<div class="bottom-content" id="bottomContent">
+<table class="positions-table" id="positionsTable">
+<thead>
+<tr>
+<th>Symbol</th><th>Side</th><th>Size</th><th>Avg Entry</th><th>Mark Price</th>
+<th>Unrealized PnL</th><th>Unrealized PnL %</th><th>Margin</th><th>Risk</th><th>Actions</th>
+</tr>
+</thead>
+<tbody id="positionsBody"></tbody>
+</table>
+</div>
+<div class="bottom-summary">
+<span><span class="label">Total Unrealized PnL:</span> <span class="value pos" id="totalPnl">+760.60 USDT (+2.34%)</span></span>
+<span><span class="label">Margin Used:</span> <span class="value" id="marginUsed">4,345.00 USDT</span></span>
+<span><span class="label">Free Margin:</span> <span class="value" id="freeMargin">95,655.00 USDT</span></span>
+<span><span class="label">Margin Level:</span> <span class="value pos" id="marginLevel">2,201.27%</span></span>
+</div>
+</div>
+</div>
+</div>
+<!-- Context Menu -->
+<div class="context-menu" id="contextMenu">
+<div class="context-menu-item" id="ctxAddAlert"><svg fill="none" height="14" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="14"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg> Add Alert<span class="context-menu-shortcut">Alt+A</span></div>
+<div class="context-menu-item" id="ctxDrawLine"><svg fill="none" height="14" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="14"><path d="M2 12h10"></path><path d="M9 4v16"></path><path d="m3 9 6 6-6 6"></path></svg> Draw Trend Line<span class="context-menu-shortcut">L</span></div>
+<div class="context-menu-item" id="ctxMeasure"><svg fill="none" height="14" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="14"><circle cx="12" cy="12" r="10"></circle><path d="m16.2 7.8-2 6.3-6.4 2.1 2-6.3z"></path></svg> Measure<span class="context-menu-shortcut">M</span></div>
+<div class="context-menu-sep"></div>
+<div class="context-menu-item" id="ctxRefresh"><svg fill="none" height="14" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="14"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg> Refresh Data<span class="context-menu-shortcut">F5</span></div>
+<div class="context-menu-item" id="ctxScreenshot"><svg fill="none" height="14" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="14"><rect height="18" rx="2" width="18" x="3" y="3"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg> Screenshot<span class="context-menu-shortcut">Ctrl+S</span></div>
+<div class="context-menu-item" id="ctxResetChart"><svg fill="none" height="14" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24" width="14"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 3v6h6"></path></svg> Reset Chart<span class="context-menu-shortcut">R</span></div>
+</div>
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+<!-- Symbol Search Overlay -->
+<div aria-hidden="true" class="symbol-search-overlay" id="symbolSearchOverlay">
+<div aria-label="Search symbols" aria-modal="true" class="symbol-search-panel" role="dialog">
+<div class="symbol-search-head">
+<div>
+<strong>Search Markets</strong>
+<span>Switch symbol instantly</span>
+</div>
+<button aria-label="Close symbol search" class="drawer-icon-btn" id="symbolSearchClose">×</button>
+</div>
+<div class="symbol-search-input-row">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
+<input autocomplete="off" id="symbolSearchInput" placeholder="Search BTC, ETH, SOL..." type="text">
+</input></div>
+<div class="symbol-search-results" id="symbolSearchResults"></div>
+</div>
+</div>
+<!-- Settings Drawer -->
+<div aria-hidden="true" class="settings-drawer-overlay" id="settingsDrawerOverlay">
+<aside aria-label="Terminal settings" aria-modal="true" class="settings-drawer" role="dialog">
+<div class="settings-drawer-header">
+<div>
+<h3>Terminal Settings</h3>
+<span>Layout, simulator, and paper account controls</span>
+</div>
+<button aria-label="Close settings" class="drawer-icon-btn" id="settingsClose">×</button>
+</div>
+<div class="settings-section">
+<label>Interface Density</label>
+<div class="segmented-control" id="densityControl">
+<button data-density="compact">Compact</button>
+<button data-density="comfortable">Comfortable</button>
+</div>
+</div>
+<div class="settings-section">
+<label>Market Simulator Speed</label>
+<input id="simSpeed" max="1600" min="250" step="50" type="range">
+<div class="settings-hint"><span id="simSpeedLabel">800 ms</span> between ticks</div>
+</input></div>
+<div class="settings-section">
+<label>Volatility Mode</label>
+<select class="settings-select" id="volatilityMode">
+<option value="calm">Calm</option>
+<option value="normal">Normal</option>
+<option value="volatile">Volatile</option>
+<option value="event">Event Spike</option>
+</select>
+</div>
+<div class="settings-section">
+<label>Chart Indicators</label>
+<div class="settings-check-grid">
+<label><input checked="" id="settingEma20" type="checkbox"/> EMA 20</label>
+<label><input checked="" id="settingEma50" type="checkbox"/> EMA 50</label>
+<label><input checked="" id="settingEma200" type="checkbox"/> EMA 200</label>
+<label><input checked="" id="settingVolume" type="checkbox"/> Volume</label>
+<label><input checked="" id="settingRsi" type="checkbox"/> RSI</label>
+</div>
+</div>
+<div class="settings-section">
+<label>Paper Account</label>
+<div class="settings-grid-metrics" id="settingsAccountMetrics"></div>
+</div>
+<div class="settings-actions">
+<button class="modal-btn" id="resetLayoutBtn">Reset Layout</button>
+<button class="modal-btn" id="exportStateBtn">Export State</button>
+<button class="modal-btn danger" id="resetPaperBtn">Reset Paper Account</button>
+</div>
+</aside>
+</div>
+<!-- Command Palette -->
+<div aria-hidden="true" class="command-palette-overlay" id="commandPalette">
+<div aria-label="Command palette" aria-modal="true" class="command-palette" role="dialog">
+<div class="command-palette-search">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
+<input autocomplete="off" id="commandInput" placeholder="Type a command, symbol, timeframe, or layout..." type="text">
+<span class="kbd">Esc</span>
+</input></div>
+<div class="command-results" id="commandResults"></div>
+</div>
+</div>
+<!-- Close Position Modal -->
+<div class="modal-overlay" id="closeModal">
+<div class="modal">
+<div class="modal-header">
+<h3>Close Position</h3>
+<span class="close" id="closeModalX">×</span>
+</div>
+<div class="modal-body">
+<p style="color:var(--text-secondary);font-size:12px;margin-bottom:12px;">Are you sure you want to close this position?</p>
+<div style="background:var(--bg-tertiary);border-radius:8px;padding:12px;margin-bottom:12px;">
+<div style="display:flex;justify-content:space-between;margin:4px 0;font-size:12px;"><span style="color:var(--text-muted)">Symbol</span><span id="modalSymbol" style="font-weight:600">BTC/USDT</span></div>
+<div style="display:flex;justify-content:space-between;margin:4px 0;font-size:12px;"><span style="color:var(--text-muted)">Side</span><span id="modalSide" style="color:var(--green);font-weight:600">Long</span></div>
+<div style="display:flex;justify-content:space-between;margin:4px 0;font-size:12px;"><span style="color:var(--text-muted)">Size</span><span id="modalSize" style="font-weight:600">0.250 BTC</span></div>
+<div style="display:flex;justify-content:space-between;margin:4px 0;font-size:12px;"><span style="color:var(--text-muted)">Unrealized PnL</span><span id="modalPnl" style="color:var(--green);font-weight:600">+311.88 USDT</span></div>
+</div>
+</div>
+<div class="modal-footer">
+<button class="modal-btn" id="modalCancel">Cancel</button>
+<button class="modal-btn danger" id="modalConfirm">Close Position</button>
+</div>
+</div>
+</div>
+<script src="assets/js/app-state.js"></script>
+<script src="assets/js/app-state-extensions.js"></script>
+<script src="assets/js/audit-log.js"></script>
+<script src="assets/js/chart-engine.js"></script>
+<script src="assets/js/chart-upgrade.js"></script>
+<script src="assets/js/market-sim.js"></script>
+<script src="assets/js/terminal-core.js"></script>
+<script src="assets/js/order-entry.js"></script>
+<script src="assets/js/ui-events.js"></script>
+<script src="assets/js/providers.js"></script>
+<script src="assets/js/paper-trading.js"></script>
+<script src="assets/js/risk-engine.js"></script>
+<script src="assets/js/broker-simulator.js"></script>
+<script src="assets/js/advanced-orders.js"></script>
+<script src="assets/js/risk-dashboard.js"></script>
+<script src="assets/js/diagnostics-panel.js"></script>
+<script src="assets/js/alerts-engine.js"></script>
+<script src="assets/js/chart-tools.js"></script>
+<script src="assets/js/settings-drawer.js"></script>
+<script src="assets/js/symbol-search.js"></script>
+<script src="assets/js/bottom-panel.js"></script>
+<script src="assets/js/layout-presets.js"></script>
+<script src="assets/js/command-palette.js"></script>
+<script src="assets/js/workspace-manager.js"></script>
+</div><script src="assets/js/venom-terminal.js" type="module"></script></body>
+</html>

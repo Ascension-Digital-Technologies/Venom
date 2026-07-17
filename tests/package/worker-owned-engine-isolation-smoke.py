@@ -1,13 +1,15 @@
 from pathlib import Path
 root = Path(__file__).resolve().parents[2]
-build = (root/'src/compiler/build.cpp').read_text()
-js = (root/'src/compiler/js.cpp').read_text()
-worker = (root/'src/compiler/worker_runtime_js.cpp').read_text()
+build = (root/'src/compiler/pipeline/build.cpp').read_text() + (root/'src/compiler/pipeline/build_package_metadata.cpp').read_text() + (root/'src/compiler/pipeline/build_runtime_metadata.cpp').read_text() + (root/'src/compiler/pipeline/build_runtime_audit_metadata.cpp').read_text() + (root/'src/compiler/pipeline/build_runtime_module_metadata.cpp').read_text()
+js = (root/'src/compiler/pipeline/js.cpp').read_text()
+js += (root / 'src/compiler/pipeline/js_discovery.cpp').read_text(encoding='utf-8')
+worker = (root/'src/generated/runtime/worker_runtime_js.cpp').read_text()
 bootstrap = js + '\n' + worker
-qjs = (root/'src/compiler/quickjs_engine_module.cpp').read_text()
-runtime = (root/'src/compiler/runtime_js.cpp').read_text()
+qjs = (root/'src/generated/runtime/quickjs_engine_module.cpp').read_text()
+runtime = (root/'src/generated/runtime/runtime_js.cpp').read_text()
+runtime += (root / 'src/runtime/templates/runtime.js').read_text(encoding='utf-8')
 required = [
-    ('worker asset emission', 'make_worker_runtime_js()' in build and 'workers/' in build),
+    ('worker asset emission', 'make_worker_runtime_js(' in build and 'workers/' in build),
     ('module worker boot', "new Worker(bootOptions.workerUrl" in js and "type: 'module'" in js),
     ('nonce protocol', 'crypto.getRandomValues' in js and "m.nonce !== nonce" in js),
     ('versioned worker protocol', 'protocol: 1' in bootstrap and 'WORKER_PROTOCOL = 1' in bootstrap),

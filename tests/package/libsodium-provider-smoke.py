@@ -24,7 +24,7 @@ key = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
 env = os.environ.copy()
 env["VENOM_PACKAGE_KEY"] = key
 
-cmd = [str(venom), "build", str(site), "--out", str(out), "--profile", "protect", "--crypto-provider", "libsodium"]
+cmd = [str(venom), "build", str(site), "--out", str(out), "--profile", "prod", "--crypto-provider", "libsodium"]
 proc = subprocess.run(cmd, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 if proc.returncode != 0:
     if "libsodium provider is not available" in proc.stdout and env.get("VENOM_REQUIRE_LIBSODIUM_TEST") != "1":

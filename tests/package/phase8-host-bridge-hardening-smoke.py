@@ -6,9 +6,10 @@ root = Path(__file__).resolve().parents[2]
 def project_version(text):
     match = re.search(r'project\(venom\s+VERSION\s+(\d+)\.(\d+)\.(\d+)', text, re.S)
     return tuple(map(int, match.groups())) if match else (0, 0, 0)
-runtime = (root / 'src/compiler/runtime_js.cpp').read_text()
+runtime = (root / 'src/generated/runtime/runtime_js.cpp').read_text()
+runtime += (root / 'src/runtime/templates/runtime.js').read_text(encoding='utf-8')
 cmake = (root / 'CMakeLists.txt').read_text()
-cli = (root / 'src/compiler/cli.cpp').read_text()
+cli = (root / 'src/compiler/commands/cli.cpp').read_text()
 checks = {
     'version': project_version(cmake) >= (1, 0, 22),
     'generation handles': 'createDomHandleRegistry' in runtime and 'stale DOM handle' in runtime,

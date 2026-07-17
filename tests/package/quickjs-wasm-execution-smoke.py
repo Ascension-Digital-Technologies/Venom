@@ -17,7 +17,7 @@ for path in (browser_out, native_out):
     if path.exists():
         shutil.rmtree(path)
 
-browser_build = subprocess.run([str(venom), 'build', str(site), '--out', str(browser_out), '--profile', 'browser-protect'], check=True, text=True, capture_output=True)
+browser_build = subprocess.run([str(venom), 'build', str(site), '--out', str(browser_out), '--profile', 'prod'], check=True, text=True, capture_output=True)
 if 'quickjs_backend=wasm-real' not in browser_build.stdout + browser_build.stderr:
     raise SystemExit('browser-protect did not default to wasm-real backend')
 
@@ -46,7 +46,7 @@ for marker in [b'VENOM_QJS_WASM_EXECUTION_V1', b'VENOM_QJS_WASM_EXECUTION_V2', b
 # Native protect uses the same fail-closed script execution contract, then layers libsodium section crypto.
 key_file = native_out.with_suffix('.key')
 subprocess.run([str(venom), 'keygen', '--out', str(key_file), '--force'], check=True)
-native_build = subprocess.run([str(venom), 'build', str(site), '--out', str(native_out), '--profile', 'native-protect', '--key-file', str(key_file), '--require-audited-crypto'], text=True, capture_output=True)
+native_build = subprocess.run([str(venom), 'build', str(site), '--out', str(native_out), '--profile', 'prod', '--key-file', str(key_file), '--require-audited-crypto'], text=True, capture_output=True)
 if native_build.returncode != 0:
     if 'libsodium provider is not available' in native_build.stdout + native_build.stderr:
         print('libsodium unavailable; native QuickJS/WASM execution path skipped')

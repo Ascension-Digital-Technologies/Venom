@@ -23,7 +23,7 @@ for out in (out_a, out_b):
     if out.exists():
         shutil.rmtree(out)
     subprocess.check_call([
-        str(venom), 'build', str(site), '--out', str(out), '--profile', 'protect',
+        str(venom), 'build', str(site), '--out', str(out), '--profile', 'prod',
         '--vendor-cache', str(vendor_cache), '--offline'
     ])
 

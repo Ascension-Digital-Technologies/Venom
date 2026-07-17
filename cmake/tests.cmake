@@ -7,6 +7,18 @@ if(BUILD_TESTING)
   target_link_libraries(venom_diversification_rng_test PRIVATE venom_core)
   venom_apply_warnings(venom_diversification_rng_test)
   add_test(NAME venom_diversification_rng COMMAND venom_diversification_rng_test)
+  add_executable(venom_html_route_hydration_test
+    tests/vm/html-route-hydration.cpp
+    src/compiler/pipeline/html.cpp
+    src/compiler/core/site.cpp
+    src/vm/encoder.cpp
+    src/vm/opcode.cpp
+    src/vm/polymorph.cpp
+    src/package/hash.cpp)
+  target_include_directories(venom_html_route_hydration_test PRIVATE src)
+  venom_apply_warnings(venom_html_route_hydration_test)
+  add_test(NAME venom_html_route_hydration COMMAND venom_html_route_hydration_test)
+
   add_executable(venom_fake_curl tests/helpers/fake_curl.cpp)
   if(MSVC)
     target_compile_definitions(venom_fake_curl PRIVATE _CRT_SECURE_NO_WARNINGS)
@@ -43,6 +55,10 @@ if(BUILD_TESTING)
   add_test(NAME venom_v1_2_contracts_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/v1.2.0-contracts-smoke.py ${CMAKE_CURRENT_SOURCE_DIR} $<TARGET_FILE:venom>)
     add_test(NAME venom_v1_4_production_assurance_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/v1.4.0-production-assurance-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
     add_test(NAME repository_consistency_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/repository-consistency-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
+    add_test(NAME venom_cmake_module_completeness_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/cmake-module-completeness-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
+    add_test(NAME venom_cmake_source_completeness_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/cmake-source-completeness-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
+    add_test(NAME venom_changelog_uniqueness_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/changelog-uniqueness-smoke.py)
+    add_test(NAME venom_large_wasm_report_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/large-wasm-report-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
     add_test(NAME venom_release_closure_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/release-closure-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
     add_test(NAME venom_production_only_build_smoke
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/production-only-build-smoke.py $<TARGET_FILE:venom> ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/production-site ${CMAKE_BINARY_DIR}/dist-production-only-smoke)
@@ -58,6 +74,8 @@ if(BUILD_TESTING)
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/build-scripts-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
     add_test(NAME venom_source_layout_smoke
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/source-layout-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
+    add_test(NAME venom_dom_stack_balance_smoke
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/dom-stack-balance-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
     add_test(NAME venom_quickjs_bytecode_manifest_v3_smoke
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/quickjs-bytecode-manifest-v3-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
     add_test(NAME venom_quickjs_wasm_stack_safety_smoke
@@ -150,8 +168,12 @@ if(BUILD_TESTING)
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/production-readiness-report-smoke.py)
   add_test(NAME venom_browser_validation_tool_smoke
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/browser-validation-tool-smoke.py)
+add_test(NAME venom_browser_equivalence_tool_smoke
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/browser-equivalence-tool-smoke.py)
 add_test(NAME venom_browser_performance_budget_smoke
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/browser-performance-budget-smoke.py ${CMAKE_SOURCE_DIR})
+add_test(NAME venom_runtime_benchmark_tool_smoke
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/runtime-benchmark-tool-smoke.py ${CMAKE_SOURCE_DIR})
   add_test(NAME venom_compatibility_matrix_smoke
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/compatibility-matrix-smoke.py)
 
@@ -219,6 +241,7 @@ add_test(
 add_test(NAME venom_function_extraction_plan_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/function-extraction-plan-smoke.py)
 add_test(NAME venom_function_bridge_extraction_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/function-bridge-extraction-smoke.py)
 add_test(NAME venom_protected_chess_engine_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/protected-chess-engine-smoke.py $<TARGET_FILE:venom>)
+add_test(NAME venom_clean_production_asset_layout_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/clean-production-asset-layout-smoke.py $<TARGET_FILE:venom>)
 add_test(NAME venom_wasm_owned_package_decoder_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/wasm-owned-package-decoder-smoke.py $<TARGET_FILE:venom>)
 add_test(NAME venom_full_section_layout_diversification_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/full-section-layout-diversification-smoke.py $<TARGET_FILE:venom>)
 add_test(NAME venom_release_artifact_leak_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/release-artifact-leak-smoke.py $<TARGET_FILE:venom>)
@@ -233,3 +256,108 @@ add_test(NAME venom_quickjs_embedded_bridge_artifact_smoke
 
 add_test(NAME venom_browser_dynamic_asset_resolution_smoke
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/browser-dynamic-asset-resolution-smoke.py ${CMAKE_SOURCE_DIR} $<TARGET_FILE:venom>)
+
+add_test(NAME venom_release_contract_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/release_contract_smoke.py)
+
+add_test(NAME venom_release_package_layout_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/release_package_layout_smoke.py)
+
+add_test(NAME venom_update_release_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/update-release-smoke.py)
+
+add_test(NAME venom_remote_redirect_policy_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/remote-redirect-policy-smoke.py ${CMAKE_SOURCE_DIR})
+add_test(NAME venom_nova_trade_example_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/nova-trade-example-smoke.py ${CMAKE_SOURCE_DIR})
+
+add_test(NAME venom_cpp_standard_header_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/cpp-standard-header-smoke.py)
+
+add_test(NAME venom_documentation_gate
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/documentation_gate.py)
+
+add_test(NAME venom_framework_qualification_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/framework-qualification-smoke.py)
+set_tests_properties(venom_framework_qualification_smoke PROPERTIES LABELS "browser;compatibility;static" TIMEOUT 60)
+
+
+add_test(NAME venom_streamed_wasm_decoding_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/streamed-wasm-decoding-smoke.py)
+set_tests_properties(venom_streamed_wasm_decoding_smoke PROPERTIES LABELS "runtime;security;static" TIMEOUT 60)
+
+add_test(NAME venom_package_runtime_blob_sync_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/package-runtime-blob-sync-smoke.py)
+set_tests_properties(venom_package_runtime_blob_sync_smoke PROPERTIES LABELS "runtime;security;static" TIMEOUT 60)
+
+add_test(NAME venom_wasm_opcode_integrity_scope_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/wasm-opcode-integrity-scope-smoke.py ${CMAKE_SOURCE_DIR})
+set_tests_properties(venom_wasm_opcode_integrity_scope_smoke PROPERTIES LABELS "runtime;security;static" TIMEOUT 60)
+
+add_test(NAME venom_runtime_hash_helper_scope_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/runtime-hash-helper-scope-smoke.py ${CMAKE_SOURCE_DIR})
+set_tests_properties(venom_runtime_hash_helper_scope_smoke PROPERTIES LABELS "runtime;security;static" TIMEOUT 60)
+
+add_test(NAME venom_bot_detection_example_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/bot-detection-example-smoke.py)
+set_tests_properties(venom_bot_detection_example_smoke PROPERTIES LABELS "example;static" TIMEOUT 60)
+
+add_test(NAME venom_binary_capability_bridge_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/binary-capability-bridge-smoke.py)
+set_tests_properties(venom_binary_capability_bridge_smoke PROPERTIES LABELS "runtime;security;static" TIMEOUT 60)
+add_test(NAME venom_session_capability_lease_smoke
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/package/session-capability-lease-smoke.py" "${CMAKE_SOURCE_DIR}")
+set_tests_properties(venom_session_capability_lease_smoke PROPERTIES LABELS "static;security;runtime" TIMEOUT 60)
+
+
+add_test(NAME venom_runtime_integrity_seal_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/runtime-integrity-seal-smoke.py)
+set_tests_properties(venom_runtime_integrity_seal_smoke PROPERTIES LABELS "security;static" TIMEOUT 60)
+
+add_test(NAME venom_wasm_memory_hardening_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/wasm-memory-hardening-smoke.py ${CMAKE_SOURCE_DIR})
+set_tests_properties(venom_wasm_memory_hardening_smoke PROPERTIES LABELS "runtime;security;static" TIMEOUT 60)
+
+# Central test metadata keeps local and CI runs predictable.
+get_property(_venom_all_tests DIRECTORY PROPERTY TESTS)
+foreach(_venom_test IN LISTS _venom_all_tests)
+  set_tests_properties(${_venom_test} PROPERTIES TIMEOUT 180)
+  if(_venom_test MATCHES "browser|html_rendering|site_boot")
+    set_property(TEST ${_venom_test} APPEND PROPERTY LABELS browser integration)
+    set_tests_properties(${_venom_test} PROPERTIES TIMEOUT 300)
+  elseif(_venom_test MATCHES "production|release|publication|installation|update")
+    set_property(TEST ${_venom_test} APPEND PROPERTY LABELS release integration)
+    set_tests_properties(${_venom_test} PROPERTIES TIMEOUT 300)
+  elseif(_venom_test MATCHES "quickjs|wasm|route|runtime")
+    set_property(TEST ${_venom_test} APPEND PROPERTY LABELS runtime integration)
+  elseif(_venom_test MATCHES "source|repository|contract|layout|inventory|build_scripts")
+    set_property(TEST ${_venom_test} APPEND PROPERTY LABELS static unit)
+    set_tests_properties(${_venom_test} PROPERTIES TIMEOUT 60)
+  else()
+    set_property(TEST ${_venom_test} APPEND PROPERTY LABELS integration)
+  endif()
+endforeach()
+unset(_venom_all_tests)
+unset(_venom_test)
+
+  add_test(NAME venom_release_closure_runner_smoke
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/release-closure-runner-smoke.py)
+  set_tests_properties(venom_release_closure_runner_smoke PROPERTIES LABELS "static;release")
+
+
+add_test(NAME venom_build_acceleration_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/build-acceleration-smoke.py ${CMAKE_SOURCE_DIR})
+set_tests_properties(venom_build_acceleration_smoke PROPERTIES LABELS "unit;static;performance" TIMEOUT 30)
+
+add_test(NAME venom_build_specific_bytecode_envelope_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/build-specific-bytecode-envelope-smoke.py ${CMAKE_SOURCE_DIR})
+set_tests_properties(venom_build_specific_bytecode_envelope_smoke PROPERTIES LABELS "runtime;security;static" TIMEOUT 60)
+
+add_test(NAME venom_split_trust_domain_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/split-trust-domain-smoke.py)
+set_tests_properties(venom_split_trust_domain_smoke PROPERTIES LABELS "security;static;runtime" TIMEOUT 60)
+
+add_test(NAME venom_release_entrypoint_policy_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/release-entrypoint-policy-smoke.py)
+set_tests_properties(venom_release_entrypoint_policy_smoke PROPERTIES LABELS "release;static;security" TIMEOUT 60)
+
+add_test(NAME venom_windows_launcher_policy_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/windows-launcher-policy-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
+set_tests_properties(venom_windows_launcher_policy_smoke PROPERTIES LABELS "static;release")

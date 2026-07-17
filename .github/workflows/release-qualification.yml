@@ -16,18 +16,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
-      - uses: actions/setup-node@v4
-        with: {node-version: '22'}
-      - run: npm install --no-save playwright@1.52.0 && npx playwright install --with-deps chromium firefox webkit
       - run: cmake --preset release -DVENOM_ENABLE_IPO=OFF
       - run: cmake --build --preset release --parallel 2
-      - run: python tools/release_qualification.py --venom build/release/venom --browser all --seed 1350001
+      - run: python tools/release_qualification.py --venom build/release/venom --seed 1350001
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: release-qualification-linux
           path: |
-            build/protected-chess-browser.json
             build/qualified-chess-dist
   qualify-windows:
     runs-on: windows-latest
@@ -38,13 +34,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
-      - uses: actions/setup-node@v4
-        with: {node-version: '22'}
-      - run: npm install --no-save playwright@1.52.0
-      - run: npx playwright install chromium
       - run: cmake --preset release -DVENOM_ENABLE_IPO=OFF
       - run: cmake --build --preset release --config Release --parallel 2
       - shell: pwsh
         run: |
           $venom = Get-ChildItem build/release -Recurse -Filter venom.exe | Select-Object -First 1 -ExpandProperty FullName
-          python tools/release_qualification.py --venom $venom --browser chromium --seed 1350001
+          python tools/release_qualification.py --venom $venom --seed 1350001

@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "id": "svelte-vite-modern-production",
+  "profile": "framework-production",
+  "evidence_level": "behavioral",
+  "claims": [
+    "svelte-compiled-dom-pattern",
+    "vite-esm-entry",
+    "direct-dom-update",
+    "event-update"
+  ],
+  "scenarios": [
+    {
+      "id": "render-and-update",
+      "path": "/index.html",
+      "wait_for": {
+        "selector": "main"
+      },
+      "checks": [
+        {
+          "id": "framework",
+          "type": "attribute",
+          "selector": "main",
+          "name": "data-framework",
+          "equals": "svelte"
+        },
+        {
+          "id": "heading",
+          "type": "text",
+          "selector": "h1",
+          "equals": "Modern Svelte/Vite pattern"
+        },
+        {
+          "id": "updated-count",
+          "type": "text",
+          "selector": "#count",
+          "equals": "1"
+        }
+      ],
+      "actions": [
+        {
+          "type": "click",
+          "selector": "#increment"
+        },
+        {
+          "type": "wait",
+          "ms": 10
+        }
+      ]
+    }
+  ],
+  "support_tier": "qualified-pattern",
+  "framework": {
+    "name": "Svelte",
+    "version": "5-compatible compiled output pattern",
+    "delivery": "Vite-style production ESM"
+  }
+}

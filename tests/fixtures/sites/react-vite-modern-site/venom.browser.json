@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "id": "react-vite-modern-production",
+  "profile": "framework-production",
+  "evidence_level": "behavioral",
+  "claims": [
+    "react-modern-bundle-pattern",
+    "vite-esm-entry",
+    "state-update",
+    "event-delegation"
+  ],
+  "scenarios": [
+    {
+      "id": "render-and-update",
+      "path": "/index.html",
+      "wait_for": {
+        "selector": "main"
+      },
+      "checks": [
+        {
+          "id": "framework",
+          "type": "attribute",
+          "selector": "main",
+          "name": "data-framework",
+          "equals": "react"
+        },
+        {
+          "id": "heading",
+          "type": "text",
+          "selector": "h1",
+          "equals": "Modern React/Vite pattern"
+        },
+        {
+          "id": "updated-count",
+          "type": "text",
+          "selector": "#count",
+          "equals": "1"
+        }
+      ],
+      "actions": [
+        {
+          "type": "click",
+          "selector": "#increment"
+        }
+      ]
+    }
+  ],
+  "support_tier": "qualified-pattern",
+  "framework": {
+    "name": "React",
+    "version": "18-compatible output pattern",
+    "delivery": "Vite-style production ESM"
+  }
+}

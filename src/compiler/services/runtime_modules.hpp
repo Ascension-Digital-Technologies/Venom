@@ -1,0 +1,28 @@
+#pragma once
+
+#include "compiler/pipeline/capability_analysis.hpp"
+#include "compiler/core/site.hpp"
+
+#include <string>
+#include <vector>
+
+namespace venom::compiler {
+
+struct RuntimeModulePlan {
+  bool network = false;
+  bool timers = false;
+  bool events = false;
+  bool storage = false;
+  bool navigation = false;
+  bool forms = false;
+  bool observers = false;
+  bool animation = false;
+
+  std::vector<std::string> enabled_modules() const;
+};
+
+RuntimeModulePlan plan_runtime_modules(const SiteGraph& graph, const CapabilityGraph& capabilities);
+std::string specialize_runtime_modules(std::string source, const RuntimeModulePlan& plan);
+std::string runtime_module_plan_json(const RuntimeModulePlan& plan);
+
+} // namespace venom::compiler

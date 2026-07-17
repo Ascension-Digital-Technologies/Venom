@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 from pathlib import Path
-import re, sys
-root=Path(sys.argv[1])
-h=(root/'src/compiler/wasm_runtime_blob.hpp').read_text(encoding='utf-8')
-required=['artifact_kind=real-route-vm','runtime_implementation=venom-route-vm-wasm','scaffold_runtime=false','required_exports_satisfied=true','instruction_contract=VPOL0010-v2-fixed16']
-missing=[x for x in required if x not in h]
-if missing: raise SystemExit('missing Route VM provenance: '+', '.join(missing))
-if 'contract-scaffold' in h: raise SystemExit('Route VM scaffold provenance remains embedded')
-print('[PASS] authoritative Route VM WASM artifact is embedded with verified provenance')
+import json, subprocess, sys
+root=Path(sys.argv[1]).resolve()
+subprocess.run([sys.executable, str(root/'tools/route_wasm_provenance.py'), '--header', str(root/'src/generated/runtime/wasm_runtime_blob.hpp'), '--out', str(root/'src/generated/runtime/wasm_runtime_provenance.json'), '--check'], check=True)
+m=json.loads((root/'src/generated/runtime/wasm_runtime_provenance.json').read_text(encoding='utf-8'))
+assert m['artifact_kind']=='venom-package-route-runtime-wasm'
+assert m['scaffold_runtime'] is False
+assert m['required_exports_satisfied'] is True
+assert m['dom_command_contract']=='VDOP0020' and m['dom_command_contract_embedded'] is True
+assert m['route_vm_contract']=='VPOL0010-v2-fixed16'
+assert m['route_vm_contract_location']=='protected package plan section'
+print('[PASS] authoritative package/route WASM provenance matches the embedded artifact')

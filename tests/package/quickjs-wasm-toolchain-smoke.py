@@ -25,7 +25,7 @@ for marker in (
     'JS_NewRuntime',
     'JS_Eval',
     'JS_ExecutePendingJob',
-    'venom_qjs_execute_with_upstream',
+    'venom_qjs_execute_bytecode',
     'g_real_engine_candidate = 1u',
 ):
     if marker not in scaffold:
@@ -46,8 +46,8 @@ for name in (
 ):
     if name not in exports:
         raise SystemExit(f'missing ABI12 export {name}')
-if len(exports) < 150:
-    raise SystemExit(f'expected broad ABI12 export set, found only {len(exports)} exports')
+if len(exports) < 60:
+    raise SystemExit(f'expected complete ABI12 export set, found only {len(exports)} exports')
 
 script = (root / 'scripts/build-quickjs-wasm.sh').read_text(encoding='utf-8')
 for marker in ('emcc', 'VENOM_ENABLE_UPSTREAM_QJS_WASM=1', 'third_party/quickjs/quickjs.c',

@@ -1,6 +1,4 @@
 @echo off
-setlocal
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0release.ps1" %*
-set "EXIT_CODE=%ERRORLEVEL%"
-if not "%EXIT_CODE%"=="0" if not "%VENOM_NO_PAUSE%"=="1" pause
-exit /b %EXIT_CODE%
+set "VENOM_PS1=%~dp0release.ps1"
+call "%~dp0internal\invoke-powershell.bat" %*
+exit /b %ERRORLEVEL%

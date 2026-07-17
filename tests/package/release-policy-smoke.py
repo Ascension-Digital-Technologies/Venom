@@ -15,7 +15,7 @@ out_root.mkdir(parents=True)
 
 blocked = out_root / 'blocked-release'
 failed = subprocess.run(
-    [str(venom), 'build', str(script_site), '--out', str(blocked), '--profile', 'release'],
+    [str(venom), 'build', str(script_site), '--out', str(blocked), '--profile', 'prod'],
     text=True,
     stdout=subprocess.PIPE,
     stderr=subprocess.PIPE,
@@ -28,7 +28,7 @@ if 'release build denied' not in combined or 'quickjs backend' not in combined o
 
 rejected = out_root / 'rejected-release-fallback'
 rejected_run = subprocess.run(
-    [str(venom), 'build', str(script_site), '--out', str(rejected), '--profile', 'release', '--allow-host-fallback'],
+    [str(venom), 'build', str(script_site), '--out', str(rejected), '--profile', 'prod', '--allow-host-fallback'],
     text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
 )
 if rejected_run.returncode == 0 or 'structurally fail-closed' not in (rejected_run.stdout + rejected_run.stderr):
@@ -36,7 +36,7 @@ if rejected_run.returncode == 0 or 'structurally fail-closed' not in (rejected_r
 
 strict_ok = out_root / 'noscript-release'
 strict_run = subprocess.run(
-    [str(venom), 'build', str(no_script_site), '--out', str(strict_ok), '--profile', 'release'],
+    [str(venom), 'build', str(no_script_site), '--out', str(strict_ok), '--profile', 'prod'],
     check=True,
     text=True,
     stdout=subprocess.PIPE,

@@ -10,7 +10,7 @@ from pathlib import Path
 
 def sha256(p:Path): return hashlib.sha256(p.read_bytes()).hexdigest()
 def embedded_wasm(root:Path):
-    h=root/'src/compiler/quickjs_runtime_wasm_blob.hpp'
+    h=root/'src/generated/runtime/quickjs_runtime_wasm_blob.hpp'
     values=bytearray(); inside=False
     with h.open('r',encoding='utf-8',errors='replace') as f:
         for line in f:
@@ -47,13 +47,13 @@ def main():
         cur=report
         for part in path.split('.'): cur=cur[part]
         if cur is None:
-            report['gates'].append({'metric':path,'actual':None,'maximum':b[key],'passed':True,'skipped':'brotli module unavailable'}); continue
-        ok=cur<=b[key]; report['gates'].append({'metric':path,'actual':cur,'maximum':b[key],'passed':ok}); report['passed'] &= ok
+            report['gates'].append({'metric':path,'actual':None,'prod':b[key],'passed':True,'skipped':'brotli module unavailable'}); continue
+        ok=cur<=b[key]; report['gates'].append({'metric':path,'actual':cur,'prod':b[key],'passed':ok}); report['passed'] &= ok
     text=json.dumps(report,indent=2)
     if a.format=='json': print(text)
     else:
       q=report['quickjs_wasm']; print('Venom runtime performance report'); print(f"QuickJS/WASM raw: {q['raw_bytes']} bytes"); print(f"QuickJS/WASM gzip: {q['gzip_bytes']} bytes"); print(f"QuickJS/WASM brotli: {q['brotli_bytes'] if q['brotli_bytes'] is not None else 'unavailable'}"); print(f"Release ABI exports: {q['release_abi_exports']}")
-      for g in report['gates']: print(f"[{'PASS' if g['passed'] else 'FAIL'}] {g['metric']}: {g['actual']} <= {g['maximum']}")
+      for g in report['gates']: print(f"[{'PASS' if g['passed'] else 'FAIL'}] {g['metric']}: {g['actual']} <= {g['prod']}")
     if a.json_out: a.json_out.write_text(text+'\n')
     return 0 if report['passed'] else 60
 if __name__=='__main__': raise SystemExit(main())

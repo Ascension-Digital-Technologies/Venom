@@ -1,50 +1,52 @@
 # Contributing to Venom
 
-Thank you for helping improve **Venom - Secure Web Runtime**.
+Thank you for helping improve Venom. Contributions should preserve the project's security boundaries, fail-closed behavior, portability, and documentation quality.
 
 ## Before opening a change
 
-1. Open an issue describing the problem, intended behavior, and security or
-   compatibility implications.
-2. Keep changes focused. Avoid mixing formatting, generated artifacts, and
-   functional changes in one pull request.
-3. Do not commit build directories, generated distributions, Emscripten SDK
-   files, private keys, release signatures, or fuzz crash artifacts.
+1. Search existing issues and pull requests to avoid duplicate work.
+2. For substantial architecture, package-format, runtime, or security changes, open a discussion or proposal first.
+3. Never include private application source, customer data, signing keys, generated distributions, SDK downloads, or build output.
 
 ## Development workflow
 
-```bash
-cmake --preset dev
-cmake --build --preset dev
-ctest --preset dev
+```powershell
+cmake --preset windows-msvc
+cmake --build --preset windows-msvc-release
+ctest --preset windows-msvc-release
 ```
 
-For a strict release-oriented check:
+Use the platform-specific presets and scripts documented in [Build from source](docs/getting-started/build-from-source.md). Run the narrowest relevant tests while developing, then run the repository and documentation gates before submitting.
 
-```bash
-cmake --preset strict
-cmake --build --preset strict
-ctest --preset strict
-```
+## Pull request expectations
 
-Run the repository consistency and Python syntax checks before submitting:
+A focused pull request should include:
 
-```bash
-python3 tests/package/repository-consistency-smoke.py
-python3 -m compileall -q tools tests
-```
+- a clear problem statement and rationale;
+- implementation notes for security- or compatibility-sensitive behavior;
+- tests that cover the change and important failure cases;
+- updated documentation when commands, configuration, output, or guarantees change; and
+- confirmation that no generated or confidential artifacts are included.
 
-## Code expectations
+Keep unrelated refactors separate. Preserve existing command behavior unless the change explicitly introduces a documented compatibility break.
 
-- C code targets C11; C++ code targets C++17.
-- Preserve fail-closed production behavior.
-- Add regression coverage for every bug fix.
-- Keep platform-specific behavior behind the existing CMake and script layers.
-- Update the README or relevant document when changing CLI behavior, output
-  layout, security policy, compatibility, or toolchain requirements.
+## Coding and documentation standards
 
-## Pull requests
+- Follow `.clang-format` and `.editorconfig`.
+- Prefer explicit error handling and fail-closed behavior at trust boundaries.
+- Keep platform-specific behavior isolated and tested.
+- Write documentation for users first: state prerequisites, commands, expected output, limitations, and recovery steps.
+- Do not make security claims broader than the implemented and tested behavior.
+- Keep local Markdown links valid and version references current.
 
-Include a concise summary, test evidence, platform/toolchain details, and any
-security or compatibility tradeoffs. Generated release packages should not be
-attached to normal source pull requests.
+## Security reports
+
+Do not disclose suspected vulnerabilities in a public issue or pull request. Follow [SECURITY.md](SECURITY.md).
+
+## Community conduct
+
+Participation is governed by [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
+## Versioning
+
+Version numbers are assigned only for public release milestones. Do not increment the product version for individual commits, pull requests, or internal validation passes. Use commit hashes and CI run numbers for development traceability. See [the versioning policy](docs/operations/versioning.md).

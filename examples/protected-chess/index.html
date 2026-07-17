@@ -10,7 +10,6 @@
   <link rel="stylesheet" href="css/main.css">
   <script data-venom="browser" defer src="vendor/jquery/jquery.min.js"></script>
   <script data-venom="browser" defer src="vendor/chessboardjs/js/chessboard.min.js"></script>
-  <script data-venom="browser" defer src="js/chess.js"></script>
   <script data-venom="browser" defer src="vendor/bootstrap/js/bootstrap.min.js"></script>
   <script data-venom="browser" defer src="js/ai-engine.js"></script>
   <script data-venom="browser" defer src="js/main.js"></script>
@@ -77,13 +76,13 @@
         <div class="panel-heading">
           <span class="section-kicker">PROTECTION MAP</span>
           <h2>What Venom protects</h2>
-          <p>The interface stays compatible with the browser. High-value chess intelligence is moved behind a narrow JSON bridge.</p>
+          <p>The interface stays compatible with the browser. All chess rules, validation, move generation, evaluation, and search execute behind a narrow JSON bridge.</p>
         </div>
         <div class="protection-list">
           <div class="protection-row"><span>UI &amp; board rendering</span><strong class="realm browser-realm">Browser</strong></div>
-          <div class="protection-row"><span>Drag, controls &amp; charts</span><strong class="realm browser-realm">Browser</strong></div>
+          <div class="protection-row"><span>Rules, validation &amp; legal moves</span><strong class="realm protected-realm">Protected</strong></div>
           <div class="protection-row"><span>Evaluation tables</span><strong class="realm protected-realm">Protected</strong></div>
-          <div class="protection-row"><span>Minimax + alpha-beta</span><strong class="realm protected-realm">Protected</strong></div>
+          <div class="protection-row"><span>Negamax, quiescence &amp; transposition table</span><strong class="realm protected-realm">Protected</strong></div>
           <div class="protection-row"><span>Move selection</span><strong class="realm protected-realm">Protected</strong></div>
         </div>
         <div class="integrity-box">
@@ -101,10 +100,13 @@
         </div>
         <div class="field-grid">
           <label>White depth
-            <select id="search-depth-white"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
+            <select id="search-depth-white"><option>1</option><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select>
           </label>
           <label>Black depth
-            <select id="search-depth"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
+            <select id="search-depth"><option>1</option><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select>
+          </label>
+          <label>Search budget
+            <select id="search-time"><option value="250">250 ms</option><option value="750">750 ms</option><option value="1500" selected>1.5 seconds</option><option value="3000">3 seconds</option><option value="5000">5 seconds</option></select>
           </label>
           <label>Move delay
             <select id="move-delay"><option value="80">Fast</option><option value="250" selected>Normal</option><option value="700">Watch</option></select>

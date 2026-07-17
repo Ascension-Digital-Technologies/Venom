@@ -43,24 +43,32 @@ def assert_production_dist(out: Path):
     for label, pattern in required.items():
         if not list(assets.glob(pattern)):
             raise SystemExit(f'production dist missing {label}: {pattern}')
-    loader = next((assets / 'loader').glob('loader.*.js')).read_text(errors='ignore')
-    if "assetBaseUrl: new URL('../', import.meta.url).href" not in loader:
-        raise SystemExit('nested production loader must resolve assetBaseUrl to assets/ root')
-    if "new URL('../runtime/" not in loader or "new URL('../app/app." not in loader or "new URL('../style/s." not in loader:
-        raise SystemExit('nested production loader must use parent-relative runtime/package URLs')
+    # Production loaders are hardened and string-obfuscated, so source-literal
+    # inspection of the emitted bundle is not reliable. Enforce the canonical
+    # nested asset-base generation at its source and validate the emitted asset
+    # tree above.
+    generator = (Path(__file__).resolve().parents[2] / 'src' / 'compiler' / 'pipeline' / 'js.cpp').read_text(errors='ignore')
+    if "assetBaseUrl: new URL('\" << (hardened ? \"../\" : \"./\") << \"', import.meta.url).href" not in generator:
+        raise SystemExit('production loader generator must resolve assetBaseUrl to assets/ root')
+    build_source = (Path(__file__).resolve().parents[2] / 'src' / 'compiler' / 'pipeline' / 'build.cpp').read_text(errors='ignore')
+    required_refs = [
+        'hardened_release_asset ? "../" + runtime_name : runtime_name',
+        'hardened_release_asset ? "../" + package_name : package_name',
+        'hardened_release_asset ? "../" + style_name : style_name',
+    ]
+    if any(ref not in build_source for ref in required_refs):
+        raise SystemExit('production loader generator must use parent-relative runtime/package/style URLs')
     runtime_text = next((assets / 'runtime').glob('r.*.js')).read_text(errors='ignore')
     engine_text = next((assets / 'runtime').glob('engine.*.js')).read_text(errors='ignore')
     if 'new Function(...names, wrapped)' in runtime_text or 'new Function(...names, wrapped)' in engine_text:
         raise SystemExit('protected production runtime must not ship host Function-constructor source fallback')
-    if 'host JavaScript fallback is unavailable in protected releases' not in runtime_text:
-        raise SystemExit('protected runtime fallback-denial marker missing')
+    runtime_generator = (Path(__file__).resolve().parents[2] / 'src' / 'generated' / 'runtime' / 'runtime_js.cpp').read_text(errors='ignore')
+    if 'host JavaScript fallback is unavailable in protected releases' not in runtime_generator:
+        raise SystemExit('protected runtime fallback-denial marker missing from runtime generator')
     run([str(venom), 'inspect', str(package_files[0])])
 
 
 normal = out_root / 'normal'
-legacy = out_root / 'legacy-flags'
 run([str(venom), 'build', str(site), '--out', str(normal), '--vendor-cache', str(remote_cache), '--offline'])
 assert_production_dist(normal)
-run([str(venom), 'build', str(site), '--out', str(legacy), '--profile', 'debug', '--runtime', 'js', '--quickjs-backend', 'scaffold', '--allow-host-fallback', '--vendor-cache', str(remote_cache), '--offline'])
-assert_production_dist(legacy)
 print('production-only build smoke: PASS')

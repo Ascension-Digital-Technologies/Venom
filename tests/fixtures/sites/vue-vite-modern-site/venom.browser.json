@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "id": "vue-vite-modern-production",
+  "profile": "framework-production",
+  "evidence_level": "behavioral",
+  "claims": [
+    "vue3-compiled-output-pattern",
+    "vite-esm-entry",
+    "reactive-state",
+    "template-event-update"
+  ],
+  "scenarios": [
+    {
+      "id": "render-and-update",
+      "path": "/index.html",
+      "wait_for": {
+        "selector": "main"
+      },
+      "checks": [
+        {
+          "id": "framework",
+          "type": "attribute",
+          "selector": "main",
+          "name": "data-framework",
+          "equals": "vue"
+        },
+        {
+          "id": "message",
+          "type": "text",
+          "selector": "#message",
+          "equals": "ready"
+        },
+        {
+          "id": "updated-count",
+          "type": "text",
+          "selector": "#count",
+          "equals": "1"
+        }
+      ],
+      "actions": [
+        {
+          "type": "click",
+          "selector": "#increment"
+        }
+      ]
+    }
+  ],
+  "support_tier": "qualified-pattern",
+  "framework": {
+    "name": "Vue",
+    "version": "3-compatible output pattern",
+    "delivery": "Vite-style production ESM"
+  }
+}

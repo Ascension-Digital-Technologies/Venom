@@ -3,28 +3,43 @@ param(
   [string]$Dist='dist',
   [string]$BuildDir='build',
   [ValidateSet('Debug','Release','RelWithDebInfo','MinSizeRel')][string]$Config='Release',
-  [ValidateSet('debug','browser-protect','native-protect','maximum')][string]$Profile='browser-protect',
-  [switch]$NoHashed
+  [ValidateSet('dev','prod')][string]$Profile='prod',
+  [switch]$SkipCompilerBuild
 )
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'internal/console.ps1')
 $Root=(Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 . (Join-Path $PSScriptRoot 'resolve-venom.ps1')
 
 try {
-  $Exe=Resolve-VenomExecutable -Root $Root -BuildDir $BuildDir -Config $Config
-} catch {
-  & (Join-Path $PSScriptRoot 'build.ps1') -Config $Config -BuildDir $BuildDir
-  if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
-  $Exe=Resolve-VenomExecutable -Root $Root -BuildDir $BuildDir -Config $Config
-}
+  Write-VenomBanner -Title 'Website build' -Subtitle "$Profile profile"
+  $SitePath=if([IO.Path]::IsPathRooted($Site)){$Site}else{Join-Path $Root $Site}
+  $DistPath=if([IO.Path]::IsPathRooted($Dist)){$Dist}else{Join-Path $Root $Dist}
+  Write-VenomInfo "Site:   $SitePath"
+  Write-VenomInfo "Output: $DistPath"
 
-$SitePath=if([IO.Path]::IsPathRooted($Site)){$Site}else{Join-Path $Root $Site}
-$DistPath=if([IO.Path]::IsPathRooted($Dist)){$Dist}else{Join-Path $Root $Dist}
-$args=@('build',$SitePath,'--out',$DistPath,'--profile',$Profile)
-if(!$NoHashed){$args+='--hashed'}
-& $Exe @args
-if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
-if($Profile -ne 'debug'){
-  python (Join-Path $PSScriptRoot 'check-production-leaks.py') $DistPath
-  if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+  if(-not $SkipCompilerBuild){
+    Write-VenomInfo 'Refreshing Venom compiler with incremental native build.'
+    & (Join-Path $PSScriptRoot 'build.ps1') -Config $Config -BuildDir $BuildDir
+    if($LASTEXITCODE -ne 0){throw "Native build failed with exit code $LASTEXITCODE"}
+  } else {
+    Write-VenomWarning 'Compiler rebuild explicitly skipped.'
+  }
+  $Exe=Resolve-VenomExecutable -Root $Root -BuildDir $BuildDir -Config $Config
+  $CompilerHash=(Get-FileHash -Algorithm SHA256 -LiteralPath $Exe).Hash.ToLowerInvariant()
+  Write-VenomInfo "Compiler: $Exe"
+  Write-VenomInfo "Compiler fingerprint: $CompilerHash"
+
+  if(Test-Path -LiteralPath $DistPath){Remove-Item -LiteralPath $DistPath -Recurse -Force}
+  Invoke-VenomExternal -Program $Exe -Arguments @('build',$SitePath,'--out',$DistPath,'--profile',$Profile) -Description 'Compile protected distribution'
+  if($Profile -eq 'prod'){
+    Invoke-VenomExternal -Program 'python' -Arguments @((Join-Path $PSScriptRoot 'check-production-leaks.py'),$DistPath) -Description 'Scan production output for source leakage'
+    Invoke-VenomExternal -Program $Exe -Arguments @('release-check',$DistPath,'--target','browser') -Description 'Enforce production protection gate'
+    Invoke-VenomExternal -Program $Exe -Arguments @('verify-runtime',$DistPath,'--require-real-engine') -Description 'Verify real QuickJS/WASM runtime'
+  }
+  Write-VenomSuccess "Distribution ready: $DistPath"
+  exit 0
+} catch {
+  Write-VenomFailure $_.Exception.Message
+  exit 1
 }

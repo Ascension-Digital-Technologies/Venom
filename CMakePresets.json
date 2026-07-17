@@ -12,7 +12,9 @@
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
-        "VENOM_ENABLE_FULL_QUICKJS": "ON"
+        "VENOM_ENABLE_FULL_QUICKJS": "ON",
+        "VENOM_COMPILER_CACHE": "auto",
+        "VENOM_ENABLE_PCH": "ON"
       }
     },
     {
@@ -59,6 +61,18 @@
       "cacheVariables": {
         "VENOM_REQUIRE_BROWSER_RUNTIME_TESTS": "ON"
       }
+    },
+    {
+      "name": "fast-dev",
+      "inherits": "dev",
+      "displayName": "Fast cached development",
+      "cacheVariables": {
+        "VENOM_ENABLE_FULL_QUICKJS": "ON",
+        "VENOM_ENABLE_IPO": "OFF",
+        "VENOM_ENABLE_QUICKJS_IPO": "OFF",
+        "VENOM_COMPILER_CACHE": "auto",
+        "VENOM_ENABLE_PCH": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -81,6 +95,10 @@
     {
       "name": "release-closure",
       "configurePreset": "release-closure"
+    },
+    {
+      "name": "fast-dev",
+      "configurePreset": "fast-dev"
     }
   ],
   "testPresets": [

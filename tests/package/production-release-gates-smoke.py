@@ -18,7 +18,7 @@ if len(key_text) != 64 or any(ch not in "0123456789abcdefABCDEF" for ch in key_t
     raise SystemExit("keygen did not write a 64-character hex package key")
 
 browser_out = out_root / "browser"
-subprocess.run([str(venom), "build", str(site), "--out", str(browser_out), "--profile", "browser-protect"], check=True)
+subprocess.run([str(venom), "build", str(site), "--out", str(browser_out), "--profile", "prod"], check=True)
 browser_check = subprocess.run([str(venom), "release-check", str(browser_out), "--target", "browser"], check=True, text=True, stdout=subprocess.PIPE)
 if "release_status: PASS" not in browser_check.stdout:
     raise SystemExit("browser-protect release-check did not pass")
@@ -32,7 +32,7 @@ if audited_fail.returncode == 0 or "release_status: FAIL" not in audited_fail.st
     raise SystemExit("release-check should fail when audited crypto is required for a browser-protect package")
 
 native_out = out_root / "native"
-native_build = subprocess.run([str(venom), "build", str(site), "--out", str(native_out), "--profile", "native-protect", "--key-file", str(key_file), "--require-audited-crypto"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+native_build = subprocess.run([str(venom), "build", str(site), "--out", str(native_out), "--profile", "prod", "--key-file", str(key_file), "--require-audited-crypto"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 if native_build.returncode != 0:
     if "libsodium provider is not available" in native_build.stdout:
         print("libsodium unavailable; native-protect release gate path skipped")

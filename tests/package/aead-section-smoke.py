@@ -19,7 +19,7 @@ out = Path(sys.argv[3])
 if out.exists():
     shutil.rmtree(out)
 
-subprocess.run([str(venom), 'build', str(site), '--out', str(out), '--profile', 'protect'], check=True)
+subprocess.run([str(venom), 'build', str(site), '--out', str(out), '--profile', 'prod'], check=True)
 package = find_package(out)
 raw = package.read_bytes()
 if b'VAEAD001' not in raw:

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 from pathlib import Path
 root = Path(__file__).resolve().parents[2]
-runtime = (root / 'src/compiler/runtime_js.cpp').read_text(encoding='utf-8')
+runtime = (root / 'src/generated/runtime/runtime_js.cpp').read_text(encoding='utf-8')
+runtime += (root / 'src/runtime/templates/runtime.js').read_text(encoding='utf-8')
 wasm = (root / 'src/runtime/wasm_runtime.c').read_text(encoding='utf-8')
 checks = {
     'single active route runtime': 'let activeRuntime = null;' in runtime and 'disposeActive();' in runtime,
@@ -15,7 +16,7 @@ checks = {
     'wasm materialized wipe': 'venom_wasm_secure_zero' in wasm and 'venom_wasm_release_materialized' in wasm,
     'wasm release operation': 'case 5u: venom_wasm_release_materialized(); return ERR_OK;' in wasm,
     'wasm transient wipe': 'venom_wasm_release_transient' in wasm and 'case 6u: venom_wasm_release_transient(); return ERR_OK;' in wasm,
-    'decoder finally wipe': 'finally {' in (root / 'src/compiler/wasm_runtime_js.cpp').read_text(encoding='utf-8') and 'e.v12_x(5, 0, 0, 0, 0);' in (root / 'src/compiler/wasm_runtime_js.cpp').read_text(encoding='utf-8'),
+    'decoder finally wipe': 'finally {' in (root / 'src/generated/runtime/wasm_runtime_js.cpp').read_text(encoding='utf-8') and 'e.v12_x(5, 0, 0, 0, 0);' in (root / 'src/generated/runtime/wasm_runtime_js.cpp').read_text(encoding='utf-8'),
 }
 failed = [name for name, ok in checks.items() if not ok]
 if failed:

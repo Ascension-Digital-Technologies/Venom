@@ -72,9 +72,9 @@ def main() -> int:
 
     boot = run([
         str(node), str(harness), str(dist), "strict-no-eval",
-        "--strict-no-source-eval", "--via-loader", "--assert-html-fidelity",
+        "--strict-no-source-eval", "--via-loader", "--assert-html-fidelity", "--assert-malformed-html",
     ])
-    if "browser compatibility harness passed: strict-no-eval:via-loader:html-fidelity" not in boot.stdout:
+    if "browser compatibility harness passed: strict-no-eval:via-loader:html-fidelity:malformed-html" not in boot.stdout:
         raise RuntimeError(f"HTML fidelity boot assertions did not complete\n{boot.stdout}")
 
     print("html rendering fidelity smoke: PASS")

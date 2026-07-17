@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Venom Sentinel demonstrates protected browser fingerprint analysis and bot-likelihood scoring inside QuickJS/WASM.">
+  <meta name="theme-color" content="#07110f">
+  <meta name="venom-network-endpoint" content="">
+  <title>Venom Sentinel — Protected Bot Detection</title>
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="Venom Sentinel home">
+      <span class="brand-mark">V</span>
+      <span><strong>VENOM</strong><small>SENTINEL</small></span>
+    </a>
+    <div class="header-status">
+      <span id="runtime-status" class="status-pill loading">Starting protected runtime…</span>
+      <span class="local-badge">LOCAL ANALYSIS</span>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero shell">
+      <div class="hero-copy">
+        <p class="eyebrow">Protected browser intelligence</p>
+        <h1>Is this visitor <span>human?</span></h1>
+        <p class="hero-lead">A live browser fingerprint and behavior dashboard powered by a scoring policy that executes inside Venom’s protected QuickJS/WASM runtime.</p>
+        <div class="hero-actions">
+          <button id="rescan-button" class="button primary" type="button">Run full scan</button>
+          <button id="copy-button" class="button secondary" type="button">Copy JSON report</button>
+          <button id="reset-button" class="button ghost" type="button">Reset behavior</button>
+        </div>
+        <p id="scan-status" class="scan-status">Preparing signal collectors…</p>
+      </div>
+
+      <div class="score-panel">
+        <div id="score-ring" class="score-ring" data-tone="uncertain">
+          <div class="score-core">
+            <span id="score-value">--</span>
+            <small>/ 100</small>
+          </div>
+        </div>
+        <div class="score-summary">
+          <span>Human likelihood</span>
+          <h2 id="score-label">Analyzing…</h2>
+          <p>Heuristic result, not proof of identity.</p>
+        </div>
+        <div class="score-metrics">
+          <div><span>Confidence</span><strong id="confidence-value">--</strong></div>
+          <div><span>Automation risk</span><strong id="automation-risk">--</strong></div>
+          <div><span>Signals</span><strong id="signal-count">--</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="overview shell">
+      <div class="panel categories-panel">
+        <div class="panel-heading">
+          <div><p class="eyebrow">Protected decision</p><h2>Score composition</h2></div>
+          <span class="engine-chip">QuickJS / WASM</span>
+        </div>
+        <div id="category-list" class="category-list">
+          <div class="loading-lines"><span></span><span></span><span></span><span></span><span></span></div>
+        </div>
+      </div>
+
+      <div class="panel recommendation-panel">
+        <p class="eyebrow">Suggested response</p>
+        <h2>Session policy</h2>
+        <p id="recommendation">The protected engine is evaluating this browser.</p>
+        <div class="fingerprint-identity">
+          <span>Fingerprint ID</span>
+          <code id="fingerprint-id">pending</code>
+        </div>
+        <div class="last-updated">Updated <strong id="last-updated">--</strong></div>
+      </div>
+    </section>
+
+    <section class="shell section-block">
+      <div class="section-heading">
+        <div><p class="eyebrow">Risk evidence</p><h2>Detected anomalies</h2></div>
+        <p>Signals are weighted by the protected engine. Privacy settings and enterprise policies may create benign anomalies.</p>
+      </div>
+      <div id="findings-list" class="findings-list">
+        <div class="loading-card">Waiting for protected assessment…</div>
+      </div>
+    </section>
+
+    <section class="behavior-band">
+      <div class="shell">
+        <div class="section-heading compact">
+          <div><p class="eyebrow">Live session</p><h2>Behavior and timing</h2></div>
+          <p>Move, click, type, and scroll. Only aggregate event counts and timing are retained in memory.</p>
+        </div>
+        <div id="behavior-grid" class="behavior-grid">
+          <div class="behavior-stat"><span>Pointer moves</span><strong>0</strong></div>
+          <div class="behavior-stat"><span>Trusted events</span><strong>0</strong></div>
+          <div class="behavior-stat"><span>Focused time</span><strong>0.0 s</strong></div>
+          <div class="behavior-stat"><span>Frame deviation</span><strong>--</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell section-block">
+      <div class="section-heading">
+        <div><p class="eyebrow">Client telemetry</p><h2>Complete fingerprint</h2></div>
+        <p>Everything below is visible to page JavaScript or an optional same-origin network endpoint. No external lookup is enabled by default.</p>
+      </div>
+      <div id="fingerprint-sections" class="fingerprint-grid">
+        <div class="loading-card">Collecting browser-exposed data…</div>
+      </div>
+    </section>
+
+    <section class="shell section-block raw-section">
+      <details>
+        <summary><span>Raw assessment report</span><small>JSON</small></summary>
+        <pre id="raw-json">Report not available yet.</pre>
+      </details>
+    </section>
+
+    <section class="shell disclosure">
+      <div class="disclosure-icon">i</div>
+      <div>
+        <h2>Responsible use</h2>
+        <p>This demonstration is a client-side heuristic. It should complement server-observed signals, rate limits, account history, and challenge flows—not make final access, employment, credit, housing, or other high-impact decisions. Venom raises reverse-engineering cost, but a determined client can still observe inputs and outputs.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell footer-inner">
+      <span>VENOM SENTINEL</span>
+      <span>Protected bot-detection example</span>
+      <span>Data remains in this page session</span>
+    </div>
+  </footer>
+
+  <script src="assets/js/fingerprint.js"></script>
+  <script type="module" src="protected/bot-engine.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

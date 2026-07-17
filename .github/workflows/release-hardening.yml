@@ -1,8 +1,6 @@
 name: release-closure
 on:
   workflow_dispatch:
-  push:
-    tags: ['v*']
 permissions:
   contents: read
 jobs:
@@ -21,7 +19,7 @@ jobs:
       - run: scripts/setup-emscripten.sh --version "$EMSDK_VERSION" --emsdk-dir build/emsdk
       - run: |
           source build/emsdk/emsdk_env.sh
-          scripts/build-quickjs-wasm.sh build/quickjs-wasm
+          python tools/build_emscripten.py --repo-root . --out-dir build/emscripten-build --emsdk-dir build/emsdk --skip-native-rebuild --skip-runtime-smoke
           python3 tools/release_closure.py --repo-root . --require-real --json-out build/release-closure.json
       - run: cmake --preset release-closure -DVENOM_BUILD_FUZZERS=ON -DVENOM_ENABLE_SANITIZERS=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
       - run: cmake --build --preset release-closure --parallel 2

@@ -8,9 +8,10 @@ ps = (root / 'scripts' / 'build-quickjs-wasm.ps1').read_text(encoding='utf-8')
 sh = (root / 'scripts' / 'build-quickjs-wasm.sh').read_text(encoding='utf-8')
 abi = (root / 'src' / 'quickjs' / 'abi.hpp').read_text(encoding='utf-8')
 scaffold = (root / 'src' / 'runtime' / 'quickjs_runtime_scaffold.c').read_text(encoding='utf-8')
-engine = (root / 'src' / 'compiler' / 'quickjs_engine_module.cpp').read_text(encoding='utf-8')
+engine = (root / 'src' / 'generated' / 'runtime' / 'quickjs_engine_module.cpp').read_text(encoding='utf-8')
 rebuild = (root / 'scripts' / 'build-quickjs-wasm.bat').read_text(encoding='utf-8')
-build_site = (root / 'scripts' / 'build-site.bat').read_text(encoding='utf-8')
+build_site_bat = (root / 'scripts' / 'build-site.bat').read_text(encoding='utf-8')
+build_site_ps1 = (root / 'scripts' / 'build-site.ps1').read_text(encoding='utf-8')
 
 for name, text in [('PowerShell', ps), ('shell', sh)]:
     m = re.search(r'STACK_SIZE=([0-9]+)', text)
@@ -31,6 +32,6 @@ if ': 262144;' not in engine:
     raise SystemExit('browser engine module must default to the corrected stack limit')
 if 'build-quickjs-wasm.ps1' not in rebuild:
     raise SystemExit('Windows QuickJS WASM batch entrypoint must delegate to the canonical PowerShell rebuild')
-if 'build\\windows-release' not in build_site:
-    raise SystemExit('Windows site build must use the isolated windows-release tree')
+if 'build-site.ps1' not in build_site_bat or "[string]$BuildDir='build'" not in build_site_ps1 or 'Resolve-VenomExecutable' not in build_site_ps1:
+    raise SystemExit('Windows site build must delegate to the canonical configurable build tree')
 print('quickjs wasm stack safety smoke: PASS')

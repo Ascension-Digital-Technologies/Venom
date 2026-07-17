@@ -21,8 +21,6 @@ def main()->int:
     ap.add_argument('--site',type=Path,default=Path('examples/protected-chess'))
     ap.add_argument('--dist',type=Path,default=Path('build/qualified-chess-dist'))
     ap.add_argument('--seed',type=int,default=1350001)
-    ap.add_argument('--browser',choices=('none','chromium','firefox','webkit','all'),default='chromium')
-    ap.add_argument('--node',default='node')
     ap.add_argument('--skip-reproducibility',action='store_true')
     args=ap.parse_args()
     root=Path(__file__).resolve().parents[1]
@@ -33,8 +31,6 @@ def main()->int:
     run([venom,'verify-runtime',dist,'--target','browser','--require-real-engine'],cwd=root,env=env)
     run([sys.executable,root/'scripts/check-production-leaks.py',dist],cwd=root,env=env)
     run([sys.executable,root/'tools/tamper_gate.py',dist,'--venom',venom],cwd=root,env=env)
-    if args.browser!='none':
-        run([sys.executable,root/'tools/browser_validation.py',dist,'--browser',args.browser,'--manifest',site/'venom.browser.json','--node',args.node,'--json-out',dist.parent/'protected-chess-browser.json'],cwd=root,env=env)
     if not args.skip_reproducibility:
         a=dist.parent/'repro-a'; b=dist.parent/'repro-b'; c=dist.parent/'repro-different-seed'
         for x in (a,b,c):

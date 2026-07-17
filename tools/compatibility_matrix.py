@@ -9,6 +9,7 @@ def main():
     ap=argparse.ArgumentParser(description='Aggregate Venom browser validation reports into a compatibility matrix and enforce support promotion rules.')
     ap.add_argument('reports', nargs='+', type=Path)
     ap.add_argument('--json-out', type=Path)
+    ap.add_argument('--markdown-out', type=Path)
     ap.add_argument('--required-browsers', default='chromium,firefox,webkit')
     ap.add_argument('--min-checks', type=int, default=3)
     a=ap.parse_args(); required={x.strip() for x in a.required_browsers.split(',') if x.strip()}
@@ -31,9 +32,49 @@ def main():
         valid=TIERS[declared] <= TIERS[eligible]
         policy_ok &= valid
         promotions.append({**f,'required_browsers':sorted(required),'eligible_support_tier':eligible,'promotion_policy_passed':valid,'missing_browsers':sorted(required-covered)})
-    out={'schema_version':2,'passed':all_pass and policy_ok,'browser_results_passed':all_pass,'support_policy_passed':policy_ok,'required_browsers':sorted(required),'minimum_checks_per_browser':a.min_checks,'rows':rows,'fixtures':promotions}
+    summary = {
+        'fixture_count': len(promotions),
+        'supported_count': sum(1 for f in promotions if f['eligible_support_tier'] == 'supported'),
+        'candidate_count': sum(1 for f in promotions if f['eligible_support_tier'] == 'candidate'),
+        'probe_count': sum(1 for f in promotions if f['eligible_support_tier'] == 'probe'),
+        'browser_result_count': len(rows),
+        'passed_browser_result_count': sum(1 for r in rows if r['passed']),
+    }
+    out={'schema_version':3,'passed':all_pass and policy_ok,'browser_results_passed':all_pass,'support_policy_passed':policy_ok,'required_browsers':sorted(required),'minimum_checks_per_browser':a.min_checks,'summary':summary,'rows':rows,'fixtures':promotions}
     text=json.dumps(out,indent=2,sort_keys=True)
-    if a.json_out: a.json_out.write_text(text+'\n',encoding='utf-8')
+    if a.json_out:
+        a.json_out.parent.mkdir(parents=True, exist_ok=True)
+        a.json_out.write_text(text+'\n',encoding='utf-8')
+    if a.markdown_out:
+        a.markdown_out.parent.mkdir(parents=True, exist_ok=True)
+        lines = [
+            '# Venom Compatibility Matrix', '',
+            f"**Result:** {'PASS' if out['passed'] else 'FAIL'}  ",
+            f"**Required browsers:** {', '.join(sorted(required))}  ",
+            f"**Fixtures:** {summary['fixture_count']}  ", '',
+            '| Fixture | Profile | Framework | Declared | Eligible | Chromium | Firefox | WebKit |',
+            '|---|---|---|---:|---:|---:|---:|---:|',
+        ]
+        for f in sorted(promotions, key=lambda item: item['fixture']):
+            framework = f.get('framework')
+            if isinstance(framework, dict):
+                framework = f"{framework.get('name','')} {framework.get('version','')}".strip()
+            framework = framework or '—'
+            def browser_cell(name):
+                value = f['browsers'].get(name)
+                if not value:
+                    return 'missing'
+                return ('PASS' if value['passed'] else 'FAIL') + f" ({value['checks']})"
+            lines.append('| ' + ' | '.join([
+                f['fixture'], f['profile'], str(framework), f['declared_support_tier'],
+                f['eligible_support_tier'], browser_cell('chromium'), browser_cell('firefox'), browser_cell('webkit')
+            ]) + ' |')
+        lines += ['', '## Claims', '']
+        for f in sorted(promotions, key=lambda item: item['fixture']):
+            claims = ', '.join(f.get('claims') or []) or 'No explicit claims declared.'
+            lines.append(f"- **{f['fixture']}** — {claims}")
+        lines += ['', '> Compatibility evidence is behavioral and version-specific. It does not imply that every application built with a framework is automatically compatible.', '']
+        a.markdown_out.write_text('\n'.join(lines), encoding='utf-8')
     print(text)
     return 0 if out['passed'] else 60
 if __name__=='__main__': raise SystemExit(main())

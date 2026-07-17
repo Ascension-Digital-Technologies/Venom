@@ -2,9 +2,11 @@
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
-build = (root / 'src/compiler/build.cpp').read_text(encoding='utf-8')
-runtime = (root / 'src/compiler/runtime_js.cpp').read_text(encoding='utf-8')
-js = (root / 'src/compiler/js.cpp').read_text(encoding='utf-8')
+build = (root / 'src/compiler/pipeline/build.cpp').read_text(encoding='utf-8') + (root / 'src/compiler/pipeline/build_package_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/compiler/pipeline/build_runtime_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/compiler/pipeline/build_runtime_audit_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/compiler/pipeline/build_runtime_module_metadata.cpp').read_text(encoding='utf-8')
+runtime = (root / 'src/generated/runtime/runtime_js.cpp').read_text(encoding='utf-8')
+runtime += (root / 'src/runtime/templates/runtime.js').read_text(encoding='utf-8')
+js = (root / 'src/compiler/pipeline/js.cpp').read_text(encoding='utf-8')
+js += (root / 'src/compiler/pipeline/js_discovery.cpp').read_text(encoding='utf-8')
 
 required_build = [
     'const bool browser_side = (chunk.flags & JsChunkBrowser) != 0u;',

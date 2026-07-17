@@ -1,4 +1,4 @@
-option(VENOM_BUILD_RUNTIME_NATIVE "Build the native C runtime stubs for host testing" ON)
+option(VENOM_BUILD_RUNTIME_NATIVE "Build the native C package runtime and diagnostic probes" ON)
 option(VENOM_ENABLE_STRICT "Enable stricter compiler warnings for Venom source" ON)
 option(VENOM_ENABLE_WERROR "Treat Venom warnings as errors" OFF)
 

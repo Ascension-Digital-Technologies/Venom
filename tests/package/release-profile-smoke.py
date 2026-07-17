@@ -13,7 +13,7 @@ browser_out = pathlib.Path(sys.argv[3])
 native_out = pathlib.Path(sys.argv[4])
 key_file = pathlib.Path(sys.argv[5])
 
-subprocess.run([str(venom), 'build', str(site), '--out', str(browser_out), '--profile', 'browser-protect'], check=True)
+subprocess.run([str(venom), 'build', str(site), '--out', str(browser_out), '--profile', 'prod'], check=True)
 browser_check = subprocess.run([str(venom), 'release-check', str(browser_out), '--target', 'browser'], check=True, text=True, capture_output=True)
 browser_required = [
     'release_profile: yes',
@@ -34,7 +34,7 @@ for marker in [b'VENOM_RELEASE_PROFILE_V1', b'release-profile.vrpf', b'browser-c
         raise SystemExit(f'raw browser package leaked release profile marker: {marker!r}')
 
 subprocess.run([str(venom), 'keygen', '--out', str(key_file), '--force'], check=True)
-native_build = subprocess.run([str(venom), 'build', str(site), '--out', str(native_out), '--profile', 'native-protect', '--key-file', str(key_file), '--require-audited-crypto'], text=True, capture_output=True)
+native_build = subprocess.run([str(venom), 'build', str(site), '--out', str(native_out), '--profile', 'prod', '--key-file', str(key_file), '--require-audited-crypto'], text=True, capture_output=True)
 if native_build.returncode != 0:
     if 'libsodium provider is not available' in native_build.stdout + native_build.stderr:
         print('libsodium unavailable; release-profile native path skipped')

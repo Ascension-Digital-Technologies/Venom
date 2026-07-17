@@ -16,7 +16,7 @@ def build(site, out):
 
 with tempfile.TemporaryDirectory(prefix='venom-runtime-modules-') as td:
     td = pathlib.Path(td)
-    static_meta, static_js, static_size = build(root / 'examples' / 'no-script-site', td / 'static')
+    static_meta, static_js, static_size = build(root / 'tests' / 'fixtures' / 'sites' / 'no-script-site', td / 'static')
     browser_meta, browser_js, browser_size = build(root / 'examples' / 'browser-compat-site', td / 'browser')
 
     static_modules = set(static_meta['runtime_modules'])
