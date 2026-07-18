@@ -27,20 +27,6 @@ Venom 2.0.0 is consolidated around one production runtime, eight certified examp
 
 Stable releases must use `scripts/linux/release.sh` or `scripts/windows/release.ps1`. Both require offline Ed25519 key files, run the final repository gate, and force the `stable` release channel.
 
-## Example certification
-
-Venom 2.0.0 certifies every included example through one production-only pipeline. Run:
-
-```powershell
-python tools\certify_examples.py --venom build\venom.exe
-```
-
-The command builds all examples with `prod`, verifies package integrity, confirms the real QuickJS/WASM engine, runs protected-source leak scanning, and writes JSON and Markdown evidence under `build/example-certification`. The authoritative example inventory is `contracts/examples.json`.
-
-## Browser-certified startup in v2
-
-Venom v2 distinguishes worker bridge readiness from complete application boot. Generated applications publish `globalThis.__venomBootStatus` and emit `venom:boot-ready` only after package verification, QuickJS/WASM preparation, browser module linking, route execution, and startup scripts all succeed. Release certification exercises every included example in Chromium, Firefox, and WebKit and records structured startup evidence.
-
 ## Venom v2.0.0 release
 
 > **Example 4 module-linking correction:** Protected imports are lowered inline to capability-bound runtime calls during compilation. Browser bundles no longer retain imports such as `../protected/pricing`, so protected facades do not depend on lazy-section placement or polymorphic module identifiers.
