@@ -5,11 +5,8 @@ const path = require('path');
 const vm = require('vm');
 
 const enginePath = path.resolve(__dirname, '..', 'js', 'ai-engine.js');
-vm.runInThisContext(
-  fs.readFileSync(enginePath, 'utf8') + '\nglobalThis.__venomChessBenchmarkEntry = runChessEngine;',
-  { filename: enginePath }
-);
-const run = globalThis.__venomChessBenchmarkEntry;
+vm.runInThisContext(fs.readFileSync(enginePath, 'utf8') + '\nglobalThis.__venomVelocityChessBenchmarkEntry = runChessEngine;', { filename: enginePath });
+const run = globalThis.__venomVelocityChessBenchmarkEntry;
 
 const positions = [
   ['Starting position', 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'],
@@ -20,17 +17,16 @@ const positions = [
 
 const maxDepth = Number(process.argv[2] || 8);
 const timeMs = Number(process.argv[3] || 1500);
-console.log(`Protected Chess Engine 2.0 benchmark · max depth ${maxDepth} · ${timeMs} ms budget\n`);
+console.log(`Protected Velocity Chess 0.5.0 benchmark · max depth ${maxDepth} · ${timeMs} ms budget\n`);
 
 for (const [name, fen] of positions) {
   const result = run({ action: 'search', fen, maxDepth, timeMs });
-  const move = result.move ? `${result.move.san || result.move.from + result.move.to}` : 'none';
   console.log(name);
-  console.log(`  move: ${move}`);
+  console.log(`  move: ${result.move ? result.move.san + ' (' + result.move.uci + ')' : 'none'}`);
   console.log(`  depth: ${result.depth}/${result.requestedDepth}${result.timedOut ? ' (time-limited)' : ''}`);
   console.log(`  evaluation: ${(result.value / 100).toFixed(2)} pawns (White-positive)`);
   console.log(`  nodes: ${result.positions.toLocaleString()} (${result.qnodes.toLocaleString()} quiescence)`);
-  console.log(`  TT hits: ${result.ttHits.toLocaleString()} · cutoffs: ${result.cutoffs.toLocaleString()}`);
-  console.log(`  elapsed: ${result.elapsedMs} ms · NPS: ${result.positionsPerSecond.toLocaleString()}`);
+  console.log(`  TT hits/stores: ${result.ttHits.toLocaleString()}/${result.ttStores.toLocaleString()} · cutoffs: ${result.cutoffs.toLocaleString()}`);
+  console.log(`  elapsed: ${result.elapsedMs.toFixed(3)} ms · NPS: ${result.positionsPerSecond.toLocaleString()}`);
   console.log(`  PV: ${result.pv.join(' ') || '—'}\n`);
 }

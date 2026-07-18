@@ -5,7 +5,7 @@ var START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 var STACK_SIZE = 100;
 var board = null;
 var $board = $('#myBoard');
-var currentState = { fen: START_FEN, turn: 'w', gameOver: false, inCheck: false, history: [], evaluation: 0 };
+var currentState = { fen: START_FEN, turn: 'w', gameOver: false, inCheck: false, history: [], repetition: [], evaluation: 0 };
 var undoStack = [];
 var redoStack = [];
 var engineEvaluation = 0;
@@ -186,7 +186,8 @@ async function protectedMove(move, pushUndo) {
     action: 'move',
     fen: currentState.fen,
     move: move,
-    history: currentState.history || []
+    history: currentState.history || [],
+    repetition: currentState.repetition || []
   });
   if (!result || !result.state) throw new Error('protected move returned no state');
   applySnapshot(result.state, result.move, pushUndo);
@@ -208,6 +209,7 @@ async function requestBestMove(color, playMove) {
     action: 'search',
     fen: currentState.fen,
     history: currentState.history || [],
+    repetition: currentState.repetition || [],
     maxDepth: limits.maxDepth,
     timeMs: limits.timeMs,
     play: Boolean(playMove)
@@ -304,7 +306,7 @@ async function startAutoPlay() {
 
 function reset() {
   stopAutoPlay();
-  currentState = { fen: START_FEN, turn: 'w', gameOver: false, inCheck: false, history: [], evaluation: 0 };
+  currentState = { fen: START_FEN, turn: 'w', gameOver: false, inCheck: false, history: [], repetition: [], evaluation: 0 };
   engineEvaluation = 0;
   undoStack = [];
   redoStack = [];

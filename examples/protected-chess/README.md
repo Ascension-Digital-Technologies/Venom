@@ -1,109 +1,74 @@
-# Protected Chess — Engine 2.0 QuickJS/WASM Example
+# Protected Chess — Velocity Chess 0.5.0 / QuickJS-WASM
 
 ![Protected Chess application](../../docs/assets/examples/protected-chess/application.png)
 
-> **Flagship Venom example · Browser UI with a protected, time-managed chess engine**
+> **Venom Example 1 · Browser UI with the complete Velocity Chess engine protected**
 
-Protected Chess keeps board rendering and interaction browser-native while moving chess rules, evaluation, search, move selection, and game-state validation into protected QuickJS bytecode executed inside Venom's worker-hosted WebAssembly runtime.
+This example integrates **Velocity Chess v0.5.0** into Venom's worker-isolated QuickJS/WASM runtime. The browser receives only a narrow asynchronous bridge. Chess rules, legal-move generation, position mutation, evaluation, hashing, search, move notation, draw detection, and authoritative game-state transitions execute inside the protected export.
 
-## Engine 2.0
+## Protected engine pipeline
 
-The example now uses a deterministic, full-board engine rather than an incrementally accumulated browser score.
-
-| Capability | Implementation |
+| Capability | Protected implementation |
 |---|---|
-| Score convention | White-positive centipawns |
-| Search | Negamax with alpha-beta pruning |
-| Time management | Iterative deepening with a hard request budget |
-| Tactical stability | Quiescence search for captures, promotions, and check evasions |
-| Repeated positions | Persistent canonical-position transposition table |
-| Move ordering | TT move, MVV-LVA captures, promotions, killers, and history |
-| Evaluation | Tapered king tables, material, PSTs, bishop pair, pawn structure, passed pawns, rook files, king shelter, and tempo |
-| Analysis output | Completed depth, nodes, qnodes, TT hits, cutoffs, NPS, and principal variation |
-| Bridge efficiency | Optional search-and-play operation returns the move and authoritative updated state in one call |
+| Position state | 64-square typed board, incremental piece lists, side occupancy, castling, en-passant, clocks |
+| Move representation | Packed unsigned 32-bit moves |
+| Move generation | Piece-list-driven pseudo-legal generation plus make/unmake legality filtering |
+| Hashing | Incremental dual-32-bit Zobrist keys |
+| Evaluation | Tapered middlegame/endgame material, PST, mobility, and bishop-pair terms |
+| Search | Iterative deepening, aspiration windows, PVS alpha-beta, null-move pruning, LMR, check extensions, and quiescence |
+| Ordering | Hash move, MVV-LVA captures, killers, and history |
+| Cache | Persistent 17-bit typed-array transposition table inside the protected runtime |
+| Game state | Check, mate, stalemate, 50-move rule, insufficient material, and threefold repetition |
+| Output | SAN/UCI move data, White-positive evaluation, PV, depth, nodes, NPS, TT metrics, and authoritative snapshots |
 
-Search is deterministic for the same position and limits. A time-limited interruption always unwinds every speculative move before returning the last fully completed iteration.
-
-## What is protected
-
-| Component | Runtime |
-|---|---|
-| Board rendering and interaction | Browser |
-| Move highlighting and controls | Browser |
-| Game state presentation | Browser |
-| Chess rules and legal move generation | **Protected QuickJS/WASM** |
-| Full-board evaluation and search | **Protected QuickJS/WASM** |
-| Browser-to-engine calls | Validated asynchronous bridge |
-
-## Architecture
+## Protection boundary
 
 ```mermaid
 flowchart LR
-  UI[Board and controls] --> APP[js/main.js]
-  APP --> API[Venom protected export]
-  API --> WORKER[Dedicated worker]
-  WORKER --> QJS[QuickJS/WASM]
-  QJS --> ENGINE[Engine 2.0 protected bytecode]
-  ENGINE --> RESULT[Move, evaluation, PV and state]
+  UI[Browser board and controls] --> BRIDGE[Validated Venom JSON bridge]
+  BRIDGE --> WORKER[Dedicated runtime worker]
+  WORKER --> QJS[QuickJS / WASM]
+  QJS --> VELOCITY[Protected Velocity Chess 0.5.0]
+  VELOCITY --> RESULT[Move, PV, metrics, and state snapshot]
   RESULT --> UI
 ```
 
-The browser never supplies an authoritative accumulated score. Every evaluation is derived from the protected board state.
+Only `js/main.js`, board rendering, controls, and presentation remain browser-native. `js/ai-engine.js` contains one `@venom: protected isolated` export; Venom extracts the complete embedded engine and replaces the production browser source with protected bridge metadata.
 
-## Run
+## Run Example 1
 
-```powershell
-.\scripts\windows\protected-chess.bat
-```
-
-Or use the CLI directly:
+Windows:
 
 ```powershell
-venom dev examples\protected-chess --open
-```
-
-## Build production
-
-```powershell
-venom build examples\protected-chess --profile prod --out dist\protected-chess
-venom analyze dist\protected-chess
-venom verify dist\protected-chess
-```
-
-## Source tests
-
-Run the deterministic engine smoke suite without building the browser runtime:
-
-```powershell
-.\scripts\test-protected-chess-engine.ps1
-```
-
-Include the fixed-position benchmark:
-
-```powershell
-.\scripts\test-protected-chess-engine.ps1 -Benchmark -Depth 8 -TimeMs 1500
+.\scripts\windows\build-and-launch-example1.bat
 ```
 
 Linux/macOS:
 
 ```bash
-./scripts/test-protected-chess-engine.sh
-DEPTH=8 TIME_MS=1500 ./scripts/test-protected-chess-engine.sh --benchmark
+./scripts/linux/build-and-launch-example1.sh
 ```
 
-The smoke suite covers:
+## Build and verify
 
-- starting-position perft through depth 4;
-- full-board evaluation consistency;
-- deterministic principal move selection;
-- transposition-table reuse;
-- one-call search and move application;
-- mate-in-one detection;
-- timeout-safe board restoration.
+```bash
+venom build examples/protected-chess --profile prod --out dist/protected-chess
+venom analyze dist/protected-chess
+venom verify dist/protected-chess --target browser
+venom verify-runtime dist/protected-chess --require-real-engine
+python tools/check_production_leaks.py dist/protected-chess
+```
 
-## Protected bridge operations
+## Source tests
 
-The protected export accepts coarse-grained operations:
+```bash
+node examples/protected-chess/tests/engine-smoke.js
+node examples/protected-chess/tests/engine-benchmark.js 8 1500
+```
+
+The smoke suite validates canonical perft totals, legal moves, FEN round trips, deterministic search, authoritative search-and-play snapshots, mate recognition, draw handling, repetition tracking, and time-bounded root restoration.
+
+## Protected operations
 
 ```text
 identity
@@ -115,35 +80,8 @@ search
 perft
 ```
 
-A search request supports `maxDepth`, `timeMs`, and `play`. With `play: true`, the engine returns the chosen move and updated state in one protected call.
+Search accepts `maxDepth`, `timeMs`, and `play`. `play: true` performs the selected move inside the same protected call and returns the updated state. Browser code never applies or validates an authoritative chess move itself.
 
-## Why it is a useful security example
+## Source provenance
 
-A normal JavaScript chess engine exposes its evaluation constants, move ordering, pruning strategy, search implementation, and heuristics directly in browser source. Venom changes that recovery problem: the engine is compiled to QuickJS bytecode, stored in a diversified package, decoded through the runtime boundary, and invoked through opaque production bridge metadata.
-
-This does not make the engine impossible to recover. It forces analysis beyond ordinary source formatting and JavaScript deobfuscation, while per-build diversification reduces the value of one fixed extraction layout.
-
-## Performance measurement
-
-Benchmark reports should include the browser, CPU, position, maximum depth, time budget, build profile, and whether the measurement includes bridge overhead. Warm the worker and protected runtime before comparing repeated calls because the persistent transposition table intentionally accelerates recurring analysis.
-
-## Source layout
-
-```text
-examples/protected-chess/
-├── index.html
-├── css/main.css
-├── js/
-│   ├── main.js
-│   └── ai-engine.js
-├── tests/
-│   ├── engine-smoke.js
-│   └── engine-benchmark.js
-├── vendor/
-├── venom.browser.json
-└── venom.lock
-```
-
-## Verification
-
-After a production build, inspect generated JavaScript and confirm that engine evaluation and search logic are not present as readable browser source. Then run `venom verify` to validate runtime provenance, package binding, release policy, and leakage checks.
+The supplied Velocity Chess v0.5.0 implementation is integrated into the single protected function in `examples/protected-chess/js/ai-engine.js`. No standalone engine module is referenced or copied as a production browser asset.
