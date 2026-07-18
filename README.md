@@ -18,14 +18,6 @@
 
 ---
 
-> [!IMPORTANT]
-> Venom 2.0.0 uses one production-grade build profile: `prod`. The former `dev` profile has been removed. The `venom dev` command remains available for watch-and-serve workflows and now compiles with the production runtime and protection pipeline.
-
-## Venom v2.0.0 release
-
-> **Example 4 module-linking correction:** Protected imports are lowered inline to capability-bound runtime calls during compilation. Browser bundles no longer retain imports such as `../protected/pricing`, so protected facades do not depend on lazy-section placement or polymorphic module identifiers.
-
-
 Venom v2 turns the original protected web runtime into a broader, typed application platform while preserving the static-host deployment model established by v1.
 
 ### Added in v2
@@ -46,40 +38,6 @@ Venom v2 turns the original protected web runtime into a broader, typed applicat
 - TypeScript runtime directives are captured before lowering, preventing browser modules from being incorrectly classified or omitted.
 - C++17 portability issues were removed from the structural TypeScript frontend and planner code.
 - Runtime terminology, public error handling, package integrity checks, and fail-closed behavior were made consistent across the compiler, SDK, diagnostics, examples, and documentation.
-
-### Upgrading from v1
-
-Existing v1 annotations and static-host deployment remain familiar. New applications should call protected exports through `@venom-js/runtime` or the generated typed client rather than depending on generated bridge internals. Review [`contracts/runtime-api.json`](contracts/runtime-api.json) and [`packages/runtime/README.md`](packages/runtime/README.md) before upgrading production integrations.
-
-### Runtime startup observability
-
-Venom records package, policy, runtime-installation, route-decoding, rendering, script, and navigation timings in `globalThis.__venomBootStatus`. Stable `VENOM_BOOT_*` codes and `venom:boot-phase` events make browser startup failures actionable, while explicit retry reloads a fresh document rather than reusing partial protected-runtime state.
-
-### Startup performance budgets
-
-Venom preloads content-addressed runtime assets and publishes contract-backed median and p95 startup metrics without caching decoded protected code or plaintext package sections.
-
-## Vite and framework integration
-
-Venom includes editor-ready diagnostics, a dependency-free language server, graph queries, and source-linked planner visibility alongside its certified QuickJS/WASM protection pipeline.
-
-Venom 1.4.0 includes the first-party [`@venom-js/vite`](integrations/vite/README.md) plugin. Vite continues to own React, Vue, Svelte, TypeScript, asset transforms, and HMR; Venom performs serialized incremental protected builds and emits the QuickJS/WASM distribution. The plugin exposes `virtual:venom-status` and `/__venom/status` for development tooling. See [the Vite integration guide](docs/guides/vite.md) and [`examples/vite-framework-showcase`](examples/vite-framework-showcase).
-
-## Release certification
-
-Venom ships a versioned certification contract at `contracts/release-certification.json`. A complete release must produce passing evidence for Linux x64, Windows x64, macOS arm64, Chromium, Firefox, and WebKit, while building and verifying the flagship protected examples.
-
-```bash
-python tools/certify_release.py --venom build/release/venom
-```
-
-See `docs/operations/release-certification.md` for platform reports, browser qualification, and final evidence aggregation.
-
-## Structural TypeScript frontend
-
-Venom 1.3.2 parses TypeScript and TSX with a vendored TypeScript compiler API before runtime planning. Type syntax is removed structurally, ES module semantics are preserved, source maps are generated, and TSX continues through Venom's deterministic JSX lowering stage. No package download occurs during a build.
-
-Venom 1.3.2 also includes measured incremental builds: structural TypeScript output, QuickJS bytecode, and release hardening are content-addressed; every build writes a private per-phase performance report; and unchanged generated runtime sources preserve timestamps to avoid needless native recompilation.
 
 ## Overview
 
