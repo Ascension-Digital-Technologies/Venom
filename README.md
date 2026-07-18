@@ -21,12 +21,6 @@
 > [!IMPORTANT]
 > Venom 2.0.0 uses one production-grade build profile: `prod`. The former `dev` profile has been removed. The `venom dev` command remains available for watch-and-serve workflows and now compiles with the production runtime and protection pipeline.
 
-## Final 2.0.0 release status
-
-Venom 2.0.0 is consolidated around one production runtime, eight certified examples, Chromium/Firefox/WebKit browser contracts, a stable typed SDK, QuickJS/WASM ABI verification, startup performance budgets, deterministic packaging, SBOM/provenance generation, and signed fail-closed release gates. Checked-in final readiness evidence is available under [`docs/audit/final-release`](docs/audit/final-release).
-
-Stable releases must use `scripts/linux/release.sh` or `scripts/windows/release.ps1`. Both require offline Ed25519 key files, run the final repository gate, and force the `stable` release channel.
-
 ## Venom v2.0.0 release
 
 > **Example 4 module-linking correction:** Protected imports are lowered inline to capability-bound runtime calls during compilation. Browser bundles no longer retain imports such as `../protected/pricing`, so protected facades do not depend on lazy-section placement or polymorphic module identifiers.
