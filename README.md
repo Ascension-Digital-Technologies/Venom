@@ -18,8 +18,6 @@
 
 ---
 
-Venom v2 turns the original protected web runtime into a broader, typed application platform while preserving the static-host deployment model established by v1.
-
 ### Added in v2
 
 - **Stable `@venom-js/runtime` SDK** with idempotent initialization, typed protected calls, batching, preloading, cancellation, timeouts, lifecycle status, and explicit disposal.
