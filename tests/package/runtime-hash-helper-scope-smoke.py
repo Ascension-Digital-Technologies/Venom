@@ -6,7 +6,7 @@ import sys
 import tempfile
 
 root = Path(sys.argv[1] if len(sys.argv) > 1 else Path(__file__).resolve().parents[2]).resolve()
-runtime = (root / 'src/runtime/templates/runtime.js').read_text(encoding='utf-8')
+runtime = (root / 'src/generated/runtime/javascript/browser_runtime.js').read_text(encoding='utf-8')
 
 helper_pos = runtime.find('function fnv1a32(bytes)')
 seal_pos = runtime.find('function computeRuntimeIntegritySeal(opcodeMap = null)')

@@ -9,8 +9,8 @@ assert contract['bytecodeFormat']=='VQJSBC03'
 required=contract['requiredExports']
 assert len(required)==len(set(required)) and 'memory' in required
 subprocess.run([sys.executable, str(root/'tools/generate_quickjs_wasm_abi.py'), '--repo-root', str(root)], check=True)
-header=(root/'src/generated/contracts/quickjs_wasm_abi.hpp').read_text()
-js=(root/'src/generated/runtime/quickjs_wasm_abi.js').read_text()
+header=(root/'src/generated/include/venom/generated/contracts/quickjs_wasm_abi.hpp').read_text()
+js=(root/'src/generated/runtime/javascript/quickjs_wasm_abi.js').read_text()
 for name in required:
     assert name in header, name
     assert name in js, name

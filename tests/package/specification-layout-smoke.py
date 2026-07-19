@@ -8,5 +8,5 @@ required = {
 }
 assert contracts.is_dir()
 assert required.issubset({p.name for p in contracts.iterdir() if p.is_file()})
-assert (root / 'src' / 'generated' / 'contracts' / 'product_contracts.hpp').is_file()
+assert (root / 'src' / 'generated' / 'include' / 'venom' / 'generated' / 'contracts' / 'product_contracts.hpp').is_file()
 print('contracts layout: PASS')

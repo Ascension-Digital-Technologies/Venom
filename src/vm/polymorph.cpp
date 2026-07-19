@@ -1,7 +1,7 @@
-#include "vm/polymorph.hpp"
+#include "venom/vm/polymorph.hpp"
 
-#include "vm/opcode.hpp"
-#include "package/hash.hpp"
+#include "venom/vm/opcode.hpp"
+#include "venom/package/hash.hpp"
 
 #include <algorithm>
 #include <array>

@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "manifest_version": 3,
+  "fixtures": [
+    {"name":"popup-page","feature":"Action popup and extension page","tier":"A","native":true,"browser":true},
+    {"name":"service-worker-module","feature":"ES-module service worker","tier":"A","native":true,"browser":true},
+    {"name":"content-isolated","feature":"Isolated-world content scripts","tier":"A","native":true,"browser":true},
+    {"name":"content-main","feature":"Main-world content scripts","tier":"B","native":true,"browser":true},
+    {"name":"offscreen-runtime","feature":"Offscreen protected runtime host","tier":"A","native":true,"browser":true},
+    {"name":"options-sidepanel","feature":"Options pages and side panels","tier":"A","native":true,"browser":false},
+    {"name":"devtools-sandbox","feature":"DevTools and sandbox pages","tier":"B","native":true,"browser":false},
+    {"name":"dnr-web-accessible","feature":"DNR and web-accessible resources","tier":"A","native":true,"browser":false},
+    {"name":"localized-icons","feature":"Localization and extension icons","tier":"A","native":true,"browser":false},
+    {"name":"dynamic-registration","feature":"Static dynamic-content registration","tier":"B","native":true,"browser":false},
+    {"name":"multi-route","feature":"Multiple extension HTML routes","tier":"A","native":true,"browser":false},
+    {"name":"sandbox-only","feature":"Sandbox-only adapter context","tier":"B","native":true,"browser":false}
+  ]
+}

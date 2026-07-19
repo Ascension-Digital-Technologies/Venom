@@ -5,8 +5,8 @@ from pathlib import Path
 
 root=Path(__file__).resolve().parents[2]
 workflow=(root/'.github/workflows/release.yml').read_text(encoding='utf-8')
-build=(root / 'src/compiler/pipeline/build.cpp').read_text(encoding='utf-8') + (root / 'src/compiler/pipeline/build_package_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/compiler/pipeline/build_runtime_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/compiler/pipeline/build_runtime_audit_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/compiler/pipeline/build_runtime_module_metadata.cpp').read_text(encoding='utf-8') + (root/'src/compiler/pipeline/build_support.cpp').read_text(encoding='utf-8')
-runtime=(root/'src/generated/runtime/runtime_js.cpp').read_text(encoding='utf-8') + (root/'src/runtime/templates/runtime.js').read_text(encoding='utf-8')
+build=(root / 'src/pipeline/build.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_package_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_runtime_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_runtime_audit_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_runtime_module_metadata.cpp').read_text(encoding='utf-8') + (root/'src/pipeline/build_support.cpp').read_text(encoding='utf-8')
+runtime=(root/'src/generated/runtime/runtime_js.cpp').read_text(encoding='utf-8') + (root/'src/generated/runtime/javascript/browser_runtime.js').read_text(encoding='utf-8')
 engine=(root/'src/generated/runtime/quickjs_engine_module.cpp').read_text(encoding='utf-8')
 assert 'verified-runtime:' in workflow
 assert 'needs: [verified-runtime, release-closure]' in workflow

@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 EXPECTED = 83
 CHECKS = {
-    'src/quickjs/abi.hpp': r'kRuntimePackageVersion\s*=\s*(\d+)u?;',
+    'src/quickjs/include/venom/quickjs/abi.hpp': r'kRuntimePackageVersion\s*=\s*(\d+)u?;',
     'src/runtime/quickjs_runtime_scaffold.c': r'#define\s+QJS_VERSION\s+(\d+)u',
     'src/runtime/quickjs_upstream_runtime.c': r'#define\s+VENOM_QJS_RUNTIME_PACKAGE_VERSION\s+(\d+)u',
     'tools/build_emscripten.py': r'PACKAGE_VERSION\s*=\s*(\d+)',

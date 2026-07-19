@@ -2,7 +2,7 @@
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
-build = (root / 'src/compiler/pipeline/build.cpp').read_text(encoding='utf-8')
+build = (root / 'src/pipeline/build.cpp').read_text(encoding='utf-8')
 engine = (root / 'src/generated/runtime/quickjs_engine_module.cpp').read_text(encoding='utf-8')
 
 assert 'const bool release_trust_domain = profile.kind == ProfileKind::Prod || options.strict_release;' in build

@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Velocity Chess Browser Engine",
+  "version": "0.4.5",
+  "description": "Local visual browser chess engine with protected Velocity search, selectable skill levels, playing styles, humanized pointer movement, automatic side detection, and match-speed presets.",
+  "minimum_chrome_version": "109",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "offscreen"
+  ],
+  "action": {
+    "default_title": "Velocity Chess Browser Engine",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}

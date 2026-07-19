@@ -2,7 +2,7 @@
 from pathlib import Path
 import sys
 root=Path(__file__).resolve().parents[2]
-runtime=(root/'src/runtime/templates/runtime.js').read_text(encoding='utf-8')
+runtime=(root/'src/generated/runtime/javascript/browser_runtime.js').read_text(encoding='utf-8')
 engine=(root/'src/generated/runtime/quickjs_engine_module.cpp').read_text(encoding='utf-8')
 required_runtime=["bytecodeTrustHandoff", "producer: 'package-decoder-wasm'", "consumer: 'quickjs-execution-wasm'", "bindingHash: fnv1a32"]
 required_engine=["validateBytecodeTrustHandoff", "QuickJS trust-domain handoff integrity mismatch", "validateBytecodeTrustHandoff(chunk)"]

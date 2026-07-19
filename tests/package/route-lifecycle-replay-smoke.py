@@ -2,7 +2,7 @@ from pathlib import Path
 import sys
 root = Path(sys.argv[1] if len(sys.argv) > 1 else '.').resolve()
 text = (root/'src/generated/runtime/runtime_js.cpp').read_text(encoding='utf-8')
-text += (root / 'src/runtime/templates/runtime.js').read_text(encoding='utf-8')
+text += (root / 'src/generated/runtime/javascript/browser_runtime.js').read_text(encoding='utf-8')
 required = [
   "lateLifecycleHandlers",
   "type === 'DOMContentLoaded'",

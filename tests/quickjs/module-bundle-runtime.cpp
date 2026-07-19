@@ -1,4 +1,4 @@
-#include "quickjs/bytecode.hpp"
+#include "venom/quickjs/bytecode.hpp"
 
 #include <cstdint>
 #include <cstring>

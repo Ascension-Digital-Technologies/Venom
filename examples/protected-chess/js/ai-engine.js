@@ -4,7 +4,7 @@
 // @venom: protected isolated
 function runChessEngine(request) {
   /*
-   * Velocity Chess v0.5.0 integration for Venom Example 1.
+   * Velocity Chess v0.5.0 integration for Venom Protected Chess.
    * All rules, validation, move generation, evaluation, hashing, search,
    * game-state decisions, and move notation remain inside this protected export.
    */

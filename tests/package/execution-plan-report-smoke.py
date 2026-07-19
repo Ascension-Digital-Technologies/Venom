@@ -1,8 +1,8 @@
 from pathlib import Path
 root = Path(__file__).resolve().parents[2]
-js = (root / 'src/compiler/pipeline/js.cpp').read_text(encoding='utf-8') + (root / 'src/compiler/pipeline/js_planning.cpp').read_text(encoding='utf-8')
-js += (root / 'src/compiler/pipeline/js_discovery.cpp').read_text(encoding='utf-8')
-build = (root / 'src/compiler/pipeline/build.cpp').read_text(encoding='utf-8') + (root / 'src/compiler/pipeline/build_package_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/compiler/pipeline/build_runtime_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/compiler/pipeline/build_runtime_audit_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/compiler/pipeline/build_runtime_module_metadata.cpp').read_text(encoding='utf-8')
+js = (root / 'src/pipeline/js.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/js_planning.cpp').read_text(encoding='utf-8')
+js += (root / 'src/pipeline/js_discovery.cpp').read_text(encoding='utf-8')
+build = (root / 'src/pipeline/build.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_package_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_runtime_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_runtime_audit_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_runtime_module_metadata.cpp').read_text(encoding='utf-8')
 required = [
     'VENOM_EXECUTION_PLAN_V1',
     'execution_plan_text',

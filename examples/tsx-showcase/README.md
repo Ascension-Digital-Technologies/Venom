@@ -18,20 +18,20 @@ A small typed UI application compiled through Venom's native TypeScript and JSX 
 Windows PowerShell from the repository root:
 
 ```powershell
-.\scripts\windows\build-and-launch-example5.bat
+.\scripts\windows\build-and-launch-tsx-showcase.bat
 ```
 
 Windows PowerShell does not search the current directory for commands, so the
 leading `.\` is required. From inside `scripts\windows`, run:
 
 ```powershell
-.\build-and-launch-example5.bat
+.\build-and-launch-tsx-showcase.bat
 ```
 
 Linux/macOS:
 
 ```bash
-./scripts/linux/build-and-launch-example5.sh
+./scripts/linux/build-and-launch-tsx-showcase.sh
 ```
 
 The launcher serves the example at `http://127.0.0.1:8084/`.

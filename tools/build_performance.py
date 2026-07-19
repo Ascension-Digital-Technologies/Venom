@@ -48,7 +48,7 @@ def main() -> int:
     if 'Visual Studio' in args.generator: build_cmd += ['--config',args.config]
     rc_full,t_full=run(build_cmd,root,logs/'clean-build.log'); steps.append({'name':'clean_build','seconds':round(t_full,3),'passed':rc_full==0})
     rc_noop,t_noop=run(build_cmd,root,logs/'noop-build.log'); steps.append({'name':'noop_build','seconds':round(t_noop,3),'passed':rc_noop==0})
-    touch=root/'src/compiler/pipeline/js.cpp'; original=touch.stat().st_mtime_ns
+    touch=root/'src/pipeline/js.cpp'; original=touch.stat().st_mtime_ns
     os.utime(touch,None)
     rc_inc,t_inc=run(build_cmd,root,logs/'incremental-build.log'); steps.append({'name':'incremental_build','seconds':round(t_inc,3),'passed':rc_inc==0})
     os.utime(touch,ns=(touch.stat().st_atime_ns,original))

@@ -42,7 +42,7 @@ def main() -> int:
     repo = pathlib.Path(sys.argv[1]).resolve()
     venom = pathlib.Path(sys.argv[2]).resolve()
     runtime_cpp = repo / "src/generated/runtime/runtime_js.cpp"
-    runtime_template = repo / "src/runtime/templates/runtime.js"
+    runtime_template = repo / "src/generated/runtime/javascript/browser_runtime.js"
     asset_runtime_cpp = repo / "src/generated/runtime/browser_asset_runtime_js.cpp"
     wasm_runtime_cpp = repo / "src/generated/runtime/wasm_runtime_js.cpp"
     example = repo / "examples/protected-chess"

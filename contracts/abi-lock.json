@@ -1,0 +1,19 @@
+{
+  "bytecodeFormat": "VQJSBC03",
+  "contractDigests": {
+    "product-contracts.json": "7b58c057dff97d97a4623867333c02cebb020e9fa42e91440d63536e18085168",
+    "quickjs-wasm-abi.json": "87c0af3c3eae3f1588ff7f1001e3c7279f0743f4030a7f1197be4a42fdbc4283",
+    "runtime-api.json": "b927fdca1eb6fc127497fb53f308cf91fad105f08ca47d48b1780f8283c5651a"
+  },
+  "domCommandContract": "VDOP0020",
+  "hostBridgeAbi": 3,
+  "moduleBundleFormat": "VQJSMB04",
+  "packageFormatVersion": 40,
+  "packageRuntimeAbi": 1,
+  "quickJsRuntimeAbi": 12,
+  "quickJsWasmBridgeAbi": 1,
+  "quickJsWasmRuntimeAbi": 12,
+  "routeVmContract": "VPOL0010-v2-fixed16",
+  "runtimeApiSchema": "VENOM_RUNTIME_API_V1",
+  "schema": "VENOM_ABI_LOCK_V1"
+}

@@ -1,6 +1,6 @@
 # Canonical Package Plan
 
-Venom constructs every VBC artifact through `compiler/package/package_plan`.
+Venom constructs every VBC artifact through `pipeline/planning/package_plan`.
 
 The package plan owns the ordered section set, polymorphic section shuffling, writer policy, artifact emission, and immediate read-back verification. Development and production builds supply different policy values to the same plan rather than configuring separate writers.
 

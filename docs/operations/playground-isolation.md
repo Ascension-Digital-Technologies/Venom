@@ -1,6 +1,6 @@
 # JavaScript Playground isolation
 
-Example 7 is a local development tool. Submitted source is compiled by a loopback-only native Venom process and the authenticated bytecode is executed in an ephemeral QuickJS/WASM context.
+The JavaScript Playground is a local development tool. Submitted source is compiled by a loopback-only native Venom process and the authenticated bytecode is executed in an ephemeral QuickJS/WASM context.
 
 ## Per-execution limits
 

@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "Sandbox fixture",
+  "version": "1.0.0",
+  "sandbox": {
+    "pages": [
+      "sandbox.html"
+    ]
+  }
+}

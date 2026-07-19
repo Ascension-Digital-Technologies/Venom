@@ -1,4 +1,5 @@
-#include "compiler/pipeline/js.hpp"
+#include "venom/pipeline/js.hpp"
+#include "venom/generated/runtime/worker_runtime_template.hpp"
 
 #include <sstream>
 
@@ -71,9 +72,7 @@ std::string make_worker_runtime_js(const std::vector<std::string>& bridge_candid
   generated << "const BRIDGE_RESULT_OP=" << bridge_result_opcode << ";\n";
   generated << "const BRIDGE_ERROR_OP=" << bridge_error_opcode << ";\n";
   generated << "const BRIDGE_INTEGRITY_SEAL=" << bridge_integrity_seal << ";\n";
-  generated << 
-#include "generated/runtime/worker_runtime_template.inc"
-;
+  generated << generated_runtime::kWorkerRuntimeTemplate;
   return generated.str();
 }
 

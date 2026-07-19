@@ -1,5 +1,5 @@
-#include "compiler/pipeline/js.hpp"
-#include "generated/contracts/quickjs_wasm_abi.hpp"
+#include "venom/pipeline/js.hpp"
+#include "venom/generated/contracts/quickjs_wasm_abi.hpp"
 
 #include <stdexcept>
 #include <sstream>

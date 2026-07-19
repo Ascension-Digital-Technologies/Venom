@@ -1,4 +1,7 @@
-#include "package/format.hpp"
+#include "venom/base/error.hpp"
+#include "venom/package/format.hpp"
+
+#include <stdexcept>
 
 #include <cstddef>
 #include <cstdint>
@@ -236,6 +239,21 @@ std::string protected_section_alias(SectionType type, const std::string& canonic
   }
   h = alias_fnv1a64(reinterpret_cast<const unsigned char*>(canonical_name.data()), canonical_name.size(), h);
   return std::string("s.") + hex64(h);
+}
+
+void validate_section_name(const std::string& name) {
+  constexpr std::size_t kMaxSectionNameBytes = 1024u;
+  if (name.empty()) {
+    raise_error("VENOM-E4000", "package section name cannot be empty");
+  }
+  if (name.size() > kMaxSectionNameBytes) {
+    raise_error("VENOM-E4000", "package section name exceeds maximum length");
+  }
+  for (unsigned char ch : name) {
+    if (ch == 0u || ch == '\t' || ch == '\n' || ch == '\r' || ch < 0x20u || ch == 0x7fu) {
+      raise_error("VENOM-E4000", "package section name contains a control character");
+    }
+  }
 }
 
 bool section_name_matches(SectionType type, const std::string& stored_name, const std::string& canonical_name) {

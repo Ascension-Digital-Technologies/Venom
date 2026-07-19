@@ -1,0 +1,1 @@
+import "./worker-dep.js"; chrome.runtime.onMessage.addListener((m,s,send)=>{if(m&&m.type==="PING"){send({ok:true,kind:"service-worker"});} return true;});

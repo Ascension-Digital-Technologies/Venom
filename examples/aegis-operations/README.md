@@ -23,7 +23,7 @@ A large production-style Venom stress test. It combines a deep TypeScript/TSX br
 From the repository root in PowerShell:
 
 ```powershell
-.\scripts\windows\build-and-launch-example6.bat
+.\scripts\windows\build-and-launch-aegis-operations.bat
 ```
 
 Open `http://127.0.0.1:8085/`.

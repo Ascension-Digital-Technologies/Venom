@@ -1,10 +1,19 @@
 #!/usr/bin/env python3
-import json
+from __future__ import annotations
+
+import sys
 from pathlib import Path
-root=Path(__file__).resolve().parents[2]; data=json.loads((root/'contracts/examples.json').read_text())
-assert data['schema']=='VENOM_EXAMPLE_CERTIFICATION_V1'; assert data['buildProfile']=='prod'
-ids={x['id'] for x in data['examples']}; actual={x.name for x in (root/'examples').iterdir() if x.is_dir()}
-assert ids==actual,(ids,actual)
-assert all(x['requiresRealQuickJs'] and x['leakScan'] and x['browser'] for x in data['examples'])
-assert not any(x.get('profile')=='dev' for x in data['examples'])
-print('example certification contract smoke: PASS')
+
+root = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(root / "tools"))
+from venom_tools.examples import load_example_registry
+
+registry = load_example_registry(root)
+ids = {spec.id for spec in registry.examples}
+actual = {path.name for path in (root / "examples").iterdir() if path.is_dir()}
+assert ids == actual, (ids, actual)
+assert registry.build_profile == "prod"
+assert all(spec.requires_real_quickjs and spec.leak_scan for spec in registry.certifiable())
+assert all(spec.browser for spec in registry.certifiable())
+assert {"quickjs-benchmark", "chrome-extension"} <= {spec.id for spec in registry.examples if not spec.certify}
+print("example certification contract smoke: PASS")

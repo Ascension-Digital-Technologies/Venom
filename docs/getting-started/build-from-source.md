@@ -127,7 +127,7 @@ Normal users do not need Emscripten because the verified QuickJS/WASM runtime is
 ### Windows
 
 ```powershell
-.\scripts\windows\build-emscripten.ps1 -OutDir build\emscripten-build -Clean -Force
+.\scripts\windows\build-emsdk.bat -OutDir build\emscripten-build -Clean -Force
 ```
 
 ### Linux and macOS
@@ -138,6 +138,16 @@ bash scripts/linux/build-emsdk.sh --out-dir build/emscripten-build --clean --for
 
 The controller performs Emscripten setup, a strict QuickJS/WASM preflight, runtime compilation, ABI verification, embedding, native compiler rebuild, and protected-runtime smoke verification. The output directory is a controller workspace; the actual runtime artifact is written once under `quickjs-wasm/` without recursively nesting that directory.
 
+### Cutover rule
+
+A rebuilt runtime is not release-ready until the `verify-runtime --require-real-engine` gate passes for the production distribution:
+
+```bash
+venom verify-runtime <dist> --require-real-engine
+```
+
+The checked-in runtime snapshot must be regenerated only through the canonical controller and must remain synchronized with its generated C/C++ embedding.
+
 
 ### Windows command invocation safety
 
@@ -146,7 +156,7 @@ The controller invokes `emcc.exe` and PowerShell scripts through argument arrays
 Use preflight-only mode to validate the pinned toolchain and repository inputs without rebuilding the runtime:
 
 ```powershell
-.\scripts\windows\build-emscripten.ps1 -OutDir build\emscripten-build -PreflightOnly -AllowMissing
+.\scripts\windows\build-emsdk.bat -OutDir build\emscripten-build -PreflightOnly -AllowMissing
 ```
 
 

@@ -1,6 +1,7 @@
-#include "quickjs/bytecode.hpp"
+#include "venom/base/error.hpp"
+#include "venom/quickjs/bytecode.hpp"
 
-#include "package/hash.hpp"
+#include "venom/package/hash.hpp"
 
 #include <algorithm>
 #include <filesystem>
@@ -46,7 +47,7 @@ void write_binary_atomic(const std::filesystem::path& path, const std::vector<un
   const auto temporary = path.string() + ".tmp";
   {
     std::ofstream out(temporary, std::ios::binary | std::ios::trunc);
-    if (!out) throw std::runtime_error("failed to write QuickJS bytecode cache entry " + temporary);
+    if (!out) raise_error("VENOM-E6000", "failed to write QuickJS bytecode cache entry " + temporary);
     out.write(reinterpret_cast<const char*>(content.data()), static_cast<std::streamsize>(content.size()));
   }
   std::error_code error;
@@ -58,7 +59,7 @@ void write_binary_atomic(const std::filesystem::path& path, const std::vector<un
   }
   if (error) {
     std::filesystem::remove(temporary);
-    throw std::runtime_error("failed to publish QuickJS bytecode cache entry " + path.string());
+    raise_error("VENOM-E6000", "failed to publish QuickJS bytecode cache entry " + path.string());
   }
 }
 
@@ -271,7 +272,7 @@ std::vector<unsigned char> compile_native_quickjs_bytecode(const std::string& so
   (void)is_module;
   (void)redact_source_metadata;
   (void)module_sources;
-  throw std::runtime_error("production QuickJS bytecode generation requires VENOM_ENABLE_FULL_QUICKJS=ON");
+  raise_error("VENOM-E6000", "production QuickJS bytecode generation requires VENOM_ENABLE_FULL_QUICKJS=ON");
 #else
   std::filesystem::path cache_file;
   bool cache_enabled = false;
@@ -295,7 +296,7 @@ std::vector<unsigned char> compile_native_quickjs_bytecode(const std::string& so
   }
   (void)redact_source_metadata; // Public manifests are redacted; VQJSBC03 integrity fields remain authenticated.
   JSRuntime* runtime = JS_NewRuntime();
-  if (!runtime) throw std::runtime_error("failed to create QuickJS compiler runtime");
+  if (!runtime) raise_error("VENOM-E6000", "failed to create QuickJS compiler runtime");
   JS_SetMemoryLimit(runtime, 256u * 1024u * 1024u);
   JS_SetMaxStackSize(runtime, 8u * 1024u * 1024u);
   ModuleLoaderState module_state;
@@ -311,7 +312,7 @@ std::vector<unsigned char> compile_native_quickjs_bytecode(const std::string& so
   JSContext* context = JS_NewContext(runtime);
   if (!context) {
     JS_FreeRuntime(runtime);
-    throw std::runtime_error("failed to create QuickJS compiler context");
+    raise_error("VENOM-E6000", "failed to create QuickJS compiler context");
   }
 
   const int eval_flags = (is_module ? JS_EVAL_TYPE_MODULE : JS_EVAL_TYPE_GLOBAL) |
@@ -327,7 +328,7 @@ std::vector<unsigned char> compile_native_quickjs_bytecode(const std::string& so
     JS_FreeValue(context, object);
     JS_FreeContext(context);
     JS_FreeRuntime(runtime);
-    throw std::runtime_error(message);
+    raise_error("VENOM-E6000", message);
   }
   if (is_module && module_sources) {
     std::string original_base = source_name;
@@ -339,7 +340,7 @@ std::vector<unsigned char> compile_native_quickjs_bytecode(const std::string& so
       JS_FreeValue(context, object);
       JS_FreeContext(context);
       JS_FreeRuntime(runtime);
-      throw std::runtime_error(message);
+      raise_error("VENOM-E6000", message);
     }
   }
 
@@ -353,13 +354,13 @@ std::vector<unsigned char> compile_native_quickjs_bytecode(const std::string& so
     if (bytecode) js_free(context, bytecode);
     JS_FreeContext(context);
     JS_FreeRuntime(runtime);
-    throw std::runtime_error("QuickJS emitted an empty bytecode object for " + source_name);
+    raise_error("VENOM-E6000", "QuickJS emitted an empty bytecode object for " + source_name);
   }
   if (bytecode_size > 0xffffffffu || source.size() > 0xffffffffu) {
     js_free(context, bytecode);
     JS_FreeContext(context);
     JS_FreeRuntime(runtime);
-    throw std::runtime_error("QuickJS bytecode record exceeds u32 limits for " + source_name);
+    raise_error("VENOM-E6000", "QuickJS bytecode record exceeds u32 limits for " + source_name);
   }
 
   const auto source_bytes = source_bytes_for_hash(source);
@@ -398,8 +399,8 @@ std::vector<unsigned char> compile_native_quickjs_bytecode(const std::string& so
 std::vector<unsigned char> compile_native_quickjs_module_bundle(const std::string& entry_source_name,
                                                                const std::vector<ModuleSourceRecord>& module_sources,
                                                                bool redact_source_metadata) {
-  if (module_sources.empty()) throw std::runtime_error("QuickJS module bundle requires at least one module");
-  if (module_sources.size() > 512u) throw std::runtime_error("QuickJS module bundle exceeds 512 modules");
+  if (module_sources.empty()) raise_error("VENOM-E6000", "QuickJS module bundle requires at least one module");
+  if (module_sources.size() > 512u) raise_error("VENOM-E6000", "QuickJS module bundle exceeds 512 modules");
 
   struct PackedModule {
     std::string name;
@@ -410,7 +411,7 @@ std::vector<unsigned char> compile_native_quickjs_module_bundle(const std::strin
   std::uint32_t entry_index = 0xffffffffu;
   for (std::size_t i = 0; i < module_sources.size(); ++i) {
     const auto& source = module_sources[i];
-    if (source.compile_name.empty()) throw std::runtime_error("QuickJS module bundle contains an empty module name");
+    if (source.compile_name.empty()) raise_error("VENOM-E6000", "QuickJS module bundle contains an empty module name");
     if (source.compile_name == entry_source_name || source.source_name == entry_source_name) {
       entry_index = static_cast<std::uint32_t>(i);
     }
@@ -422,13 +423,13 @@ std::vector<unsigned char> compile_native_quickjs_module_bundle(const std::strin
                                         redact_source_metadata,
                                         &module_sources)});
   }
-  if (entry_index == 0xffffffffu) throw std::runtime_error("QuickJS module bundle entry was not found: " + entry_source_name);
+  if (entry_index == 0xffffffffu) raise_error("VENOM-E6000", "QuickJS module bundle entry was not found: " + entry_source_name);
 
   constexpr std::uint32_t header_size = 24u;
   constexpr std::uint32_t entry_size = 16u;
   const std::uint64_t table_end64 = static_cast<std::uint64_t>(header_size) +
                                     static_cast<std::uint64_t>(modules.size()) * entry_size;
-  if (table_end64 > 0xffffffffu) throw std::runtime_error("QuickJS module bundle table exceeds u32 limits");
+  if (table_end64 > 0xffffffffu) raise_error("VENOM-E6000", "QuickJS module bundle table exceeds u32 limits");
   std::uint32_t cursor = static_cast<std::uint32_t>(table_end64);
 
   struct TableEntry {
@@ -441,13 +442,13 @@ std::vector<unsigned char> compile_native_quickjs_module_bundle(const std::strin
   table.reserve(modules.size());
   for (const auto& module : modules) {
     if (module.name.size() > 0xffffffffu || module.record.size() > 0xffffffffu) {
-      throw std::runtime_error("QuickJS module bundle entry exceeds u32 limits");
+      raise_error("VENOM-E6000", "QuickJS module bundle entry exceeds u32 limits");
     }
     const std::uint32_t name_size = static_cast<std::uint32_t>(module.name.size());
     const std::uint32_t record_size = static_cast<std::uint32_t>(module.record.size());
     const std::uint64_t record_offset64 = static_cast<std::uint64_t>(cursor) + name_size;
     const std::uint64_t next64 = record_offset64 + record_size;
-    if (next64 > 0xffffffffu) throw std::runtime_error("QuickJS module bundle exceeds u32 limits");
+    if (next64 > 0xffffffffu) raise_error("VENOM-E6000", "QuickJS module bundle exceeds u32 limits");
     table.push_back(TableEntry{cursor, name_size, static_cast<std::uint32_t>(record_offset64), record_size});
     cursor = static_cast<std::uint32_t>(next64);
   }
@@ -469,7 +470,7 @@ std::vector<unsigned char> compile_native_quickjs_module_bundle(const std::strin
     out.insert(out.end(), modules[i].name.begin(), modules[i].name.end());
     out.insert(out.end(), modules[i].record.begin(), modules[i].record.end());
   }
-  if (out.size() != cursor) throw std::runtime_error("QuickJS module bundle size accounting failed");
+  if (out.size() != cursor) raise_error("VENOM-E6000", "QuickJS module bundle size accounting failed");
   return out;
 }
 

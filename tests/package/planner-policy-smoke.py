@@ -1,10 +1,10 @@
 from pathlib import Path
 root=Path(__file__).resolve().parents[2]
-cli=(root/'src/compiler/commands/cli.cpp').read_text()
-header=(root/'src/compiler/commands/cli.hpp').read_text()
-planner=(root/'src/compiler/core/planner.cpp').read_text()
-build=(root/'src/compiler/pipeline/build.cpp').read_text()
-config=(root/'src/compiler/core/config.cpp').read_text()
+cli=(root/'src/cli/cli.cpp').read_text()
+header=(root/'src/cli/include/venom/cli/cli.hpp').read_text()
+planner=(root/'src/pipeline/planner.cpp').read_text()
+build=(root/'src/pipeline/build.cpp').read_text()
+config=(root/'src/core/config.cpp').read_text()
 doc=(root/'docs/architecture/product-overview.md').read_text()
 for token in ['--protect','--browser','--planner','--protection','--min-confidence','--planner-min-confidence','--report']:
     assert token in cli, token

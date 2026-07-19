@@ -1,5 +1,30 @@
 # Changelog
 
+- Added a dependency-free `src/base/` domain with a typed `venom::Error`, stable exit-code taxonomy, and centralized phase-aware error rendering; all authored C++ fatal paths now use the shared API.
+- Replaced duplicated example metadata with `VENOM_EXAMPLE_REGISTRY_V2`, generated symmetric launchers for all ten examples, and added the previously missing Vite launcher.
+- Added reusable `tools/venom_tools/` helpers plus CI gates for registry integrity, launcher drift, forbidden legacy error paths, and generated runtime snapshot drift.
+- Centralized Windows command completion and pause behavior under `tools/windows-scripts/internal/`, removed duplicated launcher error blocks, and added symmetric release-closure entrypoints.
+- Rebound structural regressions to the new domain-owned files, generated worker template split, hash-only package naming, and canonical QuickJS/WASM tool locations.
+- Enforced first-party source domains with independent CMake object targets, removed the catch-all `src/compiler/` hierarchy, extracted shared `core`, `graph`, and `remote` ownership, and added an acyclic cross-domain include checker.
+- Fixed native runtime parity with the canonical route-table format, added native package execution and QuickJS parity CTest gates, and updated the runtime probe for hash-only production package names.
+
+### Source hygiene and semantic launchers
+
+- Consolidated the Vite integration under `packages/` and colocated fuzz targets with their corpora under `tests/fuzz/`.
+- Promoted the CLI, build pipeline, language frontends, QuickJS integration, route VM, shared core, module graph, and remote acquisition into first-class `src/` domains; the obsolete `src/compiler/` umbrella was removed.
+- Flattened native runtime translation units directly into `src/runtime/` and centralized every authored JavaScript input under `src/templates/`.
+- Isolated generated JavaScript and metadata under explicit `src/generated/` ownership folders.
+- Grouped runtime and TypeScript generators under `tools/generators/`.
+- Replaced numbered example scripts with semantic, cross-platform launcher names backed by `tools/launch_example.py`.
+- Added source-layout, launcher-parity, and root-consolidation enforcement tests.
+
+
+### Release security hardening
+
+- Reject archive symlinks, hard links, devices, FIFOs, traversal, and drive-qualified entries during release verification.
+- Enforce portable, unique release-manifest paths with non-negative sizes.
+- Validate VBC section names symmetrically in the package writer and reader.
+- Add a malicious archive and manifest regression corpus.
 ## 2.0.0 — Stable production runtime
 
 Venom 2.0.0 consolidates the protected compiler, QuickJS/WASM runtime, typed SDK, production-only build path, example and browser certification, startup observability, and signed release engineering into one stable release.
@@ -19,7 +44,7 @@ Venom 2.0.0 consolidates the protected compiler, QuickJS/WASM runtime, typed SDK
 
 - Added an authoritative all-example certification contract and production-only certification command.
 - Removed remaining stale dev-profile references from project scaffolding, Vite tests, AST tests, release certification, and API-server command validation.
-- All numbered examples now use the same production QuickJS/WASM build, verification, and leak-scan path.
+- All certified examples use the same production QuickJS/WASM build, verification, and leak-scan path.
 
 - Fixed protected TypeScript modules losing their `protected module` identity after structural transformation by storing the identity as persistent compiler chunk metadata.
 - Protected browser imports such as `../protected/pricing` are now lowered before canonical browser graph serialization even when source comments are erased.
@@ -129,7 +154,7 @@ Venom 2.0.0 consolidates the protected compiler, QuickJS/WASM runtime, typed SDK
 
 ## Package section planning consolidation
 
-- Moved VBC section construction out of `build.cpp` into `src/compiler/package/section_plan.*`.
+- Moved VBC section construction out of `build.cpp` into `src/compiler/planning/section_plan.*`.
 - Added a typed section-planning input/result boundary for runtime contracts, routes, protected registries, assets, and security metadata.
 - Kept `PackagePlan` as the only package writer boundary for development and production builds.
 - Reduced `build.cpp` to build orchestration and artifact emission.
@@ -144,7 +169,7 @@ Venom 2.0.0 consolidates the protected compiler, QuickJS/WASM runtime, typed SDK
 
 ### Canonical package plan
 
-- Added `src/compiler/package/package_plan.*` as the single package writer boundary.
+- Added `src/pipeline/planning/package_plan.*` as the single package writer boundary.
 - Centralized section ownership, polymorphic ordering, compression/encryption policy, VBC emission, and immediate read-back verification.
 - Removed direct low-level `package::Writer` configuration from the build orchestrator.
 - Added `package_plan_smoke` and architecture documentation.
@@ -443,3 +468,25 @@ Venom follows [Semantic Versioning](docs/operations/versioning.md).
 - Preserved JSX for Venom's deterministic classic JSX lowering pipeline.
 - Retained the native eraser behind `VENOM_TYPESCRIPT_FRONTEND=native` for migration compatibility.
 - Added structural TypeScript, TSX, source-map, and integration regressions.
+
+### Chrome extension context compatibility
+
+- Added execution-context policies for extension pages, service workers, isolated and main-world content scripts, DevTools pages, sandbox pages, and static resources.
+- JavaScript module dependencies now inherit the Chrome execution world of their manifest entrypoint.
+- Added deterministic protected-runtime host planning and compatibility summaries.
+- Added warnings for dynamic imports and dynamic `chrome.scripting.executeScript` resources that cannot be resolved statically.
+- Added validation preventing protected source from executing directly in main-world or sandbox contexts.
+
+## Chrome extension compatibility Pass 3
+
+- Added generated Manifest V3 RPC client, service-worker broker, protected host adapter, and background wrapper.
+- Added bounded payload, timeout, export-name, and in-flight request validation.
+- Added offscreen-document readiness probing and one-shot lifecycle recovery after service-worker or host restart.
+- Preserved developer service workers by importing them from generated module/classic wrappers.
+## Chrome Web Store readiness
+
+- Added Manifest V3 publication-policy verification for extension distributions.
+- Added deterministic Chrome-extension ZIP packaging, checksums, and build reports.
+- Added permission, CSP, resource, hardening, and development-file audits.
+- Integrated store readiness into the Example 9 production launcher.
+

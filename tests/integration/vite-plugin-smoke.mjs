@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { venom } from "../../integrations/vite/src/index.js";
+import { venom } from "../../packages/vite/src/index.js";
 
 const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "venom-vite-"));
 const site = path.join(tmp, "site");

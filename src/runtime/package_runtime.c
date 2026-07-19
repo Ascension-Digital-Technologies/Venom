@@ -1,4 +1,4 @@
-#include "package_runtime.h"
+#include "venom/runtime/package_runtime.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -841,7 +841,7 @@ static int parse_route_table(const struct VenomSection* section, struct VenomRou
   const unsigned char* data = section->decoded.data;
   const uint64_t size = section->decoded.size;
   if (size < 16u) return VENOM_ERR_TRUNCATED;
-  if (read_u32_le(data + 8u) != 2u) return VENOM_ERR_VERSION;
+  if (read_u32_le(data + 8u) != 1u) return VENOM_ERR_VERSION;
   const uint32_t count = read_u32_le(data + 12u);
   const uint64_t needed = 16u + (uint64_t)count * 24u;
   if (needed > size) return VENOM_ERR_RANGE;

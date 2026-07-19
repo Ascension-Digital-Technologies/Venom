@@ -1,13 +1,13 @@
 from pathlib import Path
 root = Path(__file__).resolve().parents[2]
-build = (root/'src/compiler/pipeline/build.cpp').read_text() + (root/'src/compiler/pipeline/build_package_metadata.cpp').read_text() + (root/'src/compiler/pipeline/build_runtime_metadata.cpp').read_text() + (root/'src/compiler/pipeline/build_runtime_audit_metadata.cpp').read_text() + (root/'src/compiler/pipeline/build_runtime_module_metadata.cpp').read_text()
-js = (root/'src/compiler/pipeline/js.cpp').read_text()
-js += (root / 'src/compiler/pipeline/js_discovery.cpp').read_text(encoding='utf-8')
+build = (root/'src/pipeline/build.cpp').read_text() + (root/'src/pipeline/build_package_metadata.cpp').read_text() + (root/'src/pipeline/build_runtime_metadata.cpp').read_text() + (root/'src/pipeline/build_runtime_audit_metadata.cpp').read_text() + (root/'src/pipeline/build_runtime_module_metadata.cpp').read_text()
+js = (root/'src/pipeline/js.cpp').read_text()
+js += (root / 'src/pipeline/js_discovery.cpp').read_text(encoding='utf-8')
 worker = (root/'src/generated/runtime/worker_runtime_js.cpp').read_text()
 bootstrap = js + '\n' + worker
 qjs = (root/'src/generated/runtime/quickjs_engine_module.cpp').read_text()
 runtime = (root/'src/generated/runtime/runtime_js.cpp').read_text()
-runtime += (root / 'src/runtime/templates/runtime.js').read_text(encoding='utf-8')
+runtime += (root / 'src/generated/runtime/javascript/browser_runtime.js').read_text(encoding='utf-8')
 required = [
     ('worker asset emission', 'make_worker_runtime_js(' in build and 'workers/' in build),
     ('module worker boot', "new Worker(bootOptions.workerUrl" in js and "type: 'module'" in js),

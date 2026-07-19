@@ -3,10 +3,10 @@ from pathlib import Path
 import sys
 
 root = Path(sys.argv[1] if len(sys.argv) > 1 else Path(__file__).resolve().parents[2])
-js_cpp = (root / 'src/compiler/pipeline/js.cpp').read_text(encoding='utf-8')
-runtime = (root / 'src/runtime/templates/runtime.js').read_text(encoding='utf-8')
-metadata = (root / 'src/compiler/pipeline/build_runtime_module_metadata.cpp').read_text(encoding='utf-8')
-security = (root / 'src/compiler/pipeline/security_analysis.cpp').read_text(encoding='utf-8')
+js_cpp = ((root / 'src/pipeline/js.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/js_bundle_encoding.cpp').read_text(encoding='utf-8'))
+runtime = (root / 'src/generated/runtime/javascript/browser_runtime.js').read_text(encoding='utf-8')
+metadata = (root / 'src/pipeline/build_runtime_module_metadata.cpp').read_text(encoding='utf-8')
+security = (root / 'src/pipeline/security_analysis.cpp').read_text(encoding='utf-8')
 
 required_cpp = [
     'VQJSE006', 'wrap_quickjs_record', 'envelope_seed', 'xorshift32',
@@ -30,8 +30,9 @@ for marker in [
     'package_envelope_permutation=per-build-16-byte-lane-map'
 ]:
     assert marker in metadata, f'missing bytecode envelope metadata: {marker}'
-assert 'count_bytes(section.data, "VQJSE006")' in security
-assert 'count_bytes(section.data, "VQJSBC03")' not in security
+assert 'payload_starts_with(section.data, "VQJSE006")' in security
+assert 'count_js_bundle_flagged_payload_prefix' in security
+assert 'contains_bytes(section.data, "VQJSBC03")' not in security
 
 MASK = 0xffffffff
 

@@ -11,13 +11,13 @@ The browser submits source to `__venomRuntime.executeQuickJsChunk`; QuickJS pars
 PowerShell from the repository root:
 
 ```powershell
-.\\scripts\\windows\\build-and-launch-example7.bat
+.\\scripts\\windows\\build-and-launch-javascript-playground.bat
 ```
 
 Linux/macOS:
 
 ```bash
-./scripts/linux/build-and-launch-example7.sh
+./scripts/linux/build-and-launch-javascript-playground.sh
 ```
 
 Open `http://127.0.0.1:8086/`.
@@ -36,9 +36,9 @@ This example uses the `dev` profile because it intentionally accepts source text
 
 ## Compilation architecture
 
-The browser does not use `eval`, `Function`, or host JavaScript source execution. The local Example 7 server exposes a loopback-only development endpoint that compiles the submitted source with Venom's native QuickJS compiler into an authenticated `VQJSBC03` record. The browser then executes that bytecode through the embedded QuickJS/WASM runtime.
+The browser does not use `eval`, `Function`, or host JavaScript source execution. The local JavaScript Playground server exposes a loopback-only development endpoint that compiles the submitted source with Venom's native QuickJS compiler into an authenticated `VQJSBC03` record. The browser then executes that bytecode through the embedded QuickJS/WASM runtime.
 
-This endpoint is enabled only by the Example 7 launcher and is intended for local development demonstrations. It is not emitted into production distributions.
+This endpoint is enabled only by the JavaScript Playground launcher and is intended for local development demonstrations. It is not emitted into production distributions.
 
 ## Isolation and quotas
 

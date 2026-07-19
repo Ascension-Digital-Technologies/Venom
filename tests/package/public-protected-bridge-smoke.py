@@ -12,8 +12,8 @@ with tempfile.TemporaryDirectory() as td:
     worker=next((out/'assets'/'workers').glob('worker.*.js'))
     subprocess.run(['node','--check',str(loader)],check=True,stdout=subprocess.DEVNULL)
     subprocess.run(['node','--check',str(worker)],check=True,stdout=subprocess.DEVNULL)
-source=(root/'src/compiler/pipeline/js.cpp').read_text(encoding='utf-8')
-source += (root / 'src/compiler/pipeline/js_discovery.cpp').read_text(encoding='utf-8')
+source=(root/'src/pipeline/js.cpp').read_text(encoding='utf-8')
+source += (root / 'src/pipeline/js_discovery.cpp').read_text(encoding='utf-8')
 worker_source=(root/'src/generated/runtime/worker_runtime_js.cpp').read_text(encoding='utf-8')
 for token in ["Object.defineProperty(globalThis,'venom'", 'venomApi=Object.freeze', '__venomInvokeProtectedById', 'candidateSlot', 'bridgeSession', 'bridgeCounter']:
     if token not in source: raise SystemExit('public bridge source missing: '+token)

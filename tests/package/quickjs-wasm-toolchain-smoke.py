@@ -11,7 +11,7 @@ required = [
     'tools/quickjs_wasm_preflight.py',
     'tools/quickjs_wasm_cutover.py',
     'tools/setup_emscripten.py',
-    'docs/quickjs-wasm-artifact-generation.md',
+    'docs/getting-started/build-from-source.md',
 ]
 for rel in required:
     path = root / rel
@@ -49,13 +49,13 @@ for name in (
 if len(exports) < 60:
     raise SystemExit(f'expected complete ABI12 export set, found only {len(exports)} exports')
 
-script = (root/'scripts'/'linux'/'build-quickjs-wasm.sh').read_text(encoding='utf-8')
+script = (root/'tools'/'linux-scripts'/'build-quickjs-wasm.sh').read_text(encoding='utf-8')
 for marker in ('emcc', 'VENOM_ENABLE_UPSTREAM_QJS_WASM=1', 'third_party/quickjs/quickjs.c',
     'tools/quickjs_wasm_preflight.py', 'tools/quickjs_wasm_cutover.py', 'quickjs-runtime.wasm',
     'quickjs_wasm_preflight.py', '--preflight-only'):
     if marker not in script:
         raise SystemExit(f'missing build script marker {marker!r}')
 
-doc = (root / 'docs/quickjs-wasm-artifact-generation.md').read_text(encoding='utf-8')
+doc = (root / 'docs/getting-started/build-from-source.md').read_text(encoding='utf-8')
 if 'verify-runtime --require-real-engine' not in doc or 'Cutover rule' not in doc:
     raise SystemExit('WASM artifact generation doc is missing the release gate/cutover rule')

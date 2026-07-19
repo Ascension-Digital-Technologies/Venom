@@ -1,0 +1,1 @@
+document.querySelector("#status").textContent="ready"; globalThis.__fixtureReady=true;

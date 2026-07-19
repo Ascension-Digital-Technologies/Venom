@@ -1,7 +1,7 @@
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
-loader = (root / "src/compiler/pipeline/js.cpp").read_text(encoding="utf-8")
+loader = (root / "src/pipeline/js.cpp").read_text(encoding="utf-8")
 worker = (root / "src/generated/runtime/worker_runtime_js.cpp").read_text(encoding="utf-8")
 
 assert "function encodeJson(value,label)" in loader

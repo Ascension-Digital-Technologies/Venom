@@ -57,7 +57,7 @@ def main() -> int:
             print(f'missing ABI export {name}', file=sys.stderr)
             return 1
 
-    script = root / 'scripts' / 'linux' / 'build-quickjs-wasm.sh'
+    script = root / 'tools' / 'linux-scripts' / 'build-quickjs-wasm.sh'
     dry = subprocess.run([str(script), '--preflight-only', str(out / 'script-preflight')], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=30)
     if dry.returncode != 0:
         print(dry.stdout)

@@ -58,7 +58,7 @@ def emit_header(wasm: bytes, output: Path, namespace: str, symbol: str, provenan
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("wasm", type=Path, help="input .wasm file")
-    ap.add_argument("--out", type=Path, default=Path("src/generated/runtime/quickjs_runtime_wasm_blob.hpp"))
+    ap.add_argument("--out", type=Path, default=Path("src/generated/include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp"))
     ap.add_argument("--namespace", default="venom::compiler")
     ap.add_argument("--symbol", default="kQuickJsRuntimeWasmBlob")
     ap.add_argument("--manifest", type=Path, help="verified manifest to embed as provenance")

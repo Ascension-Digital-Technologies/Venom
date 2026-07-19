@@ -22,23 +22,6 @@ powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%VENOM_PS1%" %*
 set "VENOM_EXIT=%ERRORLEVEL%"
 
 :finish
-echo.
-if "%VENOM_EXIT%"=="0" (
-  echo [SUCCESS] Command completed successfully.
-) else (
-  echo [ERROR]   Command failed with exit code %VENOM_EXIT%.
-)
-
-set "VENOM_PAUSE=1"
-if /I "%VENOM_NO_PAUSE%"=="1" set "VENOM_PAUSE=0"
-if /I "%CI%"=="true" set "VENOM_PAUSE=0"
-if /I "%GITHUB_ACTIONS%"=="true" set "VENOM_PAUSE=0"
-if /I "%TF_BUILD%"=="True" set "VENOM_PAUSE=0"
-if /I "%APPVEYOR%"=="True" set "VENOM_PAUSE=0"
-
-if "%VENOM_PAUSE%"=="1" (
-  echo [INFO]    Press any key to close this window...
-  pause >nul
-)
-
+call "%~dp0finish-command.bat" "%VENOM_EXIT%"
+set "VENOM_EXIT=%ERRORLEVEL%"
 endlocal & exit /b %VENOM_EXIT%

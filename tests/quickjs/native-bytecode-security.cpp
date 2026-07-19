@@ -1,4 +1,4 @@
-#include "quickjs/bytecode.hpp"
+#include "venom/quickjs/bytecode.hpp"
 #include "quickjs.h"
 
 #include <algorithm>

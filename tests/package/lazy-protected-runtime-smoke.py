@@ -2,7 +2,7 @@ from pathlib import Path
 import sys
 root=Path(sys.argv[1] if len(sys.argv)>1 else '.').resolve()
 worker=(root/'src/generated/runtime/worker_runtime_js.cpp').read_text(encoding='utf-8')
-build=(root/'src/compiler/pipeline/build.cpp').read_text(encoding='utf-8')
+build=(root/'src/pipeline/build.cpp').read_text(encoding='utf-8')
 checks=[
  ('candidate activation','ensureLazyRegistry(candidate)' in worker),
  ('sha256 attestation','protected registry chunk digest mismatch' in worker),

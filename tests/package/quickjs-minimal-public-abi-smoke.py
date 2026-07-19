@@ -29,8 +29,8 @@ print(f'[venom] minimal public QuickJS ABI: PASS ({len(public)} exports)')
 # Release builds must suppress export_name on the full diagnostic surface and
 # rely on the generated 23-function EXPORTED_FUNCTIONS list instead.
 assert 'VENOM_QJS_MINIMAL_EXPORTS' in text
-ps1=(root/'scripts'/'windows'/'build-quickjs-wasm.ps1').read_text(encoding='utf-8')
-sh=(root/'scripts'/'linux'/'build-quickjs-wasm.sh').read_text(encoding='utf-8')
+ps1=(root/'tools'/'windows-scripts'/'build-quickjs-wasm.ps1').read_text(encoding='utf-8')
+sh=(root/'tools'/'linux-scripts'/'build-quickjs-wasm.sh').read_text(encoding='utf-8')
 validator=(root/'tools/wasm_exports.py').read_text(encoding='utf-8')
 assert '-DVENOM_QJS_MINIMAL_EXPORTS=1' in ps1
 assert '-DVENOM_QJS_MINIMAL_EXPORTS=1' in sh

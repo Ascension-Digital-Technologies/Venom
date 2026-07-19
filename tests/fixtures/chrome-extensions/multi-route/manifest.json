@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Multi route fixture",
+  "version": "1.0.0",
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html",
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  }
+}

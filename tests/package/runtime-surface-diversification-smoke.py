@@ -28,8 +28,8 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="venom-runtime-surface-") as td:
         root = pathlib.Path(td)
         a, b = root / "a", root / "b"
-        run([str(venom), "build", str(site), "--out", str(a)])
-        run([str(venom), "build", str(site), "--out", str(b)])
+        run([str(venom), "build", str(site), "--out", str(a), "--no-cache"])
+        run([str(venom), "build", str(site), "--out", str(b), "--no-cache"])
         ja = runtime_js(a).read_text(encoding="utf-8")
         jb = runtime_js(b).read_text(encoding="utf-8")
         if ja == jb:

@@ -2,7 +2,7 @@
 from pathlib import Path
 root = Path(__file__).resolve().parents[2]
 runtime = (root / 'src/generated/runtime/runtime_js.cpp').read_text(encoding='utf-8')
-runtime += (root / 'src/runtime/templates/runtime.js').read_text(encoding='utf-8')
+runtime += (root / 'src/generated/runtime/javascript/browser_runtime.js').read_text(encoding='utf-8')
 wasm = (root / 'src/runtime/wasm_runtime.c').read_text(encoding='utf-8')
 checks = {
     'single active route runtime': 'let activeRuntime = null;' in runtime and 'disposeActive();' in runtime,

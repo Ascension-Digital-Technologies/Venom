@@ -1,6 +1,7 @@
-#include "vm/encoder.hpp"
+#include "venom/base/error.hpp"
+#include "venom/vm/encoder.hpp"
 
-#include "vm/opcode.hpp"
+#include "venom/vm/opcode.hpp"
 
 #include <array>
 #include <stdexcept>
@@ -25,7 +26,7 @@ std::uint32_t field_value(EncodedWord word,
     case EncodedWord::B: return ins.b ^ plan.operand_masks[1];
     case EncodedWord::C: return ins.c ^ plan.operand_masks[2];
   }
-  throw std::runtime_error("unknown encoded word in polymorphic layout");
+  raise_error("VENOM-E9000", "unknown encoded word in polymorphic layout");
 }
 } // namespace
 
@@ -36,7 +37,7 @@ std::vector<unsigned char> encode_program(const Program& program, const Polymorp
     const auto logical = opcode_index(ins.opcode);
     const auto found = plan.logical_to_physical.find(logical);
     if (found == plan.logical_to_physical.end()) {
-      throw std::runtime_error("missing physical opcode mapping");
+      raise_error("VENOM-E9000", "missing physical opcode mapping");
     }
     const auto physical = static_cast<std::uint32_t>(found->second);
     for (const auto word : plan.word_layout) {

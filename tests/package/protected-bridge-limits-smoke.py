@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from pathlib import Path
 root = Path(__file__).resolve().parents[2]
-loader = (root / 'src/compiler/pipeline/js.cpp').read_text(encoding='utf-8')
+loader = (root / 'src/pipeline/js.cpp').read_text(encoding='utf-8')
 worker = (root / 'src/generated/runtime/worker_runtime_js.cpp').read_text(encoding='utf-8')
 checks = {
     'browser pending-call limit': 'MAX_PUBLIC_PENDING_CALLS=32' in loader and 'pendingBridge.size>=MAX_PUBLIC_PENDING_CALLS' in loader,

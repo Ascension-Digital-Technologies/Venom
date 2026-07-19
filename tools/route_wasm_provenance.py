@@ -58,8 +58,8 @@ def manifest(data: bytes) -> dict:
 
 def main() -> int:
     ap=argparse.ArgumentParser()
-    ap.add_argument("--header", type=Path, default=Path("src/generated/runtime/wasm_runtime_blob.hpp"))
-    ap.add_argument("--out", type=Path, default=Path("src/generated/runtime/wasm_runtime_provenance.json"))
+    ap.add_argument("--header", type=Path, default=Path("src/generated/include/venom/generated/runtime/wasm_runtime_blob.hpp"))
+    ap.add_argument("--out", type=Path, default=Path("src/generated/runtime/metadata/wasm_runtime_provenance.json"))
     ap.add_argument("--check", action="store_true")
     args=ap.parse_args()
     current=manifest(embedded_bytes(args.header))

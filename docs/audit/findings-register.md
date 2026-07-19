@@ -24,7 +24,7 @@ Anyone with the distributed runtime can reproduce the decoding algorithm. The co
 ## VSA-002 — Native package key generation uses `std::random_device`
 
 **Severity:** High  
-**Affected component:** `src/compiler/pipeline/security.cpp`
+**Affected component:** `src/pipeline/security.cpp`
 
 ### Evidence
 

@@ -1,8 +1,9 @@
-#include "package/reader.hpp"
+#include "venom/base/error.hpp"
+#include "venom/package/reader.hpp"
 
-#include "package/compress.hpp"
-#include "package/crypto.hpp"
-#include "package/hash.hpp"
+#include "compress.hpp"
+#include "venom/package/crypto.hpp"
+#include "venom/package/hash.hpp"
 
 #include <cctype>
 #include <sstream>
@@ -22,14 +23,14 @@ namespace {
 std::vector<unsigned char> read_file(const std::filesystem::path& path) {
   std::ifstream in(path, std::ios::binary);
   if (!in) {
-    throw std::runtime_error("failed to read package " + path.string());
+    raise_error("VENOM-E4000", "failed to read package " + path.string());
   }
   return std::vector<unsigned char>(std::istreambuf_iterator<char>(in), {});
 }
 
 std::uint32_t read_u32_at(const std::vector<unsigned char>& bytes, std::uint64_t offset) {
   if (offset + 4u > bytes.size()) {
-    throw std::runtime_error("truncated package while reading u32");
+    raise_error("VENOM-E4000", "truncated package while reading u32");
   }
   return static_cast<std::uint32_t>(bytes[static_cast<std::size_t>(offset)]) |
          (static_cast<std::uint32_t>(bytes[static_cast<std::size_t>(offset + 1u)]) << 8u) |
@@ -39,7 +40,7 @@ std::uint32_t read_u32_at(const std::vector<unsigned char>& bytes, std::uint64_t
 
 std::uint64_t read_u64_at(const std::vector<unsigned char>& bytes, std::uint64_t offset) {
   if (offset + 8u > bytes.size()) {
-    throw std::runtime_error("truncated package while reading u64");
+    raise_error("VENOM-E4000", "truncated package while reading u64");
   }
   std::uint64_t value = 0;
   for (int i = 0; i < 8; ++i) {
@@ -50,17 +51,17 @@ std::uint64_t read_u64_at(const std::vector<unsigned char>& bytes, std::uint64_t
 
 std::string read_string_at(const std::vector<unsigned char>& bytes, std::uint64_t offset, std::uint64_t size) {
   if (offset + size > bytes.size()) {
-    throw std::runtime_error("truncated package while reading section name");
+    raise_error("VENOM-E4000", "truncated package while reading section name");
   }
   return std::string(reinterpret_cast<const char*>(bytes.data() + static_cast<std::size_t>(offset)), static_cast<std::size_t>(size));
 }
 
 std::vector<unsigned char> read_bytes_at(const std::vector<unsigned char>& bytes, std::uint64_t offset, std::uint64_t size) {
   if (offset + size > bytes.size()) {
-    throw std::runtime_error("truncated package while reading section data");
+    raise_error("VENOM-E4000", "truncated package while reading section data");
   }
   if (size > static_cast<std::uint64_t>(std::numeric_limits<std::size_t>::max())) {
-    throw std::runtime_error("section data is too large for this platform");
+    raise_error("VENOM-E4000", "section data is too large for this platform");
   }
   const auto begin = bytes.begin() + static_cast<std::ptrdiff_t>(offset);
   const auto end = begin + static_cast<std::ptrdiff_t>(size);
@@ -69,7 +70,7 @@ std::vector<unsigned char> read_bytes_at(const std::vector<unsigned char>& bytes
 
 void validate_range(std::uint64_t offset, std::uint64_t size, std::uint64_t file_size, const char* label) {
   if (offset > file_size || size > file_size || offset + size < offset || offset + size > file_size) {
-    throw std::runtime_error(std::string("invalid package ") + label + " range");
+    raise_error("VENOM-E4000", std::string("invalid package ") + label + " range");
   }
 }
 
@@ -120,7 +121,7 @@ void verify_package_features(const Package& pkg) {
   const auto* feature_section = find_section(pkg, SectionType::PackageFeatures, "package-features.vfeat");
   if (!feature_section) {
     if (release) {
-      throw std::runtime_error("release package is missing package feature table");
+      raise_error("VENOM-E4000", "release package is missing package feature table");
     }
     return;
   }
@@ -151,7 +152,7 @@ void verify_package_features(const Package& pkg) {
     if (line.rfind("package_version=", 0) == 0) {
       const auto version = static_cast<std::uint32_t>(std::stoul(line.substr(16)));
       if (version != kVersion) {
-        throw std::runtime_error("package feature table version mismatch");
+        raise_error("VENOM-E4000", "package feature table version mismatch");
       }
       saw_package_version = true;
       continue;
@@ -164,22 +165,22 @@ void verify_package_features(const Package& pkg) {
     if (line.rfind("feature\t", 0) == 0) {
       const auto parts = split_tab(line);
       if (parts.size() != 8u) {
-        throw std::runtime_error("invalid package feature table entry");
+        raise_error("VENOM-E4000", "invalid package feature table entry");
       }
       const auto raw_type = static_cast<std::uint32_t>(std::stoul(parts[5]));
       if (!is_known_section_type(raw_type)) {
-        throw std::runtime_error("package feature table references unknown section type");
+        raise_error("VENOM-E4000", "package feature table references unknown section type");
       }
       if (!is_hex_digest(parts[7])) {
-        throw std::runtime_error("package feature table has invalid section digest");
+        raise_error("VENOM-E4000", "package feature table has invalid section digest");
       }
       const auto section_type = static_cast<SectionType>(raw_type);
       const auto* section = find_section(pkg, section_type, parts[6]);
       if (!section) {
-        throw std::runtime_error("package feature table references missing section: " + parts[6]);
+        raise_error("VENOM-E4000", "package feature table references missing section: " + parts[6]);
       }
       if (sha256_hex(section->data) != parts[7]) {
-        throw std::runtime_error("package feature table digest mismatch: " + parts[6]);
+        raise_error("VENOM-E4000", "package feature table digest mismatch: " + parts[6]);
       }
       if (release && parts[4] == "true") {
         ++required_release_features;
@@ -190,13 +191,13 @@ void verify_package_features(const Package& pkg) {
   }
 
   if (!saw_magic || !saw_version || !saw_package_version || !saw_feature_count) {
-    throw std::runtime_error("package feature table is missing required fields");
+    raise_error("VENOM-E4000", "package feature table is missing required fields");
   }
   if (declared_features != parsed_features) {
-    throw std::runtime_error("package feature table feature count mismatch");
+    raise_error("VENOM-E4000", "package feature table feature count mismatch");
   }
   if (release && required_release_features == 0u) {
-    throw std::runtime_error("release package feature table has no required release features");
+    raise_error("VENOM-E4000", "release package feature table has no required release features");
   }
 }
 
@@ -211,7 +212,7 @@ void verify_integrity_metadata(const Package& pkg) {
 
   if (metadata == nullptr) {
     if ((pkg.flags & PackageFlagIntegrityMetadata) != 0u || (pkg.flags & PackageFlagReleaseProfile) != 0u) {
-      throw std::runtime_error("package is missing integrity-auth.vsig metadata");
+      raise_error("VENOM-E4000", "package is missing integrity-auth.vsig metadata");
     }
     return;
   }
@@ -220,7 +221,7 @@ void verify_integrity_metadata(const Package& pkg) {
   std::stringstream lines(text);
   std::string line;
   if (!std::getline(lines, line) || line != "VENOM_INTEGRITY_V1") {
-    throw std::runtime_error("invalid integrity metadata header");
+    raise_error("VENOM-E4000", "invalid integrity metadata header");
   }
 
   bool saw_provider = false;
@@ -252,19 +253,19 @@ void verify_integrity_metadata(const Package& pkg) {
     if (line.rfind("section\t", 0) == 0) {
       const auto parts = split_tab(line);
       if (parts.size() != 5u) {
-        throw std::runtime_error("invalid integrity section entry");
+        raise_error("VENOM-E4000", "invalid integrity section entry");
       }
       const auto raw_type = static_cast<std::uint32_t>(std::stoul(parts[1]));
       if (!is_known_section_type(raw_type)) {
-        throw std::runtime_error("integrity metadata references unknown section type");
+        raise_error("VENOM-E4000", "integrity metadata references unknown section type");
       }
       const auto size = static_cast<std::uint64_t>(std::stoull(parts[3]));
       if (!is_hex_digest(parts[4])) {
-        throw std::runtime_error("invalid integrity SHA-256 digest");
+        raise_error("VENOM-E4000", "invalid integrity SHA-256 digest");
       }
       const auto key = integrity_key(static_cast<SectionType>(raw_type), parts[2]);
       if (!expected.emplace(key, std::make_pair(size, parts[4])).second) {
-        throw std::runtime_error("duplicate integrity metadata entry: " + parts[2]);
+        raise_error("VENOM-E4000", "duplicate integrity metadata entry: " + parts[2]);
       }
       continue;
     }
@@ -272,10 +273,10 @@ void verify_integrity_metadata(const Package& pkg) {
   }
 
   if (!saw_provider || !saw_scope || !saw_section_count) {
-    throw std::runtime_error("integrity metadata is missing required fields");
+    raise_error("VENOM-E4000", "integrity metadata is missing required fields");
   }
   if (declared_sections != expected.size()) {
-    throw std::runtime_error("integrity metadata section count mismatch");
+    raise_error("VENOM-E4000", "integrity metadata section count mismatch");
   }
 
   std::uint64_t covered = 0;
@@ -286,29 +287,29 @@ void verify_integrity_metadata(const Package& pkg) {
     const auto key = integrity_key(section.type, section.name);
     const auto found = expected.find(key);
     if (found == expected.end()) {
-      throw std::runtime_error("integrity metadata does not cover section: " + section.name);
+      raise_error("VENOM-E4000", "integrity metadata does not cover section: " + section.name);
     }
     if (found->second.first != section.data.size()) {
-      throw std::runtime_error("integrity size mismatch: " + section.name);
+      raise_error("VENOM-E4000", "integrity size mismatch: " + section.name);
     }
     const auto actual = sha256_hex(section.data);
     if (actual != found->second.second) {
-      throw std::runtime_error("integrity SHA-256 mismatch: " + section.name);
+      raise_error("VENOM-E4000", "integrity SHA-256 mismatch: " + section.name);
     }
     ++covered;
   }
   if (covered != expected.size()) {
-    throw std::runtime_error("integrity metadata references missing sections");
+    raise_error("VENOM-E4000", "integrity metadata references missing sections");
   }
 }
 } // namespace
 
 Package read_package_bytes(const std::vector<unsigned char>& bytes) {
   if (bytes.size() < kHeaderSize) {
-    throw std::runtime_error("package is smaller than the VBC header");
+    raise_error("VENOM-E4000", "package is smaller than the VBC header");
   }
   if (!std::equal(kMagic, kMagic + sizeof(kMagic), bytes.begin())) {
-    throw std::runtime_error("invalid package magic");
+    raise_error("VENOM-E4000", "invalid package magic");
   }
 
   Package pkg;
@@ -326,10 +327,10 @@ Package read_package_bytes(const std::vector<unsigned char>& bytes) {
   pkg.package_hash = read_u64_at(bytes, kPackageHashOffset);
 
   if (pkg.version != kVersion) {
-    throw std::runtime_error("unsupported package version: " + std::to_string(pkg.version));
+    raise_error("VENOM-E4000", "unsupported package version: " + std::to_string(pkg.version));
   }
   if (pkg.runtime_abi != kRuntimeAbi) {
-    throw std::runtime_error("unsupported runtime ABI: " + std::to_string(pkg.runtime_abi));
+    raise_error("VENOM-E4000", "unsupported runtime ABI: " + std::to_string(pkg.runtime_abi));
   }
   const std::uint32_t known_package_flags = PackageFlagProtectProfile | PackageFlagReleaseProfile |
                                             PackageFlagPolymorphic | PackageFlagCompressedSections |
@@ -361,27 +362,27 @@ Package read_package_bytes(const std::vector<unsigned char>& bytes) {
                                             PackageFlagQuickJsFallbackPolicy |
                                             PackageFlagQuickJsEngineBackend;
   if ((pkg.flags & ~known_package_flags) != 0u) {
-    throw std::runtime_error("unknown package flags: " + std::to_string(pkg.flags & ~known_package_flags));
+    raise_error("VENOM-E4000", "unknown package flags: " + std::to_string(pkg.flags & ~known_package_flags));
   }
   if ((pkg.flags & PackageFlagReleaseProfile) != 0u) {
     if ((pkg.flags & PackageFlagPolymorphic) == 0u) {
-      throw std::runtime_error("release package is missing the polymorphic flag");
+      raise_error("VENOM-E4000", "release package is missing the polymorphic flag");
     }
     if ((pkg.flags & PackageFlagCryptoProviderReady) == 0u) {
-      throw std::runtime_error("release package is missing the crypto-provider-ready flag");
+      raise_error("VENOM-E4000", "release package is missing the crypto-provider-ready flag");
     }
     if ((pkg.flags & PackageFlagIntegrityMetadata) == 0u) {
-      throw std::runtime_error("release package is missing integrity metadata");
+      raise_error("VENOM-E4000", "release package is missing integrity metadata");
     }
     if ((pkg.flags & PackageFlagRuntimeHardened) == 0u) {
-      throw std::runtime_error("release package is missing runtime hardening metadata");
+      raise_error("VENOM-E4000", "release package is missing runtime hardening metadata");
     }
   }
   if (pkg.section_table_offset != kHeaderSize) {
-    throw std::runtime_error("invalid package section table offset");
+    raise_error("VENOM-E4000", "invalid package section table offset");
   }
   if (pkg.section_table_size != static_cast<std::uint64_t>(section_count) * kSectionEntrySize) {
-    throw std::runtime_error("invalid package section table size");
+    raise_error("VENOM-E4000", "invalid package section table size");
   }
 
   validate_range(pkg.section_table_offset, pkg.section_table_size, pkg.file_size, "section table");
@@ -393,7 +394,7 @@ Package read_package_bytes(const std::vector<unsigned char>& bytes) {
     bytes_for_hash[static_cast<std::size_t>(kPackageHashOffset + i)] = 0;
   }
   if (fnv1a64(bytes_for_hash) != pkg.package_hash) {
-    throw std::runtime_error("package hash mismatch");
+    raise_error("VENOM-E4000", "package hash mismatch");
   }
 
   constexpr std::uint32_t kMaxSections = 4096u;
@@ -402,13 +403,13 @@ Package read_package_bytes(const std::vector<unsigned char>& bytes) {
   constexpr std::uint64_t kMaxDecodedSectionBytes = 32ull * 1024ull * 1024ull;
   constexpr std::uint64_t kMaxDecodedPackageBytes = 128ull * 1024ull * 1024ull;
   if (pkg.file_size > kMaxPackageBytes) {
-    throw std::runtime_error("package exceeds maximum encoded size");
+    raise_error("VENOM-E4000", "package exceeds maximum encoded size");
   }
   if (section_count > kMaxSections) {
-    throw std::runtime_error("package section count exceeds limit");
+    raise_error("VENOM-E4000", "package section count exceeds limit");
   }
   if (pkg.name_table_size > kMaxNameTableBytes) {
-    throw std::runtime_error("package name table exceeds limit");
+    raise_error("VENOM-E4000", "package name table exceeds limit");
   }
 
   std::uint64_t total_decoded_size = 0;
@@ -420,12 +421,12 @@ Package read_package_bytes(const std::vector<unsigned char>& bytes) {
     const auto entry_offset = pkg.section_table_offset + static_cast<std::uint64_t>(i) * kSectionEntrySize;
     const auto raw_type = read_u32_at(bytes, entry_offset + 0u);
     if (!is_known_section_type(raw_type)) {
-      throw std::runtime_error("unknown package section type: " + std::to_string(raw_type));
+      raise_error("VENOM-E4000", "unknown package section type: " + std::to_string(raw_type));
     }
     const auto flags = read_u32_at(bytes, entry_offset + 4u);
     const std::uint32_t known_section_flags = SectionFlagCompressed | SectionFlagEncrypted;
     if ((flags & ~known_section_flags) != 0u) {
-      throw std::runtime_error("unknown section flags: " + std::to_string(flags & ~known_section_flags));
+      raise_error("VENOM-E4000", "unknown section flags: " + std::to_string(flags & ~known_section_flags));
     }
     const auto name_offset = read_u32_at(bytes, entry_offset + 8u);
     const auto name_size = read_u32_at(bytes, entry_offset + 12u);
@@ -435,39 +436,40 @@ Package read_package_bytes(const std::vector<unsigned char>& bytes) {
     const auto expected_hash = read_u64_at(bytes, entry_offset + 40u);
 
     if (raw_size > kMaxDecodedSectionBytes) {
-      throw std::runtime_error("section decoded size exceeds limit");
+      raise_error("VENOM-E4000", "section decoded size exceeds limit");
     }
     if (total_decoded_size > kMaxDecodedPackageBytes - raw_size) {
-      throw std::runtime_error("package decoded size exceeds limit");
+      raise_error("VENOM-E4000", "package decoded size exceeds limit");
     }
     total_decoded_size += raw_size;
 
     validate_range(pkg.name_table_offset + name_offset, name_size, pkg.file_size, "section name");
     validate_range(data_offset, data_size, pkg.file_size, "section data");
     if (data_offset < pkg.payload_offset || data_offset + data_size > pkg.payload_offset + pkg.payload_size) {
-      throw std::runtime_error("section data is outside the payload range");
+      raise_error("VENOM-E4000", "section data is outside the payload range");
     }
     const bool encrypted = (flags & SectionFlagEncrypted) != 0u;
     if ((flags & SectionFlagCompressed) != 0u) {
       if (!encrypted && raw_size < data_size) {
-        throw std::runtime_error("compressed section raw size is smaller than stored size");
+        raise_error("VENOM-E4000", "compressed section raw size is smaller than stored size");
       }
     } else if (!encrypted && raw_size != data_size) {
-      throw std::runtime_error("uncompressed section raw size does not match stored size");
+      raise_error("VENOM-E4000", "uncompressed section raw size does not match stored size");
     }
 
     Section section;
     section.type = static_cast<SectionType>(raw_type);
     section.flags = flags;
     section.name = read_string_at(bytes, pkg.name_table_offset + name_offset, name_size);
+    validate_section_name(section.name);
     const auto identity = std::to_string(raw_type) + "\t" + section.name;
     if (!section_identities.insert(identity).second) {
-      throw std::runtime_error("duplicate package section identity");
+      raise_error("VENOM-E4000", "duplicate package section identity");
     }
     const auto range_end = data_offset + data_size;
     for (const auto& range : payload_ranges) {
       if (data_offset < range.second && range.first < range_end) {
-        throw std::runtime_error("overlapping package section payloads");
+        raise_error("VENOM-E4000", "overlapping package section payloads");
       }
     }
     if (data_size != 0u) {
@@ -479,23 +481,20 @@ Package read_package_bytes(const std::vector<unsigned char>& bytes) {
     section.stored_size = data_size;
     section.raw_size = raw_size;
 
-    if (section.name.empty()) {
-      throw std::runtime_error("package contains an empty section name");
-    }
     if (fnv1a64(stored_data) != expected_hash) {
-      throw std::runtime_error("package section hash mismatch: " + section.name);
+      raise_error("VENOM-E4000", "package section hash mismatch: " + section.name);
     }
     if ((flags & SectionFlagEncrypted) != 0u) {
       stored_data = open_section_v1(section.type, section.name, stored_data);
     }
     if ((flags & SectionFlagCompressed) != 0u) {
       if (raw_size > static_cast<std::uint64_t>(std::numeric_limits<std::size_t>::max())) {
-        throw std::runtime_error("compressed section raw size is too large for this platform");
+        raise_error("VENOM-E4000", "compressed section raw size is too large for this platform");
       }
       section.data = decompress_rle_v1(stored_data, static_cast<std::size_t>(raw_size));
     } else {
       if (stored_data.size() != raw_size) {
-        throw std::runtime_error("section decoded size mismatch: " + section.name);
+        raise_error("VENOM-E4000", "section decoded size mismatch: " + section.name);
       }
       section.data = std::move(stored_data);
     }
@@ -511,7 +510,7 @@ Package read_package_bytes(const std::vector<unsigned char>& bytes) {
 
 Package read_package_bytes(const unsigned char* data, std::size_t size) {
   if (data == nullptr && size != 0u) {
-    throw std::runtime_error("null package byte pointer");
+    raise_error("VENOM-E4000", "null package byte pointer");
   }
   if (size == 0u) {
     return read_package_bytes(std::vector<unsigned char>{});

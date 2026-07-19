@@ -1,7 +1,7 @@
 from pathlib import Path
 root=Path(__file__).resolve().parents[2]
-browser=root/'src/runtime/js/browser'
-engine=root/'src/runtime/js/quickjs-engine'
+browser=root/'src/templates/browser'
+engine=root/'src/templates/quickjs-engine'
 expected_browser={
  '00-contracts.js','10-package-loader.js','20-runtime-contracts.js','30-host-queues.js',
  '40-quickjs-bridge.js','50-browser-modules.js','60-route-runtime.js'}

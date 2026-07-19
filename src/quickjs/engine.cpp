@@ -1,6 +1,7 @@
-#include "quickjs/engine.hpp"
+#include "venom/base/error.hpp"
+#include "venom/quickjs/engine.hpp"
 
-#include "package/hash.hpp"
+#include "venom/package/hash.hpp"
 
 #ifdef VENOM_ENABLE_FULL_QUICKJS
 extern "C" {
@@ -43,7 +44,7 @@ Engine::Engine(EngineLimits limits) : limits_(limits) {
   runtime_ = JS_NewRuntime();
   if (!runtime_) {
     trap(1, "runtime", "failed to create QuickJS runtime");
-    throw std::runtime_error(last_exception_.message);
+    raise_error("VENOM-E6000", last_exception_.message);
   }
   set_limits(limits_);
   context_ = JS_NewContext(runtime_);
@@ -51,7 +52,7 @@ Engine::Engine(EngineLimits limits) : limits_(limits) {
     JS_FreeRuntime(runtime_);
     runtime_ = nullptr;
     trap(2, "context", "failed to create QuickJS context");
-    throw std::runtime_error(last_exception_.message);
+    raise_error("VENOM-E6000", last_exception_.message);
   }
   js_std_init_handlers(runtime_);
   transition(EngineLifecycleState::Loaded);
@@ -80,7 +81,7 @@ Engine::~Engine() {
 void Engine::transition(EngineLifecycleState next) {
   if (!lifecycle_transition_allowed(state_, next)) {
     trap(3, "lifecycle", std::string("invalid QuickJS lifecycle transition from ") + lifecycle_state_name(state_) + " to " + lifecycle_state_name(next));
-    throw std::runtime_error(last_exception_.message);
+    raise_error("VENOM-E6000", last_exception_.message);
   }
   state_ = next;
 }
@@ -120,22 +121,22 @@ void Engine::set_console_callback(ConsoleCallback callback) {
 void Engine::validate_script_bytes(const unsigned char* bytes, std::size_t size, std::uint64_t expected_hash) {
   if (!bytes && size != 0) {
     trap(10, "script-buffer", "QuickJS eval byte buffer is null");
-    throw std::runtime_error(last_exception_.message);
+    raise_error("VENOM-E6000", last_exception_.message);
   }
   if (size == 0) {
     trap(11, "script-buffer", "QuickJS script byte buffer is empty");
-    throw std::runtime_error(last_exception_.message);
+    raise_error("VENOM-E6000", last_exception_.message);
   }
   if (size > limits_.script_buffer_limit_bytes) {
     trap(12, "script-buffer", "QuickJS script byte buffer limit exceeded");
-    throw std::runtime_error(last_exception_.message);
+    raise_error("VENOM-E6000", last_exception_.message);
   }
   if (expected_hash != 0) {
     const std::vector<unsigned char> payload(bytes, bytes + size);
     const auto actual = venom::package::fnv1a64(payload);
     if (actual != expected_hash) {
       trap(13, "script-buffer", "QuickJS script byte buffer hash mismatch");
-      throw std::runtime_error(last_exception_.message);
+      raise_error("VENOM-E6000", last_exception_.message);
     }
   }
 }
@@ -143,7 +144,7 @@ void Engine::validate_script_bytes(const unsigned char* bytes, std::size_t size,
 void Engine::account_script_bytes(std::size_t size) {
   if (accounted_script_bytes_ > limits_.heap_limit_bytes || size > limits_.heap_limit_bytes - accounted_script_bytes_) {
     trap(14, "context-limits", "QuickJS context heap accounting limit exceeded");
-    throw std::runtime_error(last_exception_.message);
+    raise_error("VENOM-E6000", last_exception_.message);
   }
   accounted_script_bytes_ += size;
   ++script_buffer_alloc_count_;
@@ -157,11 +158,11 @@ void Engine::release_script_bytes(std::size_t size) noexcept {
 void Engine::record_host_call(HostCallId id) {
   if (!is_known_host_call_id(static_cast<std::uint32_t>(id))) {
     trap(20, "host-call", "unknown QuickJS host-call id");
-    throw std::runtime_error(last_exception_.message);
+    raise_error("VENOM-E6000", last_exception_.message);
   }
   if (host_call_count_ >= limits_.max_host_calls) {
     trap(21, "host-call", "QuickJS host-call limit exceeded");
-    throw std::runtime_error(last_exception_.message);
+    raise_error("VENOM-E6000", last_exception_.message);
   }
   ++host_call_count_;
 }
@@ -208,7 +209,7 @@ void Engine::record_host_io_decision(std::uint32_t io_class,
 void Engine::record_console_event(const std::string& filename) {
   if (console_event_count_ >= limits_.max_console_events) {
     trap(22, "console", "QuickJS console event limit exceeded");
-    throw std::runtime_error(last_exception_.message);
+    raise_error("VENOM-E6000", last_exception_.message);
   }
   ++console_event_count_;
   (void)request_host_io(1, 1, hash_text(filename));
@@ -239,7 +240,7 @@ std::string Engine::eval_byte_buffer(const unsigned char* bytes, std::size_t siz
 std::string Engine::eval_string(const std::string& source, const std::string& filename) {
   if (state_ == EngineLifecycleState::Created || state_ == EngineLifecycleState::Configured || state_ == EngineLifecycleState::Trapped || state_ == EngineLifecycleState::Disposed) {
     trap(30, "lifecycle", "QuickJS engine is not in a loadable execution state");
-    throw std::runtime_error(last_exception_.message);
+    raise_error("VENOM-E6000", last_exception_.message);
   }
   transition(EngineLifecycleState::Executing);
   clear_exception();
@@ -249,7 +250,7 @@ std::string Engine::eval_string(const std::string& source, const std::string& fi
     const auto message = exception_to_string(context_);
     JS_FreeValue(context_, value);
     trap(31, "exception", message);
-    throw std::runtime_error(last_exception_.message);
+    raise_error("VENOM-E6000", last_exception_.message);
   }
   const char* cstr = JS_ToCString(context_, value);
   std::string result = cstr ? cstr : "undefined";
@@ -304,7 +305,7 @@ bool Engine::restore_checkpoint(std::uint32_t checkpoint_id) {
     }
   }
   trap(70, "checkpoint", "QuickJS checkpoint id not found");
-  throw std::runtime_error(last_exception_.message);
+  raise_error("VENOM-E6000", last_exception_.message);
 }
 
 std::string Engine::execution_journal_text() const {
@@ -391,14 +392,14 @@ bool Engine::validate_snapshot(std::uint64_t expected_hash) {
   record_host_call(HostCallId::SnapshotValidate);
   if (snapshots_.empty()) {
     trap(80, "snapshot", "QuickJS snapshot validation requested before capture");
-    throw std::runtime_error(last_exception_.message);
+    raise_error("VENOM-E6000", last_exception_.message);
   }
   auto& snapshot = snapshots_.back();
   const auto expected = expected_hash == 0 ? snapshot.snapshot_hash : expected_hash;
   if (snapshot.snapshot_hash != expected) {
     snapshot.valid = false;
     trap(81, "snapshot", "QuickJS deterministic snapshot hash mismatch");
-    throw std::runtime_error(last_exception_.message);
+    raise_error("VENOM-E6000", last_exception_.message);
   }
   snapshot.valid = true;
   return true;
@@ -476,7 +477,7 @@ std::uint64_t Engine::commit_execution(std::uint32_t checkpoint_id) {
   record_host_call(HostCallId::ExecutionCommit);
   if (checkpoints_.empty()) {
     trap(90, "commit", "QuickJS execution commit requested before checkpoint capture");
-    throw std::runtime_error(last_exception_.message);
+    raise_error("VENOM-E6000", last_exception_.message);
   }
   const auto* checkpoint = &checkpoints_.back();
   if (checkpoint_id != 0) {
@@ -486,7 +487,7 @@ std::uint64_t Engine::commit_execution(std::uint32_t checkpoint_id) {
     }
     if (!checkpoint) {
       trap(91, "commit", "QuickJS execution commit checkpoint not found");
-      throw std::runtime_error(last_exception_.message);
+      raise_error("VENOM-E6000", last_exception_.message);
     }
   }
   const auto snapshot_hash = snapshots_.empty() ? capture_snapshot(checkpoint->id) : snapshots_.back().snapshot_hash;
@@ -601,7 +602,7 @@ bool Engine::check_capability(std::uint32_t capability_id) {
   record_policy_receipt(capability_id, capability, allowed ? "allow" : "deny", host_call_count_);
   if (!allowed && capability_id != 7) {
     trap(100, "capability", "QuickJS capability denied by sealed host policy");
-    throw std::runtime_error(last_exception_.message);
+    raise_error("VENOM-E6000", last_exception_.message);
   }
   return allowed;
 }

@@ -536,7 +536,7 @@ See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md) for licensing terms and third-
 
 ### Aegis Operations enterprise stress test
 
-A 40-file TypeScript/TSX operations dashboard with five protected QuickJS/WASM analytics services, deep browser module linking, interactive views, and production verification. Run `./scripts/linux/build-and-launch-example6.sh` or `.\scripts\windows\build-and-launch-example6.bat`.
+A 40-file TypeScript/TSX operations dashboard with five protected QuickJS/WASM analytics services, deep browser module linking, interactive views, and production verification. Run `./scripts/linux/build-and-launch-aegis-operations.sh` or `.\scripts\windows\build-and-launch-aegis-operations.bat`.
 
 
 ## Aegis Operations Screenshot
@@ -546,3 +546,7 @@ A 40-file TypeScript/TSX operations dashboard with five protected QuickJS/WASM a
 ## Runtime ABI qualification
 
 Venom's embedded QuickJS/WASM runtime is governed by `contracts/quickjs-wasm-abi.json`. Native builds parse the actual embedded WebAssembly export section before packaging. The generated browser engine consumes the same required-export and toolchain-export sets. Playwright qualification covers the JavaScript Playground and Aegis Operations in Chromium on normal CI runs and Chromium, Firefox, and WebKit during nightly qualification.
+
+### Chrome Manifest V3
+
+Venom can emit load-unpacked Chrome extensions with protected extension-page routes and a QuickJS/WASM-compatible extension CSP. See `examples/chrome-extension`, `docs/guides/chrome-extensions.md`, and `scripts/windows/build-and-launch-chrome-extension.bat`.

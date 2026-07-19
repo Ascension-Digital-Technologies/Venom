@@ -5,7 +5,7 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 root=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(root/'tools'))
-spec=importlib.util.spec_from_file_location('launcher',root/'tools/build_and_launch_example.py')
+spec=importlib.util.spec_from_file_location('launcher',root/'tools/launch_example.py')
 assert spec and spec.loader
 mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
 with tempfile.TemporaryDirectory() as tmp:

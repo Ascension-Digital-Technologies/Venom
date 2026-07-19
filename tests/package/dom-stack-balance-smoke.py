@@ -8,7 +8,7 @@ def main() -> int:
         print('usage: dom-stack-balance-smoke.py <repo-root>', file=sys.stderr)
         return 2
     root = Path(sys.argv[1]).resolve()
-    source = root / 'src/compiler/pipeline/html.cpp'
+    source = root / 'src/pipeline/html.cpp'
     if not source.is_file():
         print(f'failure: missing {source}')
         return 1

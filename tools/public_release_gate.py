@@ -73,7 +73,7 @@ def main() -> int:
 
     examples=root/'examples'
     public=[p.name for p in examples.iterdir() if p.is_dir()] if examples.exists() else []
-    if sorted(public) != ['aegis-operations', 'bot-detection', 'javascript-playground', 'nova-trade', 'protected-chess', 'tsx-showcase', 'typescript-showcase', 'vite-framework-showcase']:
+    if sorted(public) != ['aegis-operations', 'bot-detection', 'chrome-extension', 'javascript-playground', 'nova-trade', 'protected-chess', 'quickjs-benchmark', 'tsx-showcase', 'typescript-showcase', 'vite-framework-showcase']:
         errors.append(f'public examples must contain all supported flagship and framework showcase projects; found {sorted(public)}')
     for name in FORBIDDEN_PUBLIC_EXAMPLES:
         if (examples/name).exists(): errors.append(f'legacy public example remains: examples/{name}')

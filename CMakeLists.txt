@@ -30,10 +30,10 @@ if(WIN32)
 endif()
 
 # One authoritative project version for C++, scripts, and release metadata.
-file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated/compiler/core")
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated/core")
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/cmake/templates/version.hpp.in
-  ${CMAKE_CURRENT_BINARY_DIR}/generated/compiler/core/version.hpp
+  ${CMAKE_CURRENT_BINARY_DIR}/generated/include/venom/core/version.hpp
   @ONLY
 )
 
@@ -53,16 +53,17 @@ set(VENOM_RUNTIME_BUNDLE_JS "${VENOM_GENERATED_RUNTIME_DIR}/runtime.bundle.js")
 set(VENOM_RUNTIME_TEMPLATE_CPP "${VENOM_GENERATED_RUNTIME_DIR}/runtime_js_template.cpp")
 set(VENOM_QUICKJS_ENGINE_CPP "${VENOM_GENERATED_RUNTIME_DIR}/quickjs_engine_module.cpp")
 file(GLOB VENOM_BROWSER_RUNTIME_MODULES CONFIGURE_DEPENDS
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/js/browser/*.js")
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/templates/browser/*.js")
 file(GLOB VENOM_QUICKJS_ENGINE_MODULES CONFIGURE_DEPENDS
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/js/quickjs-engine/*.js")
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/templates/quickjs-engine/*.js")
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
   # These files intentionally embed generated JavaScript bundles as C++ string
   # data. The strings are valid and tested; the ISO minimum translation-limit
   # warning is not actionable for supported compilers.
   set_source_files_properties(
-    src/compiler/pipeline/native_js_hardener.cpp
-    src/compiler/pipeline/js_frontend.cpp
+    src/pipeline/native_js_hardener.cpp
+    src/frontends/javascript/embedded_bundles.cpp
+    src/frontends/javascript/frontend.cpp
     "${VENOM_QUICKJS_ENGINE_CPP}"
     PROPERTIES COMPILE_OPTIONS "-Wno-overlength-strings"
   )
@@ -73,35 +74,35 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
 endif()
 add_custom_command(
   OUTPUT "${VENOM_RUNTIME_BUNDLE_JS}"
-  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/bundle_js_modules.py"
-          --input-dir "${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/js/browser"
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/generators/runtime/bundle_js_modules.py"
+          --input-dir "${CMAKE_CURRENT_SOURCE_DIR}/src/templates/browser"
           --output "${VENOM_RUNTIME_BUNDLE_JS}"
   DEPENDS ${VENOM_BROWSER_RUNTIME_MODULES}
-          "${CMAKE_CURRENT_SOURCE_DIR}/tools/bundle_js_modules.py"
+          "${CMAKE_CURRENT_SOURCE_DIR}/tools/generators/runtime/bundle_js_modules.py"
   COMMENT "Bundling authored browser runtime modules"
   VERBATIM
 )
 add_custom_command(
   OUTPUT "${VENOM_RUNTIME_TEMPLATE_CPP}"
-  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/embed_runtime_template.py"
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/generators/runtime/embed_runtime_template.py"
           --input "${VENOM_RUNTIME_BUNDLE_JS}"
           --output "${VENOM_RUNTIME_TEMPLATE_CPP}"
   DEPENDS "${VENOM_RUNTIME_BUNDLE_JS}"
-          "${CMAKE_CURRENT_SOURCE_DIR}/tools/embed_runtime_template.py"
+          "${CMAKE_CURRENT_SOURCE_DIR}/tools/generators/runtime/embed_runtime_template.py"
   COMMENT "Embedding browser runtime bundle"
   VERBATIM
 )
 add_custom_command(
   OUTPUT "${VENOM_QUICKJS_ENGINE_CPP}"
-  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_quickjs_engine_module.py"
-          --input-dir "${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/js/quickjs-engine"
-          --prefix "${CMAKE_CURRENT_SOURCE_DIR}/tools/templates/quickjs_engine_module.prefix.cpp"
-          --suffix "${CMAKE_CURRENT_SOURCE_DIR}/tools/templates/quickjs_engine_module.suffix.cpp"
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/generators/runtime/generate_quickjs_engine_module.py"
+          --input-dir "${CMAKE_CURRENT_SOURCE_DIR}/src/templates/quickjs-engine"
+          --prefix "${CMAKE_CURRENT_SOURCE_DIR}/tools/generators/runtime/templates/quickjs_engine_module.prefix.cpp"
+          --suffix "${CMAKE_CURRENT_SOURCE_DIR}/tools/generators/runtime/templates/quickjs_engine_module.suffix.cpp"
           --output "${VENOM_QUICKJS_ENGINE_CPP}"
   DEPENDS ${VENOM_QUICKJS_ENGINE_MODULES}
-          "${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_quickjs_engine_module.py"
-          "${CMAKE_CURRENT_SOURCE_DIR}/tools/templates/quickjs_engine_module.prefix.cpp"
-          "${CMAKE_CURRENT_SOURCE_DIR}/tools/templates/quickjs_engine_module.suffix.cpp"
+          "${CMAKE_CURRENT_SOURCE_DIR}/tools/generators/runtime/generate_quickjs_engine_module.py"
+          "${CMAKE_CURRENT_SOURCE_DIR}/tools/generators/runtime/templates/quickjs_engine_module.prefix.cpp"
+          "${CMAKE_CURRENT_SOURCE_DIR}/tools/generators/runtime/templates/quickjs_engine_module.suffix.cpp"
   COMMENT "Generating QuickJS browser-engine module"
   VERBATIM
 )
@@ -166,6 +167,12 @@ if(VENOM_ENABLE_FULL_QUICKJS)
   elseif(APPLE)
     target_link_libraries(qjs PUBLIC m)
   endif()
+  if(VENOM_BUILD_COMPILER_ASSET_TOOLS)
+    add_executable(venom_compile_typescript_bridge_bytecode
+      tools/generators/typescript/compile_typescript_bridge_bytecode.cpp)
+    target_link_libraries(venom_compile_typescript_bridge_bytecode PRIVATE qjs)
+    target_include_directories(venom_compile_typescript_bridge_bytecode PRIVATE third_party/quickjs)
+  endif()
   if(MSVC)
     # QuickJS uses C11 `_Atomic` and <stdatomic.h> for SharedArrayBuffer and
     # worker reference counts. MSVC keeps C11 atomics behind an explicit
@@ -204,91 +211,10 @@ else()
   target_include_directories(qjs INTERFACE third_party/quickjs)
 endif()
 
-set(VENOM_CORE_SOURCES
-  src/compiler/commands/cli.cpp
-  src/compiler/commands/compile_snippet.cpp
-  src/compiler/core/config.cpp
-  src/compiler/core/diagnostic.cpp
-  src/compiler/core/console.cpp
-  src/compiler/core/project.cpp
-  src/compiler/core/project_ir.cpp
-  src/compiler/services/runtime_manager.cpp
-  src/compiler/services/update_manager.cpp
-  src/compiler/commands/doctor.cpp
-  src/compiler/commands/dev.cpp
-  src/compiler/core/compatibility.cpp
-  src/compiler/core/planner.cpp
-  src/compiler/graph/module_graph.cpp
-  src/compiler/package/package_plan.cpp
-  src/compiler/package/section_plan.cpp
-  src/compiler/commands/dist_analyzer.cpp
-  src/compiler/pipeline/capability_analysis.cpp
-  src/compiler/pipeline/build.cpp
-  src/compiler/pipeline/build_report.cpp
-  src/compiler/pipeline/build_support.cpp
-  src/compiler/pipeline/native_js_hardener.cpp
-  src/compiler/pipeline/js_frontend.cpp
-  src/compiler/pipeline/typescript_frontend.cpp
-  src/compiler/pipeline/jsx_frontend.cpp
-  src/compiler/pipeline/build_package_metadata.cpp
-  src/compiler/pipeline/build_runtime_metadata.cpp
-  src/compiler/pipeline/build_runtime_audit_metadata.cpp
-  src/compiler/pipeline/build_runtime_module_metadata.cpp
-  src/compiler/commands/inspect.cpp
-  src/compiler/pipeline/security.cpp
-  src/compiler/pipeline/security_analysis.cpp
-  src/compiler/pipeline/security_artifact_inspection.cpp
-  src/compiler/core/site.cpp
-  src/compiler/pipeline/assets.cpp
-  src/compiler/pipeline/html.cpp
-  src/compiler/pipeline/css.cpp
-  src/compiler/pipeline/js.cpp
-  src/compiler/pipeline/js_bundle_encoding.cpp
-  src/compiler/pipeline/js_discovery.cpp
-  src/compiler/pipeline/js_planning.cpp
-  src/compiler/pipeline/js_rewriting.cpp
-  src/compiler/pipeline/function_dependencies.cpp
-  src/generated/runtime/worker_runtime_js.cpp
-  src/generated/runtime/browser_asset_runtime_js.cpp
-  src/generated/runtime/runtime_js.cpp
-  ${VENOM_RUNTIME_TEMPLATE_CPP}
-  src/compiler/services/runtime_modules.cpp
-  src/compiler/services/quickjs_wasm_contract.cpp
-  src/generated/runtime/wasm_runtime_js.cpp
-  ${VENOM_QUICKJS_ENGINE_CPP}
-  src/compiler/core/profile.cpp
-  src/compiler/core/process.cpp
-  src/compiler/commands/remote.cpp
-  src/package/format.cpp
-  src/package/writer.cpp
-  src/package/reader.cpp
-  src/package/crypto.cpp
-  src/package/compress.cpp
-  src/package/hash.cpp
-  src/vm/opcode.cpp
-  src/vm/encoder.cpp
-  src/vm/polymorph.cpp
-  src/quickjs/abi.cpp
-  src/quickjs/engine.cpp
-  src/quickjs/bytecode.cpp
-  src/quickjs/bridge.cpp
-)
+include(cmake/source_domains.cmake)
 
-add_library(venom_core STATIC ${VENOM_CORE_SOURCES})
-target_include_directories(venom_core PUBLIC src third_party/quickjs "${CMAKE_CURRENT_BINARY_DIR}/generated")
-target_compile_definitions(venom_core PRIVATE VENOM_SOURCE_ROOT="${CMAKE_SOURCE_DIR}")
-target_link_libraries(venom_core PUBLIC qjs ${CMAKE_DL_LIBS})
-if(VENOM_ENABLE_FULL_QUICKJS)
-  target_compile_definitions(venom_core PRIVATE VENOM_ENABLE_FULL_QUICKJS)
-endif()
-venom_apply_warnings(venom_core)
-venom_apply_build_acceleration(venom_core)
-if(VENOM_ENABLE_PCH)
-  target_precompile_headers(venom_core PRIVATE src/compiler/core/pch.hpp)
-endif()
-venom_apply_pgo(venom_core)
 
-add_executable(venom src/compiler/main.cpp)
+add_executable(venom src/cli/main.cpp)
 target_link_libraries(venom PRIVATE venom_core)
 
 # The embedded Terser/javascript-obfuscator pipeline executes inside QuickJS and
@@ -311,7 +237,10 @@ if(VENOM_BUILD_RUNTIME_NATIVE)
     src/runtime/package_runtime.c
     src/runtime/quickjs_upstream_runtime.c
   )
-  target_include_directories(venom_runtime_native PUBLIC src/runtime third_party/quickjs)
+  target_include_directories(venom_runtime_native
+    PUBLIC src/runtime/include
+    PRIVATE src/runtime
+  )
   target_link_libraries(venom_runtime_native PUBLIC qjs ${CMAKE_DL_LIBS})
   venom_apply_warnings(venom_runtime_native)
   venom_apply_build_acceleration(venom_runtime_native)
@@ -331,24 +260,26 @@ endif()
 
 
 if(VENOM_ENABLE_SANITIZERS AND CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-  target_compile_options(venom_core PUBLIC -fsanitize=address,undefined -fno-omit-frame-pointer)
-  target_link_options(venom_core PUBLIC -fsanitize=address,undefined)
+  foreach(_venom_domain_target IN LISTS VENOM_DOMAIN_TARGETS)
+    target_compile_options(${_venom_domain_target} PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+  endforeach()
+  target_link_options(venom PUBLIC -fsanitize=address,undefined)
 endif()
 
 if(VENOM_BUILD_FUZZERS)
-  add_executable(venom_package_parser_replay fuzz/package_parser_replay.cpp)
+  add_executable(venom_package_parser_replay tests/fuzz/targets/package_parser_replay.cpp)
   target_link_libraries(venom_package_parser_replay PRIVATE venom_core)
   venom_apply_warnings(venom_package_parser_replay)
 
   add_executable(venom_runtime_contract_replay
-    fuzz/runtime_contract_replay.cpp
-    fuzz/runtime_contract_fuzz.cpp)
+    tests/fuzz/targets/runtime_contract_replay.cpp
+    tests/fuzz/targets/runtime_contract_fuzz.cpp)
   venom_apply_warnings(venom_runtime_contract_replay)
 
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    add_executable(venom_package_parser_fuzz fuzz/package_parser_fuzz.cpp)
-    add_executable(venom_runtime_contract_fuzz fuzz/runtime_contract_fuzz.cpp)
-    add_executable(venom_package_parser_differential_fuzz fuzz/package_parser_differential.cpp)
+    add_executable(venom_package_parser_fuzz tests/fuzz/targets/package_parser_fuzz.cpp)
+    add_executable(venom_runtime_contract_fuzz tests/fuzz/targets/runtime_contract_fuzz.cpp)
+    add_executable(venom_package_parser_differential_fuzz tests/fuzz/targets/package_parser_differential.cpp)
     foreach(_venom_fuzzer_target
         venom_package_parser_fuzz
         venom_runtime_contract_fuzz
@@ -367,14 +298,20 @@ if(VENOM_BUILD_FUZZERS)
   endif()
 endif()
 
-include(cmake/tests.cmake)
+if(VENOM_BUILD_TESTS)
+  include(cmake/tests.cmake)
 
 if(BUILD_TESTING AND VENOM_ENABLE_FULL_QUICKJS)
+
+  add_executable(venom_typescript_embedded_smoke tests/frontends/typescript-embedded-smoke.cpp)
+  target_link_libraries(venom_typescript_embedded_smoke PRIVATE venom_core)
+  venom_test_private_headers(venom_typescript_embedded_smoke frontends)
+  venom_apply_warnings(venom_typescript_embedded_smoke)
+  add_test(NAME typescript_embedded_smoke COMMAND venom_typescript_embedded_smoke)
 
   add_executable(venom_quickjs_module_bundle_runtime
     tests/quickjs/module-bundle-runtime.cpp
     src/runtime/quickjs_runtime_scaffold.c)
-  target_include_directories(venom_quickjs_module_bundle_runtime PRIVATE src third_party/quickjs)
   target_compile_definitions(venom_quickjs_module_bundle_runtime PRIVATE VENOM_ENABLE_UPSTREAM_QJS_WASM)
   target_link_libraries(venom_quickjs_module_bundle_runtime PRIVATE venom_core qjs ${CMAKE_DL_LIBS})
   add_test(NAME quickjs_module_bundle_runtime COMMAND venom_quickjs_module_bundle_runtime)
@@ -382,7 +319,6 @@ if(BUILD_TESTING AND VENOM_ENABLE_FULL_QUICKJS)
   add_executable(venom_quickjs_bridge_abi_runtime
     tests/quickjs/bridge-abi-runtime.cpp
     src/runtime/quickjs_runtime_scaffold.c)
-  target_include_directories(venom_quickjs_bridge_abi_runtime PRIVATE src third_party/quickjs)
   target_compile_definitions(venom_quickjs_bridge_abi_runtime PRIVATE VENOM_ENABLE_UPSTREAM_QJS_WASM)
   target_link_libraries(venom_quickjs_bridge_abi_runtime PRIVATE venom_core qjs ${CMAKE_DL_LIBS})
   add_test(NAME quickjs_bridge_abi_runtime COMMAND venom_quickjs_bridge_abi_runtime)
@@ -391,14 +327,31 @@ endif()
 if(BUILD_TESTING)
   add_executable(venom_route_browser_module_map_test tests/package/route-browser-module-map.cpp)
   target_link_libraries(venom_route_browser_module_map_test PRIVATE venom_core)
+  venom_test_private_headers(venom_route_browser_module_map_test pipeline)
   venom_apply_warnings(venom_route_browser_module_map_test)
   add_test(NAME route_browser_module_map_smoke COMMAND venom_route_browser_module_map_test)
-  add_executable(venom_canonical_module_graph_test tests/compiler/canonical-module-graph.cpp)
+  add_executable(venom_canonical_module_graph_test tests/graph/canonical-module-graph.cpp)
   target_link_libraries(venom_canonical_module_graph_test PRIVATE venom_core)
   venom_apply_warnings(venom_canonical_module_graph_test)
   add_test(NAME canonical_module_graph_smoke COMMAND venom_canonical_module_graph_test)
-  add_executable(venom_package_plan_test tests/compiler/package-plan.cpp)
+  add_executable(venom_chrome_extension_manifest_analysis_test tests/pipeline/chrome-extension-manifest-analysis.cpp)
+  target_link_libraries(venom_chrome_extension_manifest_analysis_test PRIVATE venom_core)
+  venom_test_private_headers(venom_chrome_extension_manifest_analysis_test pipeline)
+  venom_apply_warnings(venom_chrome_extension_manifest_analysis_test)
+  add_test(NAME chrome_extension_manifest_analysis_smoke COMMAND venom_chrome_extension_manifest_analysis_test)
+  add_executable(venom_chrome_extension_compatibility_matrix_test tests/pipeline/chrome-extension-compatibility-matrix.cpp)
+  target_link_libraries(venom_chrome_extension_compatibility_matrix_test PRIVATE venom_core)
+  venom_test_private_headers(venom_chrome_extension_compatibility_matrix_test pipeline)
+  target_compile_definitions(venom_chrome_extension_compatibility_matrix_test PRIVATE VENOM_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}")
+  venom_apply_warnings(venom_chrome_extension_compatibility_matrix_test)
+  add_test(NAME chrome_extension_compatibility_matrix_smoke COMMAND venom_chrome_extension_compatibility_matrix_test)
+  add_test(NAME chrome_extension_rpc_generation_smoke
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/chrome-extension-rpc-generation-smoke.py)
+  add_test(NAME chrome_extension_compatibility_matrix_source_smoke
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/chrome-extension-compatibility-matrix-smoke.py)
+  add_executable(venom_package_plan_test tests/pipeline/package-plan.cpp)
   target_link_libraries(venom_package_plan_test PRIVATE venom_core)
+  venom_test_private_headers(venom_package_plan_test pipeline)
   venom_apply_warnings(venom_package_plan_test)
   add_test(NAME package_plan_smoke COMMAND venom_package_plan_test)
 
@@ -445,10 +398,6 @@ if(BUILD_TESTING)
   add_test(NAME typescript_showcase_smoke
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/typescript-showcase-smoke.py
             $<TARGET_FILE:venom>)
-  add_test(NAME typescript_structural_frontend_smoke
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/typescript-structural-frontend-smoke.py)
-  add_test(NAME typescript_structural_tsx_smoke
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/typescript-structural-tsx-smoke.py)
   add_test(NAME typescript_frontend_integration_smoke
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/typescript-frontend-integration-smoke.py)
   add_test(NAME incremental_build_cache_smoke
@@ -456,8 +405,10 @@ if(BUILD_TESTING)
             $<TARGET_FILE:venom>)
   add_test(NAME generated_runtime_no_touch_smoke
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/generated-runtime-no-touch-smoke.py)
-  add_test(NAME vite_plugin_integration_smoke
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/vite-plugin-integration-smoke.py)
+  if(VENOM_ENABLE_NODE_ECOSYSTEM_TESTS)
+    add_test(NAME vite_plugin_integration_smoke
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/vite-plugin-integration-smoke.py)
+  endif()
   add_test(NAME framework_vite_fixtures_smoke
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/framework-vite-fixtures-smoke.py)
   add_test(NAME tsx_showcase_production_verify_smoke
@@ -468,6 +419,9 @@ if(BUILD_TESTING)
             $<TARGET_FILE:venom>)
   add_test(NAME javascript_playground_quickjs_smoke
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/javascript-playground-quickjs-smoke.py
+            $<TARGET_FILE:venom>)
+  add_test(NAME quickjs_benchmark_example_smoke
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/quickjs-benchmark-example-smoke.py
             $<TARGET_FILE:venom>)
   add_test(NAME quickjs_wasm_authoritative_contract_smoke
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/quickjs-wasm-authoritative-contract-smoke.py)
@@ -512,13 +466,20 @@ add_test(NAME venom_module_query_smoke
 
 add_test(NAME venom_runtime_api_contract_smoke
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/runtime-api-contract-smoke.py)
+add_test(NAME venom_abi_contract_lock
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/verify_contract_lock.py --repo-root ${CMAKE_SOURCE_DIR})
+add_test(NAME venom_release_archive_safety_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/release-archive-safety-smoke.py)
 add_test(NAME venom_generated_runtime_client_smoke
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/generated-runtime-client-smoke.py $<TARGET_FILE:venom>)
 add_test(NAME venom_cxx17_portability_smoke
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/cxx17-portability-smoke.py)
 
-add_test(NAME venom_runtime_sdk_lifecycle_smoke
-  COMMAND node ${CMAKE_SOURCE_DIR}/tests/package/runtime-sdk-lifecycle-smoke.mjs)
+if(VENOM_ENABLE_NODE_ECOSYSTEM_TESTS)
+  find_program(VENOM_NODE_EXECUTABLE node REQUIRED)
+  add_test(NAME venom_runtime_sdk_lifecycle_smoke
+    COMMAND ${VENOM_NODE_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/runtime-sdk-lifecycle-smoke.mjs)
+endif()
 
 add_test(NAME venom_quickjs_release_export_allowlist_smoke
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/quickjs-release-export-allowlist-smoke.py)
@@ -529,12 +490,14 @@ add_test(NAME venom_protected_facade_browser_dependency_smoke
 add_executable(venom_lazy_browser_dependency_closure_test
   tests/package/lazy-browser-dependency-closure.cpp)
 target_link_libraries(venom_lazy_browser_dependency_closure_test PRIVATE venom_core)
+venom_test_private_headers(venom_lazy_browser_dependency_closure_test pipeline)
 add_test(NAME venom_lazy_browser_dependency_closure
   COMMAND venom_lazy_browser_dependency_closure_test)
 
 add_executable(venom_protected_browser_import_lowering_test
-  tests/compiler/protected-browser-import-lowering.cpp)
+  tests/pipeline/protected-browser-import-lowering.cpp)
 target_link_libraries(venom_protected_browser_import_lowering_test PRIVATE venom_core)
+venom_test_private_headers(venom_protected_browser_import_lowering_test pipeline)
 add_test(NAME venom_protected_browser_import_lowering
   COMMAND venom_protected_browser_import_lowering_test)
 
@@ -552,3 +515,4 @@ add_test(NAME venom_runtime_startup_performance_smoke
 
 add_test(NAME venom_final_readiness_report_smoke
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/final-readiness-report-smoke.py)
+endif() # VENOM_BUILD_TESTS

@@ -4,8 +4,8 @@ from pathlib import Path
 root=Path(__file__).resolve().parents[2]
 contract=json.loads((root/'contracts/runtime-performance.json').read_text())
 assert contract['schema']=='VENOM_RUNTIME_PERFORMANCE_V1'
-html=(root/'src/compiler/pipeline/html.cpp').read_text()
-build=(root/'src/compiler/pipeline/build.cpp').read_text()
+html=(root/'src/pipeline/html.cpp').read_text()
+build=(root/'src/pipeline/build.cpp').read_text()
 for token in ['HtmlPreloadHint','modulepreload','application/wasm','application/octet-stream']:
     assert token in html+build, token
 assert contract['preloadPolicy']['persistentPlaintextCacheAllowed'] is False

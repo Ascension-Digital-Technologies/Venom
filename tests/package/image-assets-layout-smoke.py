@@ -15,7 +15,7 @@ try:
         raise SystemExit(f'expected one SVG under assets/images, found {images}')
     if list((dist / 'assets').glob('*.svg')):
         raise SystemExit('image leaked into assets root')
-    css_files = list((dist / 'assets' / 'style').glob('*.css'))
+    css_files = list((dist / 'assets' / 'app').glob('*.css'))
     if not css_files or '../images/' not in css_files[0].read_text(encoding='utf-8'):
         raise SystemExit('compiled CSS did not reference ../images/')
 finally:

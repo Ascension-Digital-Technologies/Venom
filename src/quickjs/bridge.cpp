@@ -1,6 +1,6 @@
-#include "quickjs/bridge.hpp"
+#include "venom/quickjs/bridge.hpp"
 
-#include "package/hash.hpp"
+#include "venom/package/hash.hpp"
 
 #include <sstream>
 #include <vector>

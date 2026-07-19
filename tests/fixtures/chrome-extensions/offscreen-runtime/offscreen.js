@@ -1,0 +1,1 @@
+chrome.runtime.onMessage.addListener((m,s,send)=>{if(m&&m.type==="OFFSCREEN_PING"){send({ok:true,kind:"offscreen"});} return true;});

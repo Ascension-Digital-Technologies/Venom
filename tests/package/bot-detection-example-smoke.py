@@ -11,7 +11,6 @@ assert 'export ' in engine
 assert '// @venom: browser' in app
 assert 'runtime.call("assessClient"' in app
 assert 'protected/bot-engine.js' in html
-for ext in ('ps1','bat','sh'):
-    folder = 'linux' if ext == 'sh' else 'windows'
-    assert (root / 'scripts' / folder / f'bot-detection.{ext}').is_file()
+assert (root / 'scripts/windows/build-and-launch-bot-detection.bat').is_file()
+assert (root / 'scripts/linux/build-and-launch-bot-detection.sh').is_file()
 print('bot detection example smoke: PASS')

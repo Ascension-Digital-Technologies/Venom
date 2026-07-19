@@ -3,12 +3,12 @@ from pathlib import Path
 import sys
 
 root = Path(sys.argv[1] if len(sys.argv) > 1 else '.').resolve()
-cli = (root / 'src/compiler/commands/cli.cpp').read_text(encoding='utf-8')
-config = (root / 'src/compiler/core/config.cpp').read_text(encoding='utf-8')
-ps = (root/'scripts'/'windows'/'build-quickjs-wasm.ps1').read_text(encoding='utf-8')
+cli = (root / 'src/cli/cli.cpp').read_text(encoding='utf-8')
+config = (root / 'src/core/config.cpp').read_text(encoding='utf-8')
+ps = (root/'tools'/'windows-scripts'/'build-quickjs-wasm.ps1').read_text(encoding='utf-8')
 assert 'const auto explicit_input = cmd.build.input;' in cli
 assert 'if (!explicit_input.empty()) cmd.build.input = explicit_input;' in cli
 assert 'config_dir / options.input' in config
-assert '& python $Tool @Arguments | Out-Host' in ps
-assert 'return [int]$Code' in ps
+assert 'function Invoke-VenomExternal' in ps
+assert '$LASTEXITCODE' in ps
 print('explicit site/config precedence and PowerShell runtime verifier: PASS')

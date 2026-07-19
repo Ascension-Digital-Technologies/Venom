@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import tarfile
@@ -75,11 +76,21 @@ def parse_manifest(text: str) -> tuple[dict[str, str], list[ManifestEntry]]:
             size = int(size_text)
         except ValueError as exc:
             raise ValueError(f'malformed size for {relpath!r}') from exc
-        if relpath.startswith('/') or '..' in Path(relpath).parts:
+        if size < 0:
+            raise ValueError(f'negative size for {relpath!r}')
+        if any(ord(ch) < 0x20 or ord(ch) == 0x7f for ch in relpath):
+            raise ValueError(f'unsafe control character in manifest path: {relpath!r}')
+        if '\\' in relpath or ':' in relpath:
+            raise ValueError(f'manifest paths must use portable POSIX syntax: {relpath!r}')
+        posix_path = Path(relpath)
+        if relpath.startswith('/') or relpath in {'.', '..'} or '..' in posix_path.parts or any(part in {'', '.'} for part in posix_path.parts):
             raise ValueError(f'unsafe manifest path: {relpath!r}')
         entries.append(ManifestEntry(digest.lower(), size, relpath))
     if not entries:
         raise ValueError('manifest contains no file entries')
+    paths = [entry.relpath for entry in entries]
+    if len(paths) != len(set(paths)):
+        raise ValueError('manifest contains duplicate file entries')
     return meta, entries
 
 
@@ -100,9 +111,14 @@ def extract_archive(archive: Path, temp_root: Path) -> Path:
     name = archive.name.lower()
     if name.endswith('.zip'):
         with zipfile.ZipFile(archive) as zf:
+            root_resolved = out.resolve()
             for info in zf.infolist():
-                target = out / info.filename
-                if not target.resolve().is_relative_to(out.resolve()):
+                member = info.filename.replace('\\', '/')
+                target = (out / member).resolve()
+                mode = (info.external_attr >> 16) & 0xFFFF
+                if stat.S_ISLNK(mode):
+                    raise SystemExit(f'archive contains unsupported symbolic link: {info.filename!r}')
+                if member.startswith('/') or ':' in member or not target.is_relative_to(root_resolved):
                     raise SystemExit(f'archive contains unsafe path: {info.filename!r}')
             zf.extractall(out)
     elif name.endswith('.tar.gz') or name.endswith('.tgz'):
@@ -110,7 +126,9 @@ def extract_archive(archive: Path, temp_root: Path) -> Path:
             root_resolved = out.resolve()
             for member in tf.getmembers():
                 target = (out / member.name).resolve()
-                if not target.is_relative_to(root_resolved):
+                if member.issym() or member.islnk() or member.isdev() or member.isfifo():
+                    raise SystemExit(f'archive contains unsupported special entry: {member.name!r}')
+                if member.name.startswith('/') or ':' in member.name or not target.is_relative_to(root_resolved):
                     raise SystemExit(f'archive contains unsafe path: {member.name!r}')
             tf.extractall(out)
     else:

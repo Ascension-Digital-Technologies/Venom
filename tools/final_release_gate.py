@@ -12,14 +12,14 @@ REQUIRED = [
     'tools/certify_release.py', 'tools/aggregate_certification.py',
     'contracts/release-certification.json', '.github/workflows/certification.yml',
     'docs/operations/release-certification.md',
-    'contracts/runtime-api.json', 'contracts/final-release.json', 'tools/final_readiness_report.py',
+    'contracts/runtime-api.json', 'contracts/final-release.json', 'contracts/abi-lock.json', 'tools/verify_contract_lock.py', 'tools/core_release_closure.py', 'tools/final_readiness_report.py',
     'packages/runtime/package.json',
     'packages/runtime/src/index.js', 'packages/runtime/src/index.d.ts',
     'cmake/build_acceleration.cmake',
     'docs/README.md', 'docs/getting-started/build-from-source.md',
     'docs/operations/release-verification.md', 'docs/security/security-model.md',
-    'src/generated/runtime/quickjs_runtime_wasm_blob.hpp',
-    'src/generated/runtime/wasm_runtime_provenance.json',
+    'src/generated/include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp',
+    'src/generated/runtime/metadata/wasm_runtime_provenance.json',
 ]
 
 def fail(message: str) -> None:
@@ -51,6 +51,7 @@ def main() -> int:
     for wf in (root/'.github/workflows').glob('*.yml'):
         if "tags: ['v*']" in wf.read_text(encoding='utf-8'): tag_owners += 1
     if tag_owners != 1: fail(f'exactly one tag publication workflow is required; found {tag_owners}')
+    subprocess.run([sys.executable, str(root/'tools/verify_contract_lock.py'), '--repo-root', str(root)], check=True, cwd=root)
     subprocess.run([sys.executable, str(root/'tools/documentation_gate.py')], check=True, cwd=root)
     subprocess.run([sys.executable, str(root/'tests/package/changelog-uniqueness-smoke.py')], check=True, cwd=root)
     subprocess.run([sys.executable, str(root/'tests/package/release-entrypoint-policy-smoke.py')], check=True, cwd=root)

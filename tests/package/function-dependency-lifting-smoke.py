@@ -8,9 +8,9 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
 venom = Path(sys.argv[1]) if len(sys.argv) > 1 else None
-source = (root / 'src/compiler/pipeline/function_dependencies.cpp').read_text(encoding='utf-8') + (root / 'src/compiler/pipeline/js.cpp').read_text(encoding='utf-8')
-source += (root / 'src/compiler/pipeline/js_discovery.cpp').read_text(encoding='utf-8')
-source += (root / 'src/compiler/pipeline/js_rewriting.cpp').read_text(encoding='utf-8')
+source = (root / 'src/pipeline/function_dependencies.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/js.cpp').read_text(encoding='utf-8')
+source += (root / 'src/pipeline/js_discovery.cpp').read_text(encoding='utf-8')
+source += (root / 'src/pipeline/js_rewriting.cpp').read_text(encoding='utf-8')
 for marker in [
     'FunctionDependencyResolution', 'index_declarations',
     'resolve_liftable_function_dependencies', 'lifted_dependencies',

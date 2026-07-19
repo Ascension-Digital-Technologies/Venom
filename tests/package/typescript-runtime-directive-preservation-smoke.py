@@ -6,7 +6,7 @@ if len(sys.argv) != 3:
     raise SystemExit('usage: typescript-runtime-directive-preservation-smoke.py <repo-root> <venom>')
 root = Path(sys.argv[1]).resolve()
 venom = Path(sys.argv[2]).resolve()
-source = (root / 'src/compiler/pipeline/js_discovery.cpp').read_text(encoding='utf-8')
+source = (root / 'src/pipeline/js_discovery.cpp').read_text(encoding='utf-8')
 assert 'const auto authored_code = chunk.code;' in source
 assert 'has_file_scope_venom_browser_directive(authored_code)' in source
 assert source.index('classify_discovered_module_runtime(child, "static module dependency"') if False else True

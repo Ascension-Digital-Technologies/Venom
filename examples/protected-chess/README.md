@@ -2,7 +2,7 @@
 
 ![Protected Chess application](../../docs/assets/examples/protected-chess/application.png)
 
-> **Venom Example 1 · Browser UI with the complete Velocity Chess engine protected**
+> **Protected Chess · Browser UI with the complete Velocity Chess engine protected**
 
 This example integrates **Velocity Chess v0.5.0** into Venom's worker-isolated QuickJS/WASM runtime. The browser receives only a narrow asynchronous bridge. Chess rules, legal-move generation, position mutation, evaluation, hashing, search, move notation, draw detection, and authoritative game-state transitions execute inside the protected export.
 
@@ -35,18 +35,18 @@ flowchart LR
 
 Only `js/main.js`, board rendering, controls, and presentation remain browser-native. `js/ai-engine.js` contains one `@venom: protected isolated` export; Venom extracts the complete embedded engine and replaces the production browser source with protected bridge metadata.
 
-## Run Example 1
+## Run Protected Chess
 
 Windows:
 
 ```powershell
-.\scripts\windows\build-and-launch-example1.bat
+.\scripts\windows\build-and-launch-chess.bat
 ```
 
 Linux/macOS:
 
 ```bash
-./scripts/linux/build-and-launch-example1.sh
+./scripts/linux/build-and-launch-chess.sh
 ```
 
 ## Build and verify
@@ -85,3 +85,8 @@ Search accepts `maxDepth`, `timeMs`, and `play`. `play: true` performs the selec
 ## Source provenance
 
 The supplied Velocity Chess v0.5.0 implementation is integrated into the single protected function in `examples/protected-chess/js/ai-engine.js`. No standalone engine module is referenced or copied as a production browser asset.
+
+
+## Performance dashboard
+
+The Protected Chess interface includes a one-click protected QuickJS/WASM benchmark with Quick, Standard, and Endurance profiles. It measures move-generation throughput, opening/tactical/middlegame/endgame search, quiescence nodes, transposition-table activity, beta cutoffs, total nodes, and average nodes per second. Fast, Balanced, Strong, and Maximum engine presets update both sides of AI-vs-AI play.

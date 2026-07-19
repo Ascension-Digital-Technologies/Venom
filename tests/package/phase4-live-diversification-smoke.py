@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import json
 import re
 root = Path(__file__).resolve().parents[2]
 
@@ -8,10 +9,10 @@ def project_version(text):
     return tuple(map(int, match.groups())) if match else (0, 0, 0)
 cmake = (root / 'CMakeLists.txt').read_text(encoding='utf-8')
 runtime = (root / 'src/generated/runtime/runtime_js.cpp').read_text(encoding='utf-8')
-runtime += (root / 'src/runtime/templates/runtime.js').read_text(encoding='utf-8')
+runtime += (root / 'src/generated/runtime/javascript/browser_runtime.js').read_text(encoding='utf-8')
 engine = (root / 'src/generated/runtime/quickjs_engine_module.cpp').read_text(encoding='utf-8')
 scaffold = (root / 'src/runtime/quickjs_runtime_scaffold.c').read_text(encoding='utf-8')
-abi = (root / 'tools/quickjs_release_abi.py').read_text(encoding='utf-8')
+abi = json.loads((root / 'contracts/quickjs-wasm-abi.json').read_text(encoding='utf-8'))
 checks = {
     'v1.0.17+': project_version(cmake) >= (1, 0, 17),
     'release contract required': "missing release diversification contract" in runtime,
@@ -23,7 +24,7 @@ checks = {
     'wire host-call translation': 'host_call_logical_from_wire' in scaffold,
     'permuted compact result': 'g_compact_result[g_result_field_wire[i]]' in scaffold,
     'permuted result decoder': 'resultLogicalToWire' in engine,
-    'release export allowlist': "'venom_qjs_diversification_install'" in abi,
+    'release export allowlist': 'venom_qjs_diversification_install' in abi.get('requiredExports', []),
 }
 failed = [name for name, ok in checks.items() if not ok]
 if failed:

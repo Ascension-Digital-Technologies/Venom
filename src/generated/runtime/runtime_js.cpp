@@ -1,8 +1,8 @@
-#include "compiler/pipeline/js.hpp"
+#include "venom/pipeline/js.hpp"
 
 #include <stdexcept>
 
-#include "compiler/services/runtime_js_template.hpp"
+#include "venom/runtime/runtime_js_template.hpp"
 
 namespace venom::compiler {
 

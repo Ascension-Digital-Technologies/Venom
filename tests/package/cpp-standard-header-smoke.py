@@ -5,7 +5,7 @@ import sys
 
 root = Path(__file__).resolve().parents[2]
 checks = {
-    root / "src/compiler/pipeline/js_rewriting.cpp": {
+    root / "src/pipeline/js_rewriting.cpp": {
         "std::function": "#include <functional>",
     },
 }

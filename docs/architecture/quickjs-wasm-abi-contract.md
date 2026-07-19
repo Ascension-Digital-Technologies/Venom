@@ -4,8 +4,8 @@
 
 The generator `tools/generate_quickjs_wasm_abi.py` produces:
 
-- `src/generated/contracts/quickjs_wasm_abi.hpp`
-- `src/generated/runtime/quickjs_wasm_abi.js`
+- `src/generated/include/venom/generated/contracts/quickjs_wasm_abi.hpp`
+- `src/generated/runtime/javascript/quickjs_wasm_abi.js`
 - `docs/generated/quickjs-wasm-abi.md`
 
 Before a site build begins, Venom parses the export section of the embedded WASM bytes and verifies every required export from the generated C++ contract. Provenance text is not accepted as a substitute for the actual WebAssembly export table.

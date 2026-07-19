@@ -1,8 +1,9 @@
-#include "package/writer.hpp"
+#include "venom/base/error.hpp"
+#include "venom/package/writer.hpp"
 
-#include "package/compress.hpp"
-#include "package/crypto.hpp"
-#include "package/hash.hpp"
+#include "compress.hpp"
+#include "venom/package/crypto.hpp"
+#include "venom/package/hash.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -29,7 +30,7 @@ void append_u64(std::vector<unsigned char>& out, std::uint64_t value) {
 
 void put_u64_at(std::vector<unsigned char>& out, std::size_t offset, std::uint64_t value) {
   if (offset + 8u > out.size()) {
-    throw std::runtime_error("internal package hash offset out of range");
+    raise_error("VENOM-E4000", "internal package hash offset out of range");
   }
   for (int i = 0; i < 8; ++i) {
     out[offset + static_cast<std::size_t>(i)] = static_cast<unsigned char>((value >> (i * 8)) & 0xffu);
@@ -38,7 +39,7 @@ void put_u64_at(std::vector<unsigned char>& out, std::size_t offset, std::uint64
 
 std::uint32_t checked_u32(std::uint64_t value, const char* label) {
   if (value > std::numeric_limits<std::uint32_t>::max()) {
-    throw std::runtime_error(std::string(label) + " does not fit in u32");
+    raise_error("VENOM-E4000", std::string(label) + " does not fit in u32");
   }
   return static_cast<std::uint32_t>(value);
 }
@@ -97,15 +98,13 @@ void Writer::add_section(SectionType type, std::string name, std::vector<unsigne
 }
 
 void Writer::add_section(SectionType type, std::uint32_t flags, std::string name, std::vector<unsigned char> data) {
-  if (name.empty()) {
-    throw std::runtime_error("package section name cannot be empty");
-  }
+  validate_section_name(name);
   sections_.push_back({type, flags, std::move(name), std::move(data), 0, 0, 0, 0});
 }
 
 void Writer::write(const std::filesystem::path& path) const {
   if (sections_.size() > std::numeric_limits<std::uint32_t>::max()) {
-    throw std::runtime_error("too many package sections");
+    raise_error("VENOM-E4000", "too many package sections");
   }
 
   std::vector<Section> sections = sections_;
@@ -144,7 +143,7 @@ void Writer::write(const std::filesystem::path& path) const {
         section.data = seal_section_v1(section.type, section.name, section.data);
       }
     } else if ((section.flags & SectionFlagEncrypted) != 0u) {
-      throw std::runtime_error("encrypted package section requested without a section sealer: " + section.name);
+      raise_error("VENOM-E4000", "encrypted package section requested without a section sealer: " + section.name);
     }
 
     section.stored_size = static_cast<std::uint64_t>(section.data.size());
@@ -191,7 +190,7 @@ void Writer::write(const std::filesystem::path& path) const {
   append_u64(bytes, 0); // package hash is computed after the full image is assembled.
 
   if (bytes.size() != kHeaderSize) {
-    throw std::runtime_error("internal package header size mismatch");
+    raise_error("VENOM-E4000", "internal package header size mismatch");
   }
 
   for (std::size_t i = 0; i < sections.size(); ++i) {
@@ -234,11 +233,11 @@ void Writer::write(const std::filesystem::path& path) const {
   std::filesystem::create_directories(path.parent_path());
   std::ofstream out(path, std::ios::binary);
   if (!out) {
-    throw std::runtime_error("failed to write package " + path.string());
+    raise_error("VENOM-E4000", "failed to write package " + path.string());
   }
   out.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
   if (!out) {
-    throw std::runtime_error("failed while writing package " + path.string());
+    raise_error("VENOM-E4000", "failed while writing package " + path.string());
   }
 }
 

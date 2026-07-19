@@ -2,7 +2,7 @@
 from pathlib import Path
 import sys
 root = Path(sys.argv[1])
-for rel in ('src/vm/polymorph.cpp', 'src/compiler/pipeline/build.cpp', 'src/compiler/pipeline/html.cpp'):
+for rel in ('src/vm/polymorph.cpp', 'src/pipeline/build.cpp', 'src/pipeline/html.cpp'):
     text = (root / rel).read_text(encoding='utf-8')
     if 'std::mt19937' in text:
         raise SystemExit(f'legacy mt19937 remains in protection path: {rel}')

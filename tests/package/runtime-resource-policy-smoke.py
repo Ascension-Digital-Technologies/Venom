@@ -20,9 +20,9 @@ expected = {
 for key, value in expected.items():
     assert limits[key] == value, (key, limits.get(key))
 
-build = (root / 'src/compiler/pipeline/build.cpp').read_text()
+build = (root / 'src/pipeline/build.cpp').read_text()
 runtime = (root / 'src/generated/runtime/runtime_js.cpp').read_text()
-runtime += (root / 'src/runtime/templates/runtime.js').read_text(encoding='utf-8')
+runtime += (root / 'src/generated/runtime/javascript/browser_runtime.js').read_text(encoding='utf-8')
 for marker in [
     'max_pending=128', 'max_completed=128', 'max_host_calls_per_route=8192',
     'max_concurrent_fetches=16', 'max_dom_handles=4096', 'max_active=128',

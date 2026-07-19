@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "DNR WAR fixture",
+  "version": "1.0.0",
+  "permissions": [
+    "declarativeNetRequest"
+  ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "rules",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "bridge.js",
+        "style.css"
+      ],
+      "matches": [
+        "https://example.com/*"
+      ]
+    }
+  ]
+}

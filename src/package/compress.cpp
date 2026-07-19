@@ -1,4 +1,5 @@
-#include "package/compress.hpp"
+#include "venom/base/error.hpp"
+#include "compress.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -29,7 +30,7 @@ void append_u64(std::vector<unsigned char>& out, std::uint64_t value) {
 
 std::uint32_t read_u32_at(const std::vector<unsigned char>& bytes, std::size_t offset) {
   if (offset + 4u > bytes.size()) {
-    throw std::runtime_error("truncated compressed stream while reading u32");
+    raise_error("VENOM-E4000", "truncated compressed stream while reading u32");
   }
   return static_cast<std::uint32_t>(bytes[offset]) |
          (static_cast<std::uint32_t>(bytes[offset + 1u]) << 8u) |
@@ -39,7 +40,7 @@ std::uint32_t read_u32_at(const std::vector<unsigned char>& bytes, std::size_t o
 
 std::uint64_t read_u64_at(const std::vector<unsigned char>& bytes, std::size_t offset) {
   if (offset + 8u > bytes.size()) {
-    throw std::runtime_error("truncated compressed stream while reading u64");
+    raise_error("VENOM-E4000", "truncated compressed stream while reading u64");
   }
   std::uint64_t value = 0;
   for (int i = 0; i < 8; ++i) {
@@ -123,20 +124,20 @@ std::vector<unsigned char> compress_rle_v1(const std::vector<unsigned char>& inp
 
 std::vector<unsigned char> decompress_rle_v1(const std::vector<unsigned char>& input, std::size_t expected_size) {
   if (input.size() < kHeaderSize) {
-    throw std::runtime_error("compressed section is too small");
+    raise_error("VENOM-E4000", "compressed section is too small");
   }
   for (std::size_t i = 0; i < sizeof(kMagic); ++i) {
     if (input[i] != kMagic[i]) {
-      throw std::runtime_error("invalid compressed section magic");
+      raise_error("VENOM-E4000", "invalid compressed section magic");
     }
   }
   const auto version = read_u32_at(input, 8u);
   if (version != 1u) {
-    throw std::runtime_error("unsupported compressed section version");
+    raise_error("VENOM-E4000", "unsupported compressed section version");
   }
   const auto declared_size = read_u64_at(input, 12u);
   if (declared_size != static_cast<std::uint64_t>(expected_size)) {
-    throw std::runtime_error("compressed section raw size mismatch");
+    raise_error("VENOM-E4000", "compressed section raw size mismatch");
   }
 
   std::vector<unsigned char> out;
@@ -147,15 +148,15 @@ std::vector<unsigned char> decompress_rle_v1(const std::vector<unsigned char>& i
     if ((token & 0x80u) != 0u) {
       const std::size_t length = static_cast<std::size_t>(token & 0x7fu) + kMinMatch;
       if (i + 2u > input.size()) {
-        throw std::runtime_error("truncated compressed backref");
+        raise_error("VENOM-E4000", "truncated compressed backref");
       }
       const std::size_t distance = static_cast<std::size_t>(input[i]) | (static_cast<std::size_t>(input[i + 1u]) << 8u);
       i += 2u;
       if (distance == 0u || distance > out.size()) {
-        throw std::runtime_error("invalid compressed backref distance");
+        raise_error("VENOM-E4000", "invalid compressed backref distance");
       }
       if (out.size() + length > expected_size) {
-        throw std::runtime_error("compressed section expanded past expected size");
+        raise_error("VENOM-E4000", "compressed section expanded past expected size");
       }
       const std::size_t src = out.size() - distance;
       for (std::size_t j = 0; j < length; ++j) {
@@ -164,17 +165,17 @@ std::vector<unsigned char> decompress_rle_v1(const std::vector<unsigned char>& i
     } else {
       const std::size_t literal_len = static_cast<std::size_t>(token) + 1u;
       if (i + literal_len > input.size()) {
-        throw std::runtime_error("truncated compressed literal");
+        raise_error("VENOM-E4000", "truncated compressed literal");
       }
       if (out.size() + literal_len > expected_size) {
-        throw std::runtime_error("compressed section expanded past expected size");
+        raise_error("VENOM-E4000", "compressed section expanded past expected size");
       }
       out.insert(out.end(), input.begin() + static_cast<std::ptrdiff_t>(i), input.begin() + static_cast<std::ptrdiff_t>(i + literal_len));
       i += literal_len;
     }
   }
   if (out.size() != expected_size) {
-    throw std::runtime_error("compressed section expanded to the wrong size");
+    raise_error("VENOM-E4000", "compressed section expanded to the wrong size");
   }
   return out;
 }

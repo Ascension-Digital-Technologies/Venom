@@ -4,7 +4,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$RepoRoot = Resolve-Path (Join-Path $ScriptDir '..')
+$RepoRoot = Resolve-Path (Join-Path $ScriptDir '../..')
 $Python = Get-Command python -ErrorAction SilentlyContinue
 if (-not $Python) { $Python = Get-Command py -ErrorAction SilentlyContinue }
 if (-not $Python) { throw 'Python 3 is required to package a release.' }

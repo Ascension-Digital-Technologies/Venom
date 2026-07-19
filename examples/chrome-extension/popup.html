@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Velocity Chess Web Player</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <header>
+      <span class="eyebrow">LOCAL CHESS ENGINE</span>
+      <h1>Velocity Player</h1>
+      <p id="site-status">Checking this page…</p>
+    </header>
+
+    <label>Player side
+      <select id="side">
+        <option value="auto" selected>Auto detect · Recommended</option>
+        <option value="w">White · Manual override</option>
+        <option value="b">Black · Manual override</option>
+        <option value="both">Both sides · Analysis/testing</option>
+      </select>
+      <small class="mode-note">Uses player labels, interactive pieces, and board orientation.</small>
+    </label>
+
+    <div class="grid profile-grid">
+      <label>Skill level
+        <select id="skill-level">
+          <option value="beginner">Beginner · ~700</option>
+          <option value="casual">Casual · ~1000</option>
+          <option value="intermediate">Intermediate · ~1300</option>
+          <option value="club" selected>Club · ~1600</option>
+          <option value="advanced">Advanced · ~1900</option>
+          <option value="expert">Expert · ~2200</option>
+          <option value="maximum">Maximum · Full strength</option>
+        </select>
+      </label>
+      <label>Playing style
+        <select id="play-style">
+          <option value="balanced" selected>Balanced</option>
+          <option value="aggressive">Aggressive</option>
+          <option value="tactical">Tactical</option>
+          <option value="positional">Positional</option>
+          <option value="defensive">Defensive</option>
+        </select>
+      </label>
+    </div>
+
+    <label>Human behavior
+      <select id="human-behavior">
+        <option value="natural" selected>Natural</option>
+        <option value="fast">Fast</option>
+        <option value="careful">Careful</option>
+        <option value="varied">Highly varied</option>
+      </select>
+      <small class="mode-note">A stable movement personality is generated once per game.</small>
+    </label>
+
+    <label>Match mode
+      <select id="match-mode">
+        <option value="1m">1 minute · Bullet</option>
+        <option value="3m">3 minutes · Blitz</option>
+        <option value="5m" selected>5 minutes · Blitz</option>
+        <option value="10m">10 minutes · Rapid</option>
+        <option value="custom">Custom timing</option>
+      </select>
+      <small id="mode-note" class="mode-note"></small>
+    </label>
+
+    <div class="toggle-panel">
+      <label class="toggle-row">
+        <span><strong>Humanize movement</strong><small>Curved paths, hover pauses, holds, corrections, and varied releases.</small></span>
+        <input id="humanize" type="checkbox" checked>
+      </label>
+      <label class="toggle-row">
+        <span><strong>Different time every move</strong><small>Uses a fresh, non-repeating thinking and interaction cadence.</small></span>
+        <input id="vary-timing" type="checkbox" checked>
+      </label>
+    </div>
+
+    <details>
+      <summary>Advanced timing</summary>
+      <div class="grid">
+        <label>Depth
+          <input id="depth" type="number" min="1" max="12" value="5">
+        </label>
+        <label>Search ms
+          <input id="move-time" type="number" min="25" max="15000" step="25" value="800">
+        </label>
+        <label>Min delay ms
+          <input id="min-delay" type="number" min="100" max="10000" step="50" value="320">
+        </label>
+        <label>Max delay ms
+          <input id="max-delay" type="number" min="100" max="15000" step="50" value="1600">
+        </label>
+        <label>Min drag ms
+          <input id="drag-min" type="number" min="120" max="1800" step="10" value="230">
+        </label>
+        <label>Max drag ms
+          <input id="drag-max" type="number" min="120" max="2200" step="10" value="620">
+        </label>
+      </div>
+    </details>
+
+    <div class="actions">
+      <button id="start" class="primary">Start</button>
+      <button id="stop">Stop</button>
+    </div>
+    <p id="result" role="status"></p>
+    <footer>Edit <code>allowed_sites.txt</code>, then reload the extension to change authorized sites.</footer>
+  </main>
+  <script src="match-modes.js"></script>
+  <script src="skill-levels.js"></script>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

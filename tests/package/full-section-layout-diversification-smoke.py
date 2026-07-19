@@ -7,12 +7,14 @@ import sys
 import tempfile
 
 
-def run(cmd):
-    return subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+def run(cmd, *, capture=True):
+    if capture:
+        return subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    return subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
 
 
 def package_for(dist: pathlib.Path) -> pathlib.Path:
-    matches = list((dist / 'assets' / 'app').glob('app.*.vbc'))
+    matches = list((dist / 'assets' / 'app').glob('*.vbc'))
     if len(matches) != 1:
         raise SystemExit(f'expected one package, found {len(matches)}')
     return matches[0]
@@ -41,7 +43,7 @@ def main():
         packages = []
         for i in range(4):
             out = root / f'build-{i}'
-            run([str(venom), 'build', str(site), '--out', str(out)])
+            run([str(venom), 'build', str(site), '--out', str(out), '--no-cache'], capture=False)
             pkg = package_for(out)
             packages.append(pkg.read_bytes())
             layouts.append(section_rows(venom, pkg))

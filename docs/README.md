@@ -1,6 +1,6 @@
 # Venom Production Documentation
 
-> **Applies to:** Venom 1.1.0  
+> **Applies to:** Venom 2.0.0  
 > **Audience:** application teams, release engineers, security reviewers, and operators
 
 This documentation describes the supported production use of Venom: installing the compiler, protecting an existing website, integrating browser and protected execution, building and verifying distributions, deploying static output, and operating signed releases.
@@ -41,6 +41,7 @@ Internal implementation history and engineering-process records are intentionall
 | Topic | Guide |
 |---|---|
 | End-to-end architecture | [Architecture overview](architecture/overview.md) |
+| Repository and source ownership | [Source layout](architecture/source-layout.md) |
 | Compilation stages | [Compiler pipeline](architecture/compiler-pipeline.md) |
 | Runtime execution model | [Protected runtime](architecture/protected-runtime.md) |
 | Package structure | [VBC package format](architecture/package-format.md) |

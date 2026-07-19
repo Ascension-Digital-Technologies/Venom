@@ -5,6 +5,8 @@ import argparse, json, re, subprocess, sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from venom_tools.examples import load_example_registry
+
 SCHEMA='VENOM_FINAL_READINESS_RESULT_V1'
 
 def run(name: str, command: list[str], root: Path) -> dict:
@@ -25,8 +27,7 @@ def main() -> int:
     version=m.group(1) if m else 'unknown'
     checks=[]
     checks.append({'id':'version','passed':version==contract['version'],'detail':version})
-    examples=json.loads((root/'contracts/examples.json').read_text(encoding='utf-8'))
-    example_items=examples.get('examples',[])
+    example_items=load_example_registry(root).certifiable()
     checks.append({'id':'example-count','passed':len(example_items)==contract['requiredExampleCount'],'detail':len(example_items)})
     browser=json.loads((root/'contracts/browser-certification.json').read_text(encoding='utf-8'))
     engines=browser.get('requiredBrowsers') or browser.get('browsers') or []

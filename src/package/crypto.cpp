@@ -1,6 +1,7 @@
-#include "package/crypto.hpp"
+#include "venom/base/error.hpp"
+#include "venom/package/crypto.hpp"
 
-#include "package/hash.hpp"
+#include "venom/package/hash.hpp"
 
 #include <array>
 #include <cstdint>
@@ -55,7 +56,7 @@ void append_u64(std::vector<unsigned char>& out, std::uint64_t value) {
 
 std::uint32_t read_u32(const std::vector<unsigned char>& bytes, std::size_t offset) {
   if (offset + 4u > bytes.size()) {
-    throw std::runtime_error("truncated sealed section header");
+    raise_error("VENOM-E4000", "truncated sealed section header");
   }
   return static_cast<std::uint32_t>(bytes[offset]) |
          (static_cast<std::uint32_t>(bytes[offset + 1u]) << 8u) |
@@ -65,7 +66,7 @@ std::uint32_t read_u32(const std::vector<unsigned char>& bytes, std::size_t offs
 
 std::uint64_t read_u64(const std::vector<unsigned char>& bytes, std::size_t offset) {
   if (offset + 8u > bytes.size()) {
-    throw std::runtime_error("truncated sealed section header");
+    raise_error("VENOM-E4000", "truncated sealed section header");
   }
   std::uint64_t out = 0;
   for (int i = 0; i < 8; ++i) {
@@ -219,12 +220,12 @@ std::array<unsigned char, kSodiumKeySize> load_package_key() {
       value = std::getenv("VENOM_PACKAGE_KEY_HEX");
     }
     if (value == nullptr || value[0] == '\0') {
-      throw std::runtime_error("libsodium crypto provider requires VENOM_PACKAGE_KEY as 64 hex characters or --key-file");
+      raise_error("VENOM-E4000", "libsodium crypto provider requires VENOM_PACKAGE_KEY as 64 hex characters or --key-file");
     }
     hex = normalize_package_key_hex(value);
   }
   if (hex.size() != kSodiumKeySize * 2u) {
-    throw std::runtime_error("package key must be exactly 64 hex characters");
+    raise_error("VENOM-E4000", "package key must be exactly 64 hex characters");
   }
   std::array<unsigned char, kSodiumKeySize> key{};
   for (std::size_t i = 0; i < kSodiumKeySize; ++i) {
@@ -232,7 +233,7 @@ std::array<unsigned char, kSodiumKeySize> load_package_key() {
     const int lo = hex_value(hex[i * 2u + 1u]);
     if (hi < 0 || lo < 0) {
       secure_wipe(hex.data(), hex.size());
-      throw std::runtime_error("package key contains non-hex characters");
+      raise_error("VENOM-E4000", "package key contains non-hex characters");
     }
     key[i] = static_cast<unsigned char>((hi << 4) | lo);
   }
@@ -307,11 +308,11 @@ std::vector<unsigned char> open_libsodium_section_v1(SectionType type,
                                                      const std::string& name,
                                                      const std::vector<unsigned char>& sealed) {
   if (sealed.size() < kSodiumHeaderSize + kSodiumTagSize || !magic_is(sealed, kSodiumMagic)) {
-    throw std::runtime_error("invalid libsodium sealed section payload: " + name);
+    raise_error("VENOM-E4000", "invalid libsodium sealed section payload: " + name);
   }
   auto& api = sodium_api();
   if (!api.ok) {
-    throw std::runtime_error("libsodium provider is not available for sealed section: " + name);
+    raise_error("VENOM-E4000", "libsodium provider is not available for sealed section: " + name);
   }
   auto key = load_package_key();
   ScopedKeyWipe key_wipe{key};
@@ -320,17 +321,17 @@ std::vector<unsigned char> open_libsodium_section_v1(SectionType type,
   const auto plain_size = read_u64(sealed, 16u);
   const auto sealed_name_hash = read_u64(sealed, 24u);
   if (version != kSealVersion) {
-    throw std::runtime_error("unsupported libsodium sealed section version: " + name);
+    raise_error("VENOM-E4000", "unsupported libsodium sealed section version: " + name);
   }
   if (sealed_type != static_cast<std::uint32_t>(type)) {
-    throw std::runtime_error("libsodium sealed section type mismatch: " + name);
+    raise_error("VENOM-E4000", "libsodium sealed section type mismatch: " + name);
   }
   if (sealed_name_hash != name_hash(name)) {
-    throw std::runtime_error("libsodium sealed section name mismatch: " + name);
+    raise_error("VENOM-E4000", "libsodium sealed section name mismatch: " + name);
   }
   const auto cipher_size = sealed.size() - kSodiumHeaderSize;
   if (cipher_size != plain_size + kSodiumTagSize) {
-    throw std::runtime_error("libsodium sealed section size mismatch: " + name);
+    raise_error("VENOM-E4000", "libsodium sealed section size mismatch: " + name);
   }
   const auto aad = sodium_aad(type, sealed_name_hash, plain_size, name);
   std::vector<unsigned char> plaintext(static_cast<std::size_t>(plain_size));
@@ -345,7 +346,7 @@ std::vector<unsigned char> open_libsodium_section_v1(SectionType type,
                              sealed.data() + 32u,
                              key.data());
   if (rc != 0 || decrypted_size != plain_size) {
-    throw std::runtime_error("libsodium sealed section authentication mismatch: " + name);
+    raise_error("VENOM-E4000", "libsodium sealed section authentication mismatch: " + name);
   }
   return plaintext;
 }
@@ -354,7 +355,7 @@ std::vector<unsigned char> open_legacy_sealed_section_v1(SectionType type,
                                                          const std::string& name,
                                                          const std::vector<unsigned char>& sealed) {
   if (sealed.size() < kLegacySealHeaderSize || !magic_is(sealed, kLegacySealMagic)) {
-    throw std::runtime_error("invalid legacy sealed section payload: " + name);
+    raise_error("VENOM-E4000", "invalid legacy sealed section payload: " + name);
   }
   const auto version = read_u32(sealed, 8u);
   const auto sealed_type = read_u32(sealed, 12u);
@@ -362,23 +363,23 @@ std::vector<unsigned char> open_legacy_sealed_section_v1(SectionType type,
   const auto plain_hash = read_u64(sealed, 24u);
   const auto sealed_name_hash = read_u64(sealed, 32u);
   if (version != kSealVersion) {
-    throw std::runtime_error("unsupported sealed section version: " + name);
+    raise_error("VENOM-E4000", "unsupported sealed section version: " + name);
   }
   if (sealed_type != static_cast<std::uint32_t>(type)) {
-    throw std::runtime_error("sealed section type mismatch: " + name);
+    raise_error("VENOM-E4000", "sealed section type mismatch: " + name);
   }
   if (sealed_name_hash != name_hash(name)) {
-    throw std::runtime_error("sealed section name mismatch: " + name);
+    raise_error("VENOM-E4000", "sealed section name mismatch: " + name);
   }
   if (plain_size != static_cast<std::uint64_t>(sealed.size() - kLegacySealHeaderSize)) {
-    throw std::runtime_error("sealed section size mismatch: " + name);
+    raise_error("VENOM-E4000", "sealed section size mismatch: " + name);
   }
 
   std::vector<unsigned char> ciphertext(sealed.begin() + static_cast<std::ptrdiff_t>(kLegacySealHeaderSize), sealed.end());
   const auto seed = derive_legacy_seed(type, sealed_name_hash, plain_size, plain_hash);
   auto plaintext = xor_stream(ciphertext, seed);
   if (fnv1a64(plaintext) != plain_hash) {
-    throw std::runtime_error("sealed section authentication mismatch: " + name);
+    raise_error("VENOM-E4000", "sealed section authentication mismatch: " + name);
   }
   return plaintext;
 }
@@ -397,15 +398,15 @@ std::string normalize_package_key_hex(const std::string& input) {
     } else if (ch == '#') {
       break;
     } else {
-      throw std::runtime_error("package key file contains non-hex characters");
+      raise_error("VENOM-E4000", "package key file contains non-hex characters");
     }
   }
   if (hex.size() != kSodiumKeySize * 2u) {
-    throw std::runtime_error("package key must be exactly 64 hex characters");
+    raise_error("VENOM-E4000", "package key must be exactly 64 hex characters");
   }
   for (char ch : hex) {
     if (hex_value(ch) < 0) {
-      throw std::runtime_error("package key contains non-hex characters");
+      raise_error("VENOM-E4000", "package key contains non-hex characters");
     }
   }
   return hex;
@@ -456,7 +457,7 @@ std::vector<unsigned char> seal_section_libsodium_v1(SectionType type,
                                                      const std::vector<unsigned char>& plaintext) {
   auto& api = sodium_api();
   if (!api.ok) {
-    throw std::runtime_error("libsodium provider is not available; install libsodium runtime or choose --crypto-provider runtime");
+    raise_error("VENOM-E4000", "libsodium provider is not available; install libsodium runtime or choose --crypto-provider runtime");
   }
   auto key = load_package_key();
   ScopedKeyWipe key_wipe{key};
@@ -478,7 +479,7 @@ std::vector<unsigned char> seal_section_libsodium_v1(SectionType type,
                              nonce.data(),
                              key.data());
   if (rc != 0 || cipher_size != plaintext.size() + kSodiumTagSize) {
-    throw std::runtime_error("libsodium failed to seal package section: " + name);
+    raise_error("VENOM-E4000", "libsodium failed to seal package section: " + name);
   }
   ciphertext.resize(static_cast<std::size_t>(cipher_size));
 
@@ -530,7 +531,7 @@ std::vector<unsigned char> open_section_v1(SectionType type,
     return open_legacy_sealed_section_v1(type, name, sealed);
   }
   if (sealed.size() < kAeadHeaderSize || !magic_is(sealed, kAeadMagic)) {
-    throw std::runtime_error("invalid AEAD sealed section payload: " + name);
+    raise_error("VENOM-E4000", "invalid AEAD sealed section payload: " + name);
   }
   const auto version = read_u32(sealed, 8u);
   const auto sealed_type = read_u32(sealed, 12u);
@@ -541,22 +542,22 @@ std::vector<unsigned char> open_section_v1(SectionType type,
   const auto tag_a = read_u64(sealed, 48u);
   const auto tag_b = read_u64(sealed, 56u);
   if (version != kSealVersion) {
-    throw std::runtime_error("unsupported AEAD sealed section version: " + name);
+    raise_error("VENOM-E4000", "unsupported AEAD sealed section version: " + name);
   }
   if (sealed_type != static_cast<std::uint32_t>(type)) {
-    throw std::runtime_error("AEAD sealed section type mismatch: " + name);
+    raise_error("VENOM-E4000", "AEAD sealed section type mismatch: " + name);
   }
   if (sealed_name_hash != name_hash(name)) {
-    throw std::runtime_error("AEAD sealed section name mismatch: " + name);
+    raise_error("VENOM-E4000", "AEAD sealed section name mismatch: " + name);
   }
   if (plain_size != static_cast<std::uint64_t>(sealed.size() - kAeadHeaderSize)) {
-    throw std::runtime_error("AEAD sealed section size mismatch: " + name);
+    raise_error("VENOM-E4000", "AEAD sealed section size mismatch: " + name);
   }
 
   std::vector<unsigned char> ciphertext(sealed.begin() + static_cast<std::ptrdiff_t>(kAeadHeaderSize), sealed.end());
   const auto expected_tag = aead_tag(type, sealed_name_hash, plain_size, nonce_a, nonce_b, ciphertext);
   if (expected_tag.first != tag_a || expected_tag.second != tag_b) {
-    throw std::runtime_error("AEAD sealed section authentication mismatch: " + name);
+    raise_error("VENOM-E4000", "AEAD sealed section authentication mismatch: " + name);
   }
   const auto seed = derive_aead_stream_seed(type, sealed_name_hash, plain_size, nonce_a, nonce_b);
   return xor_stream(ciphertext, seed);

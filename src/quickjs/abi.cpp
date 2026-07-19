@@ -1,6 +1,6 @@
-#include "quickjs/abi.hpp"
+#include "venom/quickjs/abi.hpp"
 
-#include "package/hash.hpp"
+#include "venom/package/hash.hpp"
 
 #include <sstream>
 

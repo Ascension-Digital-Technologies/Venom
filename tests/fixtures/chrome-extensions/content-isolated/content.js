@@ -1,0 +1,1 @@
+document.documentElement.dataset.venomIsolated=globalThis.__isolatedDependency?"ready":"missing";

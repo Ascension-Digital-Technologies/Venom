@@ -1,14 +1,16 @@
-#include "compiler/pipeline/js.hpp"
-#include "generated/runtime/wasm_runtime_blob.hpp"
-#include "generated/runtime/quickjs_runtime_wasm_blob.hpp"
+#include "venom/pipeline/js.hpp"
+#include "venom/generated/runtime/wasm_runtime_blob.hpp"
+#include "venom/generated/runtime/quickjs_runtime_wasm_blob.hpp"
 
 #include <stdexcept>
+#include <algorithm>
 #include <array>
 #include <cctype>
 #include <iomanip>
 #include <sstream>
 #include <unordered_set>
 #include <string>
+#include <utility>
 
 namespace venom::compiler {
 
@@ -247,6 +249,9 @@ std::string make_runtime_wasm_bridge_js(const SiteGraph& graph,
                                         bool protected_release,
                                         const venom::vm::PolymorphicPlan* diversification) {
   auto js = make_runtime_js(graph, protected_release);
+  // Runtime source fragments may use CRLF on Windows checkouts. Normalize before
+  // applying structural patches so host line-ending policy cannot break builds.
+  js.erase(std::remove(js.begin(), js.end(), '\r'), js.end());
   const std::string helper = R"JS(
 const VENOM_WASM_RUNTIME_ASSET = '__VENOM_WASM_ASSET__';
 let venomWasmRuntimePromise = null;
@@ -618,37 +623,43 @@ function installWasmNavigation(wasmRuntime, routes, root, assetManifest, assetBa
   }
   js.replace(pos, needle.size(), needle + "  const wasmRuntime = await prepareVenomWasmRuntime(options || {});\n  installVenomWasmPackageParser(wasmRuntime);\n  installVenomWasmRouteResolver(wasmRuntime);\n  installVenomWasmPackageDecoder(wasmRuntime);\n");
 
-  const std::string route_needle = "  const route = selectRoute(routes, location.pathname);\n\n  installVenomHostBridge(root, pkg, routes, assetManifest, runtimePolicy, hostBridgePlan, fetchBridgePlan, asyncQueuePlan, timerBridgePlan, eventQueuePlan, quickJsBridgePlan, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan, quickJsEngineModulePlan, quickJsEngineModuleUrl, quickJsContextLifecyclePlan, hostCapabilitiesPlan, quickJsAdapterDiagnosticsPlan, quickJsWasmRuntimePlan, quickJsWasmUrl, quickJsSourceTransferPlan, quickJsConsoleBridgePlan, quickJsExecutionRecordsPlan, quickJsResultBridgePlan, quickJsFallbackPolicyPlan, quickJsRuntimeAbiPlan, quickJsHostImportsPlan, quickJsHeapLimitsPlan, quickJsScriptBufferPlan, quickJsConsoleAbiPlan, quickJsParityProbePlan, quickJsReleaseFallbackPlan, quickJsBytecodeManifestPlan, quickJsModuleResolverPlan, quickJsExceptionAbiPlan, quickJsHostTrapPolicyPlan, quickJsExecutionLifecyclePlan, quickJsScriptBufferPolicyPlan, quickJsContextLimitPolicyPlan, quickJsHostCallDispatchPlan, quickJsParityContractPlan, quickJsReleaseFailClosedPlan, quickJsModuleGraphPlan, quickJsModuleExecutionPlan, quickJsModuleCachePlan, quickJsResolverAuditPlan, quickJsInteropFallbackPlan, quickJsExecutionJournalPlan, quickJsCheckpointPolicyPlan, quickJsReplayCursorPlan, quickJsResumeStatePlan, quickJsDeterminismAuditPlan, quickJsSnapshotPolicyPlan, quickJsSnapshotRecordsPlan, quickJsReplayValidationPlan, quickJsDeterminismLedgerPlan, quickJsAuditSealPlan, quickJsExecutionCommitPlan, quickJsRollbackPolicyPlan, quickJsHostCallReceiptsPlan, quickJsReleaseAcceptancePlan, quickJsCommitAuditPlan, quickJsCapabilityPolicyPlan, quickJsHostIoPolicyPlan, quickJsPermissionSealPlan, quickJsPolicyReceiptsPlan, quickJsReleaseGatePlan, quickJsHostIoDecisionPlan, quickJsHostIoDenyTracePlan, quickJsCapabilityLedgerPlan, quickJsPolicySealAuditPlan, quickJsRuntimeDenylistPlan);\n";
-  const auto route_pos = js.find(route_needle);
-  if (route_pos == std::string::npos) {
-    throw std::runtime_error("failed to patch WASM runtime execution hook");
-  }
-  js.replace(route_pos, route_needle.size(),
-      "  const route = selectRoute(routes, location.pathname);\n"
-      "  const wasmExecution = runVenomWasmExecution(wasmRuntime, pkg, route.route);\n\n"
-      "  installVenomHostBridge(root, pkg, routes, assetManifest, runtimePolicy, hostBridgePlan, fetchBridgePlan, asyncQueuePlan, timerBridgePlan, eventQueuePlan, quickJsBridgePlan, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan, quickJsEngineModulePlan, quickJsEngineModuleUrl, quickJsContextLifecyclePlan, hostCapabilitiesPlan, quickJsAdapterDiagnosticsPlan, quickJsWasmRuntimePlan, quickJsWasmUrl, quickJsSourceTransferPlan, quickJsConsoleBridgePlan, quickJsExecutionRecordsPlan, quickJsResultBridgePlan, quickJsFallbackPolicyPlan, quickJsRuntimeAbiPlan, quickJsHostImportsPlan, quickJsHeapLimitsPlan, quickJsScriptBufferPlan, quickJsConsoleAbiPlan, quickJsParityProbePlan, quickJsReleaseFallbackPlan, quickJsBytecodeManifestPlan, quickJsModuleResolverPlan, quickJsExceptionAbiPlan, quickJsHostTrapPolicyPlan, quickJsExecutionLifecyclePlan, quickJsScriptBufferPolicyPlan, quickJsContextLimitPolicyPlan, quickJsHostCallDispatchPlan, quickJsParityContractPlan, quickJsReleaseFailClosedPlan, quickJsModuleGraphPlan, quickJsModuleExecutionPlan, quickJsModuleCachePlan, quickJsResolverAuditPlan, quickJsInteropFallbackPlan, quickJsExecutionJournalPlan, quickJsCheckpointPolicyPlan, quickJsReplayCursorPlan, quickJsResumeStatePlan, quickJsDeterminismAuditPlan, quickJsSnapshotPolicyPlan, quickJsSnapshotRecordsPlan, quickJsReplayValidationPlan, quickJsDeterminismLedgerPlan, quickJsAuditSealPlan, quickJsExecutionCommitPlan, quickJsRollbackPolicyPlan, quickJsHostCallReceiptsPlan, quickJsReleaseAcceptancePlan, quickJsCommitAuditPlan, quickJsCapabilityPolicyPlan, quickJsHostIoPolicyPlan, quickJsPermissionSealPlan, quickJsPolicyReceiptsPlan, quickJsReleaseGatePlan, quickJsHostIoDecisionPlan, quickJsHostIoDenyTracePlan, quickJsCapabilityLedgerPlan, quickJsPolicySealAuditPlan, quickJsRuntimeDenylistPlan);\n");
+  const auto boot_begin = pos;
+  const auto boot_end = find_js_function_end(js, boot_begin);
+  auto find_boot_line = [&](const std::string& prefix, const char* error) {
+    const auto line_begin = js.find(prefix, boot_begin);
+    if (line_begin == std::string::npos || line_begin >= boot_end) {
+      throw std::runtime_error(error);
+    }
+    const auto line_end = js.find('\n', line_begin);
+    if (line_end == std::string::npos || line_end > boot_end) {
+      throw std::runtime_error(error);
+    }
+    return std::pair<std::size_t, std::size_t>{line_begin, line_end + 1};
+  };
 
-  const std::string execute_needle = "  const initialRuntime = routeRuntimeLoader(route);\n  const initialBridge = globalThis.__venomRuntime || null;\n  if (initialBridge && typeof initialBridge.activateRouteGeneration === 'function') initialBridge.activateRouteGeneration(initialRuntime.routeGeneration);\n  executeRoute(initialRuntime.route, initialRuntime.vm, strings, opcodeMap, root, assetManifest, assetBaseUrl, hostBridgePlan);\n  const executedScripts = await executeScriptsForRoute(initialRuntime.route, initialRuntime.jsBundle, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan);\n";
-  const auto execute_pos = js.find(execute_needle);
-  if (execute_pos == std::string::npos) {
-    throw std::runtime_error("failed to patch WASM runtime result hook");
-  }
-  js.replace(execute_pos, execute_needle.size(),
-      "  const initialRuntime = routeRuntimeLoader(route);\n"
-      "  const initialBridge = globalThis.__venomRuntime || null;\n"
-      "  if (initialBridge && typeof initialBridge.activateRouteGeneration === 'function') initialBridge.activateRouteGeneration(initialRuntime.routeGeneration);\n"
+  // Patch around stable statement boundaries instead of matching the complete
+  // host-bridge argument list. That list grows frequently and must not become
+  // an implicit ABI for the WASM runtime generator.
+  const auto [route_begin, route_end] = find_boot_line(
+      "  const route = selectRoute(routes, location.pathname);",
+      "failed to patch WASM runtime execution hook");
+  js.insert(route_end,
+      "  const wasmExecution = runVenomWasmExecution(wasmRuntime, pkg, route.route);\n");
+
+  const auto [execute_begin, execute_end] = find_boot_line(
+      "  executeRoute(initialRuntime.route,",
+      "failed to patch WASM runtime result hook");
+  js.replace(execute_begin, execute_end - execute_begin,
       "  applyWasmDomOperations(route, wasmExecution.domOps, root, assetManifest, assetBaseUrl, hostBridgePlan);\n"
       "  root.setAttribute('data-venom-wasm-runtime', 'executed');\n"
       "  root.setAttribute('data-venom-wasm-executed', String(wasmExecution.executed));\n"
-      "  root.setAttribute('data-venom-wasm-dom-bytes', String(wasmExecution.domOpBytes || 0));\n"
-      "  const executedScripts = await executeScriptsForRoute(initialRuntime.route, initialRuntime.jsBundle, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan);\n");
+      "  root.setAttribute('data-venom-wasm-dom-bytes', String(wasmExecution.domOpBytes || 0));\n");
 
-  const std::string nav_needle = "  installNavigation(routes, routeRuntimeLoader, strings, opcodeMap, root, assetManifest, assetBaseUrl, hostBridgePlan, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan);\n";
-  const auto nav_pos = js.find(nav_needle);
-  if (nav_pos == std::string::npos) {
-    throw std::runtime_error("failed to patch WASM runtime navigation hook");
-  }
-  js.replace(nav_pos, nav_needle.size(), "  installWasmNavigation(wasmRuntime, routes, root, assetManifest, assetBaseUrl, initialRuntime.jsBundle, pkg, hostBridgePlan, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan);\n");
+  const auto [nav_begin, nav_end] = find_boot_line(
+      "  installNavigation(routes,",
+      "failed to patch WASM runtime navigation hook");
+  js.replace(nav_begin, nav_end - nav_begin,
+      "  installWasmNavigation(wasmRuntime, routes, root, assetManifest, assetBaseUrl, initialRuntime.jsBundle, pkg, hostBridgePlan, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan);\n");
 
   const std::string mode_needle = "    runtimeMode: 'js',\n";
   const auto mode_pos = js.find(mode_needle);

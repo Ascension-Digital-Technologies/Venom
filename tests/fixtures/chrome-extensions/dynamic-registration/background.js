@@ -1,0 +1,1 @@
+chrome.scripting.registerContentScripts([{id:'fixture',matches:['https://example.com/*'],js:['registered.js']}]);

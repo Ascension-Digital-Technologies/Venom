@@ -5,10 +5,11 @@ root=Path(__file__).resolve().parents[2]
 with tempfile.TemporaryDirectory(prefix='venom-generator-no-touch-') as td:
     out=Path(td)
     cases=[
-      ('bundle_js_modules.py',['--input-dir',str(root/'src/runtime/js/browser'),'--output'],out/'runtime.bundle.js'),
-      ('generate_quickjs_engine_module.py',['--input-dir',str(root/'src/runtime/js/quickjs-engine'),'--prefix',str(root/'tools/templates/quickjs_engine_module.prefix.cpp'),'--suffix',str(root/'tools/templates/quickjs_engine_module.suffix.cpp'),'--output'],out/'quickjs_engine_module.cpp')]
+      ('bundle_js_modules.py',['--input-dir',str(root/'src/templates/browser'),'--output'],out/'runtime.bundle.js'),
+      ('generate_quickjs_engine_module.py',['--input-dir',str(root/'src/templates/quickjs-engine'),'--prefix',str(root/'tools/generators/runtime/templates/quickjs_engine_module.prefix.cpp'),'--suffix',str(root/'tools/generators/runtime/templates/quickjs_engine_module.suffix.cpp'),'--output'],out/'quickjs_engine_module.cpp')]
+    generator_root = root / 'tools' / 'generators' / 'runtime'
     for tool,args,output in cases:
-        command=['python3',str(root/'tools'/tool),*args,str(output)]
+        command=['python3',str(generator_root/tool),*args,str(output)]
         subprocess.run(command,check=True)
         before=output.stat().st_mtime_ns
         subprocess.run(command,check=True)

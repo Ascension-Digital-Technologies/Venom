@@ -16,8 +16,8 @@ Named protected function declarations continue to use the existing extraction pa
 
 ## Changed files
 
-- `src/compiler/pipeline/js.cpp`
-- `src/compiler/pipeline/js_rewriting.cpp`
+- `src/pipeline/js.cpp`
+- `src/pipeline/js_rewriting.cpp`
 - `tools/documentation_gate.py`
 - `tests/fixtures/sites/protected-intent-arrow/*`
 - `tests/package/protected-intent-closure-smoke.py`

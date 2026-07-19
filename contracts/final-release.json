@@ -21,7 +21,8 @@
     "release-certification.json",
     "runtime-startup.json",
     "runtime-performance.json",
-    "diagnostics.json"
+    "diagnostics.json",
+    "abi-lock.json"
   ],
   "requiredTools": [
     "certify_examples.py",
@@ -29,7 +30,9 @@
     "aggregate_certification.py",
     "verify_release.py",
     "final_release_gate.py",
-    "summarize_startup.py"
+    "summarize_startup.py",
+    "verify_contract_lock.py",
+    "core_release_closure.py"
   ],
   "forbiddenSourcePatterns": [
     "--profile dev",
@@ -40,7 +43,7 @@
     "One production-grade build profile",
     "Protected browser imports are lowered before browser module graph serialization",
     "Real QuickJS/WASM execution is required for certified releases",
-    "All included examples are production certified",
+    "All certification-eligible examples are production certified",
     "Browser boot completion is distinct from worker readiness",
     "Decoded protected content is never persistently cached",
     "Stable typed runtime SDK and generated clients are included",

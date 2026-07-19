@@ -57,11 +57,15 @@
           </div>
           <span class="engine-busy" id="engine-busy">Idle</span>
         </div>
-        <div class="metric-grid">
+        <div class="metric-grid engine-metric-grid">
           <article class="metric-card"><span>Depth</span><strong id="metric-depth">—</strong></article>
           <article class="metric-card"><span>Positions</span><strong id="position-count">0</strong></article>
           <article class="metric-card"><span>Search time</span><strong><span id="time">0</span>s</strong></article>
           <article class="metric-card"><span>Positions / sec</span><strong id="positions-per-s">0</strong></article>
+          <article class="metric-card"><span>Quiescence nodes</span><strong id="metric-qnodes">0</strong></article>
+          <article class="metric-card"><span>TT hit rate</span><strong id="metric-tt-rate">0%</strong></article>
+          <article class="metric-card"><span>Beta cutoffs</span><strong id="metric-cutoffs">0</strong></article>
+          <article class="metric-card"><span>TT stores</span><strong id="metric-tt-stores">0</strong></article>
         </div>
         <div class="evaluation-wrap">
           <div class="evaluation-labels"><span>White</span><strong id="evaluation-text">Equal position</strong><span>Black</span></div>
@@ -111,6 +115,9 @@
           <label>Move delay
             <select id="move-delay"><option value="80">Fast</option><option value="250" selected>Normal</option><option value="700">Watch</option></select>
           </label>
+          <label>Engine preset
+            <select id="engine-preset"><option value="fast">Fast</option><option value="balanced" selected>Balanced</option><option value="strong">Strong</option><option value="maximum">Maximum</option></select>
+          </label>
           <label class="toggle-label"><input type="checkbox" id="showHint"> Show white hint</label>
         </div>
         <div class="primary-actions">
@@ -122,6 +129,39 @@
           <button type="button" id="ruyLopezBtn">Ruy Lopez</button>
           <button type="button" id="italianGameBtn">Italian</button>
           <button type="button" id="sicilianDefenseBtn">Sicilian</button>
+        </div>
+      </section>
+
+
+      <section class="panel benchmark-panel">
+        <div class="panel-heading compact-heading">
+          <div>
+            <span class="section-kicker">PERFORMANCE LAB</span>
+            <h2>QuickJS chess benchmark</h2>
+          </div>
+          <span class="engine-busy" id="benchmark-state">Ready</span>
+        </div>
+        <p class="benchmark-copy">Run protected move generation, tactical search, middlegame search, and endgame search with one click. Every workload executes inside QuickJS/WASM.</p>
+        <div class="benchmark-actions">
+          <label>Benchmark preset
+            <select id="benchmark-preset"><option value="quick">Quick</option><option value="standard" selected>Standard</option><option value="endurance">Endurance</option></select>
+          </label>
+          <button type="button" class="btn btn-success" id="benchmarkBtn">Run Benchmark</button>
+          <button type="button" class="control-button secondary" id="benchmarkCancelBtn" disabled>Cancel</button>
+        </div>
+        <div class="benchmark-progress" aria-label="Benchmark progress"><div id="benchmark-progress-bar"></div></div>
+        <div class="benchmark-summary-grid">
+          <article><span>Total time</span><strong id="benchmark-total-time">0.00s</strong></article>
+          <article><span>Total nodes</span><strong id="benchmark-total-nodes">0</strong></article>
+          <article><span>Average NPS</span><strong id="benchmark-average-nps">0</strong></article>
+          <article><span>Completed</span><strong id="benchmark-completed">0 / 0</strong></article>
+        </div>
+        <div id="benchmark-final-summary" class="benchmark-final-summary" hidden aria-live="polite"></div>
+        <div class="benchmark-table-wrap">
+          <table class="benchmark-table">
+            <thead><tr><th>Workload</th><th>Result</th><th>Time</th><th>Nodes</th><th>NPS</th></tr></thead>
+            <tbody id="benchmark-results"><tr><td colspan="5" class="benchmark-empty">Press Run Benchmark to profile the protected engine.</td></tr></tbody>
+          </table>
         </div>
       </section>
 

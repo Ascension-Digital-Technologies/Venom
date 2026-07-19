@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Options side fixture",
+  "version": "1.0.0",
+  "permissions": [
+    "sidePanel"
+  ],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "side_panel": {
+    "default_path": "side.html"
+  }
+}

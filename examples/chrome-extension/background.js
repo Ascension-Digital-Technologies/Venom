@@ -1,0 +1,10 @@
+// @venom: browser
+'use strict';
+const BACKGROUND_TARGET='velocity-background';
+const ENGINE_TARGET='velocity-offscreen-engine';
+const OFFSCREEN_URL='engine.html';
+let creatingOffscreen=null;
+async function hasOffscreenDocument(){if(typeof chrome.runtime.getContexts==='function'){const contexts=await chrome.runtime.getContexts({contextTypes:['OFFSCREEN_DOCUMENT'],documentUrls:[chrome.runtime.getURL(OFFSCREEN_URL)]});return contexts.length>0;}return false;}
+async function waitForEngineHost(){let lastError=null;for(let attempt=0;attempt<40;attempt+=1){try{const response=await chrome.runtime.sendMessage({target:ENGINE_TARGET,type:'PING'});if(response&&response.ok===true)return;}catch(error){lastError=error;}await new Promise(resolve=>setTimeout(resolve,50));}throw new Error(`Protected engine host did not initialize${lastError?`: ${lastError.message||lastError}`:''}`);}
+async function ensureOffscreenDocument(){if(!(await hasOffscreenDocument())){if(!creatingOffscreen){creatingOffscreen=chrome.offscreen.createDocument({url:OFFSCREEN_URL,reasons:['WORKERS'],justification:'Host the local protected QuickJS/WASM chess engine and its worker.'}).catch(error=>{const message=error instanceof Error?error.message:String(error);if(!/single offscreen document|already exists/i.test(message))throw error;}).finally(()=>{creatingOffscreen=null;});}await creatingOffscreen;}await waitForEngineHost();}
+chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{if(!message||message.target!==BACKGROUND_TARGET||message.type!=='ANALYZE')return false;(async()=>{await ensureOffscreenDocument();const response=await chrome.runtime.sendMessage({target:ENGINE_TARGET,type:'ANALYZE',payload:message.payload});if(!response||response.ok!==true)throw new Error(response?.error||'Protected engine host did not return a result');return response.result;})().then(result=>sendResponse({ok:true,result}),error=>sendResponse({ok:false,error:error instanceof Error?error.message:String(error)}));return true;});

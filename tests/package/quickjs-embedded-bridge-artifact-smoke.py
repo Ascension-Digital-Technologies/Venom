@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 root = Path(sys.argv[1] if len(sys.argv) > 1 else '.').resolve()
-header = root / 'src/generated/runtime/quickjs_runtime_wasm_blob.hpp'
+header = root / 'src/generated/include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp'
 text = header.read_text(encoding='utf-8')
 
 sha_match = re.search(r'kQuickJsRuntimeWasmBlobSha256\s*=\s*"([0-9a-f]{64})"', text)

@@ -67,3 +67,11 @@ Diagnostic codes are stable within a major release. Human-readable wording and r
 ## VENOM-E2503
 
 **JSX lowering is not enabled.** Precompile JSX with the framework toolchain or keep the JSX-bearing file in the browser build pipeline.
+
+## VENOM-E2504
+
+**External structural TypeScript lowering failed.** This code is retained only for the explicit legacy `node` frontend during the parity transition. Use the default embedded frontend or correct the external frontend environment.
+
+## VENOM-E2505
+
+**TypeScript compilation failed.** Correct the TypeScript syntax at the reported source location. The diagnostic detail includes the original `TS####` compiler code and message returned by the embedded TypeScript compiler.

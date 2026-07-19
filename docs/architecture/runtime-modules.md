@@ -4,12 +4,12 @@ Venom authors its browser runtime and QuickJS engine wrapper as ordered JavaScri
 
 ## Browser runtime
 
-`src/runtime/js/browser/` owns package loading, runtime contracts, host queues, protected bridge orchestration, browser module linking, and route execution. `tools/bundle_js_modules.py` concatenates the ordered modules and CMake embeds the resulting bundle.
+`src/templates/browser/` owns package loading, runtime contracts, host queues, protected bridge orchestration, browser module linking, and route execution. `tools/generators/runtime/bundle_js_modules.py` concatenates the ordered modules and CMake embeds the resulting bundle.
 
 ## QuickJS engine wrapper
 
-`src/runtime/js/quickjs-engine/` owns the WASM contract, memory access, context lifecycle, bytecode execution, module linking, and diagnostic surface. `tools/generate_quickjs_engine_module.py` generates the C++ wrapper compiled into Venom.
+`src/templates/quickjs-engine/` owns the WASM contract, memory access, context lifecycle, bytecode execution, module linking, and diagnostic surface. `tools/generators/runtime/generate_quickjs_engine_module.py` generates the C++ wrapper compiled into Venom.
 
 ## Generated compatibility copies
 
-`src/runtime/templates/runtime.js` and `src/generated/runtime/quickjs_engine_module.cpp` remain checked in for source-inspection tests and source releases. Dedicated drift tests require them to match the authored modules exactly.
+`src/generated/runtime/javascript/browser_runtime.js` and `src/generated/runtime/quickjs_engine_module.cpp` remain checked in for source-inspection tests and source releases. Dedicated drift tests require them to match the authored modules exactly.

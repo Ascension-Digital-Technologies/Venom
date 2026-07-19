@@ -1,4 +1,4 @@
-#include "compiler/package/section_plan.hpp"
+#include "planning/section_plan.hpp"
 
 #include <stdexcept>
 #include <string>

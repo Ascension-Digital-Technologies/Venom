@@ -31,7 +31,7 @@ Malformed bundle entries are not counted. Existing package parser validation and
 - Structural scanner compiled into `venom`: PASS
 - Old broad `count_bytes(section.data, "VQJSE006")` release accounting removed: PASS
 - Source file size for modified inspection unit remains under its 400-line gate: PASS (366 lines)
-- Full source-layout smoke: pre-existing unrelated failure (`src/compiler/pipeline/js.cpp` is 519 lines; limit 500)
+- Full source-layout smoke: pre-existing unrelated failure (`src/pipeline/js.cpp` is 519 lines; limit 500)
 
 ## Windows regression expectation
 

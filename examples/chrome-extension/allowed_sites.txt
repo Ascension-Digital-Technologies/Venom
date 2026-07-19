@@ -1,0 +1,19 @@
+# Velocity Chess Browser Engine allowlist
+#
+# The extension is fail-closed: it will not run on a page unless its complete
+# URL matches one of the patterns below. Edit this file before loading the
+# unpacked extension, then press Reload on chrome://extensions after changes.
+#
+# Supported wildcard examples:
+#   https://chess.example.com/*
+#   https://*.example.com/chess/*
+#   http://localhost:*/*
+#
+# Local development servers:
+http://localhost/*
+http://localhost:*/*
+http://127.0.0.1/*
+http://127.0.0.1:*/*
+
+# Replace this commented example with your production chess webpage:
+# https://your-domain.example/chess/*

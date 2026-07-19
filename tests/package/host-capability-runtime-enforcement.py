@@ -1,6 +1,6 @@
 from pathlib import Path
 root = Path(__file__).resolve().parents[2]
-runtime = (root/'src/runtime/templates/runtime.js').read_text(encoding='utf-8')
+runtime = (root/'src/generated/runtime/javascript/browser_runtime.js').read_text(encoding='utf-8')
 required = [
     'function capabilitySetForChunk(chunk)',
     'function makeScopedRuntimeBridge(bridge, allowed, chunk)',

@@ -1,4 +1,4 @@
-#include "vm/opcode.hpp"
+#include "venom/vm/opcode.hpp"
 
 namespace venom::vm {
 
