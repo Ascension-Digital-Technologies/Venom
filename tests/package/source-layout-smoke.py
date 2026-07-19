@@ -115,22 +115,39 @@ def main() -> int:
         'src/frontends/typescript',
         'src/pipeline/planning',
         'src/generated/compiler',
-        'src/generated/include/venom/generated/contracts',
+        'include/venom',
+        'include/venom/generated',
+        'include/venom/generated/contracts',
+        'include/venom/internal',
+        'include/venom/internal/cli',
+        'include/venom/internal/core',
+        'include/venom/internal/frontends',
+        'include/venom/internal/package',
+        'include/venom/internal/pipeline',
         'src/generated/runtime',
-        'src/base/include/venom/base',
-        'src/core/include/venom/core',
-        'src/frontends/include/venom/frontends',
-        'src/graph/include/venom/graph',
-        'src/package/include/venom/package',
-        'src/pipeline/include/venom/pipeline',
-        'src/quickjs/include/venom/quickjs',
-        'src/remote/include/venom/remote',
-        'src/runtime/include/venom/runtime',
-        'src/vm/include/venom/vm',
+        'include/venom/base',
+        'include/venom/cli',
+        'include/venom/core',
+        'include/venom/frontends',
+        'include/venom/graph',
+        'include/venom/package',
+        'include/venom/pipeline',
+        'include/venom/quickjs',
+        'include/venom/remote',
+        'include/venom/runtime',
+        'include/venom/vm',
     )
     for rel in required_ownership_directories:
         if not (root / rel).is_dir():
             failures.append(f'missing source ownership directory: {rel}')
+
+    for include_dir in sorted((root / 'src').glob('*/include')):
+        if include_dir.is_dir():
+            failures.append(f'domain-local include directory must be centralized: {include_dir.relative_to(root)}')
+
+    for path in sorted((root / 'src').rglob('*')):
+        if path.is_file() and path.suffix.lower() in {'.h', '.hh', '.hpp', '.hxx'}:
+            failures.append(f'first-party header must live in the central include tree: {path.relative_to(root)}')
 
     for rel, maximum in expected_limits.items():
         path = root / rel

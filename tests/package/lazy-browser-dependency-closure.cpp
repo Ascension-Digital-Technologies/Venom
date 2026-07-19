@@ -1,4 +1,4 @@
-#include "planning/section_plan.hpp"
+#include "venom/internal/pipeline/planning/section_plan.hpp"
 
 #include <stdexcept>
 #include <string>

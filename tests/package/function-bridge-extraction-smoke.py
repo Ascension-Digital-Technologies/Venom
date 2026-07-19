@@ -5,7 +5,7 @@ js += (root / 'src/pipeline/js_discovery.cpp').read_text(encoding='utf-8')
 js += (root / 'src/pipeline/js_rewriting.cpp').read_text(encoding='utf-8')
 worker = (root/'src/generated/runtime/worker_runtime_js.cpp').read_text(encoding='utf-8')
 build = (root / 'src/pipeline/build.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_package_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_runtime_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_runtime_audit_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_runtime_module_metadata.cpp').read_text(encoding='utf-8')
-header = (root/'src/pipeline/include/venom/pipeline/js.hpp').read_text(encoding='utf-8')
+header = (root/'include/venom/pipeline/js.hpp').read_text(encoding='utf-8')
 for marker in [
     'apply_bridge_rewrites', 'all_external_calls_are_awaited',
     'resolve_liftable_function_dependencies', '__venomInvokeProtected',

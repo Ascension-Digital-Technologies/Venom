@@ -4,9 +4,10 @@
 #   venom_<domain>_api      - the exported header surface and API dependencies
 #   venom_<domain>          - private implementation objects
 #
-# Implementations receive only their own source directory plus the API targets
-# they explicitly depend on. No target receives the repository-wide src/
-# directory, so private headers cannot leak across domain boundaries.
+# Every first-party header lives in the single repository-level include/venom
+# tree. Stable API headers are grouped by domain; implementation-only headers
+# live under include/venom/internal/<domain>. Source targets receive no src/
+# include path, and architecture gates prevent cross-domain internal includes.
 
 add_library(venom_domain_settings INTERFACE)
 target_compile_definitions(venom_domain_settings INTERFACE
@@ -28,7 +29,7 @@ function(venom_add_source_domain target)
   set(_api_target "${target}_api")
   add_library(${_api_target} INTERFACE)
   target_include_directories(${_api_target} INTERFACE
-    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/${ARG_DOMAIN}/include>"
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   )
   if(ARG_DOMAIN STREQUAL "core")
     target_include_directories(${_api_target} INTERFACE
@@ -40,10 +41,9 @@ function(venom_add_source_domain target)
   endforeach()
 
   add_library(${target} OBJECT ${ARG_SOURCES})
-  target_include_directories(${target} PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/${ARG_DOMAIN}"
-    ${ARG_EXTERNAL_INCLUDE_DIRS}
-  )
+  if(ARG_EXTERNAL_INCLUDE_DIRS)
+    target_include_directories(${target} PRIVATE ${ARG_EXTERNAL_INCLUDE_DIRS})
+  endif()
   target_link_libraries(${target} PRIVATE
     venom_domain_settings
     ${_api_target}
@@ -70,7 +70,7 @@ function(venom_add_source_domain target)
     endif()
   endif()
   if(VENOM_ENABLE_PCH AND NOT ARG_NO_PCH)
-    target_precompile_headers(${target} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/core/pch.hpp")
+    target_precompile_headers(${target} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/venom/internal/core/pch.hpp")
   endif()
 
   string(REPLACE "venom_" "" _domain_alias "${target}")

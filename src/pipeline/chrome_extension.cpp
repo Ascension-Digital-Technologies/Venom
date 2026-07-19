@@ -1,6 +1,6 @@
 #include "venom/base/error.hpp"
-#include "chrome_extension.hpp"
-#include "build_support.hpp"
+#include "venom/internal/pipeline/chrome_extension.hpp"
+#include "venom/internal/pipeline/build_support.hpp"
 
 #include <algorithm>
 #include <cctype>

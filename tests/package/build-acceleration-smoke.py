@@ -6,7 +6,7 @@ fail=[]
 cm=(root/'cmake/build_acceleration.cmake').read_text()
 main=(root/'CMakeLists.txt').read_text()
 domains=(root/'cmake/source_domains.cmake').read_text()
-pch=(root/'src/core/pch.hpp')
+pch=(root/'include/venom/internal/core/pch.hpp')
 tool=(root/'tools/build_performance.py')
 for token in ('VENOM_COMPILER_CACHE','VENOM_ENABLE_PCH','VENOM_ENABLE_MSVC_MP','VENOM_ENABLE_QUICKJS_IPO','CMAKE_CXX_COMPILER_LAUNCHER'):
     if token not in cm: fail.append(f'missing build acceleration contract: {token}')

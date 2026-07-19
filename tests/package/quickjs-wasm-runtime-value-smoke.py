@@ -15,7 +15,7 @@ def main() -> int:
     out = Path(sys.argv[2]).resolve()
     out.mkdir(parents=True, exist_ok=True)
 
-    header = (root / 'src/generated/include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp').read_text(encoding='utf-8')
+    header = (root / 'include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp').read_text(encoding='utf-8')
     body = header.split('inline constexpr std::uint8_t kQuickJsRuntimeWasmBlob[] = {', 1)[1].split('};', 1)[0]
     wasm = bytes(int(x, 16) for x in re.findall(r'0x([0-9a-fA-F]{2})', body))
     wasm_path = out / 'quickjs-runtime-from-header.wasm'

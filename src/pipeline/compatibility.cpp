@@ -1,5 +1,5 @@
 #include "venom/pipeline/compatibility.hpp"
-#include "capability_analysis.hpp"
+#include "venom/internal/pipeline/capability_analysis.hpp"
 #include "venom/core/version.hpp"
 #include "venom/generated/contracts/product_contracts.hpp"
 

@@ -2,7 +2,7 @@
 from pathlib import Path
 root = Path(__file__).resolve().parents[2]
 config = (root / 'src/core/config.cpp').read_text(encoding='utf-8')
-cli = (root / 'src/cli/include/venom/cli/cli.hpp').read_text(encoding='utf-8')
+cli = (root / 'include/venom/cli/cli.hpp').read_text(encoding='utf-8')
 build = (root / 'src/pipeline/build.cpp').read_text(encoding='utf-8')
 assert 'project.target' in config
 assert 'chrome-extension' in config

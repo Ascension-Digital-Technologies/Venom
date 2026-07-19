@@ -1,5 +1,5 @@
 #include "venom/base/error.hpp"
-#include "dev.hpp"
+#include "venom/internal/cli/dev.hpp"
 #include "venom/core/process.hpp"
 #include <filesystem>
 #include <iostream>

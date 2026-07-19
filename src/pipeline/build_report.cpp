@@ -1,5 +1,5 @@
-#include "build_report.hpp"
-#include "build_package_metadata.hpp"
+#include "venom/internal/pipeline/build_report.hpp"
+#include "venom/internal/pipeline/build_package_metadata.hpp"
 #include "venom/package/format.hpp"
 
 #include <algorithm>

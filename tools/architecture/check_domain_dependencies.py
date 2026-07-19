@@ -31,17 +31,33 @@ ALLOWED: dict[str, set[str]] = {
 }
 
 
-def public_header_path(src: Path, include: str) -> Path | None:
+def project_header_path(root: Path, include: str) -> Path | None:
     parts = include.split('/')
     if len(parts) < 3 or parts[0] != 'venom':
         return None
-    domain = parts[1]
-    return src / domain / 'include' / include
+    return root / 'include' / include
+
+
+def source_domain(path: Path, src: Path, include_root: Path) -> str | None:
+    try:
+        return path.relative_to(src).parts[0]
+    except ValueError:
+        pass
+    try:
+        relative = path.relative_to(include_root)
+    except ValueError:
+        return None
+    if len(relative.parts) < 2 or relative.parts[0] != 'venom':
+        return None
+    if relative.parts[1] == 'internal':
+        return relative.parts[2] if len(relative.parts) > 2 else None
+    return relative.parts[1]
 
 
 def main() -> int:
     root = Path(sys.argv[1] if len(sys.argv) > 1 else '.').resolve()
     src = root / 'src'
+    include_root = root / 'include'
     actual_domains = {path.name for path in src.iterdir() if path.is_dir()}
     failures: list[str] = []
 
@@ -51,23 +67,28 @@ def main() -> int:
         )
 
     edges: dict[str, set[str]] = defaultdict(set)
-    for path in sorted(src.rglob('*')):
+    source_paths = list(src.rglob('*')) + list(include_root.rglob('*'))
+    for path in sorted(source_paths):
         if not path.is_file() or path.suffix.lower() not in NATIVE_SUFFIXES:
             continue
-        relative = path.relative_to(src)
-        source_domain = relative.parts[0]
+        owner = source_domain(path, src, include_root)
+        if owner not in actual_domains:
+            failures.append(f'{path.relative_to(root).as_posix()}: native file has no source-domain owner')
+            continue
         text = path.read_text(encoding='utf-8', errors='replace')
         for include in INCLUDE_RE.findall(text):
             include_parts = include.split('/')
             target_domain: str | None = None
             if len(include_parts) >= 3 and include_parts[0] == 'venom':
-                target_domain = include_parts[1]
+                internal = include_parts[1] == 'internal'
+                target_domain = include_parts[2] if internal and len(include_parts) >= 4 else include_parts[1]
                 if target_domain in actual_domains:
-                    header = public_header_path(src, include)
+                    header = project_header_path(root, include)
                     generated_version = include == 'venom/core/version.hpp'
                     if header is not None and not header.is_file() and not generated_version:
+                        kind = 'internal' if internal else 'public'
                         failures.append(
-                            f'{path.relative_to(root).as_posix()}: public include does not resolve: {include}'
+                            f'{path.relative_to(root).as_posix()}: {kind} include does not resolve: {include}'
                         )
             elif include_parts and include_parts[0] in actual_domains:
                 failures.append(
@@ -76,19 +97,19 @@ def main() -> int:
                 )
                 target_domain = include_parts[0]
 
-            if target_domain not in actual_domains or target_domain == source_domain:
+            if target_domain not in actual_domains or target_domain == owner:
                 continue
-            edges[source_domain].add(target_domain)
-            if target_domain not in ALLOWED.get(source_domain, set()):
+            edges[owner].add(target_domain)
+            if target_domain not in ALLOWED.get(owner, set()):
                 failures.append(
-                    f'{path.relative_to(root).as_posix()}: forbidden {source_domain} -> '
+                    f'{path.relative_to(root).as_posix()}: forbidden {owner} -> '
                     f'{target_domain} include ({include})'
                 )
 
     # CLI is an outer adapter. No reusable product domain may include it.
-    for source_domain, dependencies in edges.items():
-        if source_domain != 'cli' and 'cli' in dependencies:
-            failures.append(f'{source_domain} must not depend on cli')
+    for owner, dependencies in edges.items():
+        if owner != 'cli' and 'cli' in dependencies:
+            failures.append(f'{owner} must not depend on cli')
 
     # Verify the authored dependency graph is acyclic. Generated snapshots are
     # excluded because they intentionally implement owner-domain declarations.

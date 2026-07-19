@@ -1,5 +1,5 @@
 #include "venom/base/error.hpp"
-#include "dist_analyzer.hpp"
+#include "venom/internal/cli/dist_analyzer.hpp"
 #include "venom/package/hash.hpp"
 
 #include <algorithm>

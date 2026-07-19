@@ -1,9 +1,9 @@
 #include "venom/base/error.hpp"
-#include "planning/section_plan.hpp"
+#include "venom/internal/pipeline/planning/section_plan.hpp"
 
-#include "build_support.hpp"
-#include "build_runtime_metadata.hpp"
-#include "build_report.hpp"
+#include "venom/internal/pipeline/build_support.hpp"
+#include "venom/internal/pipeline/build_runtime_metadata.hpp"
+#include "venom/internal/pipeline/build_report.hpp"
 #include "venom/package/format.hpp"
 
 #include <algorithm>

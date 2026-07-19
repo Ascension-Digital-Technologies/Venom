@@ -1,5 +1,5 @@
 #include "venom/base/error.hpp"
-#include "planning/package_plan.hpp"
+#include "venom/internal/pipeline/planning/package_plan.hpp"
 
 #include "venom/package/format.hpp"
 #include "venom/vm/polymorph.hpp"

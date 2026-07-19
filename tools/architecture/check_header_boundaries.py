@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate domain-local public APIs and private header isolation."""
+"""Validate Venom's centralized public and internal header boundaries."""
 from __future__ import annotations
 
 import re
@@ -16,77 +16,131 @@ BROAD_INCLUDE_PATTERNS = (
 )
 
 
+def owner_for_path(path: Path, src: Path, header_root: Path) -> str | None:
+    try:
+        return path.relative_to(src).parts[0]
+    except ValueError:
+        pass
+    try:
+        relative = path.relative_to(header_root)
+    except ValueError:
+        return None
+    if not relative.parts:
+        return None
+    if relative.parts[0] == 'internal':
+        return relative.parts[1] if len(relative.parts) > 1 else None
+    return relative.parts[0]
+
+
 def main() -> int:
     root = Path(sys.argv[1] if len(sys.argv) > 1 else '.').resolve()
     src = root / 'src'
+    header_root = root / 'include' / 'venom'
+    internal_root = header_root / 'internal'
     domains = {path.name for path in src.iterdir() if path.is_dir()}
     failures: list[str] = []
     public_headers: list[Path] = []
-    private_headers: list[Path] = []
+    internal_headers: list[Path] = []
 
-    for domain in sorted(domains - {'templates'}):
-        domain_root = src / domain
-        include_root = domain_root / 'include' / 'venom' / domain
-        for header in sorted(domain_root.rglob('*')):
+    if not header_root.is_dir():
+        failures.append('missing central header tree: include/venom')
+    if not internal_root.is_dir():
+        failures.append('missing centralized internal header tree: include/venom/internal')
+
+    for path in sorted(src.rglob('*')):
+        if path.is_file() and path.suffix.lower() in HEADER_SUFFIXES:
+            failures.append(
+                f'first-party header must be centralized under include/venom: '
+                f'{path.relative_to(root).as_posix()}'
+            )
+        if path.is_dir() and path.name == 'include':
+            failures.append(
+                f'domain-local include directory is not allowed: {path.relative_to(root).as_posix()}'
+            )
+
+    if header_root.is_dir():
+        for header in sorted(header_root.rglob('*')):
             if not header.is_file() or header.suffix.lower() not in HEADER_SUFFIXES:
                 continue
-            if 'include' in header.relative_to(domain_root).parts:
-                public_headers.append(header)
-                try:
-                    header.relative_to(include_root)
-                except ValueError:
+            relative = header.relative_to(header_root)
+            if relative.parts[0] == 'internal':
+                if len(relative.parts) < 3:
                     failures.append(
-                        f'public header is outside src/{domain}/include/venom/{domain}: '
+                        f'internal header must live under include/venom/internal/<domain>/: '
                         f'{header.relative_to(root).as_posix()}'
                     )
-            else:
-                private_headers.append(header)
+                    continue
+                owner = relative.parts[1]
+                if owner not in domains:
+                    failures.append(
+                        f'internal header has unknown domain {owner}: '
+                        f'{header.relative_to(root).as_posix()}'
+                    )
+                internal_headers.append(header)
+                continue
+
+            if len(relative.parts) < 2:
+                failures.append(
+                    f'public header must live under include/venom/<domain>/: '
+                    f'{header.relative_to(root).as_posix()}'
+                )
+                continue
+            owner = relative.parts[0]
+            if owner not in domains:
+                failures.append(
+                    f'public header has unknown domain {owner}: {header.relative_to(root).as_posix()}'
+                )
+            public_headers.append(header)
+
+    for header in [*public_headers, *internal_headers]:
+        text = header.read_text(encoding='utf-8', errors='replace')
+        kind = 'public' if header in public_headers else 'internal'
+        if '#pragma once' not in text and not re.search(r'^\s*#\s*ifndef\b', text, re.MULTILINE):
+            failures.append(f'{kind} header has no include guard: {header.relative_to(root).as_posix()}')
 
     for header in public_headers:
-        text = header.read_text(encoding='utf-8', errors='replace')
-        if '#pragma once' not in text and not re.search(r'^\s*#\s*ifndef\b', text, re.MULTILINE):
-            failures.append(f'public header has no include guard: {header.relative_to(root).as_posix()}')
-        owner = header.relative_to(src).parts[0]
-        for include in INCLUDE_RE.findall(text):
+        for include in INCLUDE_RE.findall(header.read_text(encoding='utf-8', errors='replace')):
+            if include.startswith('venom/internal/'):
+                failures.append(
+                    f'{header.relative_to(root).as_posix()}: public API reaches internal header {include}'
+                )
             parts = include.split('/')
             if parts and parts[0] in domains:
                 failures.append(
                     f'{header.relative_to(root).as_posix()}: public header uses legacy include {include}'
                 )
-            if include.startswith('venom/'):
-                target = include.split('/')[1] if len(include.split('/')) > 2 else ''
+            if include.startswith('venom/') and not include.startswith('venom/internal/'):
+                target = parts[1] if len(parts) > 2 else ''
                 if target not in domains:
                     failures.append(
                         f'{header.relative_to(root).as_posix()}: unknown Venom API domain in {include}'
                     )
-                continue
-            # Quoted project headers from a public header would expose a private
-            # include-directory assumption to consumers.
-            if include.endswith(tuple(HEADER_SUFFIXES)) and not include.startswith(('quickjs', 'sys/')):
-                candidate = src / owner / include
-                if candidate.exists():
-                    failures.append(
-                        f'{header.relative_to(root).as_posix()}: public API reaches private header {include}'
-                    )
 
-    # A private header may only be included from its owning domain. Resolve
-    # quoted/private include spellings against each domain root.
-    private_by_domain: dict[str, set[str]] = {}
-    for header in private_headers:
-        domain = header.relative_to(src).parts[0]
-        private_by_domain.setdefault(domain, set()).add(header.relative_to(src / domain).as_posix())
-
-    for path in sorted(src.rglob('*')):
+    native_paths = list(src.rglob('*')) + list(header_root.rglob('*'))
+    for path in sorted(native_paths):
         if not path.is_file() or path.suffix.lower() not in NATIVE_SUFFIXES:
             continue
-        source_domain = path.relative_to(src).parts[0]
+        source_domain = owner_for_path(path, src, header_root)
+        if source_domain is None:
+            continue
         for include in INCLUDE_RE.findall(path.read_text(encoding='utf-8', errors='replace')):
-            for owner, private_names in private_by_domain.items():
-                if include in private_names and owner != source_domain:
-                    failures.append(
-                        f'{path.relative_to(root).as_posix()}: {source_domain} includes private '
-                        f'{owner} header {include}'
-                    )
+            if not include.startswith('venom/internal/'):
+                continue
+            parts = include.split('/')
+            if len(parts) < 4:
+                failures.append(f'{path.relative_to(root).as_posix()}: malformed internal include {include}')
+                continue
+            owner = parts[2]
+            target = root / 'include' / include
+            if not target.is_file():
+                failures.append(
+                    f'{path.relative_to(root).as_posix()}: internal include does not resolve: {include}'
+                )
+            if owner != source_domain:
+                failures.append(
+                    f'{path.relative_to(root).as_posix()}: {source_domain} includes internal '
+                    f'{owner} header {include}'
+                )
 
     cmake_text = '\n'.join(
         p.read_text(encoding='utf-8', errors='replace')
@@ -99,14 +153,20 @@ def main() -> int:
 
     source_domains = (root / 'cmake' / 'source_domains.cmake').read_text(encoding='utf-8')
     required_markers = (
-        'src/${ARG_DOMAIN}/include',
-        'src/${ARG_DOMAIN}',
+        'CMAKE_CURRENT_SOURCE_DIR}/include',
+        'include/venom/internal/core/pch.hpp',
         'venom_${_dependency}_api',
         'VENOM_DOMAIN_API_TARGETS',
     )
     for marker in required_markers:
         if marker not in source_domains:
-            failures.append(f'source-domain CMake is missing API-boundary marker: {marker}')
+            failures.append(f'source-domain CMake is missing header-boundary marker: {marker}')
+    if 'src/${ARG_DOMAIN}' in source_domains:
+        failures.append('source-domain CMake still exposes domain source directories as include paths')
+
+    tests_cmake = (root / 'cmake' / 'tests.cmake').read_text(encoding='utf-8')
+    if 'venom_test_private_headers' in tests_cmake or 'src/${_domain}' in tests_cmake:
+        failures.append('tests still depend on source-directory private include paths')
 
     if failures:
         print('header-boundary check failed:', file=sys.stderr)
@@ -116,7 +176,7 @@ def main() -> int:
 
     print(
         f'header-boundary check passed: {len(public_headers)} public, '
-        f'{len(private_headers)} private headers'
+        f'{len(internal_headers)} internal headers; no first-party headers under src/'
     )
     return 0
 

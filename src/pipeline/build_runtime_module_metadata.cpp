@@ -1,6 +1,6 @@
-#include "build_runtime_metadata.hpp"
-#include "build_support.hpp"
-#include "assets.hpp"
+#include "venom/internal/pipeline/build_runtime_metadata.hpp"
+#include "venom/internal/pipeline/build_support.hpp"
+#include "venom/internal/pipeline/assets.hpp"
 #include "venom/package/hash.hpp"
 
 #include "venom/quickjs/abi.hpp"

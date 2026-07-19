@@ -1,4 +1,4 @@
-#include "js_rewriting.hpp"
+#include "venom/internal/pipeline/js_rewriting.hpp"
 
 #include <iostream>
 #include <stdexcept>

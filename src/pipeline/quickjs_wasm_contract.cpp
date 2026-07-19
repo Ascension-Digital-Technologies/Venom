@@ -1,5 +1,5 @@
 #include "venom/base/error.hpp"
-#include "quickjs_wasm_contract.hpp"
+#include "venom/internal/pipeline/quickjs_wasm_contract.hpp"
 #include "venom/pipeline/js.hpp"
 #include "venom/generated/contracts/quickjs_wasm_abi.hpp"
 

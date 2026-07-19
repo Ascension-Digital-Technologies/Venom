@@ -2,7 +2,7 @@
 from pathlib import Path
 import sys
 root = Path(sys.argv[1] if len(sys.argv) > 1 else '.').resolve()
-worker = ((root/'src/generated/runtime/worker_runtime_js.cpp').read_text() + (root/'src/generated/include/venom/generated/runtime/worker_runtime_template.hpp').read_text())
+worker = ((root/'src/generated/runtime/worker_runtime_js.cpp').read_text() + (root/'include/venom/generated/runtime/worker_runtime_template.hpp').read_text())
 engine = (root/'src/generated/runtime/quickjs_engine_module.cpp').read_text()
 required_worker = ['secureMemoryRange','secureMemoryWrite','secureMemoryRead','secureMemoryZero','envelope.fill(0)','resultBytes.fill(0)']
 required_engine = ['memoryRange','readWasmBytes','zeroWasmRange','QuickJS script input']

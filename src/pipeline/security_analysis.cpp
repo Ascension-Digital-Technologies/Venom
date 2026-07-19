@@ -1,5 +1,5 @@
-#include "security_analysis.hpp"
-#include "security_artifact_inspection.hpp"
+#include "venom/internal/pipeline/security_analysis.hpp"
+#include "venom/internal/pipeline/security_artifact_inspection.hpp"
 
 #include "venom/package/hash.hpp"
 #include "venom/package/reader.hpp"

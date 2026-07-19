@@ -16,7 +16,7 @@ Regenerate the asset after updating the vendored compiler:
 python tools/generators/typescript/embed_typescript_compiler.py \
   --input third_party/typescript/lib/typescript.js \
   --output-cpp src/generated/compiler/typescript_compiler_asset.cpp \
-  --output-hpp src/generated/include/venom/generated/compiler/typescript_compiler_asset.hpp
+  --output-hpp include/venom/generated/compiler/typescript_compiler_asset.hpp
 ```
 
 The generated files are committed so normal release builds do not need Python merely to reconstruct the compiler payload.
@@ -32,7 +32,7 @@ cmake --build build-assets --target venom_compile_typescript_bridge_bytecode
 python tools/generators/typescript/embed_typescript_bridge_bytecode.py \
   --input build-assets/typescript_bridge.qjbc \
   --output-cpp src/generated/compiler/typescript_bridge_bytecode.cpp \
-  --output-hpp src/generated/include/venom/generated/compiler/typescript_bridge_bytecode.hpp
+  --output-hpp include/venom/generated/compiler/typescript_bridge_bytecode.hpp
 ```
 
 `VENOM_TYPESCRIPT_BRIDGE=source` enables the verified source bridge for development and recovery testing. Release behavior defaults to the pinned bridge bytecode.

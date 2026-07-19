@@ -10,7 +10,7 @@ def main():
     data=json.loads((root/'contracts/quickjs-wasm-abi.json').read_text())
     req=data['requiredExports']; opt=data.get('optionalExports',[]); tool=data.get('allowedToolchainExports',[])
     dev=data['trustDomains']['development']; rel=data['trustDomains']['release']
-    h=root/'src/generated/include/venom/generated/contracts/quickjs_wasm_abi.hpp'; h.parent.mkdir(parents=True,exist_ok=True)
+    h=root/'include/venom/generated/contracts/quickjs_wasm_abi.hpp'; h.parent.mkdir(parents=True,exist_ok=True)
     def arr(name, vals):
         return f'inline constexpr std::array<std::string_view, {len(vals)}> {name} = {{\n' + ''.join(f'  "{v}",\n' for v in vals) + '};\n'
     h.write_text('#pragma once\n// Generated from contracts/quickjs-wasm-abi.json. Do not edit.\n#include <array>\n#include <string_view>\nnamespace venom::generated::quickjs_wasm_abi {\n'

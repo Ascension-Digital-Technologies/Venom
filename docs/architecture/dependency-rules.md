@@ -33,7 +33,7 @@ The diagram is intentionally simplified; `pipeline` coordinates most lower-level
 - Every cross-domain include must appear in the checked allowlist.
 - Every compiled domain has a dedicated API interface target and implementation object target.
 - Product targets must not expose the repository-wide `src/` directory.
-- Cross-domain includes use `venom/<domain>/...` and must resolve beneath the owner domain's `include/venom/<domain>/` tree.
+- Cross-domain includes use `venom/<domain>/...` and must resolve beneath the central `include/venom/<domain>/` tree.
 - Public headers may not include private implementation headers.
 - Private headers may only be included by their owning domain or an explicitly scoped internal test target.
 

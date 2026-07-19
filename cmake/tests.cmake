@@ -2,13 +2,8 @@
 # Keep this file declarative so the root CMakeLists remains easy to audit.
 
 include(CTest)
-# Tests may inspect an owning domain's implementation surface without making
-# those headers part of the product API. Access is granted target-by-target.
-function(venom_test_private_headers target)
-  foreach(_domain IN LISTS ARGN)
-    target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/${_domain}")
-  endforeach()
-endfunction()
+# Implementation headers use the explicit venom/internal namespace. Tests that
+# intentionally inspect an internal surface include that namespace directly.
 
 if(BUILD_TESTING)
   add_executable(venom_diversification_rng_test tests/vm/diversification-rng.cpp)
@@ -17,7 +12,6 @@ if(BUILD_TESTING)
   add_test(NAME venom_diversification_rng COMMAND venom_diversification_rng_test)
   add_executable(venom_html_route_hydration_test tests/vm/html-route-hydration.cpp)
   target_link_libraries(venom_html_route_hydration_test PRIVATE venom_core)
-  venom_test_private_headers(venom_html_route_hydration_test pipeline)
   venom_apply_warnings(venom_html_route_hydration_test)
   add_test(NAME venom_html_route_hydration COMMAND venom_html_route_hydration_test)
 

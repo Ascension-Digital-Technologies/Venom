@@ -1,14 +1,14 @@
 #include "venom/base/error.hpp"
-#include "runtime_modules.hpp"
+#include "venom/internal/pipeline/runtime_modules.hpp"
 #include "venom/pipeline/build.hpp"
 #include "venom/core/version.hpp"
 #include "venom/generated/contracts/quickjs_wasm_abi.hpp"
-#include "quickjs_wasm_contract.hpp"
+#include "venom/internal/pipeline/quickjs_wasm_contract.hpp"
 
-#include "assets.hpp"
-#include "capability_analysis.hpp"
-#include "css.hpp"
-#include "html.hpp"
+#include "venom/internal/pipeline/assets.hpp"
+#include "venom/internal/pipeline/capability_analysis.hpp"
+#include "venom/internal/pipeline/css.hpp"
+#include "venom/internal/pipeline/html.hpp"
 #include "venom/pipeline/js.hpp"
 #include "venom/core/profile.hpp"
 #include "venom/core/process.hpp"
@@ -42,8 +42,8 @@
 #include <vector>
 #include <unordered_map>
 
-#include "build_support.hpp"
-#include "native_js_hardener.hpp"
+#include "venom/internal/pipeline/build_support.hpp"
+#include "venom/internal/pipeline/native_js_hardener.hpp"
 
 namespace venom::compiler::build_detail {
 namespace {

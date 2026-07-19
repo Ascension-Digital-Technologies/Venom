@@ -4,7 +4,7 @@ import sys
 
 root = Path(sys.argv[1] if len(sys.argv) > 1 else '.').resolve()
 checks = {
-    root / 'src/pipeline/project_ir.hpp': ['protected_modules', 'module_edges', 'protected_contracts_json', 'plan_fingerprint'],
+    root / 'include/venom/internal/pipeline/project_ir.hpp': ['protected_modules', 'module_edges', 'protected_contracts_json', 'plan_fingerprint'],
     root / 'src/pipeline/project_ir.cpp': ['enrich_project_ir', 'project_ir_summary', 'venom-project-plan:'],
     root / 'src/pipeline/build_support.cpp': ['venom-hardener-cache-v4', 'hardener hit:', 'hardener miss:'],
     root / 'src/quickjs/bytecode.cpp': ['venom-qjs-bytecode-cache-v1', 'QuickJS bytecode hit:', 'QuickJS bytecode miss:'],

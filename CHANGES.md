@@ -1,5 +1,7 @@
 # Changelog
 
+- Centralized the remaining 32 implementation headers under `include/venom/internal/<domain>/`, converted all private includes to explicit `venom/internal/...` paths, removed first-party source include directories from CMake, and enforced a zero-header `src/` tree.
+- Consolidated all 47 exported C/C++ headers into the central `include/venom/` tree, removed every domain-local `src/*/include/` directory, and updated CMake, generators, architecture gates, tests, and documentation to use the unified layout.
 - Added a dependency-free `src/base/` domain with a typed `venom::Error`, stable exit-code taxonomy, and centralized phase-aware error rendering; all authored C++ fatal paths now use the shared API.
 - Replaced duplicated example metadata with `VENOM_EXAMPLE_REGISTRY_V2`, generated symmetric launchers for all ten examples, and added the previously missing Vite launcher.
 - Added reusable `tools/venom_tools/` helpers plus CI gates for registry integrity, launcher drift, forbidden legacy error paths, and generated runtime snapshot drift.

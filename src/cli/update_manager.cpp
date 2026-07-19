@@ -1,5 +1,5 @@
 #include "venom/base/error.hpp"
-#include "update_manager.hpp"
+#include "venom/internal/cli/update_manager.hpp"
 #include "venom/core/process.hpp"
 #include <cstdlib>
 #include <filesystem>

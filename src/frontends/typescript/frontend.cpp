@@ -1,8 +1,8 @@
 #include "venom/base/error.hpp"
 #include "venom/frontends/typescript/frontend.hpp"
-#include "typescript/typescript_runtime.hpp"
+#include "venom/internal/frontends/typescript/typescript_runtime.hpp"
 #include "venom/core/diagnostic.hpp"
-#include "jsx/frontend.hpp"
+#include "venom/internal/frontends/jsx/frontend.hpp"
 #include "venom/package/hash.hpp"
 
 #include <algorithm>

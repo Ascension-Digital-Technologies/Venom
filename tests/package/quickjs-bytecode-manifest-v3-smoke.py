@@ -7,7 +7,7 @@ runtime = (root / "src/generated/runtime/runtime_js.cpp").read_text(encoding="ut
 runtime += (root / 'src/generated/runtime/javascript/browser_runtime.js').read_text(encoding='utf-8')
 compiler = (root / "src/quickjs/bytecode.cpp").read_text(encoding="utf-8")
 wasm = (root / "src/runtime/quickjs_runtime_scaffold.c").read_text(encoding="utf-8")
-blob = (root / "src/generated/include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp").read_text(encoding="utf-8")
+blob = (root / "include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp").read_text(encoding="utf-8")
 engine = (root / "src/generated/runtime/quickjs_engine_module.cpp").read_text(encoding="utf-8")
 
 accepted = "['VENOM_QJS_BYTECODE_MANIFEST_V3', 'VENOM_QJS_BYTECODE_MANIFEST_V2', 'VENOM_QJS_BYTECODE_MANIFEST_V1', 'VENOM_QUICKJS_BYTECODE_MANIFEST_V1']"

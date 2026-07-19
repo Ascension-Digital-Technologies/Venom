@@ -3,7 +3,7 @@ import sys
 
 root = Path(sys.argv[1])
 support = (root / 'src/pipeline/build_support.cpp').read_text()
-header = (root / 'src/pipeline/build_support.hpp').read_text()
+header = (root / 'include/venom/internal/pipeline/build_support.hpp').read_text()
 build = (root / 'src/pipeline/build.cpp').read_text()
 js = (root / 'src/pipeline/js.cpp').read_text()
 encoding = (root / 'src/pipeline/js_bundle_encoding.cpp').read_text()

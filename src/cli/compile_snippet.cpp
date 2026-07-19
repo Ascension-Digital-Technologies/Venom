@@ -1,5 +1,5 @@
 #include "venom/base/error.hpp"
-#include "compile_snippet.hpp"
+#include "venom/internal/cli/compile_snippet.hpp"
 #include "venom/quickjs/bytecode.hpp"
 
 #include <array>

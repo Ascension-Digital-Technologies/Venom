@@ -1,5 +1,5 @@
 #include "venom/base/error.hpp"
-#include "capability_analysis.hpp"
+#include "venom/internal/pipeline/capability_analysis.hpp"
 
 #include <algorithm>
 #include <cctype>

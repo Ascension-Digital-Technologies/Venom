@@ -1,5 +1,5 @@
 #include "venom/base/error.hpp"
-#include "assets.hpp"
+#include "venom/internal/pipeline/assets.hpp"
 
 #include "venom/package/hash.hpp"
 

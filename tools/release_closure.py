@@ -34,7 +34,7 @@ def main() -> int:
     ap.add_argument('--json-out', type=Path)
     args=ap.parse_args(); root=args.repo_root.resolve()
     failures=[]; warnings=[]
-    header=root/'src/generated/include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp'
+    header=root/'include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp'
     abi_tool=root/'tools/quickjs_release_abi.py'
     lock_path=root/'toolchains.lock.json'
     cmake=root/'CMakeLists.txt'

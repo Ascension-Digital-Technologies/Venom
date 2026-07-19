@@ -1,9 +1,9 @@
 #include "venom/base/error.hpp"
-#include "js_bundle_encoding.hpp"
+#include "venom/internal/pipeline/js_bundle_encoding.hpp"
 #include "venom/graph/module_graph.hpp"
-#include "js_discovery.hpp"
-#include "js_rewriting.hpp"
-#include "native_js_hardener.hpp"
+#include "venom/internal/pipeline/js_discovery.hpp"
+#include "venom/internal/pipeline/js_rewriting.hpp"
+#include "venom/internal/pipeline/native_js_hardener.hpp"
 #include "venom/package/hash.hpp"
 #include "venom/quickjs/bytecode.hpp"
 

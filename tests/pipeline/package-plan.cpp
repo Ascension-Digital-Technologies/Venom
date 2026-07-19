@@ -1,4 +1,4 @@
-#include "planning/package_plan.hpp"
+#include "venom/internal/pipeline/planning/package_plan.hpp"
 
 #include <cassert>
 #include <filesystem>

@@ -1,4 +1,4 @@
-#include "function_dependencies.hpp"
+#include "venom/internal/pipeline/function_dependencies.hpp"
 
 #include "venom/frontends/javascript/frontend.hpp"
 

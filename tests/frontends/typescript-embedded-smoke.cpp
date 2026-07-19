@@ -1,6 +1,6 @@
 #include "venom/core/diagnostic.hpp"
 #include "venom/frontends/typescript/frontend.hpp"
-#include "typescript/typescript_runtime.hpp"
+#include "venom/internal/frontends/typescript/typescript_runtime.hpp"
 #include "venom/generated/compiler/typescript_bridge_bytecode.hpp"
 #include "venom/generated/compiler/typescript_compiler_asset.hpp"
 

@@ -1,4 +1,4 @@
-#include "build_package_metadata.hpp"
+#include "venom/internal/pipeline/build_package_metadata.hpp"
 #include "venom/pipeline/js.hpp"
 
 #include <cstdint>

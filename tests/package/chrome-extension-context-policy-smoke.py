@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from pathlib import Path
 root = Path(__file__).resolve().parents[2]
-hpp = (root / 'src/pipeline/include/chrome_extension.hpp').read_text()
+hpp = (root / 'include/venom/internal/pipeline/chrome_extension.hpp').read_text()
 cpp = (root / 'src/pipeline/chrome_extension.cpp').read_text()
 doc = (root / 'docs/guides/chrome-extensions.md').read_text()
 for token in ('RuntimeHost', 'ContextPolicy', 'compatibility_summary', 'background_is_module'):

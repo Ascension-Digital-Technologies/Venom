@@ -1,7 +1,7 @@
 #include "venom/base/error.hpp"
-#include "build_package_metadata.hpp"
-#include "build_support.hpp"
-#include "assets.hpp"
+#include "venom/internal/pipeline/build_package_metadata.hpp"
+#include "venom/internal/pipeline/build_support.hpp"
+#include "venom/internal/pipeline/assets.hpp"
 #include "venom/graph/module_graph.hpp"
 
 #include "venom/package/crypto.hpp"

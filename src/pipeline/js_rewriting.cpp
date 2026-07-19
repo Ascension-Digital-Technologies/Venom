@@ -1,7 +1,7 @@
 #include "venom/base/error.hpp"
-#include "js_rewriting.hpp"
+#include "venom/internal/pipeline/js_rewriting.hpp"
 #include "venom/core/diagnostic.hpp"
-#include "function_dependencies.hpp"
+#include "venom/internal/pipeline/function_dependencies.hpp"
 #include "venom/frontends/javascript/frontend.hpp"
 
 #include <algorithm>

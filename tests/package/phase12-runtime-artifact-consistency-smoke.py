@@ -28,7 +28,7 @@ m = re.search(r"expectedQuickJsWasmSha256:\s*'([0-9a-f]{64})'", loader)
 if not m or m.group(1) != actual:
     raise SystemExit(f'loader digest mismatch: expected={m.group(1) if m else None} actual={actual}')
 # Verify the checked-in embedded blob digest is the same digest emitted to dist.
-header = (root/'src/generated/include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp').read_text(encoding='utf-8')
+header = (root/'include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp').read_text(encoding='utf-8')
 h = re.search(r'kQuickJsRuntimeWasmBlobSha256\s*=\s*"([0-9a-f]{64})"', header)
 if not h or h.group(1) != actual:
     raise SystemExit(f'embedded/runtime digest mismatch: embedded={h.group(1) if h else None} emitted={actual}')

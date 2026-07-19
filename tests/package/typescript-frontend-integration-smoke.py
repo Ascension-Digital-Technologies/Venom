@@ -3,7 +3,7 @@ from pathlib import Path
 root = Path(__file__).resolve().parents[2]
 cpp = (root / 'src/frontends/typescript/frontend.cpp').read_text()
 runtime = (root / 'src/frontends/typescript/typescript_runtime.cpp').read_text()
-hpp = (root / 'src/frontends/include/venom/frontends/typescript/frontend.hpp').read_text()
+hpp = (root / 'include/venom/frontends/typescript/frontend.hpp').read_text()
 assert 'transpile_embedded' in cpp
 assert 'EmbeddedFrontendService' in cpp
 assert 'run_process' not in cpp

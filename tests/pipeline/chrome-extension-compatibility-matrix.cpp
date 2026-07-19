@@ -1,5 +1,5 @@
 #include "venom/core/site.hpp"
-#include "chrome_extension.hpp"
+#include "venom/internal/pipeline/chrome_extension.hpp"
 
 #include <filesystem>
 #include <iostream>

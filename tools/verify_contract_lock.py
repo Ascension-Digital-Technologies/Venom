@@ -75,7 +75,7 @@ def verify_generated_bindings(root: Path) -> None:
             stdout=subprocess.DEVNULL,
         )
         for rel in (
-            "src/generated/include/venom/generated/contracts/quickjs_wasm_abi.hpp",
+            "include/venom/generated/contracts/quickjs_wasm_abi.hpp",
             "src/generated/runtime/javascript/quickjs_wasm_abi.js",
             "docs/generated/quickjs-wasm-abi.md",
         ):

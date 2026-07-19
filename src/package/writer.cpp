@@ -1,7 +1,7 @@
 #include "venom/base/error.hpp"
 #include "venom/package/writer.hpp"
 
-#include "compress.hpp"
+#include "venom/internal/package/compress.hpp"
 #include "venom/package/crypto.hpp"
 #include "venom/package/hash.hpp"
 

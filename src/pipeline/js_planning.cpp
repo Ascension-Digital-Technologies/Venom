@@ -1,5 +1,5 @@
 #include "venom/base/error.hpp"
-#include "js_planning.hpp"
+#include "venom/internal/pipeline/js_planning.hpp"
 
 #include <algorithm>
 #include <cctype>

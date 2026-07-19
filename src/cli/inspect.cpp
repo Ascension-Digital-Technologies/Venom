@@ -1,4 +1,4 @@
-#include "inspect.hpp"
+#include "venom/internal/cli/inspect.hpp"
 
 #include "venom/package/format.hpp"
 #include "venom/package/reader.hpp"

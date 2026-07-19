@@ -1,5 +1,5 @@
 #include "venom/base/error.hpp"
-#include "html.hpp"
+#include "venom/internal/pipeline/html.hpp"
 
 #include "venom/core/site.hpp"
 #include "venom/vm/encoder.hpp"

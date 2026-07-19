@@ -18,7 +18,7 @@ REQUIRED = [
     'cmake/build_acceleration.cmake',
     'docs/README.md', 'docs/getting-started/build-from-source.md',
     'docs/operations/release-verification.md', 'docs/security/security-model.md',
-    'src/generated/include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp',
+    'include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp',
     'src/generated/runtime/metadata/wasm_runtime_provenance.json',
 ]
 

@@ -19,7 +19,7 @@ def main():
     ap.add_argument('--format', choices=['text','json'], default='text')
     args=ap.parse_args(); root=args.repo_root.resolve()
     contract=json.loads((root/'contracts/quickjs-wasm-abi.json').read_text())
-    data=embedded_bytes(root/'src/generated/include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp')
+    data=embedded_bytes(root/'include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp')
     exports=wasm_exports(data); missing=[x for x in contract['requiredExports'] if x not in exports]
     report={'schema':'venom.quickjs-wasm-export-check.v1','runtimeAbi':contract['runtimeAbi'],'bridgeAbi':contract['bridgeAbi'],'bytecodeFormat':contract['bytecodeFormat'],'wasmBytes':len(data),'exports':exports,'missing':missing,'passed':not missing}
     if args.format=='json': print(json.dumps(report, indent=2))

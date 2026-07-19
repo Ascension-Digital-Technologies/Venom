@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from pathlib import Path
 root = Path(__file__).resolve().parents[2]
-hpp = (root / 'src/pipeline/include/chrome_extension.hpp').read_text(encoding='utf-8')
+hpp = (root / 'include/venom/internal/pipeline/chrome_extension.hpp').read_text(encoding='utf-8')
 cpp = (root / 'src/pipeline/chrome_extension.cpp').read_text(encoding='utf-8')
 assert 'enum class ExecutionContext' in hpp
 assert 'ContentScriptMain' in hpp and 'ServiceWorker' in hpp and 'SandboxPage' in hpp

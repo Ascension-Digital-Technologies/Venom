@@ -1,4 +1,4 @@
-#include "doctor.hpp"
+#include "venom/internal/cli/doctor.hpp"
 #include "venom/core/version.hpp"
 #include <array>
 #include <cstdio>
@@ -82,12 +82,12 @@ bool run_doctor(const DoctorOptions& options) {
   const bool embedded_hardener =
       fs::exists("src/pipeline/native_js_hardener.cpp") &&
       fs::exists("src/frontends/javascript/embedded_bundles.cpp") &&
-      fs::exists("src/frontends/include/venom/frontends/javascript/embedded_bundles.hpp");
+      fs::exists("include/venom/frontends/javascript/embedded_bundles.hpp");
 
   add(checks, "js-hardener", embedded_hardener ? "embedded QuickJS hardener: Terser 5.49.0 + javascript-obfuscator 5.4.7" : "embedded hardener payload missing",
       embedded_hardener, "Restore the native hardener source and embedded bundle payload.", required("js-hardener"));
 
-  const bool blob_present = fs::exists("src/generated/include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp");
+  const bool blob_present = fs::exists("include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp");
   add(checks, "quickjs-wasm-source", blob_present ? "embedded runtime source present" : "embedded runtime source missing", blob_present, "Run the QuickJS/WASM setup and build scripts.");
   Probe quickjs;
   if (blob_present && fs::exists("tools/quickjs_wasm_cutover.py")) {

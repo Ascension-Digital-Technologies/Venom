@@ -238,7 +238,7 @@ if(VENOM_BUILD_RUNTIME_NATIVE)
     src/runtime/quickjs_upstream_runtime.c
   )
   target_include_directories(venom_runtime_native
-    PUBLIC src/runtime/include
+    PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include"
     PRIVATE src/runtime
   )
   target_link_libraries(venom_runtime_native PUBLIC qjs ${CMAKE_DL_LIBS})
@@ -305,7 +305,6 @@ if(BUILD_TESTING AND VENOM_ENABLE_FULL_QUICKJS)
 
   add_executable(venom_typescript_embedded_smoke tests/frontends/typescript-embedded-smoke.cpp)
   target_link_libraries(venom_typescript_embedded_smoke PRIVATE venom_core)
-  venom_test_private_headers(venom_typescript_embedded_smoke frontends)
   venom_apply_warnings(venom_typescript_embedded_smoke)
   add_test(NAME typescript_embedded_smoke COMMAND venom_typescript_embedded_smoke)
 
@@ -327,7 +326,6 @@ endif()
 if(BUILD_TESTING)
   add_executable(venom_route_browser_module_map_test tests/package/route-browser-module-map.cpp)
   target_link_libraries(venom_route_browser_module_map_test PRIVATE venom_core)
-  venom_test_private_headers(venom_route_browser_module_map_test pipeline)
   venom_apply_warnings(venom_route_browser_module_map_test)
   add_test(NAME route_browser_module_map_smoke COMMAND venom_route_browser_module_map_test)
   add_executable(venom_canonical_module_graph_test tests/graph/canonical-module-graph.cpp)
@@ -336,12 +334,10 @@ if(BUILD_TESTING)
   add_test(NAME canonical_module_graph_smoke COMMAND venom_canonical_module_graph_test)
   add_executable(venom_chrome_extension_manifest_analysis_test tests/pipeline/chrome-extension-manifest-analysis.cpp)
   target_link_libraries(venom_chrome_extension_manifest_analysis_test PRIVATE venom_core)
-  venom_test_private_headers(venom_chrome_extension_manifest_analysis_test pipeline)
   venom_apply_warnings(venom_chrome_extension_manifest_analysis_test)
   add_test(NAME chrome_extension_manifest_analysis_smoke COMMAND venom_chrome_extension_manifest_analysis_test)
   add_executable(venom_chrome_extension_compatibility_matrix_test tests/pipeline/chrome-extension-compatibility-matrix.cpp)
   target_link_libraries(venom_chrome_extension_compatibility_matrix_test PRIVATE venom_core)
-  venom_test_private_headers(venom_chrome_extension_compatibility_matrix_test pipeline)
   target_compile_definitions(venom_chrome_extension_compatibility_matrix_test PRIVATE VENOM_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}")
   venom_apply_warnings(venom_chrome_extension_compatibility_matrix_test)
   add_test(NAME chrome_extension_compatibility_matrix_smoke COMMAND venom_chrome_extension_compatibility_matrix_test)
@@ -351,7 +347,6 @@ if(BUILD_TESTING)
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/chrome-extension-compatibility-matrix-smoke.py)
   add_executable(venom_package_plan_test tests/pipeline/package-plan.cpp)
   target_link_libraries(venom_package_plan_test PRIVATE venom_core)
-  venom_test_private_headers(venom_package_plan_test pipeline)
   venom_apply_warnings(venom_package_plan_test)
   add_test(NAME package_plan_smoke COMMAND venom_package_plan_test)
 
@@ -490,14 +485,12 @@ add_test(NAME venom_protected_facade_browser_dependency_smoke
 add_executable(venom_lazy_browser_dependency_closure_test
   tests/package/lazy-browser-dependency-closure.cpp)
 target_link_libraries(venom_lazy_browser_dependency_closure_test PRIVATE venom_core)
-venom_test_private_headers(venom_lazy_browser_dependency_closure_test pipeline)
 add_test(NAME venom_lazy_browser_dependency_closure
   COMMAND venom_lazy_browser_dependency_closure_test)
 
 add_executable(venom_protected_browser_import_lowering_test
   tests/pipeline/protected-browser-import-lowering.cpp)
 target_link_libraries(venom_protected_browser_import_lowering_test PRIVATE venom_core)
-venom_test_private_headers(venom_protected_browser_import_lowering_test pipeline)
 add_test(NAME venom_protected_browser_import_lowering
   COMMAND venom_protected_browser_import_lowering_test)
 

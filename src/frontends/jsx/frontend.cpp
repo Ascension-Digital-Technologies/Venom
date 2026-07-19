@@ -1,4 +1,4 @@
-#include "jsx/frontend.hpp"
+#include "venom/internal/frontends/jsx/frontend.hpp"
 #include "venom/core/diagnostic.hpp"
 
 #include <algorithm>

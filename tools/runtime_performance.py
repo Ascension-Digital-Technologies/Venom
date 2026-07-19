@@ -10,7 +10,7 @@ from pathlib import Path
 
 def sha256(p:Path): return hashlib.sha256(p.read_bytes()).hexdigest()
 def embedded_wasm(root:Path):
-    h=root/'src/generated/include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp'
+    h=root/'include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp'
     values=bytearray(); inside=False
     with h.open('r',encoding='utf-8',errors='replace') as f:
         for line in f:

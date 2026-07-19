@@ -1,5 +1,5 @@
 #include "venom/base/error.hpp"
-#include "native_js_hardener.hpp"
+#include "venom/internal/pipeline/native_js_hardener.hpp"
 #include "venom/frontends/javascript/embedded_bundles.hpp"
 
 #include "quickjs.h"

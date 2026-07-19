@@ -10,6 +10,7 @@ cmake/         CMake modules, source-domain targets, and configure templates
 contracts/     Versioned machine-readable product contracts
 docs/          Architecture, guides, operations, security, and audit records
 examples/      Complete runnable applications
+include/       Central public and internal C/C++ header tree
 packages/      Optional published ecosystem packages
 scripts/       Thin public launchers only
 src/           First-party product source and authored generator inputs
@@ -47,29 +48,39 @@ The former catch-all `src/compiler/` hierarchy no longer exists. Its internal fo
 - runtime, update, ABI, and module services moved to `runtime`, `cli`, or `pipeline`.
 - command option models moved into `core/options.hpp`, so reusable code never includes the CLI parser surface.
 
-## Public and private header boundaries
+## Public and internal header boundaries
 
-Each native domain owns its exported C/C++ headers beneath a domain-local include tree:
+Every first-party C/C++ header lives in one central include tree. Stable cross-domain APIs remain grouped by owning domain, while implementation-only surfaces are visibly separated beneath `internal/`:
 
 ```text
+include/venom/
+├── <domain>/                 Stable cross-domain API headers
+├── generated/               Generated contracts and embedded public assets
+└── internal/
+    └── <domain>/             Implementation-only headers
+
 src/<domain>/
-├── include/venom/<domain>/   Cross-domain API headers
-├── *.cpp                     Implementation translation units
-└── *.hpp                     Domain-private headers
+└── *.c / *.cpp               Implementation translation units only
 ```
 
-Cross-domain includes always use the stable namespace form:
+Public cross-domain includes use the stable namespace form:
 
 ```cpp
 #include <venom/package/reader.hpp>
 #include <venom/pipeline/build.hpp>
 ```
 
-Headers outside `include/venom/<domain>/` are implementation details. They are visible only while compiling their owning domain. A small number of internal unit tests receive explicit, target-scoped access to the domain they inspect; that access is never propagated to product targets.
+Implementation files include their own private surfaces explicitly:
+
+```cpp
+#include <venom/internal/pipeline/build_support.hpp>
+```
+
+Public headers may never include `venom/internal/...`, and one domain may never include another domain's internal headers. The architecture gates enforce both rules, while also rejecting any first-party header that drifts back into `src/`.
 
 ## Build boundaries
 
-`cmake/source_domains.cmake` creates two targets for each compiled first-party domain: an interface API target containing only exported include directories and declared API dependencies, and a private object target containing the implementation. `venom_core` aggregates the object targets and publishes the deliberate API targets; it never exports the repository-wide `src/` directory.
+`cmake/source_domains.cmake` creates two targets for each compiled first-party domain: an interface API target exposing the central include root plus declared API dependencies, and a private object target containing the implementation. `venom_core` aggregates the object targets and publishes the deliberate API targets; no target receives a first-party `src/` include path. Internal-header ownership is enforced by the architecture checks rather than by source-directory visibility.
 
 The architecture checks at `tools/architecture/check_domain_dependencies.py` and `tools/architecture/check_header_boundaries.py` enforce allowed cross-domain includes, public-header resolution, private-header isolation, removal of legacy `domain/header.hpp` include spellings, and authored dependency acyclicity. See [dependency-rules.md](dependency-rules.md).
 

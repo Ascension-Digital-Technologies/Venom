@@ -4,7 +4,7 @@
 
 The generator `tools/generate_quickjs_wasm_abi.py` produces:
 
-- `src/generated/include/venom/generated/contracts/quickjs_wasm_abi.hpp`
+- `include/venom/generated/contracts/quickjs_wasm_abi.hpp`
 - `src/generated/runtime/javascript/quickjs_wasm_abi.js`
 - `docs/generated/quickjs-wasm-abi.md`
 

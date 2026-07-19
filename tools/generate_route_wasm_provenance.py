@@ -26,7 +26,7 @@ def main() -> int:
     ap.add_argument('--check', action='store_true')
     args = ap.parse_args()
     root = args.repo_root.resolve()
-    header = root / 'src/generated/include/venom/generated/runtime/wasm_runtime_blob.hpp'
+    header = root / 'include/venom/generated/runtime/wasm_runtime_blob.hpp'
     source = root / 'src/runtime/wasm_runtime.c'
     out = root / 'src/generated/runtime/metadata/wasm_runtime_provenance.json'
     data = embedded_bytes(header)
@@ -46,7 +46,7 @@ def main() -> int:
         'source_sha256': hashlib.sha256(source.read_bytes()).hexdigest(),
         'exports': exp,
         'source': 'src/runtime/wasm_runtime.c',
-        'embedded_header': 'src/generated/include/venom/generated/runtime/wasm_runtime_blob.hpp',
+        'embedded_header': 'include/venom/generated/runtime/wasm_runtime_blob.hpp',
     }
     rendered = json.dumps(provenance, indent=2, sort_keys=True) + '\n'
     if args.check:

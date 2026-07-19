@@ -1,6 +1,6 @@
 #include "venom/base/error.hpp"
 #include "venom/pipeline/security.hpp"
-#include "security_analysis.hpp"
+#include "venom/internal/pipeline/security_analysis.hpp"
 #include "venom/core/console.hpp"
 
 #include "venom/package/crypto.hpp"

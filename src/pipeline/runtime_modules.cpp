@@ -1,5 +1,5 @@
 #include "venom/base/error.hpp"
-#include "runtime_modules.hpp"
+#include "venom/internal/pipeline/runtime_modules.hpp"
 
 #include <algorithm>
 #include <cctype>

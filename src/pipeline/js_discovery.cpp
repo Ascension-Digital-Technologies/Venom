@@ -1,5 +1,5 @@
 #include "venom/base/error.hpp"
-#include "js_discovery.hpp"
+#include "venom/internal/pipeline/js_discovery.hpp"
 #include "venom/frontends/javascript/frontend.hpp"
 #include "venom/frontends/typescript/frontend.hpp"
 #include "venom/core/site.hpp"
