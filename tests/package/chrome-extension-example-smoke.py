@@ -10,7 +10,11 @@ assert manifest['action']['default_popup'] == 'popup.html'
 config = (example / 'venom.toml').read_text(encoding='utf-8')
 assert 'target = "chrome-extension"' in config
 assert (root / 'scripts' / 'windows' / 'build-and-launch-chrome-extension.bat').is_file()
-source = (root / 'src' / 'compiler' / 'pipeline' / 'chrome_extension.cpp').read_text(encoding='utf-8')
+source = (root / 'src' / 'pipeline' / 'chrome_extension.cpp').read_text(encoding='utf-8')
 assert "wasm-unsafe-eval" in source
 assert 'Manifest V3' in source
 print('Chrome extension example smoke: PASS')
+
+manifest = (root / "examples/chrome-extension/manifest.json").read_text(encoding="utf-8")
+assert "'wasm-unsafe-eval'" in manifest
+assert "script-src 'self'" in manifest

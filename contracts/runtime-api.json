@@ -1,7 +1,7 @@
 {
   "schema": "VENOM_RUNTIME_API_V1",
   "version": 1,
-  "package": "@venom-js/runtime",
+  "package": "@venom/runtime",
   "global": "venom",
   "compatibility": {
     "semver": "stable-within-major",

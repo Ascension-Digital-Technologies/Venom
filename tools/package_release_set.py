@@ -33,7 +33,7 @@ def main() -> int:
     ap.add_argument('--source-revision', required=True)
     ap.add_argument('--packages', type=Path, nargs='+', required=True)
     ap.add_argument('--compatibility-evidence', type=Path)
-    ap.add_argument('--verified-runtime', type=Path, help='canonical verified QuickJS/WASM artifact')
+    ap.add_argument('--verified-runtime', type=Path, help='canonical verified TurboJS/WASM artifact')
     ap.add_argument('--out', type=Path, required=True)
     ap.add_argument('--archive', type=Path, help='optional deterministic ZIP archive output')
     ap.add_argument('--source-date-epoch', type=int, default=None)

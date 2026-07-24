@@ -1,3 +1,4 @@
+// @venom: browser
 const HTTP_URL = /^https?:\/\//i;
 
 export function parseAllowedSites(text) {

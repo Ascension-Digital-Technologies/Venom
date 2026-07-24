@@ -1,7 +1,7 @@
-#include "venom/pipeline/compatibility.hpp"
-#include "venom/internal/pipeline/capability_analysis.hpp"
-#include "venom/core/version.hpp"
-#include "venom/generated/contracts/product_contracts.hpp"
+#include "pipeline/compatibility.hpp"
+#include "pipeline/capability_analysis.hpp"
+#include "core/version.hpp"
+#include "generated/contracts/product_contracts.hpp"
 
 #include <algorithm>
 #include <iostream>
@@ -128,8 +128,8 @@ void print_contracts(OutputFormat format) {
       << ",\"package_runtime_abi\":" << venom::contracts::kPackageRuntimeAbi
       << ",\"route_vm_contract\":\"" << venom::contracts::kRouteVmContract
       << "\",\"dom_command_contract\":\"" << venom::contracts::kDomCommandContract
-      << "\",\"quickjs_module_bundle_contract\":\"" << venom::contracts::kQuickJsModuleBundleContract
-      << "\",\"quickjs_runtime_abi\":" << venom::contracts::kQuickJsRuntimeAbi
+      << "\",\"turbojs_module_bundle_contract\":\"" << venom::contracts::kTurboJsModuleBundleContract
+      << "\",\"turbojs_runtime_abi\":" << venom::contracts::kTurboJsRuntimeAbi
       << ",\"host_bridge_abi\":" << venom::contracts::kHostBridgeAbi
       << ",\"configuration_schema\":" << venom::contracts::kConfigurationSchema
       << ",\"config_schema\":" << venom::contracts::kConfigurationSchema
@@ -140,8 +140,8 @@ void print_contracts(OutputFormat format) {
       << "\nPackage runtime ABI: " << venom::contracts::kPackageRuntimeAbi
       << "\nRoute VM contract: " << venom::contracts::kRouteVmContract
       << "\nDOM command contract: " << venom::contracts::kDomCommandContract
-      << "\nQuickJS module bundle contract: " << venom::contracts::kQuickJsModuleBundleContract
-      << "\nQuickJS runtime ABI: " << venom::contracts::kQuickJsRuntimeAbi
+      << "\nTurboJS module bundle contract: " << venom::contracts::kTurboJsModuleBundleContract
+      << "\nTurboJS runtime ABI: " << venom::contracts::kTurboJsRuntimeAbi
       << "\nHost bridge ABI: " << venom::contracts::kHostBridgeAbi
       << "\nConfiguration schema: " << venom::contracts::kConfigurationSchema
       << "\nLockfile schema: " << venom::contracts::kLockfileSchema << "\n";

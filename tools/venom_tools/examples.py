@@ -20,7 +20,7 @@ class ExampleSpec:
     port: int
     kind: str
     certify: bool
-    requires_real_quickjs: bool
+    requires_real_turbojs: bool
     leak_scan: bool
     browser: bool
     requires_loopback_compiler: bool
@@ -130,7 +130,7 @@ def load_example_registry(repo_root: Path, contract: Path | None = None) -> Exam
             port=port,
             kind=kind,
             certify=_boolean(record, "certify", True),
-            requires_real_quickjs=_boolean(record, "requiresRealQuickJs", True),
+            requires_real_turbojs=_boolean(record, "requiresRealTurboJs", True),
             leak_scan=_boolean(record, "leakScan", True),
             browser=_boolean(record, "browser", kind == "browser"),
             requires_loopback_compiler=_boolean(record, "requiresLoopbackCompiler"),

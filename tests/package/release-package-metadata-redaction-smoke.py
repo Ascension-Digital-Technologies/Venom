@@ -5,7 +5,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from _quickjs_artifact import require_current_artifact
+from _turbojs_artifact import require_current_artifact
 
 source_root = Path(__file__).resolve().parents[2]
 require_current_artifact(source_root)

@@ -1,9 +1,9 @@
-#include "venom/base/error.hpp"
-#include "venom/package/writer.hpp"
+#include "base/error.hpp"
+#include "package/writer.hpp"
 
-#include "venom/internal/package/compress.hpp"
-#include "venom/package/crypto.hpp"
-#include "venom/package/hash.hpp"
+#include "package/compress.hpp"
+#include "package/crypto.hpp"
+#include "package/hash.hpp"
 
 #include <filesystem>
 #include <fstream>

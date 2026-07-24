@@ -1,5 +1,5 @@
-#include "venom/internal/pipeline/html.hpp"
-#include "venom/vm/opcode.hpp"
+#include "html.hpp"
+#include "vm/opcode.hpp"
 
 #include <cstdint>
 #include <iostream>

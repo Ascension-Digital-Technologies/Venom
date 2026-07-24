@@ -30,7 +30,7 @@ dist/
 - `index.html` starts the verified loader.
 - `app.<hash>.vbc` contains the protected package and route data.
 - `loader.<hash>.js` resolves and validates the build assets.
-- runtime JavaScript and WASM files implement package decoding, route hydration, and QuickJS execution.
+- runtime JavaScript and WASM files implement package decoding, route hydration, and TurboJS execution.
 - worker files host protected execution and the private binary bridge.
 - `build.json` records non-secret build identity and binding metadata required by verification.
 

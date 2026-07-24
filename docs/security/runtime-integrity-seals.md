@@ -10,7 +10,7 @@ The protected worker seals capability mappings, registry bytecode, and active br
 
 ## Browser runtime seal
 
-The browser runtime seals release policy, QuickJS ABI identity, and route mapping state visible to the browser layer. It revalidates that state before route execution.
+The browser runtime seals release policy, TurboJS ABI identity, and route mapping state visible to the browser layer. It revalidates that state before route execution.
 
 ## Failure behavior
 

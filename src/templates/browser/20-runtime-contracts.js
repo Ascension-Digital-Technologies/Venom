@@ -6,23 +6,23 @@ function runtimeIntegrityText(value) {
   return String(value);
 }
 function computeRuntimeIntegritySeal(opcodeMap = null) {
-  const text = runtimeIntegrityText(activeReleaseDiversification) + '\n' + runtimeIntegrityText(activeQuickJsAbiFingerprint) + '\n' + runtimeIntegrityText(opcodeMap);
+  const text = runtimeIntegrityText(activeReleaseDiversification) + '\n' + runtimeIntegrityText(activeTurboJsAbiFingerprint) + '\n' + runtimeIntegrityText(opcodeMap);
   return fnv1a32(textEncoder.encode(text)) >>> 0;
 }
 function assertRuntimeIntegrity(opcodeMap = null) {
   if (!activeRuntimeIntegritySeal || computeRuntimeIntegritySeal(opcodeMap) !== activeRuntimeIntegritySeal) throw new Error('runtime integrity seal mismatch');
 }
 
-function parseQuickJsAbiFingerprint(section, required) {
+function parseTurboJsAbiFingerprint(section, required) {
   if (!section) {
-    if (required) throw new Error('missing QuickJS ABI fingerprint');
+    if (required) throw new Error('missing TurboJS ABI fingerprint');
     return null;
   }
   const data = section.data;
-  if (data.byteLength !== 24 || textDecoder.decode(data.subarray(0, 8)) !== 'VQAF0001') throw new Error('invalid QuickJS ABI fingerprint');
+  if (data.byteLength !== 24 || textDecoder.decode(data.subarray(0, 8)) !== 'VQAF0001') throw new Error('invalid TurboJS ABI fingerprint');
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
-  if (readU32(view, 8) !== 1 || readU32(view, 16) !== 12 || readU32(view, 20) !== 16) throw new Error('unsupported QuickJS ABI fingerprint');
-  return Object.freeze({ hash: readU32(view, 12) >>> 0, runtimeAbi: 12, functionExports: 16 });
+  if (readU32(view, 8) !== 1 || readU32(view, 16) !== 12 || readU32(view, 20) !== 24) throw new Error('unsupported TurboJS ABI fingerprint');
+  return Object.freeze({ hash: readU32(view, 12) >>> 0, runtimeAbi: 12, functionExports: 24 });
 }
 
 
@@ -220,7 +220,7 @@ const SCRIPT_FLAG = Object.freeze({
   BROWSER: 2048,
 });
 
-function quickJsEnvelopeLaneMap(seed) {
+function turboJsEnvelopeLaneMap(seed) {
   const map = new Uint8Array(16);
   for (let i = 0; i < map.length; ++i) map[i] = i;
   let state = (seed ^ 0xC6EF3720) >>> 0;
@@ -235,15 +235,15 @@ function quickJsEnvelopeLaneMap(seed) {
   return map;
 }
 
-function quickJsEnvelopeLaneFingerprint(map) {
+function turboJsEnvelopeLaneFingerprint(map) {
   let h = 2166136261 >>> 0;
   for (const value of map) { h ^= value; h = Math.imul(h, 16777619) >>> 0; }
   return h >>> 0;
 }
 
-function decodeQuickJsEnvelope(bytes, sourceName) {
-  if (!bytes || bytes.length < 48) throw new Error('QuickJS bytecode envelope is truncated for ' + (sourceName || '<script>'));
-  if (asciiOf(bytes.slice(0, 8)) !== 'VQJSE006') return bytes;
+function decodeTurboJsEnvelope(bytes, sourceName) {
+  if (!bytes || bytes.length < 48) throw new Error('TurboJS bytecode envelope is truncated for ' + (sourceName || '<script>'));
+  if (asciiOf(bytes.slice(0, 8)) !== 'VTJSE006') return bytes;
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const version = readU32(view, 8);
   const payloadSize = readU32(view, 12);
@@ -254,11 +254,11 @@ function decodeQuickJsEnvelope(bytes, sourceName) {
   const laneWidth = readU32(view, 40);
   const expectedLaneFingerprint = readU32(view, 44);
   if (version !== 2 || bytecodeAbi !== 0x01000300 || payloadOffset !== 48 || laneWidth !== 16 || payloadOffset + payloadSize !== bytes.length) {
-    throw new Error('QuickJS bytecode envelope contract mismatch for ' + (sourceName || '<script>'));
+    throw new Error('TurboJS bytecode envelope contract mismatch for ' + (sourceName || '<script>'));
   }
-  const laneMap = quickJsEnvelopeLaneMap(seed);
-  if (quickJsEnvelopeLaneFingerprint(laneMap) !== expectedLaneFingerprint) {
-    throw new Error('QuickJS bytecode envelope lane map mismatch for ' + (sourceName || '<script>'));
+  const laneMap = turboJsEnvelopeLaneMap(seed);
+  if (turboJsEnvelopeLaneFingerprint(laneMap) !== expectedLaneFingerprint) {
+    throw new Error('TurboJS bytecode envelope lane map mismatch for ' + (sourceName || '<script>'));
   }
   const decoded = new Uint8Array(payloadSize);
   let stream = (seed ^ 0x9E3779B9) >>> 0;
@@ -279,22 +279,22 @@ function decodeQuickJsEnvelope(bytes, sourceName) {
   laneMap.fill(0);
   if (fnv1a64(decoded) !== expectedHash) {
     decoded.fill(0);
-    throw new Error('QuickJS bytecode envelope integrity mismatch for ' + (sourceName || '<script>'));
+    throw new Error('TurboJS bytecode envelope integrity mismatch for ' + (sourceName || '<script>'));
   }
   return decoded;
 }
 
-function validateQuickJsBytecodeRecord(bytes, sourceName) {
-  if (!bytes || bytes.length < 48) throw new Error('QuickJS bytecode record is truncated for ' + (sourceName || '<script>'));
+function validateTurboJsBytecodeRecord(bytes, sourceName) {
+  if (!bytes || bytes.length < 48) throw new Error('TurboJS bytecode record is truncated for ' + (sourceName || '<script>'));
   const magic = asciiOf(bytes.slice(0, 8));
-  if (magic === 'VQJSBC01' || magic === 'VQJSBC02') throw new Error('source-preserving QuickJS bytecode record rejected for ' + (sourceName || '<script>'));
-  if (magic !== 'VQJSBC03') throw new Error('unknown QuickJS bytecode record for ' + (sourceName || '<script>'));
+  if (magic === 'VTJSBC01' || magic === 'VTJSBC02') throw new Error('source-preserving TurboJS bytecode record rejected for ' + (sourceName || '<script>'));
+  if (magic !== 'VTJSBC03') throw new Error('unknown TurboJS bytecode record for ' + (sourceName || '<script>'));
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const version = readU32(view, 8);
   const bytecodeSize = readU32(view, 16);
   const payloadOffset = readU32(view, 44);
   if (version !== 3 || payloadOffset !== 48 || payloadOffset + bytecodeSize !== bytes.length) {
-    throw new Error('QuickJS native bytecode record ranges are invalid for ' + (sourceName || '<script>'));
+    throw new Error('TurboJS native bytecode record ranges are invalid for ' + (sourceName || '<script>'));
   }
   return true;
 }
@@ -339,17 +339,17 @@ function parseJsBundle(section) {
     const source = textDecoder.decode(data.slice(textBase + sourceOffset, sourceEnd));
     const storedCodeBytes = data.slice(codeBase + codeOffset, codeEnd);
     const storedMagic = asciiOf(storedCodeBytes.slice(0, 8));
-    const bytecodeEncoded = (flags & SCRIPT_FLAG.BYTECODE_ENCODED) !== 0 || storedMagic === 'VQJSE006' || storedMagic === 'VQJSBC03' || storedMagic === 'VQJSMB04';
-    const codeBytes = bytecodeEncoded ? decodeQuickJsEnvelope(storedCodeBytes, source) : storedCodeBytes;
-    if (storedMagic === 'VQJSE006') storedCodeBytes.fill(0);
+    const bytecodeEncoded = (flags & SCRIPT_FLAG.BYTECODE_ENCODED) !== 0 || storedMagic === 'VTJSE006' || storedMagic === 'VTJSBC03' || storedMagic === 'VTJSMB04';
+    const codeBytes = bytecodeEncoded ? decodeTurboJsEnvelope(storedCodeBytes, source) : storedCodeBytes;
+    if (storedMagic === 'VTJSE006') storedCodeBytes.fill(0);
     const bytecodeMagic = asciiOf(codeBytes.slice(0, 8));
     const browserSide = (flags & SCRIPT_FLAG.BROWSER) !== 0;
     if (browserSide && bytecodeEncoded) {
-      throw new Error('browser script chunk cannot contain QuickJS bytecode: ' + (source || '<script>'));
+      throw new Error('browser script chunk cannot contain TurboJS bytecode: ' + (source || '<script>'));
     }
     if (bytecodeEncoded) {
-      if (bytecodeMagic === 'VQJSBC03') validateQuickJsBytecodeRecord(codeBytes, source);
-      else if (bytecodeMagic !== 'VQJSMB04') throw new Error('unknown protected QuickJS payload for ' + (source || '<script>'));
+      if (bytecodeMagic === 'VTJSBC03') validateTurboJsBytecodeRecord(codeBytes, source);
+      else if (bytecodeMagic !== 'VTJSMB04') throw new Error('unknown protected TurboJS payload for ' + (source || '<script>'));
     }
     const bytecodeTrustHandoff = bytecodeEncoded ? (() => {
       const byteHash = fnv1a32(codeBytes) >>> 0;
@@ -357,7 +357,7 @@ function parseJsBundle(section) {
       return Object.freeze({
         version: 1,
         producer: 'package-decoder-wasm',
-        consumer: 'quickjs-execution-wasm',
+        consumer: 'turbojs-execution-wasm',
         byteLength: codeBytes.length >>> 0,
         byteHash,
         bindingHash: fnv1a32(textEncoder.encode(bindingText)) >>> 0,
@@ -541,7 +541,7 @@ function parseHostBridgeMetadata(section) {
     else if (key === 'async_host_queue') plan.asyncHostQueue = value || 'planned';
     else if (key === 'timer_bridge') plan.timerBridge = value || 'planned';
     else if (key === 'event_queue') plan.eventQueue = value || 'planned';
-    else if (key === 'quickjs_bridge') plan.quickJsBridge = value || 'planned';
+    else if (key === 'turbojs_bridge') plan.turboJsBridge = value || 'planned';
     else plan.diagnostics.set(key, value);
   }
   return Object.freeze({
@@ -554,7 +554,7 @@ function parseHostBridgeMetadata(section) {
     asyncHostQueue: plan.asyncHostQueue || 'planned',
     timerBridge: plan.timerBridge || 'planned',
     eventQueue: plan.eventQueue || 'planned',
-    quickJsBridge: plan.quickJsBridge || 'planned',
+    turboJsBridge: plan.turboJsBridge || 'planned',
     diagnostics: plan.diagnostics,
     capabilitiesById: plan.capabilitiesById,
     capabilitiesByName: plan.capabilitiesByName,
@@ -731,7 +731,7 @@ function parseTimerBridgeMetadata(section) {
     maxScheduledPerRoute: Number.parseInt(plan.values.get('max_scheduled_per_route') || '512', 10) >>> 0,
     minimumDelayMs: Number.parseInt(plan.values.get('minimum_delay_ms') || '0', 10) >>> 0,
     wasmResponseBoundary: plan.values.get('wasm_response_boundary') || 'planned',
-    quickjsTimerBoundary: plan.values.get('quickjs_timer_boundary') || 'planned',
+    turbojsTimerBoundary: plan.values.get('turbojs_timer_boundary') || 'planned',
   });
 }
 
@@ -747,18 +747,18 @@ function parseEventQueueMetadata(section) {
     maxDispatchesPerRoute: Number.parseInt(plan.values.get('max_dispatches_per_route') || '1024', 10) >>> 0,
     recordPayload: plan.values.get('record_payload') || 'eventName|attrName|route|targetTag',
     wasmEventBoundary: plan.values.get('wasm_event_boundary') || 'planned',
-    quickjsEventBoundary: plan.values.get('quickjs_event_boundary') || 'planned',
+    turbojsEventBoundary: plan.values.get('turbojs_event_boundary') || 'planned',
   });
 }
 
-function parseQuickJsBridgeMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_BRIDGE_V9', 'VENOM_QUICKJS_BRIDGE_V8', 'VENOM_QUICKJS_BRIDGE_V7', 'VENOM_QUICKJS_BRIDGE_V6', 'VENOM_QUICKJS_BRIDGE_V5', 'VENOM_QUICKJS_BRIDGE_V4', 'VENOM_QUICKJS_BRIDGE_V3', 'VENOM_QUICKJS_BRIDGE_V2', 'VENOM_QUICKJS_BRIDGE_V1']);
+function parseTurboJsBridgeMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_BRIDGE_V9', 'VENOM_TURBOJS_BRIDGE_V8', 'VENOM_TURBOJS_BRIDGE_V7', 'VENOM_TURBOJS_BRIDGE_V6', 'VENOM_TURBOJS_BRIDGE_V5', 'VENOM_TURBOJS_BRIDGE_V4', 'VENOM_TURBOJS_BRIDGE_V3', 'VENOM_TURBOJS_BRIDGE_V2', 'VENOM_TURBOJS_BRIDGE_V1']);
   return Object.freeze({
     version: plan.version,
     enabled: plan.enabled,
     mode: plan.values.get('mode') || 'planned-boundary',
-    callHostCall: plan.values.get('call_host_call') || 'quickjs.call',
-    resultHostCall: plan.values.get('result_host_call') || 'quickjs.result',
+    callHostCall: plan.values.get('call_host_call') || 'turbojs.call',
+    resultHostCall: plan.values.get('result_host_call') || 'turbojs.result',
     queue: plan.values.get('queue') || 'async-host-queue.vahq',
     scriptIsolation: plan.values.get('script_isolation') || 'route-scoped',
     bytecodeInput: plan.values.get('bytecode_input') || 'planned',
@@ -766,8 +766,8 @@ function parseQuickJsBridgeMetadata(section) {
     nativeEngine: plan.values.get('native_engine') || 'compile-time-probe',
     chunkMetadata: plan.values.get('chunk_metadata') || '',
     capabilityPolicy: plan.values.get('capability_policy') || '',
-    requestRecord: plan.values.get('request_record') || 'quickjs.call',
-    resultRecord: plan.values.get('result_record') || 'quickjs.result',
+    requestRecord: plan.values.get('request_record') || 'turbojs.call',
+    resultRecord: plan.values.get('result_record') || 'turbojs.result',
     engineMetadata: plan.values.get('engine_metadata') || '',
     scriptEnginePolicy: plan.values.get('script_engine_policy') || '',
     fallbackPolicy: plan.values.get('fallback_policy') || 'host-js-isolated-wrapper',
@@ -786,7 +786,7 @@ function parseScriptIsolationMetadata(section) {
     globalPolicy: plan.values.get('global_policy') || 'shared-browser-global-with-route-wrapper',
     documentAccess: plan.values.get('document_access') || 'bridge-parameter',
     windowAccess: plan.values.get('window_access') || 'bridge-parameter',
-    quickJsBoundary: plan.values.get('quickjs_boundary') || 'planned',
+    turboJsBoundary: plan.values.get('turbojs_boundary') || 'planned',
     engineContext: plan.values.get('engine_context') || 'planned',
     engineFallback: plan.values.get('engine_fallback') || 'none',
     chunkCount: Number.parseInt(plan.values.get('chunk_count') || '0', 10) >>> 0,
@@ -799,7 +799,7 @@ function parseScriptPolicyMetadata(section) {
     version: plan.version,
     defaultCapabilities: plan.values.get('default_capabilities') || '',
     remoteScripts: plan.values.get('remote_scripts') || 'metadata-only',
-    moduleScripts: plan.values.get('module_scripts') || 'blob-loader-until-quickjs-wasm',
+    moduleScripts: plan.values.get('module_scripts') || 'blob-loader-until-turbojs-wasm',
     inlineScripts: plan.values.get('inline_scripts') || 'route-wrapper',
     policyCheckHostCall: plan.values.get('policy_check_host_call') || 'script.policyCheck',
     chunkStartHostCall: plan.values.get('chunk_start_host_call') || 'script.chunkStart',
@@ -809,24 +809,24 @@ function parseScriptPolicyMetadata(section) {
   });
 }
 
-function parseQuickJsChunkMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_CHUNKS_V7', 'VENOM_QUICKJS_CHUNKS_V6', 'VENOM_QUICKJS_CHUNKS_V5', 'VENOM_QUICKJS_CHUNKS_V4', 'VENOM_QUICKJS_CHUNKS_V3', 'VENOM_QUICKJS_CHUNKS_V2', 'VENOM_QUICKJS_CHUNKS_V1']);
+function parseTurboJsChunkMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_CHUNKS_V7', 'VENOM_TURBOJS_CHUNKS_V6', 'VENOM_TURBOJS_CHUNKS_V5', 'VENOM_TURBOJS_CHUNKS_V4', 'VENOM_TURBOJS_CHUNKS_V3', 'VENOM_TURBOJS_CHUNKS_V2', 'VENOM_TURBOJS_CHUNKS_V1']);
   return Object.freeze({
     version: plan.version,
     mode: plan.values.get('mode') || 'none',
     bytecodeProvider: plan.values.get('bytecode_provider') || 'planned',
     sourceChunkSection: plan.values.get('source_chunk_section') || 'scripts.vjsb',
-    requestHostCall: plan.values.get('request_host_call') || 'quickjs.chunk',
-    bytecodeBoundaryHostCall: plan.values.get('bytecode_boundary_host_call') || 'quickjs.bytecodeBoundary',
-    engineExecuteHostCall: plan.values.get('engine_execute_host_call') || 'quickjs.executeChunk',
+    requestHostCall: plan.values.get('request_host_call') || 'turbojs.chunk',
+    bytecodeBoundaryHostCall: plan.values.get('bytecode_boundary_host_call') || 'turbojs.bytecodeBoundary',
+    engineExecuteHostCall: plan.values.get('engine_execute_host_call') || 'turbojs.executeChunk',
     engineFallback: plan.values.get('engine_fallback') || 'none',
     chunkCount: Number.parseInt(plan.values.get('chunk_count') || '0', 10) >>> 0,
   });
 }
 
 
-function parseQuickJsEngineMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_ENGINE_V7', 'VENOM_QUICKJS_ENGINE_V6', 'VENOM_QUICKJS_ENGINE_V5', 'VENOM_QUICKJS_ENGINE_V4', 'VENOM_QUICKJS_ENGINE_V3', 'VENOM_QUICKJS_ENGINE_V2', 'VENOM_QUICKJS_ENGINE_V1']);
+function parseTurboJsEngineMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_ENGINE_V7', 'VENOM_TURBOJS_ENGINE_V6', 'VENOM_TURBOJS_ENGINE_V5', 'VENOM_TURBOJS_ENGINE_V4', 'VENOM_TURBOJS_ENGINE_V3', 'VENOM_TURBOJS_ENGINE_V2', 'VENOM_TURBOJS_ENGINE_V1']);
   return Object.freeze({
     version: plan.version,
     enabled: plan.enabled,
@@ -837,9 +837,9 @@ function parseQuickJsEngineMetadata(section) {
     contextModel: plan.values.get('context_model') || 'none',
     sourceChunks: plan.values.get('source_chunks') || '',
     capabilityPolicy: plan.values.get('capability_policy') || '',
-    contextCreateHostCall: plan.values.get('context_create_host_call') || 'quickjs.contextCreate',
-    executeHostCall: plan.values.get('execute_host_call') || 'quickjs.executeChunk',
-    resultHostCall: plan.values.get('result_host_call') || 'quickjs.executionResult',
+    contextCreateHostCall: plan.values.get('context_create_host_call') || 'turbojs.contextCreate',
+    executeHostCall: plan.values.get('execute_host_call') || 'turbojs.executeChunk',
+    resultHostCall: plan.values.get('result_host_call') || 'turbojs.executionResult',
     fallbackHostCall: plan.values.get('fallback_host_call') || 'script.engineFallback',
     wasmRuntimeAsset: plan.values.get('wasm_runtime_asset') || '',
     sourceTransfer: plan.values.get('source_transfer') || '',
@@ -868,15 +868,15 @@ function parseScriptEnginePolicyMetadata(section) {
   });
 }
 
-function parseQuickJsEngineModuleMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_ENGINE_MODULE_V7', 'VENOM_QUICKJS_ENGINE_MODULE_V6', 'VENOM_QUICKJS_ENGINE_MODULE_V5', 'VENOM_QUICKJS_ENGINE_MODULE_V4', 'VENOM_QUICKJS_ENGINE_MODULE_V3', 'VENOM_QUICKJS_ENGINE_MODULE_V2', 'VENOM_QUICKJS_ENGINE_MODULE_V1']);
+function parseTurboJsEngineModuleMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_ENGINE_MODULE_V7', 'VENOM_TURBOJS_ENGINE_MODULE_V6', 'VENOM_TURBOJS_ENGINE_MODULE_V5', 'VENOM_TURBOJS_ENGINE_MODULE_V4', 'VENOM_TURBOJS_ENGINE_MODULE_V3', 'VENOM_TURBOJS_ENGINE_MODULE_V2', 'VENOM_TURBOJS_ENGINE_MODULE_V1']);
   return Object.freeze({
     version: plan.version,
     enabled: plan.enabled,
     assetName: plan.values.get('asset_name') || '',
     moduleFormat: plan.values.get('module_format') || 'esm',
     loader: plan.values.get('loader') || 'dynamic-import',
-    exportName: plan.values.get('export') || 'createVenomQuickJsEngineModule',
+    exportName: plan.values.get('export') || 'createVenomTurboJsEngineModule',
     executionMode: plan.values.get('execution_mode') || 'route-scoped-module',
     fallback: plan.values.get('fallback') || 'host-js-isolated-wrapper',
     contextModel: plan.values.get('context_model') || 'route-scoped',
@@ -890,18 +890,18 @@ function parseQuickJsEngineModuleMetadata(section) {
   });
 }
 
-function parseQuickJsContextLifecycleMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_CONTEXT_LIFECYCLE_V3', 'VENOM_QUICKJS_CONTEXT_LIFECYCLE_V2', 'VENOM_QUICKJS_CONTEXT_LIFECYCLE_V1']);
+function parseTurboJsContextLifecycleMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_CONTEXT_LIFECYCLE_V3', 'VENOM_TURBOJS_CONTEXT_LIFECYCLE_V2', 'VENOM_TURBOJS_CONTEXT_LIFECYCLE_V1']);
   return Object.freeze({
     version: plan.version,
     enabled: plan.enabled,
     model: plan.values.get('model') || 'route-scoped-reusable',
     key: plan.values.get('key') || 'route|source|order',
-    createHostCall: plan.values.get('create_host_call') || 'quickjs.contextCreate',
-    reuseHostCall: plan.values.get('reuse_host_call') || 'quickjs.contextReuse',
-    destroyHostCall: plan.values.get('destroy_host_call') || 'quickjs.contextDestroy',
-    moduleCreateHostCall: plan.values.get('module_create_host_call') || 'quickjs.moduleContextCreate',
-    moduleDestroyHostCall: plan.values.get('module_destroy_host_call') || 'quickjs.moduleContextDestroy',
+    createHostCall: plan.values.get('create_host_call') || 'turbojs.contextCreate',
+    reuseHostCall: plan.values.get('reuse_host_call') || 'turbojs.contextReuse',
+    destroyHostCall: plan.values.get('destroy_host_call') || 'turbojs.contextDestroy',
+    moduleCreateHostCall: plan.values.get('module_create_host_call') || 'turbojs.moduleContextCreate',
+    moduleDestroyHostCall: plan.values.get('module_destroy_host_call') || 'turbojs.moduleContextDestroy',
     snapshot: plan.values.get('snapshot') !== 'false',
     maxContexts: Number.parseInt(plan.values.get('max_contexts') || '4096', 10) >>> 0,
     chunkCount: Number.parseInt(plan.values.get('chunk_count') || '0', 10) >>> 0,
@@ -935,7 +935,7 @@ function parseHostCapabilitiesMetadata(section) {
     enabled: plan.enabled,
     policy: plan.values.get('policy') || 'legacy-global',
     undeclaredCapability: plan.values.get('undeclared_capability') || 'allow',
-    injectHostCall: plan.values.get('inject_host_call') || 'quickjs.hostCapabilityInject',
+    injectHostCall: plan.values.get('inject_host_call') || 'turbojs.hostCapabilityInject',
     defaultCapabilityCount: Number.parseInt(plan.values.get('default_capability_count') || String(capabilities.length), 10) >>> 0,
     defaultCapabilities: Object.freeze((plan.values.get('default_capabilities') || '').split(',').filter(Boolean)),
     chunkCount: Number.parseInt(plan.values.get('chunk_count') || '0', 10) >>> 0,
@@ -944,8 +944,8 @@ function parseHostCapabilitiesMetadata(section) {
   });
 }
 
-function parseQuickJsAdapterDiagnosticsMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_ADAPTER_DIAGNOSTICS_V3', 'VENOM_QUICKJS_ADAPTER_DIAGNOSTICS_V2', 'VENOM_QUICKJS_ADAPTER_DIAGNOSTICS_V1']);
+function parseTurboJsAdapterDiagnosticsMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_ADAPTER_DIAGNOSTICS_V3', 'VENOM_TURBOJS_ADAPTER_DIAGNOSTICS_V2', 'VENOM_TURBOJS_ADAPTER_DIAGNOSTICS_V1']);
   return Object.freeze({
     version: plan.version,
     enabled: plan.enabled,
@@ -957,8 +957,8 @@ function parseQuickJsAdapterDiagnosticsMetadata(section) {
   });
 }
 
-function parseQuickJsWasmRuntimeMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_WASM_RUNTIME_V10', 'VENOM_QUICKJS_WASM_RUNTIME_V9', 'VENOM_QUICKJS_WASM_RUNTIME_V8', 'VENOM_QUICKJS_WASM_RUNTIME_V7', 'VENOM_QUICKJS_WASM_RUNTIME_V6', 'VENOM_QUICKJS_WASM_RUNTIME_V5', 'VENOM_QUICKJS_WASM_RUNTIME_V4', 'VENOM_QUICKJS_WASM_RUNTIME_V3', 'VENOM_QUICKJS_WASM_RUNTIME_V2', 'VENOM_QUICKJS_WASM_RUNTIME_V1']);
+function parseTurboJsWasmRuntimeMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_WASM_RUNTIME_V10', 'VENOM_TURBOJS_WASM_RUNTIME_V9', 'VENOM_TURBOJS_WASM_RUNTIME_V8', 'VENOM_TURBOJS_WASM_RUNTIME_V7', 'VENOM_TURBOJS_WASM_RUNTIME_V6', 'VENOM_TURBOJS_WASM_RUNTIME_V5', 'VENOM_TURBOJS_WASM_RUNTIME_V4', 'VENOM_TURBOJS_WASM_RUNTIME_V3', 'VENOM_TURBOJS_WASM_RUNTIME_V2', 'VENOM_TURBOJS_WASM_RUNTIME_V1']);
   return Object.freeze({
     version: plan.version,
     enabled: plan.enabled,
@@ -966,7 +966,7 @@ function parseQuickJsWasmRuntimeMetadata(section) {
     abi: Number.parseInt(plan.values.get('abi') || '12', 10) >>> 0,
     packageVersion: Number.parseInt(plan.values.get('package_version') || '50', 10) >>> 0,
     exports: plan.values.get('exports') || '',
-    executionMode: plan.values.get('execution_mode') || 'quickjs-wasm-abi12-upstream-global-host-api-shims',
+    executionMode: plan.values.get('execution_mode') || 'turbojs-wasm-abi12-upstream-global-host-api-shims',
     abiContract: plan.values.get('abi_contract') || '',
     statusExports: plan.values.get('status_exports') || '',
     limitExports: plan.values.get('limit_exports') || '',
@@ -974,71 +974,71 @@ function parseQuickJsWasmRuntimeMetadata(section) {
   });
 }
 
-function parseQuickJsSourceTransferMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_SOURCE_TRANSFER_V7', 'VENOM_QUICKJS_SOURCE_TRANSFER_V6', 'VENOM_QUICKJS_SOURCE_TRANSFER_V5', 'VENOM_QUICKJS_SOURCE_TRANSFER_V4', 'VENOM_QUICKJS_SOURCE_TRANSFER_V3', 'VENOM_QUICKJS_SOURCE_TRANSFER_V2', 'VENOM_QUICKJS_SOURCE_TRANSFER_V1']);
+function parseTurboJsSourceTransferMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_SOURCE_TRANSFER_V7', 'VENOM_TURBOJS_SOURCE_TRANSFER_V6', 'VENOM_TURBOJS_SOURCE_TRANSFER_V5', 'VENOM_TURBOJS_SOURCE_TRANSFER_V4', 'VENOM_TURBOJS_SOURCE_TRANSFER_V3', 'VENOM_TURBOJS_SOURCE_TRANSFER_V2', 'VENOM_TURBOJS_SOURCE_TRANSFER_V1']);
   return Object.freeze({
     version: plan.version,
     enabled: plan.enabled,
-    sourcePtr: plan.values.get('source_ptr') || 'venom_qjs_source_ptr',
-    sourceCapacity: plan.values.get('source_capacity') || 'venom_qjs_source_capacity',
-    executeSource: plan.values.get('execute_source') || 'venom_qjs_execute_source',
-    executeBytecode: plan.values.get('execute_bytecode') || 'venom_qjs_execute_bytecode',
-    validateBytecode: plan.values.get('validate_bytecode') || 'venom_qjs_bytecode_validate',
-    bytecodeStatus: plan.values.get('bytecode_status') || 'venom_qjs_status_code',
-    bytecodeRecordHash: plan.values.get('bytecode_record_hash') || 'venom_qjs_bytecode_record_hash32',
-    bytecodePayloadSize: plan.values.get('bytecode_payload_size') || 'venom_qjs_bytecode_payload_size',
+    sourcePtr: plan.values.get('source_ptr') || 'venom_tjs_source_ptr',
+    sourceCapacity: plan.values.get('source_capacity') || 'venom_tjs_source_capacity',
+    executeSource: plan.values.get('execute_source') || 'venom_tjs_execute_source',
+    executeBytecode: plan.values.get('execute_bytecode') || 'venom_tjs_execute_bytecode',
+    validateBytecode: plan.values.get('validate_bytecode') || 'venom_tjs_bytecode_validate',
+    bytecodeStatus: plan.values.get('bytecode_status') || 'venom_tjs_status_code',
+    bytecodeRecordHash: plan.values.get('bytecode_record_hash') || 'venom_tjs_bytecode_record_hash32',
+    bytecodePayloadSize: plan.values.get('bytecode_payload_size') || 'venom_tjs_bytecode_payload_size',
     transferMode: plan.values.get('transfer_mode') || 'utf8-source',
-    resultPtr: plan.values.get('result_ptr') || 'venom_qjs_result_ptr',
-    resultSize: plan.values.get('result_size') || 'venom_qjs_result_size',
+    resultPtr: plan.values.get('result_ptr') || 'venom_tjs_result_ptr',
+    resultSize: plan.values.get('result_size') || 'venom_tjs_result_size',
   });
 }
 
-function parseQuickJsConsoleBridgeMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_CONSOLE_BRIDGE_V4', 'VENOM_QUICKJS_CONSOLE_BRIDGE_V3', 'VENOM_QUICKJS_CONSOLE_BRIDGE_V2', 'VENOM_QUICKJS_CONSOLE_BRIDGE_V1']);
+function parseTurboJsConsoleBridgeMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_CONSOLE_BRIDGE_V4', 'VENOM_TURBOJS_CONSOLE_BRIDGE_V3', 'VENOM_TURBOJS_CONSOLE_BRIDGE_V2', 'VENOM_TURBOJS_CONSOLE_BRIDGE_V1']);
   return Object.freeze({
     version: plan.version,
     enabled: plan.enabled,
     mode: plan.values.get('mode') || 'host-console-forward',
-    hostCall: plan.values.get('host_call') || 'quickjs.console',
+    hostCall: plan.values.get('host_call') || 'turbojs.console',
   });
 }
 
 
-function parseQuickJsExecutionRecordsMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_EXECUTION_RECORDS_V3', 'VENOM_QUICKJS_EXECUTION_RECORDS_V2', 'VENOM_QUICKJS_EXECUTION_RECORDS_V1']);
+function parseTurboJsExecutionRecordsMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_EXECUTION_RECORDS_V3', 'VENOM_TURBOJS_EXECUTION_RECORDS_V2', 'VENOM_TURBOJS_EXECUTION_RECORDS_V1']);
   return Object.freeze({
     version: plan.version,
     enabled: plan.enabled,
-    recordHostCall: plan.values.get('record_host_call') || 'quickjs.executionRecord',
-    snapshotHostCall: plan.values.get('snapshot_host_call') || 'quickjs.executionSnapshot',
+    recordHostCall: plan.values.get('record_host_call') || 'turbojs.executionRecord',
+    snapshotHostCall: plan.values.get('snapshot_host_call') || 'turbojs.executionSnapshot',
     recordFields: plan.values.get('record_fields') || '',
     retention: plan.values.get('retention') || 'runtime-session',
     chunkCount: Number.parseInt(plan.values.get('chunk_count') || '0', 10) >>> 0,
   });
 }
 
-function parseQuickJsResultBridgeMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_RESULT_BRIDGE_V3', 'VENOM_QUICKJS_RESULT_BRIDGE_V2', 'VENOM_QUICKJS_RESULT_BRIDGE_V1']);
+function parseTurboJsResultBridgeMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_RESULT_BRIDGE_V3', 'VENOM_TURBOJS_RESULT_BRIDGE_V2', 'VENOM_TURBOJS_RESULT_BRIDGE_V1']);
   return Object.freeze({
     version: plan.version,
     enabled: plan.enabled,
-    resultHostCall: plan.values.get('result_host_call') || 'quickjs.resultBridge',
-    wasmDecodeHostCall: plan.values.get('wasm_decode_host_call') || 'quickjs.wasmResultDecode',
-    consoleEventHostCall: plan.values.get('console_event_host_call') || 'quickjs.consoleEvent',
-    consoleFlushHostCall: plan.values.get('console_flush_host_call') || 'quickjs.consoleFlush',
+    resultHostCall: plan.values.get('result_host_call') || 'turbojs.resultBridge',
+    wasmDecodeHostCall: plan.values.get('wasm_decode_host_call') || 'turbojs.wasmResultDecode',
+    consoleEventHostCall: plan.values.get('console_event_host_call') || 'turbojs.consoleEvent',
+    consoleFlushHostCall: plan.values.get('console_flush_host_call') || 'turbojs.consoleFlush',
     format: plan.values.get('format') || 'json-record-v1',
     fields: plan.values.get('fields') || '',
   });
 }
 
-function parseQuickJsFallbackPolicyMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_FALLBACK_POLICY_V3', 'VENOM_QUICKJS_FALLBACK_POLICY_V2', 'VENOM_QUICKJS_FALLBACK_POLICY_V1']);
+function parseTurboJsFallbackPolicyMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_FALLBACK_POLICY_V3', 'VENOM_TURBOJS_FALLBACK_POLICY_V2', 'VENOM_TURBOJS_FALLBACK_POLICY_V1']);
   return Object.freeze({
     version: plan.version,
     enabled: plan.enabled,
     mode: plan.values.get('mode') || 'explicit-policy-gated',
     decisionHostCall: plan.values.get('decision_host_call') || 'script.fallbackDecision',
-    policyCheckHostCall: plan.values.get('policy_check_host_call') || 'quickjs.fallbackPolicyCheck',
+    policyCheckHostCall: plan.values.get('policy_check_host_call') || 'turbojs.fallbackPolicyCheck',
     allowWhen: plan.values.get('allow_when') || '',
     denyWhen: plan.values.get('deny_when') || '',
     currentReleasePolicy: plan.values.get('current_release_policy') || 'allow-compatible-fallback-with-record',
@@ -1047,80 +1047,80 @@ function parseQuickJsFallbackPolicyMetadata(section) {
   });
 }
 
-function parseQuickJsRuntimeAbiMetadata(section) {
-  const plan = parseKeyValueMetadata(section, [['VENOM','QJS','RUNTIME','ABI','V12'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V11'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V10'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V7'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V5'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V4'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V3'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V2'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V1'].join('_')]);
+function parseTurboJsRuntimeAbiMetadata(section) {
+  const plan = parseKeyValueMetadata(section, [['VENOM','TJS','RUNTIME','ABI','V12'].join('_'), ['VENOM','TJS','RUNTIME','ABI','V11'].join('_'), ['VENOM','TJS','RUNTIME','ABI','V10'].join('_'), ['VENOM','TJS','RUNTIME','ABI','V7'].join('_'), ['VENOM','TJS','RUNTIME','ABI','V5'].join('_'), ['VENOM','TJS','RUNTIME','ABI','V4'].join('_'), ['VENOM','TJS','RUNTIME','ABI','V3'].join('_'), ['VENOM','TJS','RUNTIME','ABI','V2'].join('_'), ['VENOM','TJS','RUNTIME','ABI','V1'].join('_')]);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, abi: Number.parseInt(plan.values.get('abi') || '12', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, entryCount: Number.parseInt(plan.values.get('entry_count') || '0', 10) >>> 0, tableHash: plan.values.get('table_hash') || plan.values.get('abi_hash') || '', table: plan.values.get('table') || '', exports: plan.values.get('exports') || '' });
 }
 
-function parseQuickJsHostImportsMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_HOST_IMPORT_TABLE_V10', 'VENOM_QJS_HOST_IMPORT_TABLE_V9', 'VENOM_QJS_HOST_IMPORT_TABLE_V8', 'VENOM_QJS_HOST_IMPORT_TABLE_V5', 'VENOM_QJS_HOST_IMPORT_TABLE_V4', 'VENOM_QJS_HOST_IMPORT_TABLE_V3', 'VENOM_QJS_HOST_IMPORT_TABLE_V2', 'VENOM_QJS_HOST_IMPORT_TABLE_V1', 'VENOM_QUICKJS_HOST_IMPORTS_V1']);
+function parseTurboJsHostImportsMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_HOST_IMPORT_TABLE_V10', 'VENOM_TJS_HOST_IMPORT_TABLE_V9', 'VENOM_TJS_HOST_IMPORT_TABLE_V8', 'VENOM_TJS_HOST_IMPORT_TABLE_V5', 'VENOM_TJS_HOST_IMPORT_TABLE_V4', 'VENOM_TJS_HOST_IMPORT_TABLE_V3', 'VENOM_TJS_HOST_IMPORT_TABLE_V2', 'VENOM_TJS_HOST_IMPORT_TABLE_V1', 'VENOM_TURBOJS_HOST_IMPORTS_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, importCount: Number.parseInt(plan.values.get('import_count') || plan.values.get('entry_count') || '0', 10) >>> 0, tableHash: plan.values.get('table_hash') || plan.values.get('abi_hash') || '', table: plan.values.get('table') || '', design: plan.values.get('design') || 'host-call-import-table' });
 }
 
-function parseQuickJsHeapLimitsMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_CONTEXT_LIMITS_V1', 'VENOM_QUICKJS_HEAP_LIMITS_V1']);
-  return Object.freeze({ version: plan.version, enabled: plan.enabled, heapLimit: Number.parseInt(plan.values.get('default_heap_limit') || '8388608', 10) >>> 0, stackLimit: Number.parseInt(plan.values.get('default_stack_limit') || '262144', 10) >>> 0, maxContexts: Number.parseInt(plan.values.get('max_contexts') || '64', 10) >>> 0, accountingHostCall: plan.values.get('accounting_host_call') || 'quickjs.contextHeapAccounting' });
+function parseTurboJsHeapLimitsMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_CONTEXT_LIMITS_V1', 'VENOM_TURBOJS_HEAP_LIMITS_V1']);
+  return Object.freeze({ version: plan.version, enabled: plan.enabled, heapLimit: Number.parseInt(plan.values.get('default_heap_limit') || '8388608', 10) >>> 0, stackLimit: Number.parseInt(plan.values.get('default_stack_limit') || '262144', 10) >>> 0, maxContexts: Number.parseInt(plan.values.get('max_contexts') || '64', 10) >>> 0, accountingHostCall: plan.values.get('accounting_host_call') || 'turbojs.contextHeapAccounting' });
 }
 
-function parseQuickJsScriptBufferMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_SCRIPT_BUFFER_V1', 'VENOM_QUICKJS_SCRIPT_BUFFER_V1']);
-  return Object.freeze({ version: plan.version, enabled: plan.enabled, capacity: Number.parseInt(plan.values.get('max_script_bytes') || plan.values.get('max_script_buffer') || '786432', 10) >>> 0, allocExport: plan.values.get('alloc_export') || 'venom_qjs_script_buffer_alloc', ptrExport: plan.values.get('ptr_export') || 'venom_qjs_script_buffer_ptr', freeExport: plan.values.get('free_export') || 'venom_qjs_script_buffer_free' });
+function parseTurboJsScriptBufferMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_SCRIPT_BUFFER_V1', 'VENOM_TURBOJS_SCRIPT_BUFFER_V1']);
+  return Object.freeze({ version: plan.version, enabled: plan.enabled, capacity: Number.parseInt(plan.values.get('max_script_bytes') || plan.values.get('max_script_buffer') || '786432', 10) >>> 0, allocExport: plan.values.get('alloc_export') || 'venom_tjs_script_buffer_alloc', ptrExport: plan.values.get('ptr_export') || 'venom_tjs_script_buffer_ptr', freeExport: plan.values.get('free_export') || 'venom_tjs_script_buffer_free' });
 }
 
-function parseQuickJsConsoleAbiMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_CONSOLE_CALLBACK_ABI_V1', 'VENOM_QUICKJS_CONSOLE_ABI_V1']);
-  return Object.freeze({ version: plan.version, enabled: plan.enabled, abi: Number.parseInt(plan.values.get('abi') || '1', 10) >>> 0, eventFormat: plan.values.get('event_format') || 'json-console-event-v1', eventExport: plan.values.get('event_export') || 'venom_qjs_console_event_ptr' });
+function parseTurboJsConsoleAbiMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_CONSOLE_CALLBACK_ABI_V1', 'VENOM_TURBOJS_CONSOLE_ABI_V1']);
+  return Object.freeze({ version: plan.version, enabled: plan.enabled, abi: Number.parseInt(plan.values.get('abi') || '1', 10) >>> 0, eventFormat: plan.values.get('event_format') || 'json-console-event-v1', eventExport: plan.values.get('event_export') || 'venom_tjs_console_event_ptr' });
 }
 
-function parseQuickJsParityProbeMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_PARITY_PROBE_V7', 'VENOM_QJS_PARITY_PROBE_V6', 'VENOM_QJS_PARITY_PROBE_V5', 'VENOM_QJS_PARITY_PROBE_V4', 'VENOM_QJS_PARITY_PROBE_V3', 'VENOM_QJS_PARITY_PROBE_V2', 'VENOM_QJS_PARITY_PROBE_V1', 'VENOM_QUICKJS_PARITY_PROBE_V1']);
-  return Object.freeze({ version: plan.version, enabled: plan.enabled, expected: plan.values.get('expected') || 'quickjs:3', native: plan.values.get('native') || '', wasm: plan.values.get('wasm') || '', hostCall: plan.values.get('host_call') || 'quickjs.wasmParityProbe' });
+function parseTurboJsParityProbeMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_PARITY_PROBE_V7', 'VENOM_TJS_PARITY_PROBE_V6', 'VENOM_TJS_PARITY_PROBE_V5', 'VENOM_TJS_PARITY_PROBE_V4', 'VENOM_TJS_PARITY_PROBE_V3', 'VENOM_TJS_PARITY_PROBE_V2', 'VENOM_TJS_PARITY_PROBE_V1', 'VENOM_TURBOJS_PARITY_PROBE_V1']);
+  return Object.freeze({ version: plan.version, enabled: plan.enabled, expected: plan.values.get('expected') || 'turbojs:3', native: plan.values.get('native') || '', wasm: plan.values.get('wasm') || '', hostCall: plan.values.get('host_call') || 'turbojs.wasmParityProbe' });
 }
 
-function parseQuickJsReleaseFallbackMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_RELEASE_FALLBACK_V1', 'VENOM_QUICKJS_RELEASE_FALLBACK_V1']);
+function parseTurboJsReleaseFallbackMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_RELEASE_FALLBACK_V1', 'VENOM_TURBOJS_RELEASE_FALLBACK_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, policy: plan.values.get('policy') || 'deny-host-fallback-unless-real-engine-ready', denyHostFallback: plan.values.get('deny_host_fallback') !== 'false', allowWhen: plan.values.get('allow_when') || 'real-engine-ready', denyWhen: plan.values.get('deny_when') || 'engine-module-unavailable-or-compatible-fallback|wasm-interpreter-unavailable' });
 }
 
-function parseQuickJsBytecodeManifestMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_BYTECODE_MANIFEST_V3', 'VENOM_QJS_BYTECODE_MANIFEST_V2', 'VENOM_QJS_BYTECODE_MANIFEST_V1', 'VENOM_QUICKJS_BYTECODE_MANIFEST_V1']);
-  return Object.freeze({ version: plan.version, enabled: plan.enabled, format: plan.values.get('format') || 'native-quickjs-object-bytecode-v3', magic: plan.values.get('magic') || 'VQJSBC03', chunkCount: Number.parseInt(plan.values.get('chunk_count') || '0', 10) >>> 0, execClaim: plan.values.get('exec_claim') || 'runtime-hands-opaque-records-to-quickjs-wasm-boundary' });
+function parseTurboJsBytecodeManifestMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_BYTECODE_MANIFEST_V3', 'VENOM_TJS_BYTECODE_MANIFEST_V2', 'VENOM_TJS_BYTECODE_MANIFEST_V1', 'VENOM_TURBOJS_BYTECODE_MANIFEST_V1']);
+  return Object.freeze({ version: plan.version, enabled: plan.enabled, format: plan.values.get('format') || 'native-turbojs-object-bytecode-v3', magic: plan.values.get('magic') || 'VTJSBC03', chunkCount: Number.parseInt(plan.values.get('chunk_count') || '0', 10) >>> 0, execClaim: plan.values.get('exec_claim') || 'runtime-hands-opaque-records-to-turbojs-wasm-boundary' });
 }
 
-function parseQuickJsModuleResolverMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_MODULE_RESOLVER_V1', 'VENOM_QUICKJS_MODULE_RESOLVER_V1']);
+function parseTurboJsModuleResolverMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_MODULE_RESOLVER_V1', 'VENOM_TURBOJS_MODULE_RESOLVER_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, abi: Number.parseInt(plan.values.get('resolver_abi') || '1', 10) >>> 0, mode: plan.values.get('mode') || 'package-relative-module-map', denyRemoteModules: plan.values.get('deny_remote_modules') !== 'false', denyDynamicImport: plan.values.get('deny_dynamic_import_until_real_engine') !== 'false' });
 }
 
-function parseQuickJsExceptionAbiMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_EXCEPTION_ABI_V1', 'VENOM_QUICKJS_EXCEPTION_ABI_V1']);
+function parseTurboJsExceptionAbiMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_EXCEPTION_ABI_V1', 'VENOM_TURBOJS_EXCEPTION_ABI_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, abi: Number.parseInt(plan.values.get('exception_abi') || '1', 10) >>> 0, schema: plan.values.get('schema') || 'ok|abi|context|code|kind|message|sourceBytes|sourceHash' });
 }
 
-function parseQuickJsHostTrapPolicyMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_HOST_TRAP_POLICY_V1', 'VENOM_QUICKJS_HOST_TRAP_POLICY_V1']);
+function parseTurboJsHostTrapPolicyMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_HOST_TRAP_POLICY_V1', 'VENOM_TURBOJS_HOST_TRAP_POLICY_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, policy: plan.values.get('policy') || 'record-unknown-host-imports', unknownImport: plan.values.get('unknown_import') || 'deny' });
 }
 
 
-function parseQuickJsExecutionLifecycleMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_EXECUTION_LIFECYCLE_V1', 'VENOM_QUICKJS_EXECUTION_LIFECYCLE_V1']);
+function parseTurboJsExecutionLifecycleMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_EXECUTION_LIFECYCLE_V1', 'VENOM_TURBOJS_EXECUTION_LIFECYCLE_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, states: plan.values.get('states') || 'created|configured|loaded|executing|trapped|disposed', initial: plan.values.get('initial') || 'created', trapState: plan.values.get('trap_state') || 'trapped', strictRelease: plan.values.get('strict_release') === 'true' });
 }
 
-function parseQuickJsScriptBufferPolicyMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_SCRIPT_BUFFER_POLICY_V1', 'VENOM_QUICKJS_SCRIPT_BUFFER_POLICY_V1']);
+function parseTurboJsScriptBufferPolicyMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_SCRIPT_BUFFER_POLICY_V1', 'VENOM_TURBOJS_SCRIPT_BUFFER_POLICY_V1']);
   const bool = (key, fallback) => plan.values.has(key) ? plan.values.get(key) === 'true' : fallback;
   return Object.freeze({ version: plan.version, enabled: plan.enabled, rejectZeroSize: bool('reject_zero_size', true), rejectOversized: bool('reject_oversized', true), validateHashBeforeExecute: bool('validate_hash_before_execute', true), trackAllocCounter: bool('track_alloc_counter', true), trackFreeCounter: bool('track_free_counter', true), maxScriptBytes: Number.parseInt(plan.values.get('max_script_bytes') || '786432', 10) >>> 0 });
 }
 
-function parseQuickJsContextLimitPolicyMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_CONTEXT_LIMIT_POLICY_V1', 'VENOM_QUICKJS_CONTEXT_LIMIT_POLICY_V1']);
+function parseTurboJsContextLimitPolicyMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_CONTEXT_LIMIT_POLICY_V1', 'VENOM_TURBOJS_CONTEXT_LIMIT_POLICY_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, maxHeapBytes: Number.parseInt(plan.values.get('max_heap_bytes') || '8388608', 10) >>> 0, maxStackBytes: Number.parseInt(plan.values.get('max_stack_bytes') || '262144', 10) >>> 0, maxScriptBytes: Number.parseInt(plan.values.get('max_script_bytes') || '786432', 10) >>> 0, maxContexts: Number.parseInt(plan.values.get('max_contexts') || '64', 10) >>> 0, maxHostCalls: Number.parseInt(plan.values.get('max_host_calls') || '4096', 10) >>> 0, maxConsoleEvents: Number.parseInt(plan.values.get('max_console_events') || '1024', 10) >>> 0, maxModuleRecords: Number.parseInt(plan.values.get('max_module_records') || '512', 10) >>> 0 });
 }
 
-function parseQuickJsHostCallDispatchMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_HOST_CALL_DISPATCH_V3', 'VENOM_QJS_HOST_CALL_DISPATCH_V2', 'VENOM_QUICKJS_HOST_CALL_DISPATCH_V2', 'VENOM_QJS_HOST_CALL_DISPATCH_V1', 'VENOM_QUICKJS_HOST_CALL_DISPATCH_V1']);
+function parseTurboJsHostCallDispatchMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_HOST_CALL_DISPATCH_V3', 'VENOM_TJS_HOST_CALL_DISPATCH_V2', 'VENOM_TURBOJS_HOST_CALL_DISPATCH_V2', 'VENOM_TJS_HOST_CALL_DISPATCH_V1', 'VENOM_TURBOJS_HOST_CALL_DISPATCH_V1']);
   const calls = [];
   if (section) {
     for (const line of textDecoder.decode(section.data).split(/\r?\n/)) {
@@ -1133,18 +1133,18 @@ function parseQuickJsHostCallDispatchMetadata(section) {
   return Object.freeze({ version: plan.version, enabled: plan.enabled, strictRelease: plan.values.get('strict_release') === 'true', unknownHostCall: plan.values.get('unknown_host_call') || 'deny', dispatchHash: plan.values.get('dispatch_hash') || '', entryCount: Number.parseInt(plan.values.get('entry_count') || String(calls.length), 10) >>> 0, calls: Object.freeze(calls) });
 }
 
-function parseQuickJsParityContractMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_PARITY_CONTRACT_V1', 'VENOM_QUICKJS_PARITY_CONTRACT_V1']);
+function parseTurboJsParityContractMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_PARITY_CONTRACT_V1', 'VENOM_TURBOJS_PARITY_CONTRACT_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '5', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, compare: plan.values.get('compare') || '', abiHash: plan.values.get('abi_hash') || '', hostImportHash: plan.values.get('host_import_hash') || '', hostDispatchHash: plan.values.get('host_dispatch_hash') || '', releaseOnMismatch: plan.values.get('release_on_mismatch') || 'fail-closed' });
 }
 
-function parseQuickJsReleaseFailClosedMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_RELEASE_FAILCLOSED_V1', 'VENOM_QUICKJS_RELEASE_FAILCLOSED_V1']);
+function parseTurboJsReleaseFailClosedMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_RELEASE_FAILCLOSED_V1', 'VENOM_TURBOJS_RELEASE_FAILCLOSED_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, strictRelease: plan.values.get('strict_release') === 'true', debugPolicy: plan.values.get('debug_policy') || 'warn-and-record', releasePolicy: plan.values.get('release_policy') || 'fail-closed', failOn: plan.values.get('fail_on') || '' });
 }
 
-function parseQuickJsModuleGraphMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_MODULE_GRAPH_V1', 'VENOM_QUICKJS_MODULE_GRAPH_V1']);
+function parseTurboJsModuleGraphMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_MODULE_GRAPH_V1', 'VENOM_TURBOJS_MODULE_GRAPH_V1']);
   const modules = [];
   if (section) {
     for (const line of textDecoder.decode(section.data).split(/\r?\n/)) {
@@ -1157,174 +1157,174 @@ function parseQuickJsModuleGraphMetadata(section) {
   return Object.freeze({ version: plan.version, enabled: plan.enabled, graphFormat: plan.values.get('graph_format') || 'route-scoped-module-graph-v1', resolver: plan.values.get('resolver') || 'package-relative-static-imports', dynamicImport: plan.values.get('dynamic_import') || 'literal-package-graph-candidate', chunkCount: Number.parseInt(plan.values.get('chunk_count') || '0', 10) >>> 0, moduleCount: Number.parseInt(plan.values.get('module_count') || String(modules.length), 10) >>> 0, modules: Object.freeze(modules) });
 }
 
-function parseQuickJsModuleExecutionMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_MODULE_EXECUTION_V1', 'VENOM_QUICKJS_MODULE_EXECUTION_V1']);
+function parseTurboJsModuleExecutionMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_MODULE_EXECUTION_V1', 'VENOM_TURBOJS_MODULE_EXECUTION_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '5', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, mode: plan.values.get('mode') || 'route-scoped-esm-prototype', moduleCount: Number.parseInt(plan.values.get('module_count') || '0', 10) >>> 0, staticImports: plan.values.get('static_imports') || 'package-relative', dynamicImport: plan.values.get('dynamic_import') || 'literal-package-graph-candidate', hostFallback: plan.values.get('host_fallback') || 'esm-transform-prototype' });
 }
 
-function parseQuickJsModuleCacheMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_MODULE_CACHE_V1', 'VENOM_QUICKJS_MODULE_CACHE_V1']);
+function parseTurboJsModuleCacheMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_MODULE_CACHE_V1', 'VENOM_TURBOJS_MODULE_CACHE_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '5', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, moduleCount: Number.parseInt(plan.values.get('module_count') || '0', 10) >>> 0, cacheKey: plan.values.get('cache_key') || 'normalized-specifier|route|source-hash', namespaceModel: plan.values.get('namespace_model') || 'frozen-export-record', instantiateOnce: plan.values.get('instantiate_once') !== 'false', evaluateOnce: plan.values.get('evaluate_once') !== 'false' });
 }
 
-function parseQuickJsResolverAuditMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_RESOLVER_AUDIT_V1', 'VENOM_QUICKJS_RESOLVER_AUDIT_V1']);
+function parseTurboJsResolverAuditMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_RESOLVER_AUDIT_V1', 'VENOM_TURBOJS_RESOLVER_AUDIT_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '5', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, moduleCount: Number.parseInt(plan.values.get('module_count') || '0', 10) >>> 0, record: plan.values.get('record') || 'specifier|referrer|normalized|status|host-call-id', unknownSpecifier: plan.values.get('unknown_specifier') || 'record-and-empty-namespace', dynamicImport: plan.values.get('dynamic_import') || 'literal-package-graph-candidate' });
 }
 
-function parseQuickJsInteropFallbackMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_INTEROP_FALLBACK_V1', 'VENOM_QUICKJS_INTEROP_FALLBACK_V1']);
+function parseTurboJsInteropFallbackMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_INTEROP_FALLBACK_V1', 'VENOM_TURBOJS_INTEROP_FALLBACK_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '5', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, fallbackKind: plan.values.get('fallback_kind') || 'host-esm-transform-prototype', allowedSyntax: plan.values.get('allowed_syntax') || '', deniedSyntax: plan.values.get('denied_syntax') || '', releaseBehavior: plan.values.get('release_behavior') || 'fail-closed-if-required-contract-missing' });
 }
 
-function parseQuickJsExecutionPipelineMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_EXECUTION_PIPELINE_V1']);
+function parseTurboJsExecutionPipelineMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_EXECUTION_PIPELINE_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, stages: plan.values.get('stages') || '', chunkCount: Number.parseInt(plan.values.get('chunk_count') || '0', 10) >>> 0, releaseRequires: plan.values.get('release_requires') || '' });
 }
 
-function parseQuickJsScriptRecordsMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_SCRIPT_RECORDS_V1']);
+function parseTurboJsScriptRecordsMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_SCRIPT_RECORDS_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, chunkCount: Number.parseInt(plan.values.get('chunk_count') || '0', 10) >>> 0, recordFields: plan.values.get('record_fields') || '', rejectUnpreparedEval: plan.values.get('reject_unprepared_eval') !== 'false' });
 }
 
-function parseQuickJsEvalResultsMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_EVAL_RESULTS_V1']);
+function parseTurboJsEvalResultsMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_EVAL_RESULTS_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, resultFields: plan.values.get('result_fields') || '', resultHash: plan.values.get('result_hash') || 'fnv1a32-json-record' });
 }
 
-function parseQuickJsConsoleCaptureMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_CONSOLE_CAPTURE_V1']);
+function parseTurboJsConsoleCaptureMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_CONSOLE_CAPTURE_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, levels: plan.values.get('levels') || 'debug|log|info|warn|error', schema: plan.values.get('capture_schema') || '', flushHostCall: plan.values.get('flush_host_call') || 'console.capture.flush' });
 }
 
-function parseQuickJsFailureReportsMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_FAILURE_REPORTS_V1']);
+function parseTurboJsFailureReportsMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_FAILURE_REPORTS_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, schema: plan.values.get('schema') || '', releaseBehavior: plan.values.get('release_behavior') || 'fail-closed-with-report' });
 }
 
-function parseQuickJsExecutionJournalMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_EXECUTION_JOURNAL_V1']);
+function parseTurboJsExecutionJournalMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_EXECUTION_JOURNAL_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, recordFields: plan.values.get('record_fields') || '', checkpointLink: plan.values.get('checkpoint_link') || '', maxRecords: Number.parseInt(plan.values.get('max_records') || '64', 10) >>> 0 });
 }
 
-function parseQuickJsCheckpointPolicyMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_CHECKPOINT_POLICY_V1']);
+function parseTurboJsCheckpointPolicyMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_CHECKPOINT_POLICY_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, maxCheckpoints: Number.parseInt(plan.values.get('max_checkpoints') || '64', 10) >>> 0, capture: plan.values.get('capture') || 'context|script|eval|console|exception|lifecycle', restorePolicy: plan.values.get('restore_policy') || 'same-context-only' });
 }
 
-function parseQuickJsReplayCursorMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_REPLAY_CURSOR_V1']);
+function parseTurboJsReplayCursorMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_REPLAY_CURSOR_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, cursorFields: plan.values.get('cursor_fields') || '', deterministicInput: plan.values.get('deterministic_input') || 'script_hash|host_call_index|module_cache_index' });
 }
 
-function parseQuickJsResumeStateMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_RESUME_STATE_V1']);
+function parseTurboJsResumeStateMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_RESUME_STATE_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, stateFields: plan.values.get('state_fields') || '', failureBehavior: plan.values.get('failure_behavior') || 'trap-and-report' });
 }
 
-function parseQuickJsDeterminismAuditMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_DETERMINISM_AUDIT_V1']);
+function parseTurboJsDeterminismAuditMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_DETERMINISM_AUDIT_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, auditFields: plan.values.get('audit_fields') || '', releaseRequires: plan.values.get('release_requires') || 'hash-match|host-call-order|checkpoint-sequence' });
 }
 
-function parseQuickJsSnapshotPolicyMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_SNAPSHOT_POLICY_V1']);
+function parseTurboJsSnapshotPolicyMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_SNAPSHOT_POLICY_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, capture: plan.values.get('capture') || 'post-checkpoint', validate: plan.values.get('validate') || 'hash-match', releaseOnMismatch: plan.values.get('release_on_mismatch') || 'trap' });
 }
 
-function parseQuickJsSnapshotRecordsMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_SNAPSHOT_RECORDS_V1']);
+function parseTurboJsSnapshotRecordsMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_SNAPSHOT_RECORDS_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, chunkCount: Number.parseInt(plan.values.get('chunk_count') || '0', 10) >>> 0, recordFields: plan.values.get('record_fields') || '' });
 }
 
-function parseQuickJsReplayValidationMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_REPLAY_VALIDATION_V1']);
+function parseTurboJsReplayValidationMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_REPLAY_VALIDATION_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, checks: plan.values.get('checks') || '', onMismatch: plan.values.get('on_mismatch') || 'trap' });
 }
 
-function parseQuickJsDeterminismLedgerMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_DETERMINISM_LEDGER_V1']);
+function parseTurboJsDeterminismLedgerMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_DETERMINISM_LEDGER_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, chainHash: plan.values.get('chain_hash') || 'fnv1a64-linked' });
 }
 
-function parseQuickJsAuditSealMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_AUDIT_SEAL_V1']);
+function parseTurboJsAuditSealMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_AUDIT_SEAL_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, releaseRequires: plan.values.get('release_requires') || 'snapshot-valid|ledger-linked|abi-match' });
 }
 
-function parseQuickJsExecutionCommitMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_EXECUTION_COMMIT_V1']);
+function parseTurboJsExecutionCommitMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_EXECUTION_COMMIT_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, commitHostCall: plan.values.get('commit_host_call') || 'execution.commit', releaseRequires: plan.values.get('release_requires') || 'commit-record-present-and-linked' });
 }
 
-function parseQuickJsRollbackPolicyMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_ROLLBACK_POLICY_V1']);
+function parseTurboJsRollbackPolicyMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_ROLLBACK_POLICY_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, rollbackHostCall: plan.values.get('rollback_host_call') || 'execution.rollback', releaseBehavior: plan.values.get('release_behavior') || 'fail-closed-on-unmatched-rollback' });
 }
 
-function parseQuickJsHostCallReceiptsMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_HOST_CALL_RECEIPTS_V1']);
+function parseTurboJsHostCallReceiptsMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_HOST_CALL_RECEIPTS_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, receiptHostCall: plan.values.get('receipt_host_call') || 'host.receipt', releaseRequires: plan.values.get('release_requires') || 'all-host-calls-receipted' });
 }
 
-function parseQuickJsReleaseAcceptanceMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_RELEASE_ACCEPTANCE_V1']);
+function parseTurboJsReleaseAcceptanceMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_RELEASE_ACCEPTANCE_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, checks: plan.values.get('acceptance_checks') || '', releaseOnFailure: plan.values.get('release_on_failure') || 'trap' });
 }
 
-function parseQuickJsCommitAuditMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_COMMIT_AUDIT_V1']);
+function parseTurboJsCommitAuditMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_COMMIT_AUDIT_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, auditFields: plan.values.get('audit_fields') || '', releaseRequires: plan.values.get('release_requires') || 'commit-audit-present' });
 }
 
 
-function parseQuickJsCapabilityPolicyMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_CAPABILITY_POLICY_V1']);
+function parseTurboJsCapabilityPolicyMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_CAPABILITY_POLICY_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, mode: plan.values.get('mode') || 'deny-by-default-host-io', capabilities: plan.values.get('capabilities') || '', releaseRequires: plan.values.get('release_requires') || 'capability-policy-present' });
 }
 
-function parseQuickJsHostIoPolicyMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_HOST_IO_POLICY_V1']);
+function parseTurboJsHostIoPolicyMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_HOST_IO_POLICY_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, network: plan.values.get('network') || 'blocked-unless-capability', filesystem: plan.values.get('filesystem') || 'blocked', releaseBehavior: plan.values.get('release_behavior') || 'fail-closed-on-unsealed-io' });
 }
 
-function parseQuickJsPermissionSealMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_PERMISSION_SEAL_V1']);
+function parseTurboJsPermissionSealMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_PERMISSION_SEAL_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, algorithm: plan.values.get('algorithm') || 'fnv1a-policy-chain', releaseRequires: plan.values.get('release_requires') || 'permission-seal-present' });
 }
 
-function parseQuickJsPolicyReceiptsMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_POLICY_RECEIPTS_V1']);
+function parseTurboJsPolicyReceiptsMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_POLICY_RECEIPTS_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, hostCall: plan.values.get('host_call') || 'host.receipt', releaseRequires: plan.values.get('release_requires') || 'policy-receipts-linked' });
 }
 
-function parseQuickJsReleaseGateMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_RELEASE_GATE_V1']);
+function parseTurboJsReleaseGateMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_RELEASE_GATE_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, gate: plan.values.get('gate') || 'abi+policy+seal+receipts', failOn: plan.values.get('fail_on') || 'missing-policy|missing-seal|unreceipted-host-call' });
 }
 
-function parseQuickJsHostIoDecisionMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_HOST_IO_DECISION_V1']);
+function parseTurboJsHostIoDecisionMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_HOST_IO_DECISION_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, fields: plan.values.get('fields') || 'context|io_class|capability|decision|payload_hash', releaseRequires: plan.values.get('release_requires') || 'decision-record-linked' });
 }
 
-function parseQuickJsHostIoDenyTraceMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_HOST_IO_DENY_TRACE_V1']);
+function parseTurboJsHostIoDenyTraceMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_HOST_IO_DENY_TRACE_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, fields: plan.values.get('fields') || 'context|io_class|capability|reason|payload_hash', releaseBehavior: plan.values.get('release_behavior') || 'fail-closed-on-any-denial' });
 }
 
-function parseQuickJsCapabilityLedgerMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_CAPABILITY_LEDGER_V1']);
+function parseTurboJsCapabilityLedgerMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_CAPABILITY_LEDGER_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, fields: plan.values.get('fields') || 'capability|decision|receipt_hash|host_call_id', releaseRequires: plan.values.get('release_requires') || 'ledger-linked-to-seal' });
 }
 
-function parseQuickJsPolicySealAuditMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_POLICY_SEAL_AUDIT_V1']);
+function parseTurboJsPolicySealAuditMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_POLICY_SEAL_AUDIT_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, fields: plan.values.get('fields') || 'seal_hash|decision_hash|ledger_hash|deny_trace_hash', releaseRequires: plan.values.get('release_requires') || 'policy-seal-audit-present' });
 }
 
-function parseQuickJsRuntimeDenylistMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_RUNTIME_DENYLIST_V1']);
+function parseTurboJsRuntimeDenylistMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_RUNTIME_DENYLIST_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, denylist: plan.values.get('denylist') || plan.values.get('deny') || 'fetch|unlisted-host-call|unknown-capability', releaseBehavior: plan.values.get('release_behavior') || 'fail-closed-on-deny-trace' });
 }
 
@@ -1346,7 +1346,7 @@ function parseAsyncHostQueueMetadata(section) {
     maxRouteLifetimeMs: Number.parseInt(plan.values.get('max_route_lifetime_ms') || '86400000', 10) >>> 0,
     teardown: plan.values.get('teardown') || 'cancel-timers|abort-fetches|reject-pending|destroy-contexts',
     wasmRequestBoundary: plan.values.get('wasm_request_boundary') || 'planned',
-    quickjsRequestBoundary: plan.values.get('quickjs_request_boundary') || 'planned',
+    turbojsRequestBoundary: plan.values.get('turbojs_request_boundary') || 'planned',
   });
 }
 

@@ -66,7 +66,7 @@ std::string_view compiler_version() noexcept;
     args.output_hpp.write_text(hpp, encoding='utf-8', newline='\n')
 
     lines = [
-        '#include "venom/generated/compiler/typescript_compiler_asset.hpp"',
+        '#include "generated/compiler/typescript_compiler_asset.hpp"',
         '',
         '#include <array>',
         '#include <string>',

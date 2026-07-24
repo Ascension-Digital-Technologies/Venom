@@ -12,6 +12,6 @@ with tempfile.TemporaryDirectory() as td:
     closure=build.get('protection_closure',{})
     if closure.get('requested') != 1 or closure.get('resolved') != 1:
         raise SystemExit('protected arrow closure mismatch: '+repr(closure))
-    if closure.get('expected_quickjs_records') != 1 or not closure.get('registry_present'):
+    if closure.get('expected_turbojs_records') != 1 or not closure.get('registry_present'):
         raise SystemExit('protected arrow registry missing: '+repr(closure))
 print('[PASS] protected arrow function lowers into one protected registry record')

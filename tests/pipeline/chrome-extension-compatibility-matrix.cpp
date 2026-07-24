@@ -1,5 +1,5 @@
-#include "venom/core/site.hpp"
-#include "venom/internal/pipeline/chrome_extension.hpp"
+#include "core/site.hpp"
+#include "chrome_extension.hpp"
 
 #include <filesystem>
 #include <iostream>
@@ -68,7 +68,7 @@ int main() {
     }
     // Validation is required only when the fixture has a compatible protected
     // runtime host. Adapter-only fixtures intentionally demonstrate contexts
-    // that cannot host QuickJS/WASM directly.
+    // that cannot host TurboJS/WASM directly.
     if (analysis.runtime_host != RuntimeHost::None) {
       venom::compiler::chrome_extension::validate_project(graph);
     }

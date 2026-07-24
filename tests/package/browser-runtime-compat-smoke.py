@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import pathlib
-from _quickjs_artifact import require_current_artifact
+from _turbojs_artifact import require_current_artifact
 import shutil
 import subprocess
 import sys
@@ -31,12 +31,12 @@ subprocess.run([str(venom), 'verify-runtime', str(compat_out), '--target', 'brow
 subprocess.run([node, str(harness), str(compat_out), 'real-engine-strict', '--strict-no-source-eval'], check=True)
 real_check = subprocess.run([str(venom), 'verify', str(compat_out), '--target', 'browser'], text=True, capture_output=True, check=True)
 for marker in [
-    'quickjs_execution_backend: quickjs-wasm-real',
-    'quickjs_bytecode_boundary: wasm-owned',
-    'quickjs_host_js_fallback_allowed: no',
-    'quickjs_runtime_implementation: quickjs-wasm-upstream-quickjs',
-    'quickjs_runtime_artifact_kind: upstream-quickjs-wasm',
-    'quickjs_runtime_full_upstream_quickjs: yes',
+    'turbojs_execution_backend: turbojs-wasm-real',
+    'turbojs_bytecode_boundary: wasm-owned',
+    'turbojs_host_js_fallback_allowed: no',
+    'turbojs_runtime_implementation: turbojs-wasm-upstream-turbojs',
+    'turbojs_runtime_artifact_kind: upstream-turbojs-wasm',
+    'turbojs_runtime_full_upstream_turbojs: yes',
     'release_status: PASS',
 ]:
     if marker not in real_check.stdout:

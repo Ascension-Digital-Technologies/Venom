@@ -1,0 +1,23 @@
+{
+  "schema":"venom-project-ir",
+  "version":12,
+  "root":"/mnt/data/venom_examples_fix/venom-3.0.0/examples/tsx-showcase",
+  "project_fingerprint":"4fa9350325b0b180fcdfe190991d1ce1cbfc7467c798efb2cae20ee8d941be1a",
+  "files":[{"path":"browser/app.tsx","extension":".tsx","size":638,"sha256":"9a1b6af9a682938c53a3c10df77ef5ebba592a5aec3bddc107a0e3282ad2d266"},{"path":"browser/jsx-runtime.js","extension":".js","size":1276,"sha256":"60207de7ad2aaf45b09bd4804364b12552f39d73d2f743e033c49bcb2c028b2e"},{"path":"index.html","extension":".html","size":442,"sha256":"861d2b75a59caa5dd2f082099ca528ae77968dbf436e38cf795d59f4c57b8291"},{"path":"protected/pricing.ts","extension":".ts","size":124,"sha256":"5cf8b38eed7a9f5422fb8b56e015bc5dbb009d201c69173ca47310b9f66d93ad"},{"path":"styles/main.css","extension":".css","size":726,"sha256":"24a93ea373c0811e4f9a907688192295c2bc86c7c0bca1f515706a4dd0bb44cf"},{"path":"venom.toml","extension":".toml","size":159,"sha256":"0e398337fdff230cc293d22aab4ba5812bf914dbb3ca8d90b75b1d450956fae9"}],
+  "routes":["/"],
+  "scripts":["browser/app.tsx","browser/jsx-runtime.js","protected/pricing.ts"],
+  "styles":["styles/main.css"],
+  "assets":["venom.toml"],
+  "protected_modules":[{"route":"/","source":"browser/app.tsx","order":0,"flags":2066,"source_bytes":727,"ast_nodes":103,"ast_functions":2,"ast_declarations":3,"ast_imports":2,"ast_exports":0,"ast_top_level_declarations":3,"ast_lexical_scopes":3,"ast_global_references":1,"typescript_transpiled":true,"typescript_erased_declarations":0,"typescript_erased_annotations":0,"typescript_erased_assertions":0},{"route":"/","source":"browser/jsx-runtime.js","order":1,"flags":2322,"source_bytes":1276,"ast_nodes":225,"ast_functions":6,"ast_declarations":7,"ast_imports":0,"ast_exports":4,"ast_top_level_declarations":5,"ast_lexical_scopes":7,"ast_global_references":5,"typescript_transpiled":false,"typescript_erased_declarations":0,"typescript_erased_annotations":0,"typescript_erased_assertions":0},{"route":"/","source":"protected/pricing.ts","order":2,"flags":6418,"source_bytes":217,"ast_nodes":10,"ast_functions":1,"ast_declarations":1,"ast_imports":0,"ast_exports":1,"ast_top_level_declarations":1,"ast_lexical_scopes":2,"ast_global_references":0,"typescript_transpiled":true,"typescript_erased_declarations":0,"typescript_erased_annotations":0,"typescript_erased_assertions":0}],
+  "module_edge_count":1,
+  "protected_export_count":1,
+  "protected_contracts":{
+  "schema":"venom-protected-contracts",
+  "version":1,
+  "exports":[
+    {"name":"calculate","source":"protected/pricing.ts","candidate":"xc6addb6747c6d9893d85a80ac60d4a79","input":[],"output":[]}
+  ]
+}
+,
+  "plan_fingerprint":"4f65fdd2cd5749a524ef64c31f933935ebc70abf9470b683c0900a56424f6a89"
+}

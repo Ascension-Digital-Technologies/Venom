@@ -1,5 +1,5 @@
-#include "venom/base/error.hpp"
-#include "venom/internal/pipeline/runtime_modules.hpp"
+#include "base/error.hpp"
+#include "pipeline/runtime_modules.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -114,7 +114,7 @@ std::string json_escape(const std::string& text) {
 } // namespace
 
 std::vector<std::string> RuntimeModulePlan::enabled_modules() const {
-  std::vector<std::string> out{"core", "route", "dom", "quickjs"};
+  std::vector<std::string> out{"core", "route", "dom", "turbojs"};
   if (network) out.emplace_back("network");
   if (timers) out.emplace_back("timers");
   if (events) out.emplace_back("events");

@@ -1,6 +1,6 @@
 # Aegis Operations
 
-A large production-style Venom stress test. It combines a deep TypeScript/TSX browser graph with protected QuickJS/WASM analytics services.
+A large production-style Venom stress test. It combines a deep TypeScript/TSX browser graph with protected TurboJS/WASM analytics services.
 
 
 ## Screenshot

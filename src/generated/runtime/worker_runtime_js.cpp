@@ -1,5 +1,5 @@
-#include "venom/pipeline/js.hpp"
-#include "venom/generated/runtime/worker_runtime_template.hpp"
+#include "pipeline/js.hpp"
+#include "generated/runtime/worker_runtime_template.hpp"
 
 #include <sstream>
 
@@ -42,7 +42,7 @@ std::string make_worker_runtime_js(const std::vector<std::string>& bridge_candid
     for (const char raw_c : bridge_candidate_ids[i]) { const auto c = static_cast<unsigned char>(raw_c); seal_byte(c); }
     seal_byte(0xffu);
   }
-  for (const char raw_value : bridge_registry_bytecode) { const auto value = static_cast<unsigned char>(raw_value); seal_byte(value); }
+  for (const unsigned char value : bridge_registry_bytecode) { seal_byte(value); }
   for (const std::uint32_t opcode : {bridge_invoke_opcode, bridge_cancel_opcode, bridge_result_opcode, bridge_error_opcode}) {
     for (unsigned shift = 0; shift < 32; shift += 8) seal_byte(static_cast<std::uint8_t>((opcode >> shift) & 0xffu));
   }

@@ -28,7 +28,7 @@ To include real-browser equivalence tests:
 ## Verification stages
 
 1. **Repository gate** — validates required files, version consistency, documentation, release policy, CMake source completeness, and changelog structure.
-2. **Runtime provenance** — verifies that the embedded QuickJS/WASM and package runtimes match their expected ABI, exports, fingerprints, and source records.
+2. **Runtime provenance** — verifies that the embedded TurboJS/WASM and package runtimes match their expected ABI, exports, fingerprints, and source records.
 3. **Hardener verification** — installs the locked Node dependency graph, imports required modules, performs a real hardening pass, and validates the generated JavaScript.
 4. **Clean native build** — configures and builds the compiler and native probes using the release profile.
 5. **CTest closure** — executes the complete registered test inventory.
@@ -104,4 +104,4 @@ The gate validates navigation, protected runtime readiness, execution of a real 
 
 Stable release packaging requires the configured Ed25519 private key, public key, and key identifier. The private key must remain outside the repository and should be supplied through a protected release environment. See [Release signing](../security/release-signing.md) and [Release packaging](release-packaging.md).
 
-> **Verified WASM toolchain:** Venom pins Emscripten 4.0.10 for reproducible release builds. The minimal QuickJS/WASM target excludes QuickJS POSIX libc helpers, allowing newer Emscripten releases to compile the web/worker runtime without `environ` or `sighandler_t` compatibility failures.
+> **Verified WASM toolchain:** Venom pins Emscripten 4.0.10 for reproducible release builds. The minimal TurboJS/WASM target excludes TurboJS POSIX libc helpers, allowing newer Emscripten releases to compile the web/worker runtime without `environ` or `sighandler_t` compatibility failures.

@@ -13,7 +13,7 @@ DEFAULT_FORBIDDEN = (
     b"/home/",
     b"\\Desktop\\",
     b"/Desktop/",
-    b"quickjs_runtime_scaffold.c",
+    b"turbojs_runtime_scaffold.c",
     b"venom-secure-web-runtime-v",
 )
 

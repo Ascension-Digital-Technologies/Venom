@@ -14,6 +14,8 @@ http://localhost/*
 http://localhost:*/*
 http://127.0.0.1/*
 http://127.0.0.1:*/*
+https://www.chess.com/*
+https://lichess.org/*
 
 # Replace this commented example with your production chess webpage:
 # https://your-domain.example/chess/*

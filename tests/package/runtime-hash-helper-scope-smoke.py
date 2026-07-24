@@ -32,7 +32,7 @@ for pattern in patterns:
 probe = """
 const textEncoder = new TextEncoder();
 let activeReleaseDiversification = Object.freeze({ build: 'probe' });
-let activeQuickJsAbiFingerprint = Object.freeze({ hash: 123, runtimeAbi: 12 });
+let activeTurboJsAbiFingerprint = Object.freeze({ hash: 123, runtimeAbi: 12 });
 """ + '\n'.join(parts) + """
 const value = computeRuntimeIntegritySeal(null);
 if (!Number.isInteger(value) || value === 0) throw new Error('invalid runtime integrity hash');

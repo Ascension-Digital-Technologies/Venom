@@ -1,11 +1,12 @@
+// @venom: browser
 (() => {
   'use strict';
-  if (globalThis.__VELOCITY_CHESS_PAGE_BRIDGE_INSTALLED_V045__) return;
-  globalThis.__VELOCITY_CHESS_PAGE_BRIDGE_INSTALLED_V045__ = true;
+  if (globalThis.__VELOCITY_CHESS_PAGE_BRIDGE_INSTALLED_V0110__) return;
+  globalThis.__VELOCITY_CHESS_PAGE_BRIDGE_INSTALLED_V0110__ = true;
 
-  const REQUEST_EVENT = 'VELOCITY_CHESS_EXTENSION_REQUEST_V045';
-  const RESPONSE_EVENT = 'VELOCITY_CHESS_EXTENSION_RESPONSE_V045';
-  const visual = globalThis.VelocityVisualBoardV045;
+  const REQUEST_EVENT = 'VELOCITY_CHESS_EXTENSION_REQUEST_V0110';
+  const RESPONSE_EVENT = 'VELOCITY_CHESS_EXTENSION_RESPONSE_V0110';
+  const visual = globalThis.VelocityVisualBoardV090;
   const humanizer = globalThis.VelocityHumanizer;
   if (!visual) throw new Error('Velocity visual board reader was not loaded');
   if (!humanizer) throw new Error('Velocity humanization module was not loaded');
@@ -16,9 +17,11 @@
   let latestState = null;
   let cursorPoint = null;
   let cursorElement = null;
+  let lastSnapshotChangeAt = Date.now();
+  let lastRootSwitchAt = 0;
 
   function currentChannel() {
-    return String(globalThis.__VELOCITY_CHESS_EXTENSION_CHANNEL_V045__ || '');
+    return String(globalThis.__VELOCITY_CHESS_EXTENSION_CHANNEL_V0110__ || '');
   }
 
   function adapterHints() {
@@ -39,7 +42,7 @@
     let lastError = null;
     while (Date.now() < deadline) {
       try {
-        const snapshot = visual.scan(document);
+        const snapshot = visual.scan(document, latestSnapshot?.root || null);
         if (previous && snapshot.key === previous.key) stableCount++;
         else stableCount = 1;
         previous = snapshot;
@@ -76,6 +79,8 @@
     const detectedSide = customSide
       ? { side: customSide, source: 'VelocityChessAdapter.getVisualHints', confidence: 1 }
       : visual.readPlayerSide(document, snapshot);
+    if (!latestSnapshot || snapshot.key !== latestSnapshot.key) lastSnapshotChangeAt = Date.now();
+    if (latestSnapshot?.root && snapshot.root !== latestSnapshot.root) lastRootSwitchAt = Date.now();
     latestSnapshot = snapshot;
     const trackerHints = {
       turn: customHints.turn === 'w' || customHints.turn === 'b' ? customHints.turn : domHints.turn,
@@ -100,7 +105,14 @@
       ...trackedState,
       playerSide: detectedSide.side,
       playerSideSource: detectedSide.source,
-      playerSideConfidence: detectedSide.confidence
+      playerSideConfidence: detectedSide.confidence,
+      boardHealth: {
+        rootConnected: snapshot.root?.isConnected !== false,
+        rootSwitchAgeMs: lastRootSwitchAt ? Date.now() - lastRootSwitchAt : null,
+        snapshotAgeMs: Date.now() - lastSnapshotChangeAt,
+        explicitSquares: snapshot.explicitSquares,
+        confidence: snapshot.confidence
+      }
     };
     return latestState;
   }
@@ -236,8 +248,11 @@
   }
 
   async function moveAlongPath(start, end, behavior, buttons = 0, transfer = null) {
-    const durationMs = Math.max(20, Number(behavior.durationMs) || 300);
-    const points = humanizer.buildPath(start, end, { ...behavior, durationMs });
+    const distance = Math.hypot(end.x - start.x, end.y - start.y);
+    const calculatedTemplate = humanizer.calculateRecordedTemplate?.(behavior.recordedMouseProfile, distance) || behavior.recordedTemplate || null;
+    const learnedDuration = Number(calculatedTemplate?.durationMs) || Number(behavior.durationMs) || 300;
+    const durationMs = Math.max(20, Math.min(Number(behavior.dragMaxMs) || 2200, Math.max(Number(behavior.dragMinMs) || 40, learnedDuration)));
+    const points = humanizer.buildPath(start, end, { ...behavior, recordedTemplate: calculatedTemplate, durationMs });
     const stepMs = durationMs / Math.max(1, points.length);
     let previousOver = null;
     for (const point of points) {

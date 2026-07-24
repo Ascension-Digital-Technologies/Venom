@@ -26,14 +26,14 @@ required = [
     'host_bridge name="s.',
     'fetch_bridge name="s.',
     'async_host_queue name="s.',
-    'quickjs_engine_module name="s.',
+    'turbojs_engine_module name="s.',
     'integrity name="s.',
 ]
 missing = [item for item in required if item not in text]
 if missing:
     raise SystemExit('missing expected runtime hardening inspect output: ' + ', '.join(missing))
 
-for forbidden in ('script-diagnostics.txt', 'bundle-preview.js', 'dom-templates.txt', 'quickjs-probe.txt', 'quickjs-bridge-plan.txt', 'profile-diagnostics.txt', 'runtime-policy.vhrd', 'host-calls.vhcb', 'integrity-auth.vsig'):
+for forbidden in ('script-diagnostics.txt', 'bundle-preview.js', 'dom-templates.txt', 'turbojs-probe.txt', 'turbojs-bridge-plan.txt', 'profile-diagnostics.txt', 'runtime-policy.vhrd', 'host-calls.vhcb', 'integrity-auth.vsig'):
     if forbidden in text:
         raise SystemExit('release package leaked internal/debug section name: ' + forbidden)
 

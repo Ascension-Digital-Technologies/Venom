@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the final source-tree readiness report for Venom 2.0.0."""
+"""Generate the final source-tree readiness report for Venom 3.0.0."""
 from __future__ import annotations
 import argparse, json, re, subprocess, sys
 from datetime import datetime, timezone
@@ -68,7 +68,7 @@ def main() -> int:
     passed=all(x['passed'] for x in checks) and all(x['passed'] for x in executions)
     result={'schema':SCHEMA,'generatedAt':datetime.now(timezone.utc).isoformat(),'passed':passed,'version':version,'contract':'contracts/final-release.json','checks':checks,'executions':executions,'claims':contract['claims']}
     payload=json.dumps(result,indent=2,sort_keys=True)+'\n'
-    lines=['# Venom 2.0.0 Final Readiness','',f"**Result:** {'PASS' if passed else 'FAIL'}",'', '## Source and contract checks','', '| Check | Result |','|---|---:|']
+    lines=['# Venom 3.0.0 Final Readiness','',f"**Result:** {'PASS' if passed else 'FAIL'}",'', '## Source and contract checks','', '| Check | Result |','|---|---:|']
     lines += [f"| `{x['id']}` | {'PASS' if x['passed'] else 'FAIL'} |" for x in checks]
     lines += ['', '## Executable gates','', '| Gate | Result |','|---|---:|']
     lines += [f"| `{x['id']}` | {'PASS' if x['passed'] else 'FAIL'} |" for x in executions]

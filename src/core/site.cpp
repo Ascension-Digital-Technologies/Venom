@@ -1,5 +1,5 @@
-#include "venom/base/error.hpp"
-#include "venom/core/site.hpp"
+#include "base/error.hpp"
+#include "core/site.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -49,6 +49,18 @@ bool is_root_project_metadata(const std::string& relative) {
   };
   return std::find(std::begin(ignored), std::end(ignored), name) != std::end(ignored);
 }
+
+bool path_is_within(const std::filesystem::path& candidate,
+                    const std::filesystem::path& parent) {
+  if (parent.empty()) return false;
+  const auto normalized_candidate = std::filesystem::absolute(candidate).lexically_normal();
+  const auto normalized_parent = std::filesystem::absolute(parent).lexically_normal();
+  auto candidate_it = normalized_candidate.begin();
+  for (auto parent_it = normalized_parent.begin(); parent_it != normalized_parent.end(); ++parent_it, ++candidate_it) {
+    if (candidate_it == normalized_candidate.end() || *candidate_it != *parent_it) return false;
+  }
+  return true;
+}
 } // namespace
 
 std::string route_from_html_path(const std::string& relative) {
@@ -65,7 +77,8 @@ std::string route_from_html_path(const std::string& relative) {
   return "/" + route;
 }
 
-SiteGraph collect_site(const std::filesystem::path& input_root) {
+SiteGraph collect_site(const std::filesystem::path& input_root,
+                       const std::filesystem::path& excluded_output) {
   const auto root = std::filesystem::absolute(input_root);
   if (!std::filesystem::exists(root) || !std::filesystem::is_directory(root)) {
     raise_error("VENOM-E1100", "input is not a directory: " + input_root.string());
@@ -73,15 +86,23 @@ SiteGraph collect_site(const std::filesystem::path& input_root) {
 
   SiteGraph graph;
   graph.root = root;
+  const auto output = excluded_output.empty()
+      ? std::filesystem::path{}
+      : std::filesystem::absolute(excluded_output).lexically_normal();
 
   for (auto iterator = std::filesystem::recursive_directory_iterator(root);
        iterator != std::filesystem::recursive_directory_iterator(); ++iterator) {
     const auto& entry = *iterator;
     const auto absolute = entry.path();
     const auto relative = normalize_path(std::filesystem::relative(absolute, root));
+    if (entry.is_symlink()) {
+      raise_error("VENOM-E1100", "input symlinks are not allowed: " + relative);
+    }
     if (entry.is_directory()) {
       if (relative == ".venom-cache" || relative.rfind(".venom-cache/", 0) == 0 ||
-          relative == ".git" || relative.rfind(".git/", 0) == 0) {
+          relative == ".venom" || relative.rfind(".venom/", 0) == 0 ||
+          relative == ".git" || relative.rfind(".git/", 0) == 0 ||
+          path_is_within(absolute, output)) {
         iterator.disable_recursion_pending();
       }
       continue;

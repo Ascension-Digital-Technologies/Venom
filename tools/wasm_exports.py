@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Inspect WebAssembly exports and verify Venom QuickJS ABI export coverage.
+"""Inspect WebAssembly exports and verify Venom TurboJS ABI export coverage.
 
-The export section alone is not enough to prove a real/current QuickJS runtime:
+The export section alone is not enough to prove a real/current TurboJS runtime:
 a stale or scaffold-shaped module can expose the same function names. Use
 `--validate-runtime-values` in cutover/release paths to instantiate the module
 with Node and call the ABI truth exports.
@@ -35,12 +35,12 @@ STANDALONE_WASM_SUPPORT_EXPORTS = {
 }
 
 RUNTIME_VALUE_EXPORTS = (
-    'venom_qjs_engine_abi',
-    'venom_qjs_engine_version',
-    'venom_qjs_wasm_native_stack_capacity',
-    'venom_qjs_real_engine_candidate',
-    'venom_qjs_fallback_required',
-    'venom_qjs_upstream_quickjs_ready',
+    'venom_tjs_engine_abi',
+    'venom_tjs_engine_version',
+    'venom_tjs_wasm_native_stack_capacity',
+    'venom_tjs_real_engine_candidate',
+    'venom_tjs_fallback_required',
+    'venom_tjs_upstream_turbojs_ready',
 )
 
 
@@ -99,7 +99,7 @@ def wasm_exports(data: bytes) -> list[str]:
 
 def c_required_exports(path: Path) -> list[str]:
     text = path.read_text(encoding='utf-8')
-    return sorted(set(re.findall(r'VENOM_QJS_PUBLIC\("([A-Za-z0-9_]+)"\)', text)))
+    return sorted(set(re.findall(r'VENOM_TJS_PUBLIC\("([A-Za-z0-9_]+)"\)', text)))
 
 
 def call_runtime_values_with_node(wasm: Path, node: str, names: list[str] | None = None) -> tuple[dict[str, int | str | None], list[str]]:
@@ -201,20 +201,20 @@ function makeImportObject(module) {
 
 def runtime_value_failures(values: dict[str, Any], *, runtime_abi: int, package_version: int, require_real: bool) -> list[str]:
     failures: list[str] = []
-    if values.get('venom_qjs_engine_abi') != runtime_abi:
-        failures.append(f'venom_qjs_engine_abi expected {runtime_abi}, got {values.get("venom_qjs_engine_abi")!r}')
-    if values.get('venom_qjs_engine_version') != package_version:
-        failures.append(f'venom_qjs_engine_version expected {package_version}, got {values.get("venom_qjs_engine_version")!r}')
-    native_stack = values.get('venom_qjs_wasm_native_stack_capacity')
+    if values.get('venom_tjs_engine_abi') != runtime_abi:
+        failures.append(f'venom_tjs_engine_abi expected {runtime_abi}, got {values.get("venom_tjs_engine_abi")!r}')
+    if values.get('venom_tjs_engine_version') != package_version:
+        failures.append(f'venom_tjs_engine_version expected {package_version}, got {values.get("venom_tjs_engine_version")!r}')
+    native_stack = values.get('venom_tjs_wasm_native_stack_capacity')
     if not isinstance(native_stack, int) or native_stack < 2 * 1024 * 1024:
-        failures.append(f'venom_qjs_wasm_native_stack_capacity expected at least 2097152, got {native_stack!r}')
+        failures.append(f'venom_tjs_wasm_native_stack_capacity expected at least 2097152, got {native_stack!r}')
     if require_real:
-        if values.get('venom_qjs_real_engine_candidate') != 1:
-            failures.append(f'venom_qjs_real_engine_candidate expected 1, got {values.get("venom_qjs_real_engine_candidate")!r}')
-        if values.get('venom_qjs_fallback_required') != 0:
-            failures.append(f'venom_qjs_fallback_required expected 0, got {values.get("venom_qjs_fallback_required")!r}')
-        if values.get('venom_qjs_upstream_quickjs_ready') != 1:
-            failures.append(f'venom_qjs_upstream_quickjs_ready expected 1, got {values.get("venom_qjs_upstream_quickjs_ready")!r}')
+        if values.get('venom_tjs_real_engine_candidate') != 1:
+            failures.append(f'venom_tjs_real_engine_candidate expected 1, got {values.get("venom_tjs_real_engine_candidate")!r}')
+        if values.get('venom_tjs_fallback_required') != 0:
+            failures.append(f'venom_tjs_fallback_required expected 0, got {values.get("venom_tjs_fallback_required")!r}')
+        if values.get('venom_tjs_upstream_turbojs_ready') != 1:
+            failures.append(f'venom_tjs_upstream_turbojs_ready expected 1, got {values.get("venom_tjs_upstream_turbojs_ready")!r}')
     return failures
 
 
@@ -236,17 +236,17 @@ def manifest_text(
     runtime_values_ok = (not runtime_value_checked) or not runtime_value_errors
     ok = has_required_shape and runtime_values_ok
     lines = [
-        'VENOM_QJS_WASM_ARTIFACT_V3',
+        'VENOM_TJS_WASM_ARTIFACT_V3',
         'version=3',
         f'runtime_abi={runtime_abi}',
         f'package_version={package_version}',
-        'artifact_kind=upstream-quickjs-wasm' if ok else ('artifact_kind=upstream-quickjs-wasm-incomplete' if required else 'artifact_kind=wasm-export-report'),
-        'runtime_implementation=quickjs-wasm-upstream-quickjs' if ok else ('runtime_implementation=quickjs-wasm-upstream-quickjs-incomplete' if required else 'runtime_implementation=unknown-wasm-module'),
-        'runtime_claim=full-upstream-quickjs-wasm' if ok else ('runtime_claim=incomplete-upstream-quickjs-wasm' if required else 'runtime_claim=export-report-only'),
+        'artifact_kind=upstream-turbojs-wasm' if ok else ('artifact_kind=upstream-turbojs-wasm-incomplete' if required else 'artifact_kind=wasm-export-report'),
+        'runtime_implementation=turbojs-wasm-upstream-turbojs' if ok else ('runtime_implementation=turbojs-wasm-upstream-turbojs-incomplete' if required else 'runtime_implementation=unknown-wasm-module'),
+        'runtime_claim=full-upstream-turbojs-wasm' if ok else ('runtime_claim=incomplete-upstream-turbojs-wasm' if required else 'runtime_claim=export-report-only'),
         'contract_only=false' if ok else 'contract_only=true',
         'scaffold_runtime=false' if ok else 'scaffold_runtime=unknown',
         'real_engine_candidate=true' if ok else 'real_engine_candidate=false',
-        'full_upstream_quickjs=true' if ok else 'full_upstream_quickjs=false',
+        'full_upstream_turbojs=true' if ok else 'full_upstream_turbojs=false',
         'fallback_required=false' if ok else 'fallback_required=unknown',
         'finish_blocker=none' if ok else ('finish_blocker=missing_required_wasm_exports_or_runtime_value_mismatch' if required else 'finish_blocker=no_required_abi_export_set_supplied'),
         f'artifact={wasm.name}',
@@ -323,10 +323,10 @@ def main() -> int:
     runtime_value_errors: list[str] = []
     if args.validate_runtime_values:
         if args.release_runtime_values:
-            runtime_values, probe_errors = call_runtime_values_with_node(args.wasm, args.node, names=['venom_qjs_upstream_quickjs_ready'])
+            runtime_values, probe_errors = call_runtime_values_with_node(args.wasm, args.node, names=['venom_tjs_upstream_turbojs_ready'])
             runtime_value_errors.extend(probe_errors)
-            if runtime_values.get('venom_qjs_upstream_quickjs_ready') != 1:
-                runtime_value_errors.append('venom_qjs_upstream_quickjs_ready expected 1, got %r' % runtime_values.get('venom_qjs_upstream_quickjs_ready'))
+            if runtime_values.get('venom_tjs_upstream_turbojs_ready') != 1:
+                runtime_value_errors.append('venom_tjs_upstream_turbojs_ready expected 1, got %r' % runtime_values.get('venom_tjs_upstream_turbojs_ready'))
         else:
             runtime_values, probe_errors = call_runtime_values_with_node(args.wasm, args.node)
             runtime_value_errors.extend(probe_errors)

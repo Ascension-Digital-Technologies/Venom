@@ -9,7 +9,7 @@ checks = {
     'worker protocol version': 'WORKER_PROTOCOL = 1' in js and 'm.protocol !== WORKER_PROTOCOL' in js,
     'same-origin worker fetch': "parsed.origin !== self.location.origin" in js,
     'package attestation': 'package hash attestation mismatch' in js,
-    'QuickJS digest attestation': 'QuickJS WASM digest attestation mismatch' in js,
+    'TurboJS digest attestation': 'TurboJS WASM digest attestation mismatch' in js,
     'worker control size ceiling': '1024' in js,
     'worker startup deadline': '15000' in js,
     'package encoded ceiling': '67108864' in js,

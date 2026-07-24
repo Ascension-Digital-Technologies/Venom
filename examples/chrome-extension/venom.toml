@@ -7,12 +7,11 @@ target = "chrome-extension"
 profile = "prod"
 
 [runtime]
-engine = "quickjs-wasm"
+engine = "turbojs-wasm"
 fail_closed = true
 
 [security]
 deny_host_js_fallback = true
 
 [planner]
-mode = "manual"
-browser = ["popup.js", "background.js", "engine-host.js", "content-script.js", "page-bridge.js", "visual-board.js", "humanize.js", "match-modes.js", "skill-levels.js", "lib/*.js"]
+mode = "auto"

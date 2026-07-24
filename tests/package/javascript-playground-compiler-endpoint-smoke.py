@@ -6,7 +6,7 @@ assert '/__venom/playground/compile' in launcher
 assert 'compile-snippet' in launcher
 assert '/__venom/playground/compile' in app
 assert 'bytecodeBytes' in app
-assert 'development-quickjs-compiler' in app
+assert 'development-turbojs-compiler' in app
 assert 'code: ""' in app
 assert 'bytecode: false' not in app
 print('javascript playground compiler endpoint: PASS')

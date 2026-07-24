@@ -1,10 +1,10 @@
-# Protected Chess — Velocity Chess 0.5.0 / QuickJS-WASM
+# Protected Chess — Velocity Chess 0.5.0 / TurboJS-WASM
 
 ![Protected Chess application](../../docs/assets/examples/protected-chess/application.png)
 
 > **Protected Chess · Browser UI with the complete Velocity Chess engine protected**
 
-This example integrates **Velocity Chess v0.5.0** into Venom's worker-isolated QuickJS/WASM runtime. The browser receives only a narrow asynchronous bridge. Chess rules, legal-move generation, position mutation, evaluation, hashing, search, move notation, draw detection, and authoritative game-state transitions execute inside the protected export.
+This example integrates **Velocity Chess v0.5.0** into Venom's worker-isolated TurboJS/WASM runtime. The browser receives only a narrow asynchronous bridge. Chess rules, legal-move generation, position mutation, evaluation, hashing, search, move notation, draw detection, and authoritative game-state transitions execute inside the protected export.
 
 ## Protected engine pipeline
 
@@ -27,8 +27,8 @@ This example integrates **Velocity Chess v0.5.0** into Venom's worker-isolated Q
 flowchart LR
   UI[Browser board and controls] --> BRIDGE[Validated Venom JSON bridge]
   BRIDGE --> WORKER[Dedicated runtime worker]
-  WORKER --> QJS[QuickJS / WASM]
-  QJS --> VELOCITY[Protected Velocity Chess 0.5.0]
+  WORKER --> TJS[TurboJS / WASM]
+  TJS --> VELOCITY[Protected Velocity Chess 0.5.0]
   VELOCITY --> RESULT[Move, PV, metrics, and state snapshot]
   RESULT --> UI
 ```
@@ -89,4 +89,4 @@ The supplied Velocity Chess v0.5.0 implementation is integrated into the single 
 
 ## Performance dashboard
 
-The Protected Chess interface includes a one-click protected QuickJS/WASM benchmark with Quick, Standard, and Endurance profiles. It measures move-generation throughput, opening/tactical/middlegame/endgame search, quiescence nodes, transposition-table activity, beta cutoffs, total nodes, and average nodes per second. Fast, Balanced, Strong, and Maximum engine presets update both sides of AI-vs-AI play.
+The Protected Chess interface includes a one-click protected TurboJS/WASM benchmark with Quick, Standard, and Endurance profiles. It measures move-generation throughput, opening/tactical/middlegame/endgame search, quiescence nodes, transposition-table activity, beta cutoffs, total nodes, and average nodes per second. Fast, Balanced, Strong, and Maximum engine presets update both sides of AI-vs-AI play.

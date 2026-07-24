@@ -76,7 +76,7 @@ def certify_example(root: Path, venom: Path, dist_root: Path, spec: ExampleSpec,
     if build_result["passed"]:
         verify = result_dict(run_command([venom, "verify", dist, "--target", "browser"], cwd=root, timeout=600, env=env))
         steps.append(("verify", verify))
-        if spec.requires_real_quickjs:
+        if spec.requires_real_turbojs:
             runtime = result_dict(run_command(
                 [venom, "verify-runtime", dist, "--target", "browser", "--require-real-engine"],
                 cwd=root,

@@ -1,0 +1,26 @@
+name: Reproducibility
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  reproducibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Configure first build
+        run: cmake -S . -B build-a -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - name: Build first tree
+        run: cmake --build build-a --parallel 2
+      - name: Configure second build
+        run: cmake -S . -B build-b -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - name: Build second tree
+        run: cmake --build build-b --parallel 2
+      - name: Compare build outputs
+        run: python tools/check_reproducibility.py build-a build-b

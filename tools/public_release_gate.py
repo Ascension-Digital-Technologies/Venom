@@ -73,7 +73,7 @@ def main() -> int:
 
     examples=root/'examples'
     public=[p.name for p in examples.iterdir() if p.is_dir()] if examples.exists() else []
-    if sorted(public) != ['aegis-operations', 'bot-detection', 'chrome-extension', 'javascript-playground', 'nova-trade', 'protected-chess', 'quickjs-benchmark', 'tsx-showcase', 'typescript-showcase', 'vite-framework-showcase']:
+    if sorted(public) != ['aegis-operations', 'bot-detection', 'chrome-extension', 'javascript-playground', 'nova-trade', 'protected-chess', 'tsx-showcase', 'turbojs-benchmark', 'typescript-showcase', 'vite-framework-showcase']:
         errors.append(f'public examples must contain all supported flagship and framework showcase projects; found {sorted(public)}')
     for name in FORBIDDEN_PUBLIC_EXAMPLES:
         if (examples/name).exists(): errors.append(f'legacy public example remains: examples/{name}')
@@ -101,8 +101,8 @@ def main() -> int:
     license_text=(root/'LICENSE').read_text(encoding='utf-8',errors='replace') if (root/'LICENSE').exists() else ''
     if 'All rights reserved' in license_text:
         warnings.append('repository is source-available/restricted, not OSI open source; describe it accurately')
-    if not (root/'third_party/quickjs/LICENSE').exists():
-        errors.append('QuickJS license is missing')
+    if not (root/'third_party/turbojs/LICENSE').exists():
+        errors.append('TurboJS license is missing')
 
     result={'version':version,'status':'PASS' if not errors else 'FAIL','errors':sorted(set(errors)),'warnings':sorted(set(warnings))}
     if args.json_out:

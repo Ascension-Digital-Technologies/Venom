@@ -1,0 +1,1 @@
+{"version":3,"file":"pricing.js","sourceRoot":"","sources":["pricing.ts"],"names":[],"mappings":"AAAA,2BAA2B;AAC3B,MAAM,UAAU,SAAS,CAAC,KAAa,EAAE,QAAgB,IAAY,OAAO,KAAK,GAAG,QAAQ,CAAC,CAAC,CAAC","sourcesContent":["// @venom: protected module\nexport function calculate(value: number, quantity: number): number { return value * quantity; }\n"]}

@@ -1,9 +1,9 @@
-#include "venom/base/error.hpp"
-#include "venom/frontends/javascript/frontend.hpp"
-#include "venom/frontends/javascript/embedded_bundles.hpp"
-#include "venom/core/diagnostic.hpp"
+#include "base/error.hpp"
+#include "frontends/javascript/frontend.hpp"
+#include "frontends/javascript/embedded_bundles.hpp"
+#include "core/diagnostic.hpp"
 
-#include "quickjs.h"
+#include "turbojs.h"
 
 #include <cstdint>
 #include <stdexcept>
@@ -15,7 +15,7 @@ namespace {
 
 std::string value_text(JSContext* ctx, JSValueConst value) {
   const char* text = JS_ToCString(ctx, value);
-  if (!text) return "<unprintable QuickJS value>";
+  if (!text) return "<unprintable TurboJS value>";
   std::string result(text);
   JS_FreeCString(ctx, text);
   return result;
@@ -608,13 +608,13 @@ const char kRunScopeAnalysis[] = R"JS(
 
 ParseSummary parse(const std::string& source, const std::string& filename, bool module) {
   JSRuntime* runtime = JS_NewRuntime();
-  if (!runtime) raise_error("VENOM-E2000", "JavaScript frontend could not create QuickJS runtime");
+  if (!runtime) raise_error("VENOM-E2000", "JavaScript frontend could not create TurboJS runtime");
   JS_SetMemoryLimit(runtime, 256ull * 1024ull * 1024ull);
   JS_SetMaxStackSize(runtime, 8ull * 1024ull * 1024ull);
   JSContext* context = JS_NewContext(runtime);
   if (!context) {
     JS_FreeRuntime(runtime);
-    raise_error("VENOM-E2000", "JavaScript frontend could not create QuickJS context");
+    raise_error("VENOM-E2000", "JavaScript frontend could not create TurboJS context");
   }
   try {
     eval_checked(context, kBootstrap, sizeof(kBootstrap) - 1, "<venom-frontend-bootstrap>");
@@ -801,13 +801,13 @@ ParseSummary parse(const std::string& source, const std::string& filename, bool 
 ProtectedUnit lower_protected_unit(const std::string& source, const std::string& filename,
                                    const std::string& target_name, bool module) {
   JSRuntime* runtime = JS_NewRuntime();
-  if (!runtime) raise_error("VENOM-E2000", "JavaScript frontend could not create QuickJS runtime");
+  if (!runtime) raise_error("VENOM-E2000", "JavaScript frontend could not create TurboJS runtime");
   JS_SetMemoryLimit(runtime, 256ull * 1024ull * 1024ull);
   JS_SetMaxStackSize(runtime, 8ull * 1024ull * 1024ull);
   JSContext* context = JS_NewContext(runtime);
   if (!context) {
     JS_FreeRuntime(runtime);
-    raise_error("VENOM-E2000", "JavaScript frontend could not create QuickJS context");
+    raise_error("VENOM-E2000", "JavaScript frontend could not create TurboJS context");
   }
   try {
     eval_checked(context, kBootstrap, sizeof(kBootstrap) - 1, "<venom-frontend-bootstrap>");
@@ -871,13 +871,13 @@ ProtectedUnit lower_protected_unit(const std::string& source, const std::string&
 FunctionScopeAnalysis analyze_function_scope(const std::string& source, const std::string& filename,
                                              const std::string& target_name, bool module) {
   JSRuntime* runtime = JS_NewRuntime();
-  if (!runtime) raise_error("VENOM-E2000", "JavaScript frontend could not create QuickJS runtime");
+  if (!runtime) raise_error("VENOM-E2000", "JavaScript frontend could not create TurboJS runtime");
   JS_SetMemoryLimit(runtime, 256ull * 1024ull * 1024ull);
   JS_SetMaxStackSize(runtime, 8ull * 1024ull * 1024ull);
   JSContext* context = JS_NewContext(runtime);
   if (!context) {
     JS_FreeRuntime(runtime);
-    raise_error("VENOM-E2000", "JavaScript frontend could not create QuickJS context");
+    raise_error("VENOM-E2000", "JavaScript frontend could not create TurboJS context");
   }
   try {
     eval_checked(context, kBootstrap, sizeof(kBootstrap) - 1, "<venom-frontend-bootstrap>");

@@ -1,8 +1,8 @@
-#include "venom/pipeline/js.hpp"
+#include "pipeline/js.hpp"
 
 #include <stdexcept>
 
-#include "venom/runtime/runtime_js_template.hpp"
+#include "runtime/runtime_js_template.hpp"
 
 namespace venom::compiler {
 
@@ -61,7 +61,7 @@ std::string make_runtime_js(const SiteGraph& graph, bool protected_release) {
         "      const fn = new Function(...names, wrapped);\n"
         "      fn(...values);\n"
         "      asyncQueue.settle(request.id, 'fulfilled', { executed: true, context: context.key, fallback: scriptEnginePolicyPlan ? scriptEnginePolicyPlan.fallback : 'host-js-isolated-wrapper' });\n"
-        "      recordQuickJsExecution('quickjs.executionRecord', { route: chunk.route, source: chunk.source, order: chunk.order, context: context.key, engine: 'host-js-fallback', fallbackUsed: true, wasmAccepted: false });\n"
+        "      recordTurboJsExecution('turbojs.executionRecord', { route: chunk.route, source: chunk.source, order: chunk.order, context: context.key, engine: 'host-js-fallback', fallbackUsed: true, wasmAccepted: false });\n"
         "      recordResultBridge({ route: chunk.route, source: chunk.source, order: chunk.order, context: context.key, ok: true, fallback: true, consoleEvents: consoleEvents.length });\n"
         "      return Object.freeze({ ...chunk, executed: true, engineMode: mode, context: context.key, fallback: scriptEnginePolicyPlan ? scriptEnginePolicyPlan.fallback : 'host-js-isolated-wrapper' });\n");
   emit_block("__VENOM_RUNTIME_LEGACY_FALLBACK_BLOCK__", protected_release

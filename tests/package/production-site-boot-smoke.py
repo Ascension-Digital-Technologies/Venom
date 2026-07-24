@@ -49,7 +49,7 @@ def main() -> int:
         "const fpCollect = () => ({ ok: true }); globalThis.__venomFpCollectLoaded = true;\n",
         encoding="utf-8",
     )
-    # Cross the old 256 KiB QuickJS transfer ceiling while remaining below the
+    # Cross the old 256 KiB TurboJS transfer ceiling while remaining below the
     # production 768 KiB limit. This reproduces the real vendored Yandex bundle
     # failure without depending on the network.
     large_script = "globalThis.__venomLargeProtected = 1;\n/*" + ("x" * 540000) + "*/\n"
@@ -95,7 +95,7 @@ def main() -> int:
         capture_output=True,
     )
     rejected_text = rejected.stdout + rejected.stderr
-    if rejected.returncode == 0 or "QuickJS script exceeds protected transfer limit" not in rejected_text:
+    if rejected.returncode == 0 or "TurboJS script exceeds protected transfer limit" not in rejected_text:
         raise RuntimeError(f"oversized protected script was not rejected at build time:\n{rejected_text}")
     if oversized_dist.exists():
         raise RuntimeError("oversized script rejection left an incomplete production dist")

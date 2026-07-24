@@ -5,13 +5,14 @@ entry = "examples/protected-chess"
 output = "dist"
 
 [build]
+harden_public_javascript = true
 vendor_cache = ".venom/vendor-cache"
 vendor_lock = "examples/protected-chess/venom.lock"
 offline = false
 refresh_vendors = false
 
 [runtime]
-engine = "quickjs-wasm"
+engine = "turbojs-wasm"
 fail_closed = true
 
 [security]

@@ -1,8 +1,8 @@
-#include "venom/core/diagnostic.hpp"
-#include "venom/frontends/typescript/frontend.hpp"
-#include "venom/internal/frontends/typescript/typescript_runtime.hpp"
-#include "venom/generated/compiler/typescript_bridge_bytecode.hpp"
-#include "venom/generated/compiler/typescript_compiler_asset.hpp"
+#include "core/diagnostic.hpp"
+#include "frontends/typescript/frontend.hpp"
+#include "typescript/typescript_runtime.hpp"
+#include "generated/compiler/typescript_bridge_bytecode.hpp"
+#include "generated/compiler/typescript_compiler_asset.hpp"
 
 #include <cstdlib>
 #include <filesystem>
@@ -45,8 +45,8 @@ int main() {
     throw std::runtime_error("embedded TypeScript bridge bytecode asset is unexpectedly small");
   if (venom::generated::typescript::bridge_bytecode_sha256().size() != 64)
     throw std::runtime_error("embedded TypeScript bridge bytecode SHA-256 metadata is invalid");
-  if (venom::generated::typescript::bridge_bytecode_quickjs_version() != "0.15.1")
-    throw std::runtime_error("embedded TypeScript bridge bytecode QuickJS metadata is unexpected");
+  if (venom::generated::typescript::bridge_bytecode_turbojs_version() != "0.15.1")
+    throw std::runtime_error("embedded TypeScript bridge bytecode TurboJS metadata is unexpected");
   if (venom::generated::typescript::bridge_bytecode_abi() != 27)
     throw std::runtime_error("embedded TypeScript bridge bytecode ABI metadata is unexpected");
 
@@ -79,7 +79,7 @@ int main() {
 
   const auto first = venom::compiler::typescript::transpile(source, "smoke.ts");
   if (!first.typescript) throw std::runtime_error("TypeScript marker was not set");
-  if (first.frontend != "embedded-quickjs-typescript") throw std::runtime_error("embedded frontend is not the default");
+  if (first.frontend != "embedded-turbojs-typescript") throw std::runtime_error("embedded frontend is not the default");
   if (first.frontend_version.empty()) throw std::runtime_error("TypeScript version was not reported");
   if (first.javascript.find("interface User") != std::string::npos) throw std::runtime_error("interface was not erased");
   if (first.javascript.find("const user") == std::string::npos) throw std::runtime_error("runtime JavaScript was not emitted");

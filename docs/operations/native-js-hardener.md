@@ -2,7 +2,7 @@
 
 Venom embeds the browser distributions of Terser 5.49.0 and
 `javascript-obfuscator` 5.4.7 in the native compiler and evaluates them with
-the QuickJS engine already linked into `venom_core`.
+the TurboJS engine already linked into `venom_core`.
 
 ## Compatibility contract
 

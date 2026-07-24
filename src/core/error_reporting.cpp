@@ -1,6 +1,6 @@
-#include "venom/core/error_reporting.hpp"
+#include "core/error_reporting.hpp"
 
-#include "venom/core/console.hpp"
+#include "core/console.hpp"
 
 #include <ostream>
 

@@ -1,6 +1,6 @@
-#include "venom/base/error.hpp"
-#include "venom/internal/cli/compile_snippet.hpp"
-#include "venom/quickjs/bytecode.hpp"
+#include "base/error.hpp"
+#include "cli/compile_snippet.hpp"
+#include "turbojs/bytecode.hpp"
 
 #include <array>
 #include <cstdint>
@@ -62,11 +62,11 @@ bool compile_snippet(std::istream& input, std::ostream& output) {
   if (source.empty()) raise_error("VENOM-E1000", "compile-snippet received empty source");
   if (source.size() > 1024u * 1024u) raise_error("VENOM-E1000", "compile-snippet source exceeds 1 MiB");
 
-  const auto bytecode = venom::quickjs::compile_native_quickjs_bytecode(
+  const auto bytecode = venom::turbojs::compile_native_turbojs_bytecode(
       source, "playground/user-script.js", false, true, nullptr);
-  if (bytecode.empty()) raise_error("VENOM-E1000", "QuickJS produced an empty bytecode record");
+  if (bytecode.empty()) raise_error("VENOM-E1000", "TurboJS produced an empty bytecode record");
 
-  output << "{\"ok\":true,\"format\":\"VQJSBC03\",\"byteLength\":"
+  output << "{\"ok\":true,\"format\":\"VTJSBC03\",\"byteLength\":"
          << bytecode.size() << ",\"byteHash\":" << fnv1a32(bytecode)
          << ",\"bytecode\":\"" << base64_encode(bytecode) << "\"}\n";
   return true;

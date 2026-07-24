@@ -1,6 +1,6 @@
 # JavaScript AST frontend
 
-Venom uses the embedded Terser 5.49 AST frontend inside native QuickJS for JavaScript parsing, module discovery, scope analysis, protected-unit lowering, and protection planning.
+Venom uses the embedded Terser 5.49 AST frontend inside native TurboJS for JavaScript parsing, module discovery, scope analysis, protected-unit lowering, and protection planning.
 
 The protection planner no longer discovers functions with regular expressions or balances braces manually. It consumes top-level function records emitted by the parser and uses lexical-scope analysis for browser-global captures and unsupported semantics.
 

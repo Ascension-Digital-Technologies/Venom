@@ -1,8 +1,8 @@
-#include "venom/base/error.hpp"
-#include "venom/pipeline/planner.hpp"
-#include "venom/graph/module_graph.hpp"
-#include "venom/frontends/javascript/frontend.hpp"
-#include "venom/frontends/typescript/frontend.hpp"
+#include "base/error.hpp"
+#include "pipeline/planner.hpp"
+#include "graph/module_graph.hpp"
+#include "frontends/javascript/frontend.hpp"
+#include "frontends/typescript/frontend.hpp"
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
@@ -85,6 +85,15 @@ std::string esc(const std::string& s){
 bool is_js(const std::filesystem::path& p){
   const auto e=lower(p.extension().string());
   return e==".js"||e==".mjs"||e==".cjs"||e==".jsx"||e==".ts"||e==".tsx";
+}
+bool path_is_within(const std::filesystem::path& candidate,const std::filesystem::path& parent){
+  if(parent.empty())return false;
+  const auto child=std::filesystem::absolute(candidate).lexically_normal();
+  const auto base=std::filesystem::absolute(parent).lexically_normal();
+  auto child_it=child.begin();
+  for(auto base_it=base.begin();base_it!=base.end();++base_it,++child_it)
+    if(child_it==child.end()||*child_it!=*base_it)return false;
+  return true;
 }
 bool pattern_match(const std::filesystem::path& path,const std::string& pattern){
   auto p=lower(path.generic_string()); auto q=lower(pattern); std::replace(q.begin(),q.end(),'\\','/');
@@ -548,7 +557,16 @@ std::vector<FunctionRecommendation> analyze_functions(const std::string& origina
 PlanResult make_plan(PlannerOptions options){
   load_config_rules(options.input,options);PlanResult result;
   if(!std::filesystem::exists(options.input))raise_error("VENOM-E5000", "planner input does not exist: "+options.input.string());
-  for(const auto& entry:std::filesystem::recursive_directory_iterator(options.input)){
+  for(auto iterator=std::filesystem::recursive_directory_iterator(options.input);
+      iterator!=std::filesystem::recursive_directory_iterator();++iterator){
+    const auto& entry=*iterator;
+    if(entry.is_symlink())raise_error("VENOM-E1100", "input symlinks are not allowed: "+entry.path().string());
+    if(entry.is_directory()){
+      const auto relative=std::filesystem::relative(entry.path(),options.input).generic_string();
+      if(relative==".git"||relative==".venom"||relative==".venom-cache"||
+         path_is_within(entry.path(),options.excluded_output))iterator.disable_recursion_pending();
+      continue;
+    }
     if(!entry.is_regular_file()||!is_js(entry.path()))continue;
     const auto relative=std::filesystem::relative(entry.path(),options.input);std::ifstream in(entry.path(),std::ios::binary);std::ostringstream buffer;buffer<<in.rdbuf();const auto source=buffer.str();
     FileRecommendation file;file.file=relative;file.functions=analyze_functions(source, relative.generic_string());file.runtime="protected";file.confidence=86;file.reasons={"protected-by-default"};
@@ -642,5 +660,5 @@ void print_plan(const PlanResult& plan,const PlannerOptions& options){
 }
 
 bool run_protection_plan(const PlannerOptions& requested){PlannerOptions options=requested;const auto plan=make_plan(options);print_plan(plan,options);if(!options.report_file.empty()){std::ofstream out(options.report_file);if(!out)raise_error("VENOM-E5000", "failed to write planner report: "+options.report_file.string());auto old=std::cout.rdbuf(out.rdbuf());PlannerOptions json=options;json.format=OutputFormat::Json;print_plan(plan,json);std::cout.rdbuf(old);}return options.mode!="strict"||plan.strict_pass;}
-bool enforce_build_protection_plan(const BuildOptions& options){if(options.planner_mode=="off"||options.planner_mode=="manual")return true;PlannerOptions plan;plan.input=options.input;plan.mode=options.planner_mode;plan.protected_patterns=options.force_protected;plan.browser_patterns=options.force_browser;plan.minimum_confidence=options.planner_minimum_confidence;const auto result=make_plan(plan);std::cout<<"[venom] planner: "<<result.protected_files<<" protected, "<<result.browser_files<<" browser, "<<result.review_files<<" review files\n";if(options.planner_mode=="strict"&&!result.strict_pass)raise_error("VENOM-E5000", "strict planner rejected unresolved or low-confidence recommendations; run 'venom plan --mode strict' for details or add manual overrides");return true;}
+bool enforce_build_protection_plan(const BuildOptions& options){if(options.planner_mode=="off"||options.planner_mode=="manual")return true;PlannerOptions plan;plan.input=options.input;plan.excluded_output=options.output;plan.mode=options.planner_mode;plan.protected_patterns=options.force_protected;plan.browser_patterns=options.force_browser;plan.minimum_confidence=options.planner_minimum_confidence;const auto result=make_plan(plan);std::cout<<"[venom] planner: "<<result.protected_files<<" protected, "<<result.browser_files<<" browser, "<<result.review_files<<" review files\n";if(options.planner_mode=="strict"&&!result.strict_pass)raise_error("VENOM-E5000", "strict planner rejected unresolved or low-confidence recommendations; run 'venom plan --mode strict' for details or add manual overrides");return true;}
 }

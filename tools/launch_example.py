@@ -116,12 +116,12 @@ class QuietHandler(SimpleHTTPRequestHandler):
             stdout_text = proc.stdout.decode("utf-8", errors="replace")
             stderr_text = proc.stderr.decode("utf-8", errors="replace")
             if proc.returncode:
-                message = (stderr_text or stdout_text or "QuickJS compilation failed").strip()
+                message = (stderr_text or stdout_text or "TurboJS compilation failed").strip()
                 self._json(400, {"ok": False, "error": message})
                 return
             self._json(200, json.loads(stdout_text))
         except subprocess.TimeoutExpired:
-            self._json(408, {"ok": False, "error": "QuickJS compilation timed out"})
+            self._json(408, {"ok": False, "error": "TurboJS compilation timed out"})
         except Exception as exc:
             self._json(500, {"ok": False, "error": str(exc)})
         finally:
@@ -155,7 +155,7 @@ def main():
     port=ns.port or default_port
     build=(root/ns.build_dir).resolve()
     site=root/'examples'/name
-    dist=root/f'dist-{name}-{profile}'
+    dist=site/'dist-venom'
 
     run(['cmake','-S',root,'-B',build,'-DCMAKE_BUILD_TYPE=Release'], root, 'Configure native compiler')
     run(['cmake','--build',build,'--config','Release','--parallel'], root, 'Build native compiler')
@@ -168,7 +168,7 @@ def main():
     if profile=='prod':
         run([sys.executable,root/'tools/check_production_leaks.py',dist], root, 'Production leak scan')
         run([venom,'verify',dist,'--target','browser'], root, 'Package integrity verification')
-        run([venom,'verify-runtime',dist,'--require-real-engine'], root, 'QuickJS runtime verification')
+        run([venom,'verify-runtime',dist,'--require-real-engine'], root, 'TurboJS runtime verification')
         if spec.chrome_extension:
             run([sys.executable, root/'tools/verify_chrome_extension_store.py', dist,
                  '--report', root/'artifacts/chrome-extension-store-readiness.json'],

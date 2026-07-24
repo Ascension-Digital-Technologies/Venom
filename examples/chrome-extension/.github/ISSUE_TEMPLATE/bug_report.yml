@@ -1,0 +1,48 @@
+name: Bug report
+description: Report a reproducible engine, visual-reader, or interaction problem
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: checkboxes
+    attributes:
+      label: Authorization
+      options:
+        - label: I own or am explicitly authorized to automate the affected website.
+          required: true
+  - type: input
+    attributes:
+      label: Version
+      placeholder: 0.4.0
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Browser
+      placeholder: Chrome 151 on Windows 11
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: Board rendering
+      options:
+        - DOM elements
+        - Canvas with overlays
+        - Canvas only
+        - Unknown
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Description
+      description: Explain what happened and what you expected.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Sanitized markup
+      description: Include relevant square/piece markup without private data.

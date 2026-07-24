@@ -3,7 +3,7 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
 cpp = (root / 'src/pipeline/chrome_extension.cpp').read_text(encoding='utf-8')
-hpp = (root / 'include/venom/internal/pipeline/chrome_extension.hpp').read_text(encoding='utf-8')
+hpp = (root / 'src/pipeline/chrome_extension.hpp').read_text(encoding='utf-8')
 required_cpp = [
     'venom-extension-rpc.js',
     'venom-extension-host.js',

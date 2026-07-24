@@ -1,0 +1,21 @@
+{
+  "schema":"venom-project-ir",
+  "version":12,
+  "root":"/mnt/data/venom_examples_fix/venom-3.0.0/examples/javascript-playground",
+  "project_fingerprint":"728599649458c2f07258e4c3573520b75842c1d691b8016737a4cf5a01416495",
+  "files":[{"path":"browser/app.js","extension":".js","size":13381,"sha256":"f3dec72aa2c7d2e78919705039b089a090b563b1aa29def6eadb5399eb725436"},{"path":"browser/examples.js","extension":".js","size":1209,"sha256":"ec23899965f76d0c4d47f542ddef62eb2cc5e41c5207460c014e66eadf91a5fb"},{"path":"index.html","extension":".html","size":3261,"sha256":"bfa5ac0a028af0d2ad98b415175e2981a46c9dba5451af9214eeaaeef839c3ec"},{"path":"styles/main.css","extension":".css","size":7342,"sha256":"b5303f8c078dc1034a12785ae977803d35a21ff546b323cbb99ee3dd58743552"},{"path":"venom.toml","extension":".toml","size":159,"sha256":"0e398337fdff230cc293d22aab4ba5812bf914dbb3ca8d90b75b1d450956fae9"}],
+  "routes":["/"],
+  "scripts":["browser/app.js","browser/examples.js"],
+  "styles":["styles/main.css"],
+  "assets":["venom.toml"],
+  "protected_modules":[{"route":"/","source":"browser/app.js","order":0,"flags":2066,"source_bytes":13381,"ast_nodes":1510,"ast_functions":25,"ast_declarations":66,"ast_imports":1,"ast_exports":0,"ast_top_level_declarations":28,"ast_lexical_scopes":26,"ast_global_references":16,"typescript_transpiled":false,"typescript_erased_declarations":0,"typescript_erased_annotations":0,"typescript_erased_assertions":0},{"route":"/","source":"browser/examples.js","order":1,"flags":2322,"source_bytes":1209,"ast_nodes":38,"ast_functions":0,"ast_declarations":1,"ast_imports":0,"ast_exports":1,"ast_top_level_declarations":1,"ast_lexical_scopes":1,"ast_global_references":0,"typescript_transpiled":false,"typescript_erased_declarations":0,"typescript_erased_annotations":0,"typescript_erased_assertions":0}],
+  "module_edge_count":1,
+  "protected_export_count":0,
+  "protected_contracts":{
+  "schema":"venom-protected-contracts",
+  "version":1,
+  "exports":[  ]
+}
+,
+  "plan_fingerprint":"2e4e65d94fdc08d4f225bd51275daf3fc5bac6da9a86a21e95280860a4ce5906"
+}

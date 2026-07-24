@@ -1,5 +1,5 @@
-#include "venom/graph/module_graph.hpp"
-#include "venom/pipeline/js.hpp"
+#include "graph/module_graph.hpp"
+#include "pipeline/js.hpp"
 
 #include <iostream>
 #include <stdexcept>

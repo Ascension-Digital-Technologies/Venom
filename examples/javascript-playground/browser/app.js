@@ -97,15 +97,15 @@ function renderReport(report) {
     ? report.exceptionMessage
     : envelope && envelope.error && envelope.error.message
       ? envelope.error.message
-      : "QuickJS execution failed";
+      : "TurboJS execution failed";
   const result = failed
     ? `<div class="error-block"><strong>${escapeHtml(failureMessage)}</strong><pre>${escapeHtml(displayValue(failureValue))}</pre></div>`
-    : `<div class="result-block"><span>QUICKJS RESULT</span><pre>${escapeHtml(displayValue(resultValue))}</pre></div>`;
+    : `<div class="result-block"><span>TURBOJS RESULT</span><pre>${escapeHtml(displayValue(resultValue))}</pre></div>`;
   output.innerHTML = entries + result;
   status.textContent = failed ? "Execution failed" : "Execution complete";
   status.dataset.state = failed ? "error" : "success";
   metricLogs.textContent = String(logs.length);
-  metricResult.textContent = report && report.quickJsWasm ? "WASM" : "unknown";
+  metricResult.textContent = report && report.turboJsWasm ? "WASM" : "unknown";
 }
 
 function decodeBase64(value) {
@@ -128,14 +128,14 @@ function handoffFor(chunk, bytecodeBytes) {
   const bindingHash = fnv1a32(new TextEncoder().encode(binding));
   return Object.freeze({
     version: 1,
-    producer: "development-quickjs-compiler",
-    consumer: "quickjs-execution-wasm",
+    producer: "development-turbojs-compiler",
+    consumer: "turbojs-execution-wasm",
     byteLength: bytecodeBytes.length >>> 0,
     byteHash,
     bindingHash
   });
 }
-async function compileWithQuickJs(source) {
+async function compileWithTurboJs(source) {
   const session = await getPlaygroundSession();
   if (new TextEncoder().encode(source).byteLength > session.limits.sourceBytes) throw new Error(`Source exceeds ${session.limits.sourceBytes} bytes`);
   const response = await fetch("/__venom/playground/compile", {
@@ -146,18 +146,18 @@ async function compileWithQuickJs(source) {
   });
   const payload = await response.json().catch(() => ({ ok: false, error: `compiler returned HTTP ${response.status}` }));
   if (!response.ok || !payload.ok || !payload.bytecode) {
-    throw new Error(payload.error || "QuickJS compilation failed");
+    throw new Error(payload.error || "TurboJS compilation failed");
   }
   return decodeBase64(payload.bytecode);
 }
-async function executeInQuickJs(source, input) {
+async function executeInTurboJs(source, input) {
   const session = await getPlaygroundSession();
   if (new TextEncoder().encode(JSON.stringify(input)).byteLength > session.limits.inputBytes) throw new Error(`JSON input exceeds ${session.limits.inputBytes} bytes`);
   const runtime = globalThis.__venomRuntime;
-  if (!runtime || typeof runtime.executeQuickJsChunk !== "function") {
-    throw new Error("Venom QuickJS runtime bridge is not ready");
+  if (!runtime || typeof runtime.executeTurboJsChunk !== "function") {
+    throw new Error("Venom TurboJS runtime bridge is not ready");
   }
-  if (typeof runtime.clearQuickJsConsoleEvents === "function") runtime.clearQuickJsConsoleEvents();
+  if (typeof runtime.clearTurboJsConsoleEvents === "function") runtime.clearTurboJsConsoleEvents();
   const candidate = "__venomPlaygroundExecute";
   const wrapped = `globalThis.__venomProtectedBridge = globalThis.__venomProtectedBridge || Object.create(null);\n` +
     `globalThis.__venomProtectedBridge[${JSON.stringify(candidate)}] = async function (input) {\n` +
@@ -178,10 +178,10 @@ async function executeInQuickJs(source, input) {
     `  };\n` +
     `  const capture = (level, values) => { if (consoleCapture.length >= LIMITS.consoleEvents || consoleBytes >= LIMITS.consoleBytes) return; const event = { level, values: values.map(value => normalize(value)) }; const encoded = JSON.stringify(event); consoleBytes += encoded.length; if (consoleBytes <= LIMITS.consoleBytes) consoleCapture.push(event); };\n` +
     `  const console = Object.freeze({ log: (...values) => capture("log", values), info: (...values) => capture("info", values), warn: (...values) => capture("warn", values), error: (...values) => capture("error", values) });\n` +
-    `  try { const result = normalize(await eval(${JSON.stringify(source)})); const encodedResult = JSON.stringify(result); if (encodedResult.length > LIMITS.resultBytes) throw new Error("QuickJS result exceeds the configured result limit"); return { ok: true, result, consoleCapture }; }\n` +
+    `  try { const result = normalize(await eval(${JSON.stringify(source)})); const encodedResult = JSON.stringify(result); if (encodedResult.length > LIMITS.resultBytes) throw new Error("TurboJS result exceeds the configured result limit"); return { ok: true, result, consoleCapture }; }\n` +
     `  catch (error) { return { ok: false, error: normalize(error), consoleCapture }; }\n` +
     `};`;
-  const bytecodeBytes = await compileWithQuickJs(wrapped);
+  const bytecodeBytes = await compileWithTurboJs(wrapped);
   const chunk = {
     route: "/",
     source: "playground/user-script.js",
@@ -194,14 +194,14 @@ async function executeInQuickJs(source, input) {
     executionPolicy: { isolation: "ephemeral", timeoutMs: session.limits.executionMs, heapLimitBytes: session.limits.heapBytes, stackLimitBytes: session.limits.stackBytes, interruptBudget: 250000, pendingJobLimit: 128, maxResultBytes: session.limits.resultBytes, maxBridgeInputBytes: session.limits.inputBytes + 16384 }
   };
   chunk.bytecodeTrustHandoff = handoffFor(chunk, bytecodeBytes);
-  return runtime.executeQuickJsChunk(chunk, { route: "/" });
+  return runtime.executeTurboJsChunk(chunk, { route: "/" });
 }
 
 async function run() {
   runButton.disabled = true;
-  status.textContent = "Compiling inside QuickJS/WASM…";
+  status.textContent = "Compiling inside TurboJS/WASM…";
   status.dataset.state = "running";
-  output.innerHTML = `<div class="empty-state"><div class="spinner"></div><p>Creating isolated QuickJS context…</p></div>`;
+  output.innerHTML = `<div class="empty-state"><div class="spinner"></div><p>Creating isolated TurboJS context…</p></div>`;
   let input = {};
   try { input = inputEditor.value.trim() ? JSON.parse(inputEditor.value) : {}; }
   catch (error) {
@@ -210,11 +210,11 @@ async function run() {
   }
   const started = performance.now();
   try {
-    const report = await executeInQuickJs(editor.value, input);
+    const report = await executeInTurboJs(editor.value, input);
     metricDuration.textContent = `${Math.max(0, performance.now() - started).toFixed(1)} ms`;
     renderReport(report);
   } catch (error) {
-    output.innerHTML = `<div class="error-block"><strong>QuickJS bridge failure</strong><pre>${escapeHtml(error && error.stack ? error.stack : error)}</pre></div>`;
+    output.innerHTML = `<div class="error-block"><strong>TurboJS bridge failure</strong><pre>${escapeHtml(error && error.stack ? error.stack : error)}</pre></div>`;
     status.textContent = "Protected runtime unavailable"; status.dataset.state = "error";
   } finally { runButton.disabled = false; }
 }
@@ -223,7 +223,7 @@ exampleSelect.addEventListener("change", () => setExample(Number(exampleSelect.v
 editor.addEventListener("input", updateLines);
 editor.addEventListener("scroll", () => { lineNumbers.scrollTop = editor.scrollTop; });
 runButton.addEventListener("click", run);
-clearButton.addEventListener("click", () => { output.innerHTML = `<div class="empty-state"><p>Output cleared. Run the script to create a new QuickJS execution.</p></div>`; status.textContent = "Ready"; status.dataset.state = "idle"; });
+clearButton.addEventListener("click", () => { output.innerHTML = `<div class="empty-state"><p>Output cleared. Run the script to create a new TurboJS execution.</p></div>`; status.textContent = "Ready"; status.dataset.state = "idle"; });
 document.addEventListener("keydown", event => { if ((event.ctrlKey || event.metaKey) && event.key === "Enter") { event.preventDefault(); run(); } });
 inputEditor.value = JSON.stringify({ value: 42, label: "Venom" }, null, 2);
 setExample(0);

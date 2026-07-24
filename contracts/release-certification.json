@@ -38,7 +38,7 @@
       "id": "authoritative-wasm-abi",
       "command": [
         "{python}",
-        "tests/package/quickjs-wasm-authoritative-contract-smoke.py",
+        "tests/package/turbojs-wasm-authoritative-contract-smoke.py",
         "{root}"
       ]
     },
@@ -160,12 +160,12 @@
     }
   ],
   "releaseClaims": [
-    "QuickJS/WASM bytecode execution is required for protected browser code",
+    "TurboJS/WASM bytecode execution is required for protected browser code",
     "Host JavaScript source fallback is denied",
     "TypeScript and TSX are structurally lowered before runtime planning",
     "Protected production distributions pass runtime verification and leak scanning",
-    "Playground executions use isolated, resource-bounded QuickJS contexts",
+    "Playground executions use isolated, resource-bounded TurboJS contexts",
     "Vite integration preserves explicit browser/protected runtime boundaries",
-    "Stable application integration uses the versioned @venom-js/runtime API"
+    "Stable application integration uses the versioned @venom/runtime API"
   ]
 }

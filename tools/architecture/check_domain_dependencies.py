@@ -16,14 +16,14 @@ INCLUDE_RE = re.compile(r'^\s*#\s*include\s*[<"]([^>"]+)[>"]', re.MULTILINE)
 # analysis but still has an explicit implementation dependency allowlist.
 ALLOWED: dict[str, set[str]] = {
     'base': set(),
-    'cli': {'base', 'core', 'package', 'pipeline', 'quickjs', 'runtime'},
+    'cli': {'base', 'core', 'package', 'pipeline', 'turbojs', 'runtime'},
     'core': {'base', 'package'},
     'frontends': {'base', 'core', 'generated', 'package'},
     'generated': {'pipeline', 'runtime'},
     'graph': {'frontends', 'package'},
     'package': {'base', 'generated'},
-    'pipeline': {'base', 'core', 'frontends', 'generated', 'graph', 'package', 'quickjs', 'remote', 'vm'},
-    'quickjs': {'base', 'package'},
+    'pipeline': {'base', 'core', 'frontends', 'generated', 'graph', 'package', 'turbojs', 'remote', 'vm'},
+    'turbojs': {'base', 'package'},
     'remote': {'base', 'core', 'package'},
     'runtime': {'base', 'core', 'generated'},
     'templates': set(),
@@ -31,33 +31,16 @@ ALLOWED: dict[str, set[str]] = {
 }
 
 
-def project_header_path(root: Path, include: str) -> Path | None:
+def source_header_path(src: Path, include: str) -> Path | None:
     parts = include.split('/')
-    if len(parts) < 3 or parts[0] != 'venom':
+    if len(parts) < 2:
         return None
-    return root / 'include' / include
-
-
-def source_domain(path: Path, src: Path, include_root: Path) -> str | None:
-    try:
-        return path.relative_to(src).parts[0]
-    except ValueError:
-        pass
-    try:
-        relative = path.relative_to(include_root)
-    except ValueError:
-        return None
-    if len(relative.parts) < 2 or relative.parts[0] != 'venom':
-        return None
-    if relative.parts[1] == 'internal':
-        return relative.parts[2] if len(relative.parts) > 2 else None
-    return relative.parts[1]
+    return src / include
 
 
 def main() -> int:
     root = Path(sys.argv[1] if len(sys.argv) > 1 else '.').resolve()
     src = root / 'src'
-    include_root = root / 'include'
     actual_domains = {path.name for path in src.iterdir() if path.is_dir()}
     failures: list[str] = []
 
@@ -67,49 +50,41 @@ def main() -> int:
         )
 
     edges: dict[str, set[str]] = defaultdict(set)
-    source_paths = list(src.rglob('*')) + list(include_root.rglob('*'))
-    for path in sorted(source_paths):
+    for path in sorted(src.rglob('*')):
         if not path.is_file() or path.suffix.lower() not in NATIVE_SUFFIXES:
             continue
-        owner = source_domain(path, src, include_root)
-        if owner not in actual_domains:
-            failures.append(f'{path.relative_to(root).as_posix()}: native file has no source-domain owner')
-            continue
+        relative = path.relative_to(src)
+        source_domain = relative.parts[0]
         text = path.read_text(encoding='utf-8', errors='replace')
         for include in INCLUDE_RE.findall(text):
             include_parts = include.split('/')
             target_domain: str | None = None
-            if len(include_parts) >= 3 and include_parts[0] == 'venom':
-                internal = include_parts[1] == 'internal'
-                target_domain = include_parts[2] if internal and len(include_parts) >= 4 else include_parts[1]
-                if target_domain in actual_domains:
-                    header = project_header_path(root, include)
-                    generated_version = include == 'venom/core/version.hpp'
-                    if header is not None and not header.is_file() and not generated_version:
-                        kind = 'internal' if internal else 'public'
-                        failures.append(
-                            f'{path.relative_to(root).as_posix()}: {kind} include does not resolve: {include}'
-                        )
-            elif include_parts and include_parts[0] in actual_domains:
-                failures.append(
-                    f'{path.relative_to(root).as_posix()}: legacy repository-wide include '
-                    f'must use venom/<domain>/...: {include}'
-                )
+            if include_parts and include_parts[0] in actual_domains:
                 target_domain = include_parts[0]
-
-            if target_domain not in actual_domains or target_domain == owner:
-                continue
-            edges[owner].add(target_domain)
-            if target_domain not in ALLOWED.get(owner, set()):
+                header = source_header_path(src, include)
+                generated_version = include == 'core/version.hpp'
+                if header is not None and not header.is_file() and not generated_version:
+                    failures.append(
+                        f'{path.relative_to(root).as_posix()}: source-root include does not resolve: {include}'
+                    )
+            elif include.startswith('venom/'):
                 failures.append(
-                    f'{path.relative_to(root).as_posix()}: forbidden {owner} -> '
+                    f'{path.relative_to(root).as_posix()}: obsolete central include spelling: {include}'
+                )
+
+            if target_domain not in actual_domains or target_domain == source_domain:
+                continue
+            edges[source_domain].add(target_domain)
+            if target_domain not in ALLOWED.get(source_domain, set()):
+                failures.append(
+                    f'{path.relative_to(root).as_posix()}: forbidden {source_domain} -> '
                     f'{target_domain} include ({include})'
                 )
 
     # CLI is an outer adapter. No reusable product domain may include it.
-    for owner, dependencies in edges.items():
-        if owner != 'cli' and 'cli' in dependencies:
-            failures.append(f'{owner} must not depend on cli')
+    for source_domain, dependencies in edges.items():
+        if source_domain != 'cli' and 'cli' in dependencies:
+            failures.append(f'{source_domain} must not depend on cli')
 
     # Verify the authored dependency graph is acyclic. Generated snapshots are
     # excluded because they intentionally implement owner-domain declarations.

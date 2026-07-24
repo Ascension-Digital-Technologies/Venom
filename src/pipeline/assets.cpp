@@ -1,13 +1,15 @@
-#include "venom/base/error.hpp"
-#include "venom/internal/pipeline/assets.hpp"
+#include "base/error.hpp"
+#include "pipeline/assets.hpp"
 
-#include "venom/package/hash.hpp"
+#include "package/hash.hpp"
+#include "pipeline/js.hpp"
 
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <unordered_set>
@@ -67,6 +69,221 @@ bool is_public_asset(const SiteFile& file, bool production, bool standard_layout
          file.extension != ".js" && file.extension != ".mjs" && file.extension != ".cjs" &&
          file.extension != ".jsx" && file.extension != ".ts" && file.extension != ".tsx" &&
          file.extension != ".mts" && file.extension != ".cts";
+}
+
+std::string dirname_of(const std::string& relative) {
+  const auto normalized = normalize_slashes(relative);
+  const auto slash = normalized.find_last_of('/');
+  return slash == std::string::npos ? std::string{} : normalized.substr(0, slash + 1u);
+}
+
+bool is_external_reference(const std::string& value) {
+  std::string lower = value;
+  std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) {
+    return static_cast<char>(std::tolower(c));
+  });
+  return lower.empty() || lower.front() == '#' || lower.rfind("data:", 0) == 0 ||
+         lower.rfind("blob:", 0) == 0 || lower.rfind("http:", 0) == 0 ||
+         lower.rfind("https:", 0) == 0 || lower.rfind("//", 0) == 0 ||
+         lower.rfind("javascript:", 0) == 0;
+}
+
+std::string clean_reference(std::string value) {
+  while (!value.empty() && std::isspace(static_cast<unsigned char>(value.front())) != 0) value.erase(value.begin());
+  while (!value.empty() && std::isspace(static_cast<unsigned char>(value.back())) != 0) value.pop_back();
+  const auto suffix = value.find_first_of("?#");
+  if (suffix != std::string::npos) value.resize(suffix);
+  return value;
+}
+
+void add_reference(std::set<std::string>& exact,
+                   std::vector<std::string>& patterns,
+                   const std::string& source,
+                   std::string value) {
+  value = clean_reference(std::move(value));
+  if (is_external_reference(value)) return;
+  while (!value.empty() && value.front() == '/') value.erase(value.begin());
+  if (value.empty()) return;
+
+  const auto add = [&](std::string candidate) {
+    candidate = normalize_slashes(std::move(candidate));
+    if (candidate.empty()) return;
+    if (candidate.find('{') != std::string::npos && candidate.find('}') != std::string::npos) {
+      patterns.push_back(std::move(candidate));
+    } else {
+      exact.insert(std::move(candidate));
+    }
+  };
+  // Browser code commonly uses site-root-relative asset strings even when the
+  // JavaScript file itself lives below the root. Preserve both interpretations;
+  // only a path that actually exists in the collected site can be selected.
+  add(value);
+  add(dirname_of(source) + value);
+}
+
+void scan_reference_text(std::set<std::string>& exact,
+                         std::vector<std::string>& patterns,
+                         const std::string& source,
+                         const std::string& text) {
+  // Scan quoted strings without std::regex. Besides being faster for large
+  // generated bundles, this avoids a libstdc++ regex crash observed in the
+  // Linux GCC asset-planning path.
+  for (std::size_t i = 0; i < text.size(); ++i) {
+    const char quote = text[i];
+    if (quote != '"' && quote != '\'') continue;
+    const auto begin = i + 1u;
+    auto end = begin;
+    while (end < text.size() && text[end] != quote && text[end] != '\r' && text[end] != '\n') {
+      if (text[end] == '\\' && end + 1u < text.size()) end += 2u;
+      else ++end;
+    }
+    if (end >= text.size() || text[end] != quote) continue;
+    auto value = text.substr(begin, end - begin);
+    i = end;
+    std::replace(value.begin(), value.end(), ',', ' ');
+    std::istringstream tokens(value);
+    std::string token;
+    while (tokens >> token) {
+      if (!token.empty() && (token.back() == 'x' || token.back() == 'w') && token.size() > 1u &&
+          std::all_of(token.begin(), token.end() - 1, [](unsigned char c) { return std::isdigit(c) != 0 || c == '.'; })) {
+        continue;
+      }
+      add_reference(exact, patterns, source, std::move(token));
+    }
+  }
+
+  const auto ascii_lower = [](char c) { return static_cast<char>(std::tolower(static_cast<unsigned char>(c))); };
+  const auto starts_with_ci = [&](std::size_t pos, std::string_view needle) {
+    if (pos + needle.size() > text.size()) return false;
+    for (std::size_t j = 0; j < needle.size(); ++j) {
+      if (ascii_lower(text[pos + j]) != ascii_lower(needle[j])) return false;
+    }
+    return true;
+  };
+
+  // CSS url(...)
+  for (std::size_t i = 0; i + 4u <= text.size(); ++i) {
+    if (!starts_with_ci(i, "url(")) continue;
+    auto begin = i + 4u;
+    while (begin < text.size() && std::isspace(static_cast<unsigned char>(text[begin])) != 0) ++begin;
+    const auto close = text.find(')', begin);
+    if (close == std::string::npos) break;
+    auto value = clean_reference(text.substr(begin, close - begin));
+    if (value.size() >= 2u && ((value.front() == '"' && value.back() == '"') ||
+                              (value.front() == '\'' && value.back() == '\''))) {
+      value = value.substr(1u, value.size() - 2u);
+    }
+    add_reference(exact, patterns, source, std::move(value));
+    i = close;
+  }
+
+  // Unquoted src/href/poster attributes.
+  constexpr std::string_view names[] = {"src", "href", "poster"};
+  for (std::size_t i = 0; i < text.size(); ++i) {
+    for (const auto name : names) {
+      if (!starts_with_ci(i, name)) continue;
+      if (i > 0u) {
+        const auto previous = static_cast<unsigned char>(text[i - 1u]);
+        if (std::isalnum(previous) != 0 || text[i - 1u] == '_' || text[i - 1u] == '-') continue;
+      }
+      auto cursor = i + name.size();
+      while (cursor < text.size() && std::isspace(static_cast<unsigned char>(text[cursor])) != 0) ++cursor;
+      if (cursor >= text.size() || text[cursor] != '=') continue;
+      ++cursor;
+      while (cursor < text.size() && std::isspace(static_cast<unsigned char>(text[cursor])) != 0) ++cursor;
+      if (cursor >= text.size() || text[cursor] == '"' || text[cursor] == '\'') continue;
+      const auto begin = cursor;
+      while (cursor < text.size()) {
+        const char c = text[cursor];
+        if (std::isspace(static_cast<unsigned char>(c)) != 0 || c == '"' || c == '\'' ||
+            c == '=' || c == '<' || c == '>' || c == '`') break;
+        ++cursor;
+      }
+      if (cursor > begin) add_reference(exact, patterns, source, text.substr(begin, cursor - begin));
+      i = cursor;
+      break;
+    }
+  }
+}
+
+bool matches_template_from(const std::string& path,
+                           const std::string& pattern,
+                           std::size_t path_pos,
+                           std::size_t pattern_pos) {
+  while (pattern_pos < pattern.size()) {
+    if (pattern[pattern_pos] != '{') {
+      if (path_pos >= path.size() || path[path_pos] != pattern[pattern_pos]) return false;
+      ++path_pos;
+      ++pattern_pos;
+      continue;
+    }
+
+    const auto close = pattern.find('}', pattern_pos + 1u);
+    if (close == std::string::npos) {
+      if (path_pos >= path.size() || path[path_pos] != pattern[pattern_pos]) return false;
+      ++path_pos;
+      ++pattern_pos;
+      continue;
+    }
+
+    // A placeholder matches one or more characters inside the current path
+    // segment. It may have a literal suffix, for example {piece}.png.
+    const auto segment_end = path.find('/', path_pos);
+    const auto limit = segment_end == std::string::npos ? path.size() : segment_end;
+    if (path_pos >= limit) return false;
+    const auto next_pattern = close + 1u;
+    for (auto candidate = path_pos + 1u; candidate <= limit; ++candidate) {
+      if (matches_template_from(path, pattern, candidate, next_pattern)) return true;
+    }
+    return false;
+  }
+  return path_pos == path.size();
+}
+
+bool matches_template(const std::string& path, const std::string& pattern) {
+  // Match literal text and treat each {...} placeholder as a non-empty wildcard
+  // constrained to a single path segment. This supports both {name} and
+  // embedded forms such as {piece}.png without runtime std::regex compilation.
+  return matches_template_from(path, pattern, 0u, 0u);
+}
+
+std::set<std::string> planned_public_sources(const SiteGraph& graph,
+                                             const std::vector<JsChunk>& planned_scripts) {
+  std::set<std::string> exact;
+  std::vector<std::string> patterns;
+
+  // Every HTML file is an explicit route. Only stylesheets reachable from those
+  // routes are scanned; an unrelated CSS file is never silently bundled.
+  std::set<std::string> planned_styles;
+  for (const auto& file : graph.files) {
+    if (file.extension != ".html" && file.extension != ".htm") continue;
+    const std::string text(reinterpret_cast<const char*>(file.bytes.data()), file.bytes.size());
+    scan_reference_text(exact, patterns, file.relative, text);
+  }
+  for (const auto& path : exact) {
+    if (lower_ext(path) == ".css") planned_styles.insert(path);
+  }
+  for (const auto& file : graph.files) {
+    if (file.extension != ".css" || planned_styles.find(normalize_slashes(file.relative)) == planned_styles.end()) continue;
+    const std::string text(reinterpret_cast<const char*>(file.bytes.data()), file.bytes.size());
+    scan_reference_text(exact, patterns, file.relative, text);
+  }
+  for (const auto& chunk : planned_scripts) {
+    scan_reference_text(exact, patterns, chunk.source, chunk.code);
+  }
+
+  std::set<std::string> selected;
+  for (const auto& file : graph.files) {
+    if (!is_public_asset(file, true, false)) continue;
+    const auto relative = normalize_slashes(file.relative);
+    if (exact.find(relative) != exact.end() ||
+        std::any_of(patterns.begin(), patterns.end(), [&](const std::string& pattern) {
+          return matches_template(relative, pattern);
+        })) {
+      selected.insert(relative);
+    }
+  }
+  return selected;
 }
 
 bool is_image_asset(const std::string& mime) {
@@ -155,13 +372,19 @@ std::string detect_mime_type(const std::string& relative_path) {
   return "application/octet-stream";
 }
 
-AssetPipeline build_asset_pipeline(const SiteGraph& graph, bool hashed, bool production, bool standard_layout_only) {
+AssetPipeline build_asset_pipeline(const SiteGraph& graph,
+                                   const std::vector<JsChunk>& planned_scripts,
+                                   bool hashed,
+                                   bool production,
+                                   bool standard_layout_only) {
   AssetPipeline pipeline;
   pipeline.hashed = hashed;
   std::unordered_set<std::string> used_names;
+  const auto planned_sources = planned_public_sources(graph, planned_scripts);
 
   for (const auto& file : graph.files) {
-    if (!is_public_asset(file, production, standard_layout_only)) {
+    if (!is_public_asset(file, production, standard_layout_only) ||
+        planned_sources.find(normalize_slashes(file.relative)) == planned_sources.end()) {
       continue;
     }
 

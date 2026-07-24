@@ -1,4 +1,4 @@
-#include "venom/core/diagnostic.hpp"
+#include "core/diagnostic.hpp"
 
 #include <algorithm>
 #include <filesystem>

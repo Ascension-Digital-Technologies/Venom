@@ -1,9 +1,9 @@
 // @venom: browser
 export const examples = [
   {
-    name: "Hello QuickJS",
+    name: "Hello TurboJS",
     description: "Console output and a returned object.",
-    code: `console.log("Hello from QuickJS/WASM");\nconst values = [3, 8, 13, 21];\nconsole.info("values", values);\n({ total: values.reduce((a, b) => a + b, 0), count: values.length });`
+    code: `console.log("Hello from TurboJS/WASM");\nconst values = [3, 8, 13, 21];\nconsole.info("values", values);\n({ total: values.reduce((a, b) => a + b, 0), count: values.length });`
   },
   {
     name: "Prime numbers",

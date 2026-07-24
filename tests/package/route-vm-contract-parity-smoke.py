@@ -4,7 +4,7 @@ import sys
 
 root = Path(sys.argv[1]).resolve()
 poly = (root / 'src/vm/polymorph.cpp').read_text(encoding='utf-8')
-poly_h = (root / 'include/venom/vm/polymorph.hpp').read_text(encoding='utf-8')
+poly_h = (root / 'src/vm/polymorph.hpp').read_text(encoding='utf-8')
 encoder = (root / 'src/vm/encoder.cpp').read_text(encoding='utf-8')
 package_runtime = (root / 'src/runtime/package_runtime.c').read_text(encoding='utf-8')
 wasm_runtime = (root / 'src/runtime/wasm_runtime.c').read_text(encoding='utf-8')

@@ -14,4 +14,4 @@ The public bridge retains the 1 MiB payload limit, a maximum of 64 binary object
 
 ## Typed contracts
 
-Binary values can be declared in protected input/output contracts using lowercase type names such as `arraybuffer`, `uint8array`, `uint16array`, and `float64array`. Venom generates the corresponding TypeScript declarations and validates the reconstructed binary class inside the protected QuickJS boundary.
+Binary values can be declared in protected input/output contracts using lowercase type names such as `arraybuffer`, `uint8array`, `uint16array`, and `float64array`. Venom generates the corresponding TypeScript declarations and validates the reconstructed binary class inside the protected TurboJS boundary.

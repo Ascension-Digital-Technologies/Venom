@@ -10,4 +10,4 @@ function Card({ title, amount, tags = [] }: CardProps) {
 }
 const root = document.querySelector<HTMLElement>("#app")!;
 const cardProps: CardProps = { title: "Protected total", amount: await calculate(24.5, 4) };
-render(<Card {...cardProps} tags={["TSX", "QuickJS"]} />, root);
+render(<Card {...cardProps} tags={["TSX", "TurboJS"]} />, root);

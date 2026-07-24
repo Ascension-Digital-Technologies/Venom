@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="One-click long-running TurboJS/WASM engine benchmark for Venom">
+  <title>Venom TurboJS Benchmark</title>
+  <link rel="stylesheet" href="./styles/main.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">VENOM 2.0 · ENGINE LAB</p>
+        <h1>TurboJS<br><span>Long-Run Benchmark</span></h1>
+        <p class="lede">Run a protected, multi-stage workload across arithmetic, calls, arrays, objects, strings, JSON, collections, sorting, allocation, and other engine hot paths.</p>
+      </div>
+      <div id="runtime-status" class="badge" data-status="loading">Initializing protected runtime…</div>
+    </header>
+
+    <section class="control-panel panel">
+      <div>
+        <label for="preset">Workload preset</label>
+        <select id="preset">
+          <option value="quick">Quick — health check</option>
+          <option value="standard" selected>Standard — balanced profile</option>
+          <option value="endurance">Endurance — long-running stress</option>
+        </select>
+      </div>
+      <button id="start-benchmark" class="primary" type="button">Run full benchmark</button>
+      <button id="stop-benchmark" class="secondary" type="button" disabled>Stop</button>
+    </section>
+
+    <section class="progress-panel panel">
+      <div class="progress-copy"><strong id="progress-text">Ready</strong><span>Each subsystem executes inside protected TurboJS/WASM.</span></div>
+      <div class="progress-track"><div id="progress-bar"></div></div>
+    </section>
+
+    <section class="summary-grid">
+      <article class="metric-card"><span>Total time</span><strong id="total-time">—</strong></article>
+      <article class="metric-card"><span>Total operations</span><strong id="total-ops">—</strong></article>
+      <article class="metric-card"><span>Aggregate score</span><strong id="engine-score">—</strong><small>thousand ops/s</small></article>
+      <article class="metric-card"><span>Fastest test</span><strong id="fastest-case">—</strong></article>
+    </section>
+
+    <section class="panel results-panel">
+      <div class="section-heading"><div><p class="eyebrow">SUBSYSTEM PROFILE</p><h2>Engine results</h2></div><span>Includes protected bridge overhead</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Test</th><th>Status</th><th>Duration</th><th>Throughput</th><th>Checksum</th></tr></thead>
+          <tbody id="results-body"><tr><td colspan="5" class="empty">Click “Run full benchmark” to begin.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel console-panel">
+      <div class="section-heading"><div><p class="eyebrow">LIVE TELEMETRY</p><h2>Run log</h2></div></div>
+      <pre id="run-log">Waiting for benchmark…\n</pre>
+    </section>
+  </main>
+  <script type="module" src="./browser/app.js"></script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-#include "venom/frontends/javascript/embedded_bundles.hpp"
+#include "frontends/javascript/embedded_bundles.hpp"
 
 #include <string_view>
 

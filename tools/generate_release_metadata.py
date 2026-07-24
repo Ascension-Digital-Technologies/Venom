@@ -51,7 +51,7 @@ def directory_digest(directory: Path) -> str:
     return h.hexdigest()
 
 def critical_subjects(out: Path) -> list[dict]:
-    names=['bin/venom','bin/venom.exe','runtime/quickjs-runtime.wasm','CONTRACTS.json','toolchains.lock.json']
+    names=['bin/venom','bin/venom.exe','runtime/turbojs-runtime.wasm','CONTRACTS.json','toolchains.lock.json']
     subjects=[]
     for rel in names:
         p=out/rel
@@ -92,7 +92,7 @@ def main() -> int:
     }
     (out/'SBOM.cdx.json').write_text(json.dumps(sbom, sort_keys=True, separators=(',',':'))+'\n', encoding='utf-8')
     materials=[]
-    for rel in ('CMakeLists.txt','toolchains.lock.json','contracts/quickjs-wasm-abi.json','contracts/runtime-api.json'):
+    for rel in ('CMakeLists.txt','toolchains.lock.json','contracts/turbojs-wasm-abi.json','contracts/runtime-api.json'):
         p=repo/rel
         if p.is_file(): materials.append({'uri':rel,'digest':{'sha256':sha256(p)}})
     revision=git_revision(repo)
@@ -112,7 +112,7 @@ def main() -> int:
     }
     (out/'PROVENANCE.intoto.json').write_text(json.dumps(prov, sort_keys=True, separators=(',',':'))+'\n', encoding='utf-8')
     abi={}
-    abi_path=repo/'contracts'/'quickjs-wasm-abi.json'
+    abi_path=repo/'contracts'/'turbojs-wasm-abi.json'
     if abi_path.is_file():
         raw=json.loads(abi_path.read_text(encoding='utf-8'))
         abi={'runtimeAbi':raw.get('runtimeAbi') or raw.get('version'),'bridgeAbi':raw.get('bridgeAbi'),'bytecodeFormat':raw.get('bytecodeFormat')}
@@ -124,7 +124,7 @@ def main() -> int:
     policy={
       'schema':'VENOM_RELEASE_POLICY_V1','version':args.version,'releaseSequence':args.release_sequence,
       'channel':args.release_channel,'targetTriplet':args.target_triplet,'sourceDateEpoch':args.source_date_epoch,
-      'sourceRevision':revision,'quickjsWasm':abi,'runtimeApi':runtime_api,
+      'sourceRevision':revision,'turbojsWasm':abi,'runtimeApi':runtime_api,
       'security':{'hostSourceFallbackAllowed':False,'signedManifestRequiredForStable':True,'supplyChainMetadataRequiredForStable':True},
       'supportedHosts':['windows-x64','linux-x64','linux-arm64','macos-arm64']
     }

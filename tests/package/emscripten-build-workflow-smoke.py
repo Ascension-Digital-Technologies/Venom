@@ -60,7 +60,7 @@ def main() -> int:
 
     docs = root / 'docs' / 'getting-started' / 'build-from-source.md'
     doc_text = docs.read_text(encoding='utf-8')
-    for marker in ('build-emscripten', 'Emscripten setup', 'QuickJS/WASM preflight'):
+    for marker in ('build-emscripten', 'Emscripten setup', 'TurboJS/WASM preflight'):
         if marker not in doc_text:
             print(f'missing docs marker {marker!r}', file=sys.stderr)
             return 1
@@ -71,8 +71,8 @@ def main() -> int:
     if forbidden in build_tool_text or "emsdk_env.bat'" in build_tool_text:
         print('build_emscripten.py should not chain through emsdk_env.bat on Windows', file=sys.stderr)
         return 1
-    if 'build-quickjs-wasm.ps1' not in build_tool_text or "'-File'" not in build_tool_text:
-        print('build_emscripten.py should invoke build-quickjs-wasm.ps1 directly on Windows', file=sys.stderr)
+    if 'build-turbojs-wasm.ps1' not in build_tool_text or "'-File'" not in build_tool_text:
+        print('build_emscripten.py should invoke build-turbojs-wasm.ps1 directly on Windows', file=sys.stderr)
         return 1
     for marker in ('rebuild_native_compiler', 'verify_native_runtime_binding', '--skip-native-rebuild', '--skip-runtime-smoke'):
         if marker not in build_tool_text:
@@ -108,33 +108,33 @@ def main() -> int:
         return 1
 
 
-    ps_text = (root / 'tools' / 'windows-scripts' / 'build-quickjs-wasm.ps1').read_text(encoding='utf-8')
-    for marker in ('Invoke-VenomExternal', '$LASTEXITCODE', 'New-LifecycleArguments', '$env:EMCC', '$resolvedEmccPath', 'emcc failed with exit code', 'quickjs_wasm_cutover.py', 'exit code ${code}:', '-sSTACK_SIZE=4194304'):
+    ps_text = (root / 'tools' / 'windows-scripts' / 'build-turbojs-wasm.ps1').read_text(encoding='utf-8')
+    for marker in ('Invoke-VenomExternal', '$LASTEXITCODE', 'New-LifecycleArguments', '$env:EMCC', '$resolvedEmccPath', 'emcc failed with exit code', 'turbojs_wasm_cutover.py', 'exit code ${code}:', '-sSTACK_SIZE=4194304'):
         if marker not in ps_text:
-            print(f'build-quickjs-wasm.ps1 should enforce external command failure marker {marker!r}', file=sys.stderr)
+            print(f'build-turbojs-wasm.ps1 should enforce external command failure marker {marker!r}', file=sys.stderr)
             return 1
 
-    shell_quickjs_text = (root / 'tools' / 'linux-scripts' / 'build-quickjs-wasm.sh').read_text(encoding='utf-8')
+    shell_turbojs_text = (root / 'tools' / 'linux-scripts' / 'build-turbojs-wasm.sh').read_text(encoding='utf-8')
     for marker in ('--detect-features', '--enable-bulk-memory-opt', '--enable-nontrapping-float-to-int'):
-        if marker not in ps_text or marker not in shell_quickjs_text:
-            print(f'QuickJS Binaryen post-processing must propagate WebAssembly feature marker {marker!r}', file=sys.stderr)
+        if marker not in ps_text or marker not in shell_turbojs_text:
+            print(f'TurboJS Binaryen post-processing must propagate WebAssembly feature marker {marker!r}', file=sys.stderr)
             return 1
-    if '--all-features' in ps_text or '--all-features' in shell_quickjs_text:
-        print('QuickJS Binaryen post-processing should enable only detected/required features, not all features', file=sys.stderr)
+    if '--all-features' in ps_text or '--all-features' in shell_turbojs_text:
+        print('TurboJS Binaryen post-processing should enable only detected/required features, not all features', file=sys.stderr)
         return 1
-    if '$wasmFeatureFlags' not in ps_text or '"${WASM_FEATURE_FLAGS[@]}"' not in shell_quickjs_text:
-        print('QuickJS Binaryen feature arrays must be included in the actual wasm-opt command', file=sys.stderr)
+    if '$wasmFeatureFlags' not in ps_text or '"${WASM_FEATURE_FLAGS[@]}"' not in shell_turbojs_text:
+        print('TurboJS Binaryen feature arrays must be included in the actual wasm-opt command', file=sys.stderr)
         return 1
     if '+@wasmFeatureFlags+' in ps_text:
         print('PowerShell array expressions must reference $wasmFeatureFlags, not the splatting-only @wasmFeatureFlags form', file=sys.stderr)
         return 1
-    for marker in ('$ControllerBuild', 'refusing recursively nested QuickJS/WASM output path'):
+    for marker in ('$ControllerBuild', 'refusing recursively nested TurboJS/WASM output path'):
         if marker not in ps_text:
-            print(f'PowerShell QuickJS wrapper must prevent recursive controller output growth: missing {marker!r}', file=sys.stderr)
+            print(f'PowerShell TurboJS wrapper must prevent recursive controller output growth: missing {marker!r}', file=sys.stderr)
             return 1
-    for marker in ('--controller-build', 'refusing recursively nested QuickJS/WASM output path'):
-        if marker not in shell_quickjs_text:
-            print(f'Shell QuickJS wrapper must prevent recursive controller output growth: missing {marker!r}', file=sys.stderr)
+    for marker in ('--controller-build', 'refusing recursively nested TurboJS/WASM output path'):
+        if marker not in shell_turbojs_text:
+            print(f'Shell TurboJS wrapper must prevent recursive controller output growth: missing {marker!r}', file=sys.stderr)
             return 1
 
     wasm_exports_text = (root / 'tools' / 'wasm_exports.py').read_text(encoding='utf-8')

@@ -6,7 +6,7 @@ Venom protects JavaScript by default. Annotations select browser execution where
 
 ## Default protected file
 
-A JavaScript file with no Venom annotation is planned for protected QuickJS/WASM execution unless compatibility analysis requires a supported adjustment.
+A JavaScript file with no Venom annotation is planned for protected TurboJS/WASM execution unless compatibility analysis requires a supported adjustment.
 
 ## Browser file
 

@@ -1,6 +1,6 @@
-#include "venom/pipeline/js.hpp"
-#include "venom/generated/runtime/wasm_runtime_blob.hpp"
-#include "venom/generated/runtime/quickjs_runtime_wasm_blob.hpp"
+#include "pipeline/js.hpp"
+#include "generated/runtime/wasm_runtime_blob.hpp"
+#include "generated/runtime/turbojs_runtime_wasm_blob.hpp"
 
 #include <stdexcept>
 #include <algorithm>
@@ -155,7 +155,7 @@ void diversify_protected_runtime_surface(std::string& source,
       {"WASM-owned package parse failed", code("package-parse")},
       {"WASM-owned route resolution failed", code("route-resolution")},
       {"WASM runtime execution failed", code("route-execution")},
-      {"QuickJS WASM interpreter unavailable; source-decode fallback denied", code("quickjs-unavailable")},
+      {"TurboJS WASM interpreter unavailable; source-decode fallback denied", code("turbojs-unavailable")},
       {"invalid DOM handle authentication tag", code("dom-handle-auth")},
       {"stale route generation rejected", code("stale-generation")},
   }};
@@ -570,7 +570,7 @@ function applyWasmDomOperations(route, domOps, root, assetManifest = new Map(), 
   root.setAttribute('data-venom-wasm-dom-ops', String(domOps.length));
 }
 
-function installWasmNavigation(wasmRuntime, routes, root, assetManifest, assetBaseUrl, jsBundle, pkg, hostBridgePlan, scriptIsolationPlan = null, scriptPolicyPlan = null, quickJsChunkPlan = null, quickJsEnginePlan = null, scriptEnginePolicyPlan = null) {
+function installWasmNavigation(wasmRuntime, routes, root, assetManifest, assetBaseUrl, jsBundle, pkg, hostBridgePlan, scriptIsolationPlan = null, scriptPolicyPlan = null, turboJsChunkPlan = null, turboJsEnginePlan = null, scriptEnginePolicyPlan = null) {
   document.addEventListener('click', (event) => {
     const anchor = event.target && event.target.closest ? event.target.closest('a[href]') : null;
     if (!anchor) return;
@@ -590,7 +590,7 @@ function installWasmNavigation(wasmRuntime, routes, root, assetManifest, assetBa
     root.setAttribute('data-venom-wasm-runtime', 'executed');
     root.setAttribute('data-venom-wasm-executed', String(wasmExecution.executed));
     root.setAttribute('data-venom-wasm-dom-bytes', String(wasmExecution.domOpBytes || 0));
-    executeScriptsForRoute(targetRoute, jsBundle, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan).catch((error) => console.error('[venom] route script failed', error));
+    executeScriptsForRoute(targetRoute, jsBundle, scriptIsolationPlan, scriptPolicyPlan, turboJsChunkPlan, turboJsEnginePlan, scriptEnginePolicyPlan).catch((error) => console.error('[venom] route script failed', error));
   });
 
   window.addEventListener('popstate', () => {
@@ -605,7 +605,7 @@ function installWasmNavigation(wasmRuntime, routes, root, assetManifest, assetBa
     root.setAttribute('data-venom-wasm-runtime', 'executed');
     root.setAttribute('data-venom-wasm-executed', String(wasmExecution.executed));
     root.setAttribute('data-venom-wasm-dom-bytes', String(wasmExecution.domOpBytes || 0));
-    executeScriptsForRoute(targetRoute, jsBundle, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan).catch((error) => console.error('[venom] route script failed', error));
+    executeScriptsForRoute(targetRoute, jsBundle, scriptIsolationPlan, scriptPolicyPlan, turboJsChunkPlan, turboJsEnginePlan, scriptEnginePolicyPlan).catch((error) => console.error('[venom] route script failed', error));
   });
 }
 )JS";
@@ -659,7 +659,7 @@ function installWasmNavigation(wasmRuntime, routes, root, assetManifest, assetBa
       "  installNavigation(routes,",
       "failed to patch WASM runtime navigation hook");
   js.replace(nav_begin, nav_end - nav_begin,
-      "  installWasmNavigation(wasmRuntime, routes, root, assetManifest, assetBaseUrl, initialRuntime.jsBundle, pkg, hostBridgePlan, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan);\n");
+      "  installWasmNavigation(wasmRuntime, routes, root, assetManifest, assetBaseUrl, initialRuntime.jsBundle, pkg, hostBridgePlan, scriptIsolationPlan, scriptPolicyPlan, turboJsChunkPlan, turboJsEnginePlan, scriptEnginePolicyPlan);\n");
 
   const std::string mode_needle = "    runtimeMode: 'js',\n";
   const auto mode_pos = js.find(mode_needle);
@@ -676,18 +676,18 @@ function installWasmNavigation(wasmRuntime, routes, root, assetManifest, assetBa
   return js;
 }
 
-std::vector<unsigned char> make_quickjs_runtime_wasm_module() {
+std::vector<unsigned char> make_turbojs_runtime_wasm_module() {
   return std::vector<unsigned char>(
-      kQuickJsRuntimeWasmBlob,
-      kQuickJsRuntimeWasmBlob + kQuickJsRuntimeWasmBlobSize);
+      kTurboJsRuntimeWasmBlob,
+      kTurboJsRuntimeWasmBlob + kTurboJsRuntimeWasmBlobSize);
 }
 
-std::string quickjs_runtime_wasm_provenance_text() {
-  return std::string(kQuickJsRuntimeWasmBlobProvenance ? kQuickJsRuntimeWasmBlobProvenance : "");
+std::string turbojs_runtime_wasm_provenance_text() {
+  return std::string(kTurboJsRuntimeWasmBlobProvenance ? kTurboJsRuntimeWasmBlobProvenance : "");
 }
 
-std::string quickjs_runtime_wasm_sha256() {
-  return std::string(kQuickJsRuntimeWasmBlobSha256 ? kQuickJsRuntimeWasmBlobSha256 : "");
+std::string turbojs_runtime_wasm_sha256() {
+  return std::string(kTurboJsRuntimeWasmBlobSha256 ? kTurboJsRuntimeWasmBlobSha256 : "");
 }
 
 

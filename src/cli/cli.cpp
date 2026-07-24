@@ -1,7 +1,7 @@
-#include "venom/base/error.hpp"
-#include "venom/cli/cli.hpp"
-#include "venom/core/config.hpp"
-#include "venom/core/version.hpp"
+#include "base/error.hpp"
+#include "cli/cli.hpp"
+#include "core/config.hpp"
+#include "core/version.hpp"
 
 #include <iostream>
 #include <stdexcept>
@@ -27,10 +27,10 @@ void apply_profile_defaults(BuildOptions& build) {
     raise_error("VENOM-E1000", "--profile must be prod");
   }
 
-  // Venom uses one production-grade QuickJS/WASM build path.
+  // Venom uses one production-grade TurboJS/WASM build path.
   build.package_mode = "external";
   build.runtime = "wasm";
-  build.quickjs_backend = "wasm-real";
+  build.turbojs_backend = "wasm-real";
   build.crypto_provider = "runtime";
   build.allow_host_fallback = false;
   build.deny_host_fallback = true;
@@ -345,6 +345,10 @@ Command parse_command(int argc, char** argv) {
     } else if (arg == "--quiet" || arg == "-q") {
       saw_quiet = true;
       cmd.build.verbosity = 0;
+    } else if (arg == "--harden-public-js") {
+      cmd.build.harden_public_javascript = true;
+    } else if (arg == "--no-harden-public-js") {
+      cmd.build.harden_public_javascript = false;
     } else if (arg == "--no-cache") {
       cmd.build.cache_enabled = false;
     } else if (arg == "--cache-dir") {
@@ -420,7 +424,7 @@ Command parse_command(int argc, char** argv) {
 void print_help() {
   std::cout << VENOM_PRODUCT_NAME << " " << VENOM_VERSION_STRING << "\n\n"
             << "Usage:\n"
-            << "  venom build [site-dir] --profile prod [--protection standard|strong|maximum] [--verbose|--quiet] [--no-cache|--cache-dir <path>]\n"
+            << "  venom build [site-dir] --profile prod [--protection standard|strong|maximum] [--verbose|--quiet] [--harden-public-js|--no-harden-public-js] [--no-cache|--cache-dir <path>]\n"
             << "  venom plan [site-dir] [--protect <pattern>] [--browser <pattern>] [--min-confidence N] [--format text|json]\n"
             << "  venom dev [site-dir] [--out dist-dev] [--port 8080] [--open]\n"
             << "  venom new <name-or-path> [--force]\n"
@@ -444,7 +448,7 @@ void print_help() {
             << "  --cache-dir P  Store compiler cache entries under P.\n"
             << "  --quiet, -q    Suppress progress output; errors and the final result remain visible.\n\n"
             << "Build profiles:\n"
-            << "  dev   Readable generated runtime, diagnostics, stable asset names, real QuickJS/WASM protection.\n"
+            << "  dev   Readable generated runtime, diagnostics, stable asset names, real TurboJS/WASM protection.\n"
             << "  prod  Obfuscated, hashed, stripped, diversified, fail-closed deployment output.\n\n"
             << "Project setup:\n"
             << "  venom new my-site\n"

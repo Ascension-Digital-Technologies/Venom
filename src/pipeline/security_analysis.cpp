@@ -1,8 +1,8 @@
-#include "venom/internal/pipeline/security_analysis.hpp"
-#include "venom/internal/pipeline/security_artifact_inspection.hpp"
+#include "pipeline/security_analysis.hpp"
+#include "pipeline/security_artifact_inspection.hpp"
 
-#include "venom/package/hash.hpp"
-#include "venom/package/reader.hpp"
+#include "package/hash.hpp"
+#include "package/reader.hpp"
 
 #include <algorithm>
 #include <filesystem>
@@ -44,12 +44,12 @@ ReleaseCheckReport analyze_package_for_release(const ReleaseCheckOptions& option
     const auto metadata = read_text_file(build_metadata_path);
     std::smatch closure;
     const std::regex closure_pattern(
-        R"("protection_closure"\s*:\s*\{[^}]*"requested"\s*:\s*([0-9]+)[^}]*"resolved"\s*:\s*([0-9]+)[^}]*"expected_quickjs_records"\s*:\s*([0-9]+))");
+        R"("protection_closure"\s*:\s*\{[^}]*"requested"\s*:\s*([0-9]+)[^}]*"resolved"\s*:\s*([0-9]+)[^}]*"expected_turbojs_records"\s*:\s*([0-9]+))");
     if (std::regex_search(metadata, closure, closure_pattern)) {
       report.protection_closure_present = true;
       report.protection_intents_requested = static_cast<std::size_t>(std::stoull(closure[1].str()));
       report.protection_intents_resolved = static_cast<std::size_t>(std::stoull(closure[2].str()));
-      report.protection_expected_quickjs_records = static_cast<std::size_t>(std::stoull(closure[3].str()));
+      report.protection_expected_turbojs_records = static_cast<std::size_t>(std::stoull(closure[3].str()));
     }
   }
 
@@ -65,7 +65,7 @@ ReleaseCheckReport analyze_package_for_release(const ReleaseCheckOptions& option
     "VENOM_PACKAGE_FEATURES_V2",
     "VENOM_POLYMORPH",
     "word_layout=",
-    "VQJSBC01",
+    "VTJSBC01",
     "source-preserving-byte-buffer-record",
     "VENOM_LAZY_SECTIONS_V1",
     "lazy-sections.vlazy",
@@ -75,18 +75,18 @@ ReleaseCheckReport analyze_package_for_release(const ReleaseCheckOptions& option
     "release-profile.vrpf",
     "browser-client-protection-v1",
     "native-private-aead-v1",
-    "VENOM_QJS_WASM_EXECUTION_V1",
-    "quickjs-wasm-execution.vqwe",
-    "quickjs-wasm-real",
-    "VENOM_QJS_INTERPRETER_CONTRACT_V1",
-    "quickjs-wasm-abi12-interpreter-v1",
-    "quickjs-wasm-abi12-interpreter-dispatch",
-    "quickjs-wasm-abi12-upstream-global-host-api-shims",
-    "quickjs-upstream-global-host-api-shims-v7",
-    "quickjs-upstream-object-semantics-v3",
-    "quickjs-upstream-exception-semantics-v3",
-    "quickjs-upstream-module-semantics-v3",
-    "VENOM_QUICKJS_NATIVE_PARITY_V3",
+    "VENOM_TJS_WASM_EXECUTION_V1",
+    "turbojs-wasm-execution.vqwe",
+    "turbojs-wasm-real",
+    "VENOM_TJS_INTERPRETER_CONTRACT_V1",
+    "turbojs-wasm-abi12-interpreter-v1",
+    "turbojs-wasm-abi12-interpreter-dispatch",
+    "turbojs-wasm-abi12-upstream-global-host-api-shims",
+    "turbojs-upstream-global-host-api-shims-v7",
+    "turbojs-upstream-object-semantics-v3",
+    "turbojs-upstream-exception-semantics-v3",
+    "turbojs-upstream-module-semantics-v3",
+    "VENOM_TURBOJS_NATIVE_PARITY_V3",
   };
   for (const char* needle : forbidden_raw) {
     if (contains_bytes(raw, needle)) {
@@ -125,10 +125,10 @@ ReleaseCheckReport analyze_package_for_release(const ReleaseCheckOptions& option
       report.protection_closure_present = true;
       const auto requested = metadata_value(text, "requested");
       const auto resolved = metadata_value(text, "resolved");
-      const auto expected = metadata_value(text, "expected_quickjs_records");
+      const auto expected = metadata_value(text, "expected_turbojs_records");
       report.protection_intents_requested = requested.empty() ? 0u : static_cast<std::size_t>(std::stoull(requested));
       report.protection_intents_resolved = resolved.empty() ? 0u : static_cast<std::size_t>(std::stoull(resolved));
-      report.protection_expected_quickjs_records = expected.empty() ? 0u : static_cast<std::size_t>(std::stoull(expected));
+      report.protection_expected_turbojs_records = expected.empty() ? 0u : static_cast<std::size_t>(std::stoull(expected));
       break;
     }
   }
@@ -181,8 +181,8 @@ ReleaseCheckReport analyze_package_for_release(const ReleaseCheckOptions& option
     if (metadata_value(text, "server_secret_claim") != "false") {
       add_failure(report, "release profile incorrectly claims browser/server secret protection");
     }
-    if (metadata_value(text, "quickjs_backend") == "scaffold") {
-      add_failure(report, "release profile still declares scaffold QuickJS backend");
+    if (metadata_value(text, "turbojs_backend") == "scaffold") {
+      add_failure(report, "release profile still declares scaffold TurboJS backend");
     }
     if (metadata_value(text, "host_js_fallback_allowed") == "true") {
       add_failure(report, "release profile allows host-JS fallback");
@@ -239,221 +239,221 @@ ReleaseCheckReport analyze_package_for_release(const ReleaseCheckOptions& option
 
   const venom::package::Section* wasm_exec_section = nullptr;
   for (const auto& section : pkg.sections) {
-    if (section.type == venom::package::SectionType::QuickJsEngineBackend && venom::package::section_name_matches(section.type, section.name, "quickjs-wasm-execution.vqwe")) {
+    if (section.type == venom::package::SectionType::TurboJsEngineBackend && venom::package::section_name_matches(section.type, section.name, "turbojs-wasm-execution.vqwe")) {
       wasm_exec_section = &section;
       break;
     }
   }
   if (wasm_exec_section != nullptr) {
-    report.quickjs_wasm_execution = true;
+    report.turbojs_wasm_execution = true;
     const auto text = std::string(reinterpret_cast<const char*>(wasm_exec_section->data.data()), wasm_exec_section->data.size());
-    if (text.rfind("VENOM_QJS_WASM_EXECUTION_V2", 0) != 0 && text.rfind("VENOM_QJS_WASM_EXECUTION_V1", 0) != 0) {
-      add_failure(report, "QuickJS/WASM execution metadata has invalid header");
+    if (text.rfind("VENOM_TJS_WASM_EXECUTION_V2", 0) != 0 && text.rfind("VENOM_TJS_WASM_EXECUTION_V1", 0) != 0) {
+      add_failure(report, "TurboJS/WASM execution metadata has invalid header");
     }
-    report.quickjs_execution_backend = metadata_value(text, "selected_backend");
+    report.turbojs_execution_backend = metadata_value(text, "selected_backend");
     const auto exec_runtime_impl = metadata_value(text, "runtime_implementation");
-    if (!exec_runtime_impl.empty()) report.quickjs_runtime_implementation = exec_runtime_impl;
+    if (!exec_runtime_impl.empty()) report.turbojs_runtime_implementation = exec_runtime_impl;
     const auto exec_backend_claim = metadata_value(text, "backend_claim");
-    if (!exec_backend_claim.empty()) report.quickjs_runtime_claim = exec_backend_claim;
-    if (metadata_value(text, "contract_only") == "true") report.quickjs_runtime_contract_only = true;
-    if (metadata_value(text, "scaffold_runtime") == "true") report.quickjs_runtime_scaffold = true;
-    if (metadata_value(text, "real_engine_candidate") == "true") report.quickjs_runtime_real_engine_candidate = true;
-    if (metadata_value(text, "full_upstream_quickjs") == "true") report.quickjs_runtime_full_upstream_quickjs = true;
+    if (!exec_backend_claim.empty()) report.turbojs_runtime_claim = exec_backend_claim;
+    if (metadata_value(text, "contract_only") == "true") report.turbojs_runtime_contract_only = true;
+    if (metadata_value(text, "scaffold_runtime") == "true") report.turbojs_runtime_scaffold = true;
+    if (metadata_value(text, "real_engine_candidate") == "true") report.turbojs_runtime_real_engine_candidate = true;
+    if (metadata_value(text, "full_upstream_turbojs") == "true") report.turbojs_runtime_full_upstream_turbojs = true;
     const auto exec_artifact_kind = metadata_value(text, "artifact_kind");
-    if (!exec_artifact_kind.empty()) report.quickjs_runtime_artifact_kind = exec_artifact_kind;
-    report.quickjs_runtime_required_exports_satisfied = report.quickjs_runtime_required_exports_satisfied || metadata_value(text, "required_exports_satisfied") == "true";
+    if (!exec_artifact_kind.empty()) report.turbojs_runtime_artifact_kind = exec_artifact_kind;
+    report.turbojs_runtime_required_exports_satisfied = report.turbojs_runtime_required_exports_satisfied || metadata_value(text, "required_exports_satisfied") == "true";
     const auto exec_missing_exports = metadata_value(text, "missing_export_count");
-    if (!exec_missing_exports.empty()) report.quickjs_runtime_missing_export_count = static_cast<std::size_t>(std::stoull(exec_missing_exports));
-    report.quickjs_host_js_fallback_allowed = metadata_value(text, "host_js_fallback_allowed") == "true";
-    report.quickjs_release_fail_closed = metadata_value(text, "release_fail_closed") == "true";
-    report.quickjs_wasm_chunks = static_cast<std::size_t>(std::stoull(metadata_value(text, "chunk_count").empty() ? "0" : metadata_value(text, "chunk_count")));
+    if (!exec_missing_exports.empty()) report.turbojs_runtime_missing_export_count = static_cast<std::size_t>(std::stoull(exec_missing_exports));
+    report.turbojs_host_js_fallback_allowed = metadata_value(text, "host_js_fallback_allowed") == "true";
+    report.turbojs_release_fail_closed = metadata_value(text, "release_fail_closed") == "true";
+    report.turbojs_wasm_chunks = static_cast<std::size_t>(std::stoull(metadata_value(text, "chunk_count").empty() ? "0" : metadata_value(text, "chunk_count")));
     const auto exec_runtime_abi_text = metadata_value(text, "runtime_abi");
-    if (!exec_runtime_abi_text.empty()) report.quickjs_runtime_abi = static_cast<std::uint32_t>(std::stoul(exec_runtime_abi_text));
-    report.quickjs_interpreter_dispatch = metadata_value(text, "interpreter_dispatch") == "enabled";
-    report.quickjs_semantic_runtime = metadata_value(text, "semantic_runtime") == "enabled";
-    report.quickjs_upstream_parity = metadata_value(text, "upstream_quickjs_bridge") == "enabled" || metadata_value(text, "upstream_parity_bridge") == "enabled";
-    report.quickjs_upstream_bytecode_semantics = metadata_value(text, "upstream_bytecode_semantics") == "enabled";
-    report.quickjs_upstream_intrinsic_semantics = metadata_value(text, "upstream_intrinsic_semantics") == "enabled";
-    if (!report.quickjs_upstream_parity) {
-      add_failure(report, "QuickJS/WASM execution metadata does not enable the upstream QuickJS parity bridge");
+    if (!exec_runtime_abi_text.empty()) report.turbojs_runtime_abi = static_cast<std::uint32_t>(std::stoul(exec_runtime_abi_text));
+    report.turbojs_interpreter_dispatch = metadata_value(text, "interpreter_dispatch") == "enabled";
+    report.turbojs_semantic_runtime = metadata_value(text, "semantic_runtime") == "enabled";
+    report.turbojs_upstream_parity = metadata_value(text, "upstream_turbojs_bridge") == "enabled" || metadata_value(text, "upstream_parity_bridge") == "enabled";
+    report.turbojs_upstream_bytecode_semantics = metadata_value(text, "upstream_bytecode_semantics") == "enabled";
+    report.turbojs_upstream_intrinsic_semantics = metadata_value(text, "upstream_intrinsic_semantics") == "enabled";
+    if (!report.turbojs_upstream_parity) {
+      add_failure(report, "TurboJS/WASM execution metadata does not enable the upstream TurboJS parity bridge");
     }
-    if (metadata_value(text, "backend_contract") != "quickjs-wasm-abi12-upstream-global-host-api-shims-v7") {
-      add_failure(report, "QuickJS/WASM execution metadata is not ABI12 upstream-runtime contract-bound");
+    if (metadata_value(text, "backend_contract") != "turbojs-wasm-abi12-upstream-global-host-api-shims-v7") {
+      add_failure(report, "TurboJS/WASM execution metadata is not ABI12 upstream-runtime contract-bound");
     }
     if (metadata_value(text, "decode_boundary") != "wasm-owned-bytecode-abi12-upstream-semantics") {
-      add_failure(report, "QuickJS/WASM execution metadata does not use ABI12 upstream-runtime bytecode boundary");
+      add_failure(report, "TurboJS/WASM execution metadata does not use ABI12 upstream-runtime bytecode boundary");
     }
-    if (!report.quickjs_interpreter_dispatch) {
-      add_failure(report, "QuickJS/WASM execution metadata does not enable interpreter dispatch");
+    if (!report.turbojs_interpreter_dispatch) {
+      add_failure(report, "TurboJS/WASM execution metadata does not enable interpreter dispatch");
     }
-    if (!report.quickjs_semantic_runtime) {
-      add_failure(report, "QuickJS/WASM execution metadata does not enable semantic runtime records");
+    if (!report.turbojs_semantic_runtime) {
+      add_failure(report, "TurboJS/WASM execution metadata does not enable semantic runtime records");
     }
-    if (!report.quickjs_upstream_bytecode_semantics) {
-      add_failure(report, "QuickJS/WASM execution metadata does not enable upstream bytecode semantics records");
+    if (!report.turbojs_upstream_bytecode_semantics) {
+      add_failure(report, "TurboJS/WASM execution metadata does not enable upstream bytecode semantics records");
     }
-    if (!report.quickjs_upstream_intrinsic_semantics) {
-      add_failure(report, "QuickJS/WASM execution metadata does not enable upstream intrinsic/object semantics records");
+    if (!report.turbojs_upstream_intrinsic_semantics) {
+      add_failure(report, "TurboJS/WASM execution metadata does not enable upstream intrinsic/object semantics records");
     }
     if (metadata_value(text, "source_eval_in_runtime") != "false") {
-      add_failure(report, "QuickJS/WASM execution metadata allows source eval inside runtime");
+      add_failure(report, "TurboJS/WASM execution metadata allows source eval inside runtime");
     }
-    if (report.release_or_protect && report.quickjs_runtime_abi < 12u) {
-      add_failure(report, "QuickJS/WASM execution metadata runtime ABI is below v12");
+    if (report.release_or_protect && report.turbojs_runtime_abi < 12u) {
+      add_failure(report, "TurboJS/WASM execution metadata runtime ABI is below v12");
     }
-    if (metadata_value(text, "bytecode_validate_export") != "venom_qjs_bytecode_validate") {
-      add_failure(report, "QuickJS/WASM execution metadata is missing bytecode validation export");
+    if (metadata_value(text, "bytecode_validate_export") != "venom_tjs_bytecode_validate") {
+      add_failure(report, "TurboJS/WASM execution metadata is missing bytecode validation export");
     }
     if (metadata_value(text, "enabled") != "true") {
-      add_failure(report, "QuickJS/WASM execution metadata is not enabled");
+      add_failure(report, "TurboJS/WASM execution metadata is not enabled");
     }
-    if (report.quickjs_execution_backend != "quickjs-wasm-real") {
-      add_failure(report, "QuickJS/WASM execution metadata does not select quickjs-wasm-real");
+    if (report.turbojs_execution_backend != "turbojs-wasm-real") {
+      add_failure(report, "TurboJS/WASM execution metadata does not select turbojs-wasm-real");
     }
-    if (report.quickjs_host_js_fallback_allowed) {
-      add_failure(report, "QuickJS/WASM execution metadata allows host-JS fallback");
+    if (report.turbojs_host_js_fallback_allowed) {
+      add_failure(report, "TurboJS/WASM execution metadata allows host-JS fallback");
     }
-    if (!report.quickjs_release_fail_closed) {
-      add_failure(report, "QuickJS/WASM execution metadata is not fail-closed");
+    if (!report.turbojs_release_fail_closed) {
+      add_failure(report, "TurboJS/WASM execution metadata is not fail-closed");
     }
     if (metadata_value(text, "source_eval_fallback") != "false") {
-      add_failure(report, "QuickJS/WASM execution metadata allows source eval fallback");
+      add_failure(report, "TurboJS/WASM execution metadata allows source eval fallback");
     }
-    if (metadata_value(text, "bytecode_format") != "VQJSBC03") {
-      add_failure(report, "QuickJS/WASM execution metadata does not require VQJSBC03 bytecode records");
+    if (metadata_value(text, "bytecode_format") != "VTJSBC03") {
+      add_failure(report, "TurboJS/WASM execution metadata does not require VTJSBC03 bytecode records");
     }
   }
 
   const venom::package::Section* wasm_runtime_section = nullptr;
   for (const auto& section : pkg.sections) {
-    if (section.type == venom::package::SectionType::QuickJsWasmRuntime && venom::package::section_name_matches(section.type, section.name, "quickjs-wasm-runtime.vqwr")) {
+    if (section.type == venom::package::SectionType::TurboJsWasmRuntime && venom::package::section_name_matches(section.type, section.name, "turbojs-wasm-runtime.vqwr")) {
       wasm_runtime_section = &section;
       break;
     }
   }
   if (wasm_runtime_section != nullptr) {
     const auto text = std::string(reinterpret_cast<const char*>(wasm_runtime_section->data.data()), wasm_runtime_section->data.size());
-    report.quickjs_wasm_runtime_mode = metadata_value(text, "execution_mode");
+    report.turbojs_wasm_runtime_mode = metadata_value(text, "execution_mode");
     const auto runtime_impl = metadata_value(text, "runtime_implementation");
-    if (!runtime_impl.empty()) report.quickjs_runtime_implementation = runtime_impl;
+    if (!runtime_impl.empty()) report.turbojs_runtime_implementation = runtime_impl;
     const auto runtime_claim = metadata_value(text, "runtime_claim");
-    if (!runtime_claim.empty()) report.quickjs_runtime_claim = runtime_claim;
-    report.quickjs_runtime_contract_only = report.quickjs_runtime_contract_only || metadata_value(text, "contract_only") == "true";
-    report.quickjs_runtime_scaffold = report.quickjs_runtime_scaffold || metadata_value(text, "scaffold_runtime") == "true";
-    report.quickjs_runtime_real_engine_candidate = report.quickjs_runtime_real_engine_candidate || metadata_value(text, "real_engine_candidate") == "true";
-    report.quickjs_runtime_full_upstream_quickjs = report.quickjs_runtime_full_upstream_quickjs || metadata_value(text, "full_upstream_quickjs") == "true";
-    report.quickjs_runtime_fallback_required = report.quickjs_runtime_fallback_required || metadata_value(text, "fallback_required") == "true";
-    report.quickjs_runtime_finish_blocker = metadata_value(text, "finish_blocker");
-    report.quickjs_runtime_artifact_kind = metadata_value(text, "artifact_kind");
-    report.quickjs_runtime_wasm_sha256 = metadata_value(text, "wasm_sha256");
-    report.quickjs_runtime_required_exports_satisfied = report.quickjs_runtime_required_exports_satisfied || metadata_value(text, "required_exports_satisfied") == "true";
+    if (!runtime_claim.empty()) report.turbojs_runtime_claim = runtime_claim;
+    report.turbojs_runtime_contract_only = report.turbojs_runtime_contract_only || metadata_value(text, "contract_only") == "true";
+    report.turbojs_runtime_scaffold = report.turbojs_runtime_scaffold || metadata_value(text, "scaffold_runtime") == "true";
+    report.turbojs_runtime_real_engine_candidate = report.turbojs_runtime_real_engine_candidate || metadata_value(text, "real_engine_candidate") == "true";
+    report.turbojs_runtime_full_upstream_turbojs = report.turbojs_runtime_full_upstream_turbojs || metadata_value(text, "full_upstream_turbojs") == "true";
+    report.turbojs_runtime_fallback_required = report.turbojs_runtime_fallback_required || metadata_value(text, "fallback_required") == "true";
+    report.turbojs_runtime_finish_blocker = metadata_value(text, "finish_blocker");
+    report.turbojs_runtime_artifact_kind = metadata_value(text, "artifact_kind");
+    report.turbojs_runtime_wasm_sha256 = metadata_value(text, "wasm_sha256");
+    report.turbojs_runtime_required_exports_satisfied = report.turbojs_runtime_required_exports_satisfied || metadata_value(text, "required_exports_satisfied") == "true";
     const auto runtime_missing_exports = metadata_value(text, "missing_export_count");
-    if (!runtime_missing_exports.empty()) report.quickjs_runtime_missing_export_count = static_cast<std::size_t>(std::stoull(runtime_missing_exports));
+    if (!runtime_missing_exports.empty()) report.turbojs_runtime_missing_export_count = static_cast<std::size_t>(std::stoull(runtime_missing_exports));
     const auto runtime_abi_text = metadata_value(text, "abi");
     const auto runtime_pkg_text = metadata_value(text, "package_version");
-    if (!runtime_abi_text.empty()) report.quickjs_runtime_abi = static_cast<std::uint32_t>(std::stoul(runtime_abi_text));
-    if (!runtime_pkg_text.empty()) report.quickjs_runtime_package_version = static_cast<std::uint32_t>(std::stoul(runtime_pkg_text));
-    report.quickjs_abi_contract = metadata_value(text, "abi_contract");
-    report.quickjs_execute_bytecode_export = contains_bytes(wasm_runtime_section->data, "venom_qjs_execute_bytecode");
-    report.quickjs_bytecode_validate_export = contains_bytes(wasm_runtime_section->data, "venom_qjs_bytecode_validate");
-    report.quickjs_status_exports = contains_bytes(wasm_runtime_section->data, "venom_qjs_status_code") && contains_bytes(wasm_runtime_section->data, "venom_qjs_release_status");
-    report.quickjs_limit_exports = contains_bytes(wasm_runtime_section->data, "venom_qjs_context_heap_limit") && contains_bytes(wasm_runtime_section->data, "venom_qjs_context_heap_used") && contains_bytes(wasm_runtime_section->data, "venom_qjs_context_stack_limit");
-    report.quickjs_bytecode_validation_exports = report.quickjs_bytecode_validate_export && contains_bytes(wasm_runtime_section->data, "venom_qjs_bytecode_record_hash32") && contains_bytes(wasm_runtime_section->data, "venom_qjs_bytecode_payload_size");
-    report.quickjs_backend_contract_export = contains_bytes(wasm_runtime_section->data, "venom_qjs_backend_kind") && contains_bytes(wasm_runtime_section->data, "venom_qjs_backend_ready");
-    report.quickjs_interpreter_contract_export = contains_bytes(wasm_runtime_section->data, "venom_qjs_interpreter_ready") && contains_bytes(wasm_runtime_section->data, "venom_qjs_execute_bytecode");
-    report.quickjs_interpreter_exports = contains_bytes(wasm_runtime_section->data, "venom_qjs_interpreter_ready") && contains_bytes(wasm_runtime_section->data, "venom_qjs_execute_bytecode");
-    report.quickjs_semantic_runtime_exports = contains_bytes(wasm_runtime_section->data, "venom_qjs_bytecode_validate") && contains_bytes(wasm_runtime_section->data, "venom_qjs_result_ptr") && contains_bytes(wasm_runtime_section->data, "venom_qjs_result_size");
-    report.quickjs_upstream_exports = contains_bytes(wasm_runtime_section->data, "venom_qjs_upstream_quickjs_ready") && contains_bytes(wasm_runtime_section->data, "venom_qjs_real_engine_candidate");
-    report.quickjs_upstream_runtime_exports = contains_bytes(wasm_runtime_section->data, "venom_qjs_exception_ptr") && contains_bytes(wasm_runtime_section->data, "venom_qjs_module_execute");
-    report.quickjs_upstream_bytecode_semantics_exports = contains_bytes(wasm_runtime_section->data, "venom_qjs_execute_bytecode") && contains_bytes(wasm_runtime_section->data, "venom_qjs_bytecode_validate");
-    report.quickjs_upstream_intrinsic_semantics_exports = contains_bytes(wasm_runtime_section->data, "venom_qjs_upstream_quickjs_ready") && contains_bytes(wasm_runtime_section->data, "venom_qjs_backend_ready");
-    report.quickjs_abi12_runtime = report.quickjs_runtime_abi >= 12u && report.quickjs_abi_contract == "quickjs-wasm-abi12-runtime" && report.quickjs_status_exports && report.quickjs_limit_exports && report.quickjs_bytecode_validation_exports && report.quickjs_backend_contract_export && report.quickjs_interpreter_contract_export && report.quickjs_interpreter_exports && report.quickjs_semantic_runtime_exports && report.quickjs_upstream_exports && report.quickjs_upstream_runtime_exports && report.quickjs_upstream_bytecode_semantics_exports && report.quickjs_upstream_intrinsic_semantics_exports;
-    if (report.release_or_protect && report.quickjs_wasm_runtime_mode != "quickjs-wasm-abi12-upstream-global-host-api-shims") {
-      add_failure(report, "QuickJS/WASM runtime metadata does not use ABI12 upstream-runtime bridge mode");
+    if (!runtime_abi_text.empty()) report.turbojs_runtime_abi = static_cast<std::uint32_t>(std::stoul(runtime_abi_text));
+    if (!runtime_pkg_text.empty()) report.turbojs_runtime_package_version = static_cast<std::uint32_t>(std::stoul(runtime_pkg_text));
+    report.turbojs_abi_contract = metadata_value(text, "abi_contract");
+    report.turbojs_execute_bytecode_export = contains_bytes(wasm_runtime_section->data, "venom_tjs_execute_bytecode");
+    report.turbojs_bytecode_validate_export = contains_bytes(wasm_runtime_section->data, "venom_tjs_bytecode_validate");
+    report.turbojs_status_exports = contains_bytes(wasm_runtime_section->data, "venom_tjs_status_code") && contains_bytes(wasm_runtime_section->data, "venom_tjs_release_status");
+    report.turbojs_limit_exports = contains_bytes(wasm_runtime_section->data, "venom_tjs_context_heap_limit") && contains_bytes(wasm_runtime_section->data, "venom_tjs_context_heap_used") && contains_bytes(wasm_runtime_section->data, "venom_tjs_context_stack_limit");
+    report.turbojs_bytecode_validation_exports = report.turbojs_bytecode_validate_export && contains_bytes(wasm_runtime_section->data, "venom_tjs_bytecode_record_hash32") && contains_bytes(wasm_runtime_section->data, "venom_tjs_bytecode_payload_size");
+    report.turbojs_backend_contract_export = contains_bytes(wasm_runtime_section->data, "venom_tjs_backend_kind") && contains_bytes(wasm_runtime_section->data, "venom_tjs_backend_ready");
+    report.turbojs_interpreter_contract_export = contains_bytes(wasm_runtime_section->data, "venom_tjs_interpreter_ready") && contains_bytes(wasm_runtime_section->data, "venom_tjs_execute_bytecode");
+    report.turbojs_interpreter_exports = contains_bytes(wasm_runtime_section->data, "venom_tjs_interpreter_ready") && contains_bytes(wasm_runtime_section->data, "venom_tjs_execute_bytecode");
+    report.turbojs_semantic_runtime_exports = contains_bytes(wasm_runtime_section->data, "venom_tjs_bytecode_validate") && contains_bytes(wasm_runtime_section->data, "venom_tjs_result_ptr") && contains_bytes(wasm_runtime_section->data, "venom_tjs_result_size");
+    report.turbojs_upstream_exports = contains_bytes(wasm_runtime_section->data, "venom_tjs_upstream_turbojs_ready") && contains_bytes(wasm_runtime_section->data, "venom_tjs_real_engine_candidate");
+    report.turbojs_upstream_runtime_exports = contains_bytes(wasm_runtime_section->data, "venom_tjs_exception_ptr") && contains_bytes(wasm_runtime_section->data, "venom_tjs_module_execute");
+    report.turbojs_upstream_bytecode_semantics_exports = contains_bytes(wasm_runtime_section->data, "venom_tjs_execute_bytecode") && contains_bytes(wasm_runtime_section->data, "venom_tjs_bytecode_validate");
+    report.turbojs_upstream_intrinsic_semantics_exports = contains_bytes(wasm_runtime_section->data, "venom_tjs_upstream_turbojs_ready") && contains_bytes(wasm_runtime_section->data, "venom_tjs_backend_ready");
+    report.turbojs_abi12_runtime = report.turbojs_runtime_abi >= 12u && report.turbojs_abi_contract == "turbojs-wasm-abi12-runtime" && report.turbojs_status_exports && report.turbojs_limit_exports && report.turbojs_bytecode_validation_exports && report.turbojs_backend_contract_export && report.turbojs_interpreter_contract_export && report.turbojs_interpreter_exports && report.turbojs_semantic_runtime_exports && report.turbojs_upstream_exports && report.turbojs_upstream_runtime_exports && report.turbojs_upstream_bytecode_semantics_exports && report.turbojs_upstream_intrinsic_semantics_exports;
+    if (report.release_or_protect && report.turbojs_wasm_runtime_mode != "turbojs-wasm-abi12-upstream-global-host-api-shims") {
+      add_failure(report, "TurboJS/WASM runtime metadata does not use ABI12 upstream-runtime bridge mode");
     }
-    if (report.release_or_protect && !report.quickjs_abi12_runtime) {
-      add_failure(report, "QuickJS/WASM runtime metadata does not expose the minimal ABI12 execution contract");
+    if (report.release_or_protect && !report.turbojs_abi12_runtime) {
+      add_failure(report, "TurboJS/WASM runtime metadata does not expose the minimal ABI12 execution contract");
     }
-    if (report.release_or_protect && !report.quickjs_execute_bytecode_export) {
-      add_failure(report, "QuickJS/WASM runtime metadata is missing venom_qjs_execute_bytecode export");
+    if (report.release_or_protect && !report.turbojs_execute_bytecode_export) {
+      add_failure(report, "TurboJS/WASM runtime metadata is missing venom_tjs_execute_bytecode export");
     }
-    if (report.release_or_protect && !report.quickjs_bytecode_validate_export) {
-      add_failure(report, "QuickJS/WASM runtime metadata is missing venom_qjs_bytecode_validate export");
+    if (report.release_or_protect && !report.turbojs_bytecode_validate_export) {
+      add_failure(report, "TurboJS/WASM runtime metadata is missing venom_tjs_bytecode_validate export");
     }
-    if (report.release_or_protect && !report.quickjs_interpreter_exports) {
-      add_failure(report, "QuickJS/WASM runtime metadata is missing interpreter-dispatch exports");
+    if (report.release_or_protect && !report.turbojs_interpreter_exports) {
+      add_failure(report, "TurboJS/WASM runtime metadata is missing interpreter-dispatch exports");
     }
-    if (report.release_or_protect && !report.quickjs_interpreter_contract_export) {
-      add_failure(report, "QuickJS/WASM runtime metadata is missing the minimal interpreter execution contract");
+    if (report.release_or_protect && !report.turbojs_interpreter_contract_export) {
+      add_failure(report, "TurboJS/WASM runtime metadata is missing the minimal interpreter execution contract");
     }
-    if (report.release_or_protect && !report.quickjs_semantic_runtime_exports) {
-      add_failure(report, "QuickJS/WASM runtime metadata is missing semantic runtime/global slot exports");
+    if (report.release_or_protect && !report.turbojs_semantic_runtime_exports) {
+      add_failure(report, "TurboJS/WASM runtime metadata is missing semantic runtime/global slot exports");
     }
-    if (report.release_or_protect && !report.quickjs_upstream_exports) {
-      add_failure(report, "QuickJS/WASM runtime metadata is missing upstream QuickJS parity exports");
+    if (report.release_or_protect && !report.turbojs_upstream_exports) {
+      add_failure(report, "TurboJS/WASM runtime metadata is missing upstream TurboJS parity exports");
     }
-    if (report.release_or_protect && !report.quickjs_upstream_runtime_exports) {
-      add_failure(report, "QuickJS/WASM runtime metadata is missing upstream object/exception/module runtime bridge exports");
+    if (report.release_or_protect && !report.turbojs_upstream_runtime_exports) {
+      add_failure(report, "TurboJS/WASM runtime metadata is missing upstream object/exception/module runtime bridge exports");
     }
-    if (report.release_or_protect && !report.quickjs_upstream_bytecode_semantics_exports) {
-      add_failure(report, "QuickJS/WASM runtime metadata is missing upstream bytecode semantics exports");
+    if (report.release_or_protect && !report.turbojs_upstream_bytecode_semantics_exports) {
+      add_failure(report, "TurboJS/WASM runtime metadata is missing upstream bytecode semantics exports");
     }
-    if (report.release_or_protect && !report.quickjs_upstream_intrinsic_semantics_exports) {
-      add_failure(report, "QuickJS/WASM runtime metadata is missing upstream intrinsic/object semantics exports");
+    if (report.release_or_protect && !report.turbojs_upstream_intrinsic_semantics_exports) {
+      add_failure(report, "TurboJS/WASM runtime metadata is missing upstream intrinsic/object semantics exports");
     }
   }
 
 
   const venom::package::Section* native_parity_section = nullptr;
   for (const auto& section : pkg.sections) {
-    if (section.type == venom::package::SectionType::QuickJsNativeParity && venom::package::section_name_matches(section.type, section.name, "quickjs-native-parity.vqnp")) {
+    if (section.type == venom::package::SectionType::TurboJsNativeParity && venom::package::section_name_matches(section.type, section.name, "turbojs-native-parity.vqnp")) {
       native_parity_section = &section;
       break;
     }
   }
   if (native_parity_section != nullptr) {
     const auto text = std::string(reinterpret_cast<const char*>(native_parity_section->data.data()), native_parity_section->data.size());
-    if (text.rfind("VENOM_QUICKJS_NATIVE_PARITY_V3", 0) != 0) {
-      add_failure(report, "QuickJS native parity metadata is not v3 upstream-runtime metadata");
+    if (text.rfind("VENOM_TURBOJS_NATIVE_PARITY_V3", 0) != 0) {
+      add_failure(report, "TurboJS native parity metadata is not v3 upstream-runtime metadata");
     }
-    report.quickjs_upstream_core = metadata_value(text, "upstream_interpreter_core");
+    report.turbojs_upstream_core = metadata_value(text, "upstream_interpreter_core");
     if (metadata_value(text, "upstream_bridge") != "enabled") {
-      add_failure(report, "QuickJS native parity metadata does not enable upstream bridge");
+      add_failure(report, "TurboJS native parity metadata does not enable upstream bridge");
     }
-    if (report.quickjs_upstream_core != "quickjs-upstream-global-host-api-shims-v7") {
-      add_failure(report, "QuickJS native parity metadata does not declare the upstream runtime bridge core");
+    if (report.turbojs_upstream_core != "turbojs-upstream-global-host-api-shims-v7") {
+      add_failure(report, "TurboJS native parity metadata does not declare the upstream runtime bridge core");
     }
   }
 
   const venom::package::Section* source_transfer_section = nullptr;
   for (const auto& section : pkg.sections) {
-    if (section.type == venom::package::SectionType::QuickJsSourceTransfer && venom::package::section_name_matches(section.type, section.name, "quickjs-source-transfer.vqst")) {
+    if (section.type == venom::package::SectionType::TurboJsSourceTransfer && venom::package::section_name_matches(section.type, section.name, "turbojs-source-transfer.vqst")) {
       source_transfer_section = &section;
       break;
     }
   }
   if (source_transfer_section != nullptr) {
     const auto text = std::string(reinterpret_cast<const char*>(source_transfer_section->data.data()), source_transfer_section->data.size());
-    report.quickjs_source_transfer_mode = metadata_value(text, "transfer_mode");
-    report.quickjs_oversized_record_path = metadata_value(text, "oversized_record_path");
+    report.turbojs_source_transfer_mode = metadata_value(text, "transfer_mode");
+    report.turbojs_oversized_record_path = metadata_value(text, "oversized_record_path");
     const auto oversized_threshold_text = metadata_value(text, "oversized_record_threshold");
     if (!oversized_threshold_text.empty()) {
-      try { report.quickjs_oversized_record_threshold = static_cast<std::size_t>(std::stoull(oversized_threshold_text)); }
-      catch (...) { report.quickjs_oversized_record_threshold = 0; }
+      try { report.turbojs_oversized_record_threshold = static_cast<std::size_t>(std::stoull(oversized_threshold_text)); }
+      catch (...) { report.turbojs_oversized_record_threshold = 0; }
     }
-    report.quickjs_opaque_bytecode_transfer = report.quickjs_source_transfer_mode == "opaque-vqjsbc03-native-object" && metadata_value(text, "execute_bytecode") == "venom_qjs_execute_bytecode" && metadata_value(text, "validate_bytecode") == "venom_qjs_bytecode_validate";
-    if (report.release_or_protect && !report.quickjs_opaque_bytecode_transfer) {
-      add_failure(report, "QuickJS source-transfer metadata does not require opaque native VQJSBC03 bytecode handoff");
+    report.turbojs_opaque_bytecode_transfer = report.turbojs_source_transfer_mode == "opaque-vtjsbc03-native-object" && metadata_value(text, "execute_bytecode") == "venom_tjs_execute_bytecode" && metadata_value(text, "validate_bytecode") == "venom_tjs_bytecode_validate";
+    if (report.release_or_protect && !report.turbojs_opaque_bytecode_transfer) {
+      add_failure(report, "TurboJS source-transfer metadata does not require opaque native VTJSBC03 bytecode handoff");
     }
-    if (report.release_or_protect && metadata_value(text, "encoding") != "native-quickjs-object-v3") {
-      add_failure(report, "QuickJS source-transfer metadata uses an unexpected encoding policy");
+    if (report.release_or_protect && metadata_value(text, "encoding") != "native-turbojs-object-v3") {
+      add_failure(report, "TurboJS source-transfer metadata uses an unexpected encoding policy");
     }
-    if (report.release_or_protect && (report.quickjs_oversized_record_threshold != 786432u ||
-        report.quickjs_oversized_record_path != "wasm-native-object-read" ||
-        metadata_value(text, "oversized_execution_export") != "venom_qjs_execute_bytecode" ||
+    if (report.release_or_protect && (report.turbojs_oversized_record_threshold != 786432u ||
+        report.turbojs_oversized_record_path != "wasm-native-object-read" ||
+        metadata_value(text, "oversized_execution_export") != "venom_tjs_execute_bytecode" ||
         metadata_value(text, "host_source_eval") != "false" ||
         metadata_value(text, "protected_source_execution") != "false")) {
-      add_failure(report, "QuickJS oversized-record transfer path is missing or inconsistent");
+      add_failure(report, "TurboJS oversized-record transfer path is missing or inconsistent");
     }
   }
 
@@ -558,7 +558,8 @@ ReleaseCheckReport analyze_package_for_release(const ReleaseCheckOptions& option
       if (loader_path.empty()) {
         add_failure(report, "production dist is missing loader asset for SRI verification");
       } else {
-        const auto declared = extract_integrity_for_asset(html, public_asset_path(loader_path, report.dist_root));
+        const auto loader_reference = loader_path.lexically_relative(html_path.parent_path()).generic_string();
+        const auto declared = extract_integrity_for_asset(html, loader_reference);
         const auto expected = venom::package::sha256_sri(read_binary_file(loader_path));
         if (declared.empty()) add_failure(report, "protected bootstrap HTML is missing loader subresource integrity");
         else if (declared != expected) add_failure(report, "loader subresource integrity mismatch");
@@ -567,7 +568,8 @@ ReleaseCheckReport analyze_package_for_release(const ReleaseCheckOptions& option
       if (style_path.empty()) {
         add_failure(report, "production dist is missing style asset for SRI verification");
       } else {
-        const auto declared = extract_integrity_for_asset(html, public_asset_path(style_path, report.dist_root));
+        const auto style_reference = style_path.lexically_relative(html_path.parent_path()).generic_string();
+        const auto declared = extract_integrity_for_asset(html, style_reference);
         const auto expected = venom::package::sha256_sri(read_binary_file(style_path));
         if (declared.empty()) add_failure(report, "protected bootstrap HTML is missing stylesheet subresource integrity");
         else if (declared != expected) add_failure(report, "stylesheet subresource integrity mismatch");
@@ -596,19 +598,19 @@ ReleaseCheckReport analyze_package_for_release(const ReleaseCheckOptions& option
     }
     constexpr std::uint32_t js_chunk_bytecode_encoded = 1u << 6u;
     if (section.type == venom::package::SectionType::JavaScript) {
-      // Protected bridge registries are emitted as a dedicated direct VQJSE006
+      // Protected bridge registries are emitted as a dedicated direct VTJSE006
       // JavaScript section. Whole-file and route scripts are stored as entries
       // in VJSB0006 bundles. Count either structural form exactly once; never
       // search arbitrary decoded text for the envelope marker.
-      if (payload_starts_with(section.data, "VQJSE006")) {
-        ++report.quickjs_bytecode_records;
+      if (payload_starts_with(section.data, "VTJSE006")) {
+        ++report.turbojs_bytecode_records;
       } else {
-        report.quickjs_bytecode_records += count_js_bundle_flagged_payload_prefix(
-            section.data, js_chunk_bytecode_encoded, "VQJSE006");
+        report.turbojs_bytecode_records += count_js_bundle_flagged_payload_prefix(
+            section.data, js_chunk_bytecode_encoded, "VTJSE006");
       }
-      if (contains_bytes(section.data, "VQJSBC01") || contains_bytes(section.data, "VQJSBC02") ||
+      if (contains_bytes(section.data, "VTJSBC01") || contains_bytes(section.data, "VTJSBC02") ||
           contains_bytes(section.data, "source-preserving-byte-buffer-record")) {
-        add_failure(report, "JavaScript payload contains legacy source-preserving QuickJS byte buffer records");
+        add_failure(report, "JavaScript payload contains legacy source-preserving TurboJS byte buffer records");
       }
       if (js_bundle_flagged_payload_contains(section.data, js_chunk_bytecode_encoded, "console.log") ||
           js_bundle_flagged_payload_contains(section.data, js_chunk_bytecode_encoded, "basic site script loaded")) {
@@ -642,43 +644,43 @@ ReleaseCheckReport analyze_package_for_release(const ReleaseCheckOptions& option
   if (report.protection_closure_present && report.protection_intents_requested != report.protection_intents_resolved) {
     add_failure(report, "protection closure requested/resolved counts do not match");
   }
-  if (report.protection_closure_present && report.quickjs_bytecode_records != report.protection_expected_quickjs_records) {
-    add_failure(report, "emitted QuickJS bytecode record count does not match protection closure metadata");
+  if (report.protection_closure_present && report.turbojs_bytecode_records != report.protection_expected_turbojs_records) {
+    add_failure(report, "emitted TurboJS bytecode record count does not match protection closure metadata");
   }
 
   // Hybrid and browser-only applications are valid release targets. A package
   // may intentionally contain zero protected JavaScript records when every
-  // script is selected for the native browser runtime. QuickJS-specific gates
-  // below remain conditional on actual VQJSBC03 records.
-  if (report.release_or_protect && report.quickjs_bytecode_records != 0u && !report.quickjs_wasm_execution) {
-    add_failure(report, "protected package with scripts is missing quickjs-wasm-execution.vqwe metadata");
+  // script is selected for the native browser runtime. TurboJS-specific gates
+  // below remain conditional on actual VTJSBC03 records.
+  if (report.release_or_protect && report.turbojs_bytecode_records != 0u && !report.turbojs_wasm_execution) {
+    add_failure(report, "protected package with scripts is missing turbojs-wasm-execution.vqwe metadata");
   }
-  if (report.release_or_protect && report.quickjs_bytecode_records != 0u && report.quickjs_wasm_chunks == 0u) {
-    add_failure(report, "QuickJS/WASM execution metadata has no executable chunks");
+  if (report.release_or_protect && report.turbojs_bytecode_records != 0u && report.turbojs_wasm_chunks == 0u) {
+    add_failure(report, "TurboJS/WASM execution metadata has no executable chunks");
   }
-  if (report.release_or_protect && report.quickjs_bytecode_records != 0u && !report.quickjs_opaque_bytecode_transfer) {
-    add_failure(report, "protected QuickJS bytecode records must be transferred as opaque bytes into WASM");
+  if (report.release_or_protect && report.turbojs_bytecode_records != 0u && !report.turbojs_opaque_bytecode_transfer) {
+    add_failure(report, "protected TurboJS bytecode records must be transferred as opaque bytes into WASM");
   }
-  if (report.release_or_protect && report.quickjs_bytecode_records != 0u && !report.quickjs_execute_bytecode_export) {
-    add_failure(report, "protected QuickJS bytecode records require venom_qjs_execute_bytecode WASM export");
+  if (report.release_or_protect && report.turbojs_bytecode_records != 0u && !report.turbojs_execute_bytecode_export) {
+    add_failure(report, "protected TurboJS bytecode records require venom_tjs_execute_bytecode WASM export");
   }
-  if (report.release_or_protect && report.quickjs_bytecode_records != 0u && !report.quickjs_interpreter_dispatch) {
-    add_failure(report, "protected QuickJS bytecode records must execute through WASM interpreter dispatch");
+  if (report.release_or_protect && report.turbojs_bytecode_records != 0u && !report.turbojs_interpreter_dispatch) {
+    add_failure(report, "protected TurboJS bytecode records must execute through WASM interpreter dispatch");
   }
-  if (report.release_or_protect && report.quickjs_bytecode_records != 0u && !report.quickjs_interpreter_exports) {
-    add_failure(report, "protected QuickJS bytecode records require interpreter-dispatch WASM exports");
+  if (report.release_or_protect && report.turbojs_bytecode_records != 0u && !report.turbojs_interpreter_exports) {
+    add_failure(report, "protected TurboJS bytecode records require interpreter-dispatch WASM exports");
   }
-  if (report.release_or_protect && report.quickjs_bytecode_records != 0u && !report.quickjs_upstream_exports) {
-    add_failure(report, "protected QuickJS bytecode records require upstream QuickJS parity WASM exports");
+  if (report.release_or_protect && report.turbojs_bytecode_records != 0u && !report.turbojs_upstream_exports) {
+    add_failure(report, "protected TurboJS bytecode records require upstream TurboJS parity WASM exports");
   }
-  if (report.release_or_protect && report.quickjs_bytecode_records != 0u && !report.quickjs_upstream_runtime_exports) {
-    add_failure(report, "protected QuickJS bytecode records require upstream object/exception/module runtime bridge WASM exports");
+  if (report.release_or_protect && report.turbojs_bytecode_records != 0u && !report.turbojs_upstream_runtime_exports) {
+    add_failure(report, "protected TurboJS bytecode records require upstream object/exception/module runtime bridge WASM exports");
   }
-  if (report.release_or_protect && report.quickjs_bytecode_records != 0u && report.quickjs_upstream_core != "quickjs-upstream-global-host-api-shims-v7") {
-    add_failure(report, "protected QuickJS bytecode records require quickjs-upstream-global-host-api-shims-v7 metadata");
+  if (report.release_or_protect && report.turbojs_bytecode_records != 0u && report.turbojs_upstream_core != "turbojs-upstream-global-host-api-shims-v7") {
+    add_failure(report, "protected TurboJS bytecode records require turbojs-upstream-global-host-api-shims-v7 metadata");
   }
-  if (report.release_or_protect && report.quickjs_bytecode_records != 0u && !report.quickjs_upstream_bytecode_semantics_exports) {
-    add_failure(report, "protected QuickJS bytecode records require upstream bytecode semantics WASM exports");
+  if (report.release_or_protect && report.turbojs_bytecode_records != 0u && !report.turbojs_upstream_bytecode_semantics_exports) {
+    add_failure(report, "protected TurboJS bytecode records require upstream bytecode semantics WASM exports");
   }
 
   if (!report.release_or_protect) {
@@ -756,21 +758,21 @@ ReleaseCheckReport analyze_package_for_release(const ReleaseCheckOptions& option
   if (require_browser && report.v_sodium_sections != 0u) {
     add_failure(report, "browser release must not contain VSODIUM1 sections because browsers cannot keep the package key secret");
   }
-  if (require_browser && report.quickjs_bytecode_records != 0u && report.quickjs_execution_backend != "quickjs-wasm-real") {
-    add_failure(report, "browser protected scripts require quickjs-wasm-real execution backend");
+  if (require_browser && report.turbojs_bytecode_records != 0u && report.turbojs_execution_backend != "turbojs-wasm-real") {
+    add_failure(report, "browser protected scripts require turbojs-wasm-real execution backend");
   }
-  if (require_browser && report.quickjs_host_js_fallback_allowed) {
+  if (require_browser && report.turbojs_host_js_fallback_allowed) {
     add_failure(report, "browser protected release must deny host-JS fallback");
   }
   if (options.require_real_engine) {
-    if (!report.quickjs_runtime_real_engine_candidate || report.quickjs_runtime_contract_only || report.quickjs_runtime_scaffold || !report.quickjs_runtime_full_upstream_quickjs) {
-      add_failure(report, "runtime verification requires a real upstream QuickJS WASM engine; current artifact is contract/scaffold only");
+    if (!report.turbojs_runtime_real_engine_candidate || report.turbojs_runtime_contract_only || report.turbojs_runtime_scaffold || !report.turbojs_runtime_full_upstream_turbojs) {
+      add_failure(report, "runtime verification requires a real upstream TurboJS WASM engine; current artifact is contract/scaffold only");
     }
-    if (!report.quickjs_runtime_required_exports_satisfied || report.quickjs_runtime_missing_export_count != 0u) {
+    if (!report.turbojs_runtime_required_exports_satisfied || report.turbojs_runtime_missing_export_count != 0u) {
       add_failure(report, "runtime verification requires a generated WASM artifact with all ABI12 exports present");
     }
-    if (report.quickjs_runtime_artifact_kind != "upstream-quickjs-wasm") {
-      add_failure(report, "runtime verification requires artifact_kind=upstream-quickjs-wasm");
+    if (report.turbojs_runtime_artifact_kind != "upstream-turbojs-wasm") {
+      add_failure(report, "runtime verification requires artifact_kind=upstream-turbojs-wasm");
     }
   }
 

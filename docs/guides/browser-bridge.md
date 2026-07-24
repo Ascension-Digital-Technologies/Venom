@@ -1,6 +1,6 @@
 # Browser bridge
 
-The browser bridge is intentionally narrow. The public application sees asynchronous protected exports; it does not receive the protected registry, bytecode, decoder state, or QuickJS context.
+The browser bridge is intentionally narrow. The public application sees asynchronous protected exports; it does not receive the protected registry, bytecode, decoder state, or TurboJS context.
 
 ```javascript
 await venom.ready();
@@ -17,6 +17,6 @@ const value2 = await venom.exports.calculateRisk(input);
 - replay counters
 - opaque export slots/opcodes in production
 - sanitized errors
-- worker-owned QuickJS context
+- worker-owned TurboJS context
 
 Design protected APIs as coarse, meaningful operations rather than exposing every internal helper.

@@ -1,7 +1,7 @@
-#include "venom/base/error.hpp"
-#include "venom/vm/encoder.hpp"
+#include "base/error.hpp"
+#include "vm/encoder.hpp"
 
-#include "venom/vm/opcode.hpp"
+#include "vm/opcode.hpp"
 
 #include <array>
 #include <stdexcept>

@@ -1,9 +1,9 @@
-#include "venom/base/error.hpp"
-#include "venom/package/reader.hpp"
+#include "base/error.hpp"
+#include "package/reader.hpp"
 
-#include "venom/internal/package/compress.hpp"
-#include "venom/package/crypto.hpp"
-#include "venom/package/hash.hpp"
+#include "package/compress.hpp"
+#include "package/crypto.hpp"
+#include "package/hash.hpp"
 
 #include <cctype>
 #include <sstream>
@@ -344,23 +344,23 @@ Package read_package_bytes(const std::vector<unsigned char>& bytes) {
                                             PackageFlagAsyncHostQueue |
                                             PackageFlagTimerBridge |
                                             PackageFlagEventQueue |
-                                            PackageFlagQuickJsBridge |
+                                            PackageFlagTurboJsBridge |
                                             PackageFlagScriptIsolation |
                                             PackageFlagScriptPolicy |
-                                            PackageFlagQuickJsChunks |
-                                            PackageFlagQuickJsEngine |
+                                            PackageFlagTurboJsChunks |
+                                            PackageFlagTurboJsEngine |
                                             PackageFlagScriptEngineFallback |
-                                            PackageFlagQuickJsEngineModule |
-                                            PackageFlagQuickJsContextLifecycle |
+                                            PackageFlagTurboJsEngineModule |
+                                            PackageFlagTurboJsContextLifecycle |
                                             PackageFlagHostCapabilities |
-                                            PackageFlagQuickJsAdapterDiagnostics |
-                                            PackageFlagQuickJsWasmRuntime |
-                                            PackageFlagQuickJsSourceTransfer |
-                                            PackageFlagQuickJsConsoleBridge |
-                                            PackageFlagQuickJsExecutionRecords |
-                                            PackageFlagQuickJsResultBridge |
-                                            PackageFlagQuickJsFallbackPolicy |
-                                            PackageFlagQuickJsEngineBackend;
+                                            PackageFlagTurboJsAdapterDiagnostics |
+                                            PackageFlagTurboJsWasmRuntime |
+                                            PackageFlagTurboJsSourceTransfer |
+                                            PackageFlagTurboJsConsoleBridge |
+                                            PackageFlagTurboJsExecutionRecords |
+                                            PackageFlagTurboJsResultBridge |
+                                            PackageFlagTurboJsFallbackPolicy |
+                                            PackageFlagTurboJsEngineBackend;
   if ((pkg.flags & ~known_package_flags) != 0u) {
     raise_error("VENOM-E4000", "unknown package flags: " + std::to_string(pkg.flags & ~known_package_flags));
   }

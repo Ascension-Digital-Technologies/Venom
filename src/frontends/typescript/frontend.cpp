@@ -1,9 +1,9 @@
-#include "venom/base/error.hpp"
-#include "venom/frontends/typescript/frontend.hpp"
-#include "venom/internal/frontends/typescript/typescript_runtime.hpp"
-#include "venom/core/diagnostic.hpp"
-#include "venom/internal/frontends/jsx/frontend.hpp"
-#include "venom/package/hash.hpp"
+#include "base/error.hpp"
+#include "frontends/typescript/frontend.hpp"
+#include "frontends/typescript/typescript_runtime.hpp"
+#include "core/diagnostic.hpp"
+#include "frontends/jsx/frontend.hpp"
+#include "package/hash.hpp"
 
 #include <algorithm>
 #include <cstdlib>
@@ -501,7 +501,7 @@ void write_file_text(const std::filesystem::path& path, const std::string& text)
 std::string embedded_cache_key(const std::string& source, const std::string& filename,
                                const std::string& compiler_version) {
   const std::string material =
-      "venom-typescript-embedded-cache-v3\nfrontend=embedded-quickjs-typescript\nversion=" +
+      "venom-typescript-embedded-cache-v3\nfrontend=embedded-turbojs-typescript\nversion=" +
       compiler_version + "\nbridge=1\njsx=venom-classic-v1\nfilename=" + filename + "\nsource=" + source;
   return venom::package::sha256_hex(reinterpret_cast<const unsigned char*>(material.data()), material.size());
 }
@@ -511,11 +511,11 @@ bool read_embedded_cache(const std::filesystem::path& base, TranspileResult& res
   const auto meta = base.string() + ".meta";
   if (!std::filesystem::is_regular_file(js) || !std::filesystem::is_regular_file(meta)) return false;
   const auto metadata = read_file_text(meta);
-  if (metadata.find("schema=3\nfrontend=embedded-quickjs-typescript\n") != 0) return false;
+  if (metadata.find("schema=3\nfrontend=embedded-turbojs-typescript\n") != 0) return false;
   result.javascript = read_file_text(js);
   result.source_map = std::filesystem::is_regular_file(base.string() + ".map")
       ? read_file_text(base.string() + ".map") : std::string{};
-  result.frontend = "embedded-quickjs-typescript";
+  result.frontend = "embedded-turbojs-typescript";
   {
     const auto version = metadata.find("version=");
     if (version != std::string::npos) {
@@ -536,7 +536,7 @@ void write_embedded_cache(const std::filesystem::path& base, const TranspileResu
   write_file_text(base.string() + ".js", result.javascript);
   if (!result.source_map.empty()) write_file_text(base.string() + ".map", result.source_map);
   std::ostringstream meta;
-  meta << "schema=3\nfrontend=embedded-quickjs-typescript\nversion=" << result.frontend_version
+  meta << "schema=3\nfrontend=embedded-turbojs-typescript\nversion=" << result.frontend_version
        << "\nbridge=1\ntsx=" << (result.tsx ? 1 : 0) << "\ndiagnostics=0\njsx="
        << result.lowered_jsx_elements << "\n";
   write_file_text(base.string() + ".meta", meta.str());
@@ -638,7 +638,7 @@ TranspileResult transpile(const std::string& source, const std::string& filename
       result.frontend_version = "4";
       return result;
     }
-    if (frontend == "embedded" || frontend == "quickjs") {
+    if (frontend == "embedded" || frontend == "turbojs") {
       return transpile_embedded(source, filename);
     }
     if (frontend == "node" || frontend == "structural") {
@@ -651,7 +651,7 @@ TranspileResult transpile(const std::string& source, const std::string& filename
   return transpile_embedded(source, filename);
 }
 
-const char* frontend_name() { return "embedded-quickjs-typescript"; }
+const char* frontend_name() { return "embedded-turbojs-typescript"; }
 const char* frontend_version() {
   static const std::string version = EmbeddedFrontendService::instance().compiler_version();
   return version.c_str();

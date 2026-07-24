@@ -1,8 +1,8 @@
-#include "venom/base/error.hpp"
-#include "venom/internal/pipeline/js_rewriting.hpp"
-#include "venom/core/diagnostic.hpp"
-#include "venom/internal/pipeline/function_dependencies.hpp"
-#include "venom/frontends/javascript/frontend.hpp"
+#include "base/error.hpp"
+#include "pipeline/js_rewriting.hpp"
+#include "core/diagnostic.hpp"
+#include "pipeline/function_dependencies.hpp"
+#include "frontends/javascript/frontend.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -585,7 +585,7 @@ ProtectedModuleRewriteResult apply_protected_module_rewrites(std::vector<JsChunk
   // Lower browser imports of public protected modules directly to bridge
   // bindings. These imports must not remain browser-module dependencies: doing
   // so ties correctness to lazy-section membership and polymorphic module IDs.
-  // The protected implementation still executes exclusively in QuickJS/WASM.
+  // The protected implementation still executes exclusively in TurboJS/WASM.
   auto resolve_public_protected_target = [&](const std::string& referrer,
                                               const std::string& specifier) -> std::string {
     if (specifier.empty() || specifier.front() != '.') return {};

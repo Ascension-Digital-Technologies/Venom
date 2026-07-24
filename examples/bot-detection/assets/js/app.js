@@ -284,7 +284,7 @@ async function assessCurrent() {
     state.nextSequence += 1;
     state.assessment = assessment;
     state.assessments += 1;
-    elements.runtimeStatus.textContent = "Protected QuickJS/WASM engine ready";
+    elements.runtimeStatus.textContent = "Protected TurboJS/WASM engine ready";
     elements.runtimeStatus.className = "status-pill ready";
     renderAssessment(payload, assessment);
     renderBehavior(payload.behavior, payload.timing, payload.session);

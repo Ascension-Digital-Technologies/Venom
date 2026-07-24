@@ -1,9 +1,9 @@
-#include "venom/base/error.hpp"
-#include "venom/internal/pipeline/js_discovery.hpp"
-#include "venom/frontends/javascript/frontend.hpp"
-#include "venom/frontends/typescript/frontend.hpp"
-#include "venom/core/site.hpp"
-#include "venom/remote/remote.hpp"
+#include "base/error.hpp"
+#include "pipeline/js_discovery.hpp"
+#include "frontends/javascript/frontend.hpp"
+#include "frontends/typescript/frontend.hpp"
+#include "core/site.hpp"
+#include "remote/remote.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -623,7 +623,7 @@ std::vector<JsChunk> collect_script_chunks(const SiteGraph& graph, const RemoteV
   }
 
   // Recursively collect package-local module dependencies. Dependency records are
-  // available to the QuickJS module compiler but are not executed as route entry scripts.
+  // available to the TurboJS module compiler but are not executed as route entry scripts.
   std::unordered_set<std::string> known;
   for (const auto& chunk : chunks) if ((chunk.flags & JsChunkModule) != 0u) known.insert(chunk.route + "\n" + normalize_slashes(chunk.source));
   for (std::size_t index = 0; index < chunks.size(); ++index) {

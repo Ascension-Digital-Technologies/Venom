@@ -12,7 +12,7 @@ checks = {
     'route generation on chunks': 'routeGeneration' in runtime and 'routeGeneration }))' in runtime,
     'navigation teardown': "bridge.teardownRoute('navigation')" in runtime and 'routeRuntimeLoader.dispose();' in runtime,
     'async route reset': 'resetRoute(reason' in runtime and 'clearRouteResources' in runtime,
-    'quickjs route context destruction': 'function destroyRoute(route)' in runtime,
+    'turbojs route context destruction': 'function destroyRoute(route)' in runtime,
     'wasm materialized wipe': 'venom_wasm_secure_zero' in wasm and 'venom_wasm_release_materialized' in wasm,
     'wasm release operation': 'case 5u: venom_wasm_release_materialized(); return ERR_OK;' in wasm,
     'wasm transient wipe': 'venom_wasm_release_transient' in wasm and 'case 6u: venom_wasm_release_transient(); return ERR_OK;' in wasm,

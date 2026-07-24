@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from _quickjs_artifact import require_current_artifact
+from _turbojs_artifact import require_current_artifact
 
 
 def run(cmd: list[str]) -> subprocess.CompletedProcess[str]:
@@ -61,10 +61,10 @@ def main() -> int:
         'package SHA-256 attestation mismatch',
     )
 
-    quickjs_case = mutate_copy(base, out_root / 'tamper-quickjs-wasm', 'assets/runtime/runtime.*.wasm', b'quickjs-wasm-tamper')
+    turbojs_case = mutate_copy(base, out_root / 'tamper-turbojs-wasm', 'assets/runtime/runtime.*.wasm', b'turbojs-wasm-tamper')
     expect_failure(
-        [node, str(harness), str(quickjs_case), 'real-engine-strict', '--strict-no-source-eval', '--via-loader'],
-        'QuickJS WASM digest attestation mismatch',
+        [node, str(harness), str(turbojs_case), 'real-engine-strict', '--strict-no-source-eval', '--via-loader'],
+        'TurboJS WASM digest attestation mismatch',
     )
 
     verify_cases = [

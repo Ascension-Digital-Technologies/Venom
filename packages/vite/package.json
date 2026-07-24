@@ -1,6 +1,6 @@
 {
-  "name": "@venom-js/vite",
-  "version": "2.0.0",
+  "name": "@venom/vite",
+  "version": "3.0.0",
   "description": "First-class Vite integration for the Venom protected JavaScript/TypeScript compiler.",
   "type": "module",
   "main": "./src/index.js",
@@ -15,15 +15,18 @@
   },
   "peerDependencies": {
     "vite": ">=5 <8",
-    "@venom-js/runtime": ">=2 <3"
+    "@venom/runtime": ">=3.0.0"
   },
   "keywords": [
     "venom",
     "vite",
-    "quickjs",
+    "turbojs",
     "wasm",
     "javascript",
-    "typescript"
+    "typescript",
+    "react",
+    "jsx",
+    "tsx"
   ],
   "license": "MIT",
   "types": "./src/index.d.ts"

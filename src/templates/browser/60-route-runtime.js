@@ -144,7 +144,7 @@ function executeRoute(route, vm, strings, opcodeMap, root, assetManifest = new M
     executed++;
 
     if (op === undefined) throw new Error('unknown physical opcode: ' + physical);
-    if (op === LOGICAL.NOP || op === LOGICAL.LOAD_CONST || op === LOGICAL.CALL_QUICKJS) {
+    if (op === LOGICAL.NOP || op === LOGICAL.LOAD_CONST || op === LOGICAL.CALL_TURBOJS) {
       continue;
     }
     if (op === LOGICAL.CREATE_ELEMENT) {
@@ -199,7 +199,7 @@ function executeRoute(route, vm, strings, opcodeMap, root, assetManifest = new M
   root.setAttribute('data-venom-instructions', String(executed));
 }
 
-function installNavigation(routes, routeRuntimeLoader, strings, opcodeMap, root, assetManifest, assetBaseUrl, hostBridgePlan, scriptIsolationPlan = null, scriptPolicyPlan = null, quickJsChunkPlan = null, quickJsEnginePlan = null, scriptEnginePolicyPlan = null) {
+function installNavigation(routes, routeRuntimeLoader, strings, opcodeMap, root, assetManifest, assetBaseUrl, hostBridgePlan, scriptIsolationPlan = null, scriptPolicyPlan = null, turboJsChunkPlan = null, turboJsEnginePlan = null, scriptEnginePolicyPlan = null) {
   document.addEventListener('click', (event) => {
     const anchor = event.target && event.target.closest ? event.target.closest('a[href]') : null;
     if (!anchor) return;
@@ -217,7 +217,7 @@ function installNavigation(routes, routeRuntimeLoader, strings, opcodeMap, root,
       if (bridge && typeof bridge.activateRouteGeneration === 'function') bridge.activateRouteGeneration(runtime.routeGeneration);
       setActiveBrowserAssetRoute(runtime.route);
       executeRoute(runtime.route, runtime.vm, strings, opcodeMap, root, assetManifest, assetBaseUrl, hostBridgePlan);
-      executeScriptsForRoute(runtime.route, runtime.jsBundle, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan).catch((error) => console.error('[venom] route script failed', error));
+      executeScriptsForRoute(runtime.route, runtime.jsBundle, scriptIsolationPlan, scriptPolicyPlan, turboJsChunkPlan, turboJsEnginePlan, scriptEnginePolicyPlan).catch((error) => console.error('[venom] route script failed', error));
     } catch (error) {
       console.error('[venom] route load failed', error);
       throw error;
@@ -233,7 +233,7 @@ function installNavigation(routes, routeRuntimeLoader, strings, opcodeMap, root,
     if (bridge && typeof bridge.activateRouteGeneration === 'function') bridge.activateRouteGeneration(runtime.routeGeneration);
     setActiveBrowserAssetRoute(runtime.route);
     executeRoute(runtime.route, runtime.vm, strings, opcodeMap, root, assetManifest, assetBaseUrl, hostBridgePlan);
-    executeScriptsForRoute(runtime.route, runtime.jsBundle, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan).catch((error) => console.error('[venom] route script failed', error));
+    executeScriptsForRoute(runtime.route, runtime.jsBundle, scriptIsolationPlan, scriptPolicyPlan, turboJsChunkPlan, turboJsEnginePlan, scriptEnginePolicyPlan).catch((error) => console.error('[venom] route script failed', error));
   });
 }
 
@@ -294,8 +294,8 @@ async function verifyPackageBinding(pkg, options) {
   await verifyBoundAsset(binding, 'runtime', options && options.runtimeUrl ? options.runtimeUrl : import.meta.url);
   if (options && options.runtimeWasmUrl) await verifyBoundAsset(binding, 'runtime_wasm', options.runtimeWasmUrl);
   if (options && options.styleUrl) await verifyBoundAsset(binding, 'style', options.styleUrl);
-  if (options && options.quickJsEngineUrl) await verifyBoundAsset(binding, 'quickjs_engine', options.quickJsEngineUrl);
-  if (options && options.quickJsWasmUrl) await verifyBoundAsset(binding, 'quickjs_wasm', options.quickJsWasmUrl);
+  if (options && options.turboJsEngineUrl) await verifyBoundAsset(binding, 'turbojs_engine', options.turboJsEngineUrl);
+  if (options && options.turboJsWasmUrl) await verifyBoundAsset(binding, 'turbojs_wasm', options.turboJsWasmUrl);
   if (options && options.workerUrl) await verifyBoundAsset(binding, 'worker', options.workerUrl);
   return Object.freeze({ enabled: true, verified: true, assets: binding.assets.size });
 }
@@ -330,7 +330,7 @@ export async function bootVenom(options) {
   const packageBinding = await verifyPackageBinding(pkg, options);
   const runtimePolicy = enforceRuntimePolicy(pkg, parseRuntimePolicy(findOptionalSection(pkg, SECTION.INTEGRITY, 'runtime-policy.vhrd')), options);
   activeReleaseDiversification = parseReleaseDiversification(findOptionalSection(pkg, SECTION.INTEGRITY, 'release-diversification.vrd3'), runtimePolicy.releaseProfile);
-  activeQuickJsAbiFingerprint = parseQuickJsAbiFingerprint(findOptionalSection(pkg, SECTION.INTEGRITY, 'quickjs-abi-fingerprint.vqaf'), runtimePolicy.releaseProfile);
+  activeTurboJsAbiFingerprint = parseTurboJsAbiFingerprint(findOptionalSection(pkg, SECTION.INTEGRITY, 'turbojs-abi-fingerprint.vqaf'), runtimePolicy.releaseProfile);
   const strings = parseStringTable(findSection(pkg, SECTION.STRINGS, 'strings.vstr'));
   const routes = parseRouteTable(findSection(pkg, SECTION.ROUTES, 'routes.vbrt'), strings);
   const lazySectionsPlan = parseLazySectionsMetadata(findOptionalSection(pkg, SECTION.INTEGRITY, 'lazy-sections.vlazy'));
@@ -344,84 +344,84 @@ export async function bootVenom(options) {
   const fetchBridgePlan = parseFetchBridgeMetadata(findOptionalSection(pkg, SECTION.FETCH_BRIDGE, 'fetch-bridge.vfch'));
   const timerBridgePlan = parseTimerBridgeMetadata(findOptionalSection(pkg, SECTION.TIMER_BRIDGE, 'timer-bridge.vtmr'));
   const eventQueuePlan = parseEventQueueMetadata(findOptionalSection(pkg, SECTION.EVENT_QUEUE, 'event-queue.vevq'));
-  const quickJsBridgePlan = parseQuickJsBridgeMetadata(findOptionalSection(pkg, SECTION.QUICKJS_BRIDGE, 'quickjs-bridge.vqjs'));
+  const turboJsBridgePlan = parseTurboJsBridgeMetadata(findOptionalSection(pkg, SECTION.TURBOJS_BRIDGE, 'turbojs-bridge.vtjs'));
   const scriptIsolationPlan = parseScriptIsolationMetadata(findOptionalSection(pkg, SECTION.SCRIPT_ISOLATION, 'script-isolation.vsis'));
   const scriptPolicyPlan = parseScriptPolicyMetadata(findOptionalSection(pkg, SECTION.SCRIPT_POLICY, 'script-policy.vscp'));
-  const quickJsChunkPlan = parseQuickJsChunkMetadata(findOptionalSection(pkg, SECTION.QUICKJS_CHUNKS, 'quickjs-chunks.vqbc'));
-  const quickJsEnginePlan = parseQuickJsEngineMetadata(findOptionalSection(pkg, SECTION.QUICKJS_ENGINE, 'quickjs-engine.vqse'));
+  const turboJsChunkPlan = parseTurboJsChunkMetadata(findOptionalSection(pkg, SECTION.TURBOJS_CHUNKS, 'turbojs-chunks.vqbc'));
+  const turboJsEnginePlan = parseTurboJsEngineMetadata(findOptionalSection(pkg, SECTION.TURBOJS_ENGINE, 'turbojs-engine.vqse'));
   const scriptEnginePolicyPlan = parseScriptEnginePolicyMetadata(findOptionalSection(pkg, SECTION.SCRIPT_ENGINE_POLICY, 'script-engine-policy.vsep'));
-  const quickJsEngineModulePlan = parseQuickJsEngineModuleMetadata(findOptionalSection(pkg, SECTION.QUICKJS_ENGINE_MODULE, 'quickjs-engine-module.vqem'));
-  const quickJsContextLifecyclePlan = parseQuickJsContextLifecycleMetadata(findOptionalSection(pkg, SECTION.QUICKJS_CONTEXT_LIFECYCLE, 'quickjs-context-lifecycle.vqcl'));
+  const turboJsEngineModulePlan = parseTurboJsEngineModuleMetadata(findOptionalSection(pkg, SECTION.TURBOJS_ENGINE_MODULE, 'turbojs-engine-module.vqem'));
+  const turboJsContextLifecyclePlan = parseTurboJsContextLifecycleMetadata(findOptionalSection(pkg, SECTION.TURBOJS_CONTEXT_LIFECYCLE, 'turbojs-context-lifecycle.vqcl'));
   const hostCapabilitiesPlan = parseHostCapabilitiesMetadata(findOptionalSection(pkg, SECTION.HOST_CAPABILITIES, 'host-capabilities.vhcap'));
-  const quickJsAdapterDiagnosticsPlan = parseQuickJsAdapterDiagnosticsMetadata(findOptionalSection(pkg, SECTION.QUICKJS_ADAPTER_DIAGNOSTICS, 'quickjs-adapter-diagnostics.vqad'));
-  const quickJsWasmRuntimePlan = parseQuickJsWasmRuntimeMetadata(findOptionalSection(pkg, SECTION.QUICKJS_WASM_RUNTIME, 'quickjs-wasm-runtime.vqwr'));
-  const quickJsSourceTransferPlan = parseQuickJsSourceTransferMetadata(findOptionalSection(pkg, SECTION.QUICKJS_SOURCE_TRANSFER, 'quickjs-source-transfer.vqst'));
-  const quickJsConsoleBridgePlan = parseQuickJsConsoleBridgeMetadata(findOptionalSection(pkg, SECTION.QUICKJS_CONSOLE_BRIDGE, 'quickjs-console-bridge.vqcb'));
-  const quickJsExecutionRecordsPlan = parseQuickJsExecutionRecordsMetadata(findOptionalSection(pkg, SECTION.QUICKJS_EXECUTION_RECORDS, 'quickjs-execution-records.vqer'));
-  const quickJsResultBridgePlan = parseQuickJsResultBridgeMetadata(findOptionalSection(pkg, SECTION.QUICKJS_RESULT_BRIDGE, 'quickjs-result-bridge.vqrb'));
-  const quickJsFallbackPolicyPlan = parseQuickJsFallbackPolicyMetadata(findOptionalSection(pkg, SECTION.QUICKJS_FALLBACK_POLICY, 'quickjs-fallback-policy.vqfp'));
-  const quickJsRuntimeAbiPlan = parseQuickJsRuntimeAbiMetadata(findOptionalSection(pkg, SECTION.QUICKJS_RUNTIME_ABI, 'quickjs-runtime-abi.vqra'));
-  const quickJsHostImportsPlan = parseQuickJsHostImportsMetadata(findOptionalSection(pkg, SECTION.QUICKJS_HOST_IMPORTS, 'quickjs-host-imports.vqhi'));
-  const quickJsHeapLimitsPlan = parseQuickJsHeapLimitsMetadata(findOptionalSection(pkg, SECTION.QUICKJS_HEAP_LIMITS, 'quickjs-heap-limits.vqhl'));
-  const quickJsScriptBufferPlan = parseQuickJsScriptBufferMetadata(findOptionalSection(pkg, SECTION.QUICKJS_SCRIPT_BUFFER, 'quickjs-script-buffer.vqsb'));
-  const quickJsConsoleAbiPlan = parseQuickJsConsoleAbiMetadata(findOptionalSection(pkg, SECTION.QUICKJS_CONSOLE_ABI, 'quickjs-console-abi.vqca'));
-  const quickJsParityProbePlan = parseQuickJsParityProbeMetadata(findOptionalSection(pkg, SECTION.QUICKJS_PARITY_PROBE, 'quickjs-parity-probe.vqpp'));
-  const quickJsReleaseFallbackPlan = parseQuickJsReleaseFallbackMetadata(findOptionalSection(pkg, SECTION.QUICKJS_RELEASE_FALLBACK, 'quickjs-release-fallback.vqrf'));
-  const quickJsBytecodeManifestPlan = parseQuickJsBytecodeManifestMetadata(findOptionalSection(pkg, SECTION.QUICKJS_BYTECODE_MANIFEST, 'quickjs-bytecode-manifest.vqbm'));
-  const quickJsModuleResolverPlan = parseQuickJsModuleResolverMetadata(findOptionalSection(pkg, SECTION.QUICKJS_MODULE_RESOLVER, 'quickjs-module-resolver.vqmr'));
-  const quickJsExceptionAbiPlan = parseQuickJsExceptionAbiMetadata(findOptionalSection(pkg, SECTION.QUICKJS_EXCEPTION_ABI, 'quickjs-exception-abi.vqex'));
-  const quickJsHostTrapPolicyPlan = parseQuickJsHostTrapPolicyMetadata(findOptionalSection(pkg, SECTION.QUICKJS_HOST_TRAP_POLICY, 'quickjs-host-trap-policy.vqtp'));
-  const quickJsExecutionLifecyclePlan = parseQuickJsExecutionLifecycleMetadata(findOptionalSection(pkg, SECTION.QUICKJS_EXECUTION_LIFECYCLE, 'quickjs-execution-lifecycle.vqel'));
-  const quickJsScriptBufferPolicyPlan = parseQuickJsScriptBufferPolicyMetadata(findOptionalSection(pkg, SECTION.QUICKJS_SCRIPT_BUFFER_POLICY, 'quickjs-script-buffer-policy.vqsp'));
-  const quickJsContextLimitPolicyPlan = parseQuickJsContextLimitPolicyMetadata(findOptionalSection(pkg, SECTION.QUICKJS_CONTEXT_LIMIT_POLICY, 'quickjs-context-limit-policy.vqlp'));
-  const quickJsHostCallDispatchPlan = parseQuickJsHostCallDispatchMetadata(findOptionalSection(pkg, SECTION.QUICKJS_HOST_CALL_DISPATCH, 'quickjs-host-call-dispatch.vqhd'));
-  const quickJsParityContractPlan = parseQuickJsParityContractMetadata(findOptionalSection(pkg, SECTION.QUICKJS_PARITY_CONTRACT, 'quickjs-parity-contract.vqpc'));
-  const quickJsReleaseFailClosedPlan = parseQuickJsReleaseFailClosedMetadata(findOptionalSection(pkg, SECTION.QUICKJS_RELEASE_FAILCLOSED, 'quickjs-release-failclosed.vqfc'));
-  const quickJsModuleGraphPlan = parseQuickJsModuleGraphMetadata(findOptionalSection(pkg, SECTION.QUICKJS_MODULE_GRAPH, 'quickjs-module-graph.vqmg'));
-  const quickJsModuleExecutionPlan = parseQuickJsModuleExecutionMetadata(findOptionalSection(pkg, SECTION.QUICKJS_MODULE_EXECUTION, 'quickjs-module-execution.vqmx'));
-  const quickJsModuleCachePlan = parseQuickJsModuleCacheMetadata(findOptionalSection(pkg, SECTION.QUICKJS_MODULE_CACHE, 'quickjs-module-cache.vqmc'));
-  const quickJsResolverAuditPlan = parseQuickJsResolverAuditMetadata(findOptionalSection(pkg, SECTION.QUICKJS_RESOLVER_AUDIT, 'quickjs-resolver-audit.vqra'));
-  const quickJsInteropFallbackPlan = parseQuickJsInteropFallbackMetadata(findOptionalSection(pkg, SECTION.QUICKJS_INTEROP_FALLBACK, 'quickjs-interop-fallback.vqif'));
-  const quickJsExecutionPipelinePlan = parseQuickJsExecutionPipelineMetadata(findOptionalSection(pkg, SECTION.QUICKJS_EXECUTION_PIPELINE, 'quickjs-execution-pipeline.vqxp'));
-  const quickJsScriptRecordsPlan = parseQuickJsScriptRecordsMetadata(findOptionalSection(pkg, SECTION.QUICKJS_SCRIPT_RECORDS, 'quickjs-script-records.vqsr'));
-  const quickJsEvalResultsPlan = parseQuickJsEvalResultsMetadata(findOptionalSection(pkg, SECTION.QUICKJS_EVAL_RESULTS, 'quickjs-eval-results.vqev'));
-  const quickJsConsoleCapturePlan = parseQuickJsConsoleCaptureMetadata(findOptionalSection(pkg, SECTION.QUICKJS_CONSOLE_CAPTURE, 'quickjs-console-capture.vqcc'));
-  const quickJsFailureReportsPlan = parseQuickJsFailureReportsMetadata(findOptionalSection(pkg, SECTION.QUICKJS_FAILURE_REPORTS, 'quickjs-failure-reports.vqfr'));
-  const quickJsExecutionJournalPlan = parseQuickJsExecutionJournalMetadata(findOptionalSection(pkg, SECTION.QUICKJS_EXECUTION_JOURNAL, 'quickjs-execution-journal.vqxj'));
-  const quickJsCheckpointPolicyPlan = parseQuickJsCheckpointPolicyMetadata(findOptionalSection(pkg, SECTION.QUICKJS_CHECKPOINT_POLICY, 'quickjs-checkpoint-policy.vqcp'));
-  const quickJsReplayCursorPlan = parseQuickJsReplayCursorMetadata(findOptionalSection(pkg, SECTION.QUICKJS_REPLAY_CURSOR, 'quickjs-replay-cursor.vqrc'));
-  const quickJsResumeStatePlan = parseQuickJsResumeStateMetadata(findOptionalSection(pkg, SECTION.QUICKJS_RESUME_STATE, 'quickjs-resume-state.vqrs'));
-  const quickJsDeterminismAuditPlan = parseQuickJsDeterminismAuditMetadata(findOptionalSection(pkg, SECTION.QUICKJS_DETERMINISM_AUDIT, 'quickjs-determinism-audit.vqda'));
-  const quickJsSnapshotPolicyPlan = parseQuickJsSnapshotPolicyMetadata(findOptionalSection(pkg, SECTION.QUICKJS_SNAPSHOT_POLICY, 'quickjs-snapshot-policy.vqsk'));
-  const quickJsSnapshotRecordsPlan = parseQuickJsSnapshotRecordsMetadata(findOptionalSection(pkg, SECTION.QUICKJS_SNAPSHOT_RECORDS, 'quickjs-snapshot-records.vqsn'));
-  const quickJsReplayValidationPlan = parseQuickJsReplayValidationMetadata(findOptionalSection(pkg, SECTION.QUICKJS_REPLAY_VALIDATION, 'quickjs-replay-validation.vqrv'));
-  const quickJsDeterminismLedgerPlan = parseQuickJsDeterminismLedgerMetadata(findOptionalSection(pkg, SECTION.QUICKJS_DETERMINISM_LEDGER, 'quickjs-determinism-ledger.vqdl'));
-  const quickJsAuditSealPlan = parseQuickJsAuditSealMetadata(findOptionalSection(pkg, SECTION.QUICKJS_AUDIT_SEAL, 'quickjs-audit-seal.vqas'));
-  const quickJsExecutionCommitPlan = parseQuickJsExecutionCommitMetadata(findOptionalSection(pkg, SECTION.QUICKJS_EXECUTION_COMMIT, 'quickjs-execution-commit.vqxc'));
-  const quickJsRollbackPolicyPlan = parseQuickJsRollbackPolicyMetadata(findOptionalSection(pkg, SECTION.QUICKJS_ROLLBACK_POLICY, 'quickjs-rollback-policy.vqrp'));
-  const quickJsHostCallReceiptsPlan = parseQuickJsHostCallReceiptsMetadata(findOptionalSection(pkg, SECTION.QUICKJS_HOST_CALL_RECEIPTS, 'quickjs-host-call-receipts.vqhr'));
-  const quickJsReleaseAcceptancePlan = parseQuickJsReleaseAcceptanceMetadata(findOptionalSection(pkg, SECTION.QUICKJS_RELEASE_ACCEPTANCE, 'quickjs-release-acceptance.vqac'));
-  const quickJsCommitAuditPlan = parseQuickJsCommitAuditMetadata(findOptionalSection(pkg, SECTION.QUICKJS_COMMIT_AUDIT, 'quickjs-commit-audit.vqca'));
-  const quickJsCapabilityPolicyPlan = parseQuickJsCapabilityPolicyMetadata(findOptionalSection(pkg, SECTION.QUICKJS_CAPABILITY_POLICY, 'quickjs-capability-policy.vqcpol'));
-  const quickJsHostIoPolicyPlan = parseQuickJsHostIoPolicyMetadata(findOptionalSection(pkg, SECTION.QUICKJS_HOST_IO_POLICY, 'quickjs-host-io-policy.vqio'));
-  const quickJsPermissionSealPlan = parseQuickJsPermissionSealMetadata(findOptionalSection(pkg, SECTION.QUICKJS_PERMISSION_SEAL, 'quickjs-permission-seal.vqps'));
-  const quickJsPolicyReceiptsPlan = parseQuickJsPolicyReceiptsMetadata(findOptionalSection(pkg, SECTION.QUICKJS_POLICY_RECEIPTS, 'quickjs-policy-receipts.vqpr'));
-  const quickJsReleaseGatePlan = parseQuickJsReleaseGateMetadata(findOptionalSection(pkg, SECTION.QUICKJS_RELEASE_GATE, 'quickjs-release-gate.vqrg')); 
-  const quickJsHostIoDecisionPlan = parseQuickJsHostIoDecisionMetadata(findOptionalSection(pkg, SECTION.QUICKJS_HOST_IO_DECISION, 'quickjs-host-io-decision.vqid'));
-  const quickJsHostIoDenyTracePlan = parseQuickJsHostIoDenyTraceMetadata(findOptionalSection(pkg, SECTION.QUICKJS_HOST_IO_DENY_TRACE, 'quickjs-host-io-deny-trace.vqdt'));
-  const quickJsCapabilityLedgerPlan = parseQuickJsCapabilityLedgerMetadata(findOptionalSection(pkg, SECTION.QUICKJS_CAPABILITY_LEDGER, 'quickjs-capability-ledger.vqclg'));
-  const quickJsPolicySealAuditPlan = parseQuickJsPolicySealAuditMetadata(findOptionalSection(pkg, SECTION.QUICKJS_POLICY_SEAL_AUDIT, 'quickjs-policy-seal-audit.vqpsa'));
-  const quickJsRuntimeDenylistPlan = parseQuickJsRuntimeDenylistMetadata(findOptionalSection(pkg, SECTION.QUICKJS_RUNTIME_DENYLIST, 'quickjs-runtime-denylist.vqrd'));
+  const turboJsAdapterDiagnosticsPlan = parseTurboJsAdapterDiagnosticsMetadata(findOptionalSection(pkg, SECTION.TURBOJS_ADAPTER_DIAGNOSTICS, 'turbojs-adapter-diagnostics.vqad'));
+  const turboJsWasmRuntimePlan = parseTurboJsWasmRuntimeMetadata(findOptionalSection(pkg, SECTION.TURBOJS_WASM_RUNTIME, 'turbojs-wasm-runtime.vqwr'));
+  const turboJsSourceTransferPlan = parseTurboJsSourceTransferMetadata(findOptionalSection(pkg, SECTION.TURBOJS_SOURCE_TRANSFER, 'turbojs-source-transfer.vqst'));
+  const turboJsConsoleBridgePlan = parseTurboJsConsoleBridgeMetadata(findOptionalSection(pkg, SECTION.TURBOJS_CONSOLE_BRIDGE, 'turbojs-console-bridge.vqcb'));
+  const turboJsExecutionRecordsPlan = parseTurboJsExecutionRecordsMetadata(findOptionalSection(pkg, SECTION.TURBOJS_EXECUTION_RECORDS, 'turbojs-execution-records.vqer'));
+  const turboJsResultBridgePlan = parseTurboJsResultBridgeMetadata(findOptionalSection(pkg, SECTION.TURBOJS_RESULT_BRIDGE, 'turbojs-result-bridge.vqrb'));
+  const turboJsFallbackPolicyPlan = parseTurboJsFallbackPolicyMetadata(findOptionalSection(pkg, SECTION.TURBOJS_FALLBACK_POLICY, 'turbojs-fallback-policy.vqfp'));
+  const turboJsRuntimeAbiPlan = parseTurboJsRuntimeAbiMetadata(findOptionalSection(pkg, SECTION.TURBOJS_RUNTIME_ABI, 'turbojs-runtime-abi.vqra'));
+  const turboJsHostImportsPlan = parseTurboJsHostImportsMetadata(findOptionalSection(pkg, SECTION.TURBOJS_HOST_IMPORTS, 'turbojs-host-imports.vqhi'));
+  const turboJsHeapLimitsPlan = parseTurboJsHeapLimitsMetadata(findOptionalSection(pkg, SECTION.TURBOJS_HEAP_LIMITS, 'turbojs-heap-limits.vqhl'));
+  const turboJsScriptBufferPlan = parseTurboJsScriptBufferMetadata(findOptionalSection(pkg, SECTION.TURBOJS_SCRIPT_BUFFER, 'turbojs-script-buffer.vqsb'));
+  const turboJsConsoleAbiPlan = parseTurboJsConsoleAbiMetadata(findOptionalSection(pkg, SECTION.TURBOJS_CONSOLE_ABI, 'turbojs-console-abi.vqca'));
+  const turboJsParityProbePlan = parseTurboJsParityProbeMetadata(findOptionalSection(pkg, SECTION.TURBOJS_PARITY_PROBE, 'turbojs-parity-probe.vqpp'));
+  const turboJsReleaseFallbackPlan = parseTurboJsReleaseFallbackMetadata(findOptionalSection(pkg, SECTION.TURBOJS_RELEASE_FALLBACK, 'turbojs-release-fallback.vqrf'));
+  const turboJsBytecodeManifestPlan = parseTurboJsBytecodeManifestMetadata(findOptionalSection(pkg, SECTION.TURBOJS_BYTECODE_MANIFEST, 'turbojs-bytecode-manifest.vqbm'));
+  const turboJsModuleResolverPlan = parseTurboJsModuleResolverMetadata(findOptionalSection(pkg, SECTION.TURBOJS_MODULE_RESOLVER, 'turbojs-module-resolver.vqmr'));
+  const turboJsExceptionAbiPlan = parseTurboJsExceptionAbiMetadata(findOptionalSection(pkg, SECTION.TURBOJS_EXCEPTION_ABI, 'turbojs-exception-abi.vqex'));
+  const turboJsHostTrapPolicyPlan = parseTurboJsHostTrapPolicyMetadata(findOptionalSection(pkg, SECTION.TURBOJS_HOST_TRAP_POLICY, 'turbojs-host-trap-policy.vqtp'));
+  const turboJsExecutionLifecyclePlan = parseTurboJsExecutionLifecycleMetadata(findOptionalSection(pkg, SECTION.TURBOJS_EXECUTION_LIFECYCLE, 'turbojs-execution-lifecycle.vqel'));
+  const turboJsScriptBufferPolicyPlan = parseTurboJsScriptBufferPolicyMetadata(findOptionalSection(pkg, SECTION.TURBOJS_SCRIPT_BUFFER_POLICY, 'turbojs-script-buffer-policy.vqsp'));
+  const turboJsContextLimitPolicyPlan = parseTurboJsContextLimitPolicyMetadata(findOptionalSection(pkg, SECTION.TURBOJS_CONTEXT_LIMIT_POLICY, 'turbojs-context-limit-policy.vqlp'));
+  const turboJsHostCallDispatchPlan = parseTurboJsHostCallDispatchMetadata(findOptionalSection(pkg, SECTION.TURBOJS_HOST_CALL_DISPATCH, 'turbojs-host-call-dispatch.vqhd'));
+  const turboJsParityContractPlan = parseTurboJsParityContractMetadata(findOptionalSection(pkg, SECTION.TURBOJS_PARITY_CONTRACT, 'turbojs-parity-contract.vqpc'));
+  const turboJsReleaseFailClosedPlan = parseTurboJsReleaseFailClosedMetadata(findOptionalSection(pkg, SECTION.TURBOJS_RELEASE_FAILCLOSED, 'turbojs-release-failclosed.vqfc'));
+  const turboJsModuleGraphPlan = parseTurboJsModuleGraphMetadata(findOptionalSection(pkg, SECTION.TURBOJS_MODULE_GRAPH, 'turbojs-module-graph.vqmg'));
+  const turboJsModuleExecutionPlan = parseTurboJsModuleExecutionMetadata(findOptionalSection(pkg, SECTION.TURBOJS_MODULE_EXECUTION, 'turbojs-module-execution.vqmx'));
+  const turboJsModuleCachePlan = parseTurboJsModuleCacheMetadata(findOptionalSection(pkg, SECTION.TURBOJS_MODULE_CACHE, 'turbojs-module-cache.vqmc'));
+  const turboJsResolverAuditPlan = parseTurboJsResolverAuditMetadata(findOptionalSection(pkg, SECTION.TURBOJS_RESOLVER_AUDIT, 'turbojs-resolver-audit.vqra'));
+  const turboJsInteropFallbackPlan = parseTurboJsInteropFallbackMetadata(findOptionalSection(pkg, SECTION.TURBOJS_INTEROP_FALLBACK, 'turbojs-interop-fallback.vqif'));
+  const turboJsExecutionPipelinePlan = parseTurboJsExecutionPipelineMetadata(findOptionalSection(pkg, SECTION.TURBOJS_EXECUTION_PIPELINE, 'turbojs-execution-pipeline.vqxp'));
+  const turboJsScriptRecordsPlan = parseTurboJsScriptRecordsMetadata(findOptionalSection(pkg, SECTION.TURBOJS_SCRIPT_RECORDS, 'turbojs-script-records.vqsr'));
+  const turboJsEvalResultsPlan = parseTurboJsEvalResultsMetadata(findOptionalSection(pkg, SECTION.TURBOJS_EVAL_RESULTS, 'turbojs-eval-results.vqev'));
+  const turboJsConsoleCapturePlan = parseTurboJsConsoleCaptureMetadata(findOptionalSection(pkg, SECTION.TURBOJS_CONSOLE_CAPTURE, 'turbojs-console-capture.vqcc'));
+  const turboJsFailureReportsPlan = parseTurboJsFailureReportsMetadata(findOptionalSection(pkg, SECTION.TURBOJS_FAILURE_REPORTS, 'turbojs-failure-reports.vqfr'));
+  const turboJsExecutionJournalPlan = parseTurboJsExecutionJournalMetadata(findOptionalSection(pkg, SECTION.TURBOJS_EXECUTION_JOURNAL, 'turbojs-execution-journal.vqxj'));
+  const turboJsCheckpointPolicyPlan = parseTurboJsCheckpointPolicyMetadata(findOptionalSection(pkg, SECTION.TURBOJS_CHECKPOINT_POLICY, 'turbojs-checkpoint-policy.vqcp'));
+  const turboJsReplayCursorPlan = parseTurboJsReplayCursorMetadata(findOptionalSection(pkg, SECTION.TURBOJS_REPLAY_CURSOR, 'turbojs-replay-cursor.vqrc'));
+  const turboJsResumeStatePlan = parseTurboJsResumeStateMetadata(findOptionalSection(pkg, SECTION.TURBOJS_RESUME_STATE, 'turbojs-resume-state.vqrs'));
+  const turboJsDeterminismAuditPlan = parseTurboJsDeterminismAuditMetadata(findOptionalSection(pkg, SECTION.TURBOJS_DETERMINISM_AUDIT, 'turbojs-determinism-audit.vqda'));
+  const turboJsSnapshotPolicyPlan = parseTurboJsSnapshotPolicyMetadata(findOptionalSection(pkg, SECTION.TURBOJS_SNAPSHOT_POLICY, 'turbojs-snapshot-policy.vqsk'));
+  const turboJsSnapshotRecordsPlan = parseTurboJsSnapshotRecordsMetadata(findOptionalSection(pkg, SECTION.TURBOJS_SNAPSHOT_RECORDS, 'turbojs-snapshot-records.vqsn'));
+  const turboJsReplayValidationPlan = parseTurboJsReplayValidationMetadata(findOptionalSection(pkg, SECTION.TURBOJS_REPLAY_VALIDATION, 'turbojs-replay-validation.vqrv'));
+  const turboJsDeterminismLedgerPlan = parseTurboJsDeterminismLedgerMetadata(findOptionalSection(pkg, SECTION.TURBOJS_DETERMINISM_LEDGER, 'turbojs-determinism-ledger.vqdl'));
+  const turboJsAuditSealPlan = parseTurboJsAuditSealMetadata(findOptionalSection(pkg, SECTION.TURBOJS_AUDIT_SEAL, 'turbojs-audit-seal.vqas'));
+  const turboJsExecutionCommitPlan = parseTurboJsExecutionCommitMetadata(findOptionalSection(pkg, SECTION.TURBOJS_EXECUTION_COMMIT, 'turbojs-execution-commit.vqxc'));
+  const turboJsRollbackPolicyPlan = parseTurboJsRollbackPolicyMetadata(findOptionalSection(pkg, SECTION.TURBOJS_ROLLBACK_POLICY, 'turbojs-rollback-policy.vqrp'));
+  const turboJsHostCallReceiptsPlan = parseTurboJsHostCallReceiptsMetadata(findOptionalSection(pkg, SECTION.TURBOJS_HOST_CALL_RECEIPTS, 'turbojs-host-call-receipts.vqhr'));
+  const turboJsReleaseAcceptancePlan = parseTurboJsReleaseAcceptanceMetadata(findOptionalSection(pkg, SECTION.TURBOJS_RELEASE_ACCEPTANCE, 'turbojs-release-acceptance.vqac'));
+  const turboJsCommitAuditPlan = parseTurboJsCommitAuditMetadata(findOptionalSection(pkg, SECTION.TURBOJS_COMMIT_AUDIT, 'turbojs-commit-audit.vqca'));
+  const turboJsCapabilityPolicyPlan = parseTurboJsCapabilityPolicyMetadata(findOptionalSection(pkg, SECTION.TURBOJS_CAPABILITY_POLICY, 'turbojs-capability-policy.vqcpol'));
+  const turboJsHostIoPolicyPlan = parseTurboJsHostIoPolicyMetadata(findOptionalSection(pkg, SECTION.TURBOJS_HOST_IO_POLICY, 'turbojs-host-io-policy.vqio'));
+  const turboJsPermissionSealPlan = parseTurboJsPermissionSealMetadata(findOptionalSection(pkg, SECTION.TURBOJS_PERMISSION_SEAL, 'turbojs-permission-seal.vqps'));
+  const turboJsPolicyReceiptsPlan = parseTurboJsPolicyReceiptsMetadata(findOptionalSection(pkg, SECTION.TURBOJS_POLICY_RECEIPTS, 'turbojs-policy-receipts.vqpr'));
+  const turboJsReleaseGatePlan = parseTurboJsReleaseGateMetadata(findOptionalSection(pkg, SECTION.TURBOJS_RELEASE_GATE, 'turbojs-release-gate.vqrg')); 
+  const turboJsHostIoDecisionPlan = parseTurboJsHostIoDecisionMetadata(findOptionalSection(pkg, SECTION.TURBOJS_HOST_IO_DECISION, 'turbojs-host-io-decision.vqid'));
+  const turboJsHostIoDenyTracePlan = parseTurboJsHostIoDenyTraceMetadata(findOptionalSection(pkg, SECTION.TURBOJS_HOST_IO_DENY_TRACE, 'turbojs-host-io-deny-trace.vqdt'));
+  const turboJsCapabilityLedgerPlan = parseTurboJsCapabilityLedgerMetadata(findOptionalSection(pkg, SECTION.TURBOJS_CAPABILITY_LEDGER, 'turbojs-capability-ledger.vqclg'));
+  const turboJsPolicySealAuditPlan = parseTurboJsPolicySealAuditMetadata(findOptionalSection(pkg, SECTION.TURBOJS_POLICY_SEAL_AUDIT, 'turbojs-policy-seal-audit.vqpsa'));
+  const turboJsRuntimeDenylistPlan = parseTurboJsRuntimeDenylistMetadata(findOptionalSection(pkg, SECTION.TURBOJS_RUNTIME_DENYLIST, 'turbojs-runtime-denylist.vqrd'));
   const asyncQueuePlan = parseAsyncHostQueueMetadata(findOptionalSection(pkg, SECTION.ASYNC_HOST_QUEUE, 'async-host-queue.vahq'));
   const assetBaseUrl = options.assetBaseUrl || new URL('./', options.packageUrl || document.baseURI).href;
-  const quickJsEngineModuleUrl = options.quickJsEngineUrl || (quickJsEngineModulePlan && quickJsEngineModulePlan.assetName ? new URL(quickJsEngineModulePlan.assetName, assetBaseUrl).href : null);
-  const quickJsWasmUrl = options.quickJsWasmUrl || (quickJsWasmRuntimePlan && quickJsWasmRuntimePlan.assetName ? new URL(quickJsWasmRuntimePlan.assetName, assetBaseUrl).href : null);
+  const turboJsEngineModuleUrl = options.turboJsEngineUrl || (turboJsEngineModulePlan && turboJsEngineModulePlan.assetName ? new URL(turboJsEngineModulePlan.assetName, assetBaseUrl).href : null);
+  const turboJsWasmUrl = options.turboJsWasmUrl || (turboJsWasmRuntimePlan && turboJsWasmRuntimePlan.assetName ? new URL(turboJsWasmRuntimePlan.assetName, assetBaseUrl).href : null);
   const route = selectRoute(routes, location.pathname);
   finishPhase('package-policy', { route: route.route, runtimeAbi: pkg.runtimeAbi, failClosed: runtimePolicy.failClosed });
 
   startPhase('runtime-install');
-  installVenomHostBridge(root, pkg, routes, assetManifest, runtimePolicy, hostBridgePlan, fetchBridgePlan, asyncQueuePlan, timerBridgePlan, eventQueuePlan, quickJsBridgePlan, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan, quickJsEngineModulePlan, quickJsEngineModuleUrl, quickJsContextLifecyclePlan, hostCapabilitiesPlan, quickJsAdapterDiagnosticsPlan, quickJsWasmRuntimePlan, quickJsWasmUrl, quickJsSourceTransferPlan, quickJsConsoleBridgePlan, quickJsExecutionRecordsPlan, quickJsResultBridgePlan, quickJsFallbackPolicyPlan, quickJsRuntimeAbiPlan, quickJsHostImportsPlan, quickJsHeapLimitsPlan, quickJsScriptBufferPlan, quickJsConsoleAbiPlan, quickJsParityProbePlan, quickJsReleaseFallbackPlan, quickJsBytecodeManifestPlan, quickJsModuleResolverPlan, quickJsExceptionAbiPlan, quickJsHostTrapPolicyPlan, quickJsExecutionLifecyclePlan, quickJsScriptBufferPolicyPlan, quickJsContextLimitPolicyPlan, quickJsHostCallDispatchPlan, quickJsParityContractPlan, quickJsReleaseFailClosedPlan, quickJsModuleGraphPlan, quickJsModuleExecutionPlan, quickJsModuleCachePlan, quickJsResolverAuditPlan, quickJsInteropFallbackPlan, quickJsExecutionJournalPlan, quickJsCheckpointPolicyPlan, quickJsReplayCursorPlan, quickJsResumeStatePlan, quickJsDeterminismAuditPlan, quickJsSnapshotPolicyPlan, quickJsSnapshotRecordsPlan, quickJsReplayValidationPlan, quickJsDeterminismLedgerPlan, quickJsAuditSealPlan, quickJsExecutionCommitPlan, quickJsRollbackPolicyPlan, quickJsHostCallReceiptsPlan, quickJsReleaseAcceptancePlan, quickJsCommitAuditPlan, quickJsCapabilityPolicyPlan, quickJsHostIoPolicyPlan, quickJsPermissionSealPlan, quickJsPolicyReceiptsPlan, quickJsReleaseGatePlan, quickJsHostIoDecisionPlan, quickJsHostIoDenyTracePlan, quickJsCapabilityLedgerPlan, quickJsPolicySealAuditPlan, quickJsRuntimeDenylistPlan);
-  finishPhase('runtime-install', { protectedRuntime: quickJsWasmRuntimePlan.enabled, hostCapabilities: hostCapabilitiesPlan.capabilities.length });
+  installVenomHostBridge(root, pkg, routes, assetManifest, runtimePolicy, hostBridgePlan, fetchBridgePlan, asyncQueuePlan, timerBridgePlan, eventQueuePlan, turboJsBridgePlan, scriptIsolationPlan, scriptPolicyPlan, turboJsChunkPlan, turboJsEnginePlan, scriptEnginePolicyPlan, turboJsEngineModulePlan, turboJsEngineModuleUrl, turboJsContextLifecyclePlan, hostCapabilitiesPlan, turboJsAdapterDiagnosticsPlan, turboJsWasmRuntimePlan, turboJsWasmUrl, turboJsSourceTransferPlan, turboJsConsoleBridgePlan, turboJsExecutionRecordsPlan, turboJsResultBridgePlan, turboJsFallbackPolicyPlan, turboJsRuntimeAbiPlan, turboJsHostImportsPlan, turboJsHeapLimitsPlan, turboJsScriptBufferPlan, turboJsConsoleAbiPlan, turboJsParityProbePlan, turboJsReleaseFallbackPlan, turboJsBytecodeManifestPlan, turboJsModuleResolverPlan, turboJsExceptionAbiPlan, turboJsHostTrapPolicyPlan, turboJsExecutionLifecyclePlan, turboJsScriptBufferPolicyPlan, turboJsContextLimitPolicyPlan, turboJsHostCallDispatchPlan, turboJsParityContractPlan, turboJsReleaseFailClosedPlan, turboJsModuleGraphPlan, turboJsModuleExecutionPlan, turboJsModuleCachePlan, turboJsResolverAuditPlan, turboJsInteropFallbackPlan, turboJsExecutionJournalPlan, turboJsCheckpointPolicyPlan, turboJsReplayCursorPlan, turboJsResumeStatePlan, turboJsDeterminismAuditPlan, turboJsSnapshotPolicyPlan, turboJsSnapshotRecordsPlan, turboJsReplayValidationPlan, turboJsDeterminismLedgerPlan, turboJsAuditSealPlan, turboJsExecutionCommitPlan, turboJsRollbackPolicyPlan, turboJsHostCallReceiptsPlan, turboJsReleaseAcceptancePlan, turboJsCommitAuditPlan, turboJsCapabilityPolicyPlan, turboJsHostIoPolicyPlan, turboJsPermissionSealPlan, turboJsPolicyReceiptsPlan, turboJsReleaseGatePlan, turboJsHostIoDecisionPlan, turboJsHostIoDenyTracePlan, turboJsCapabilityLedgerPlan, turboJsPolicySealAuditPlan, turboJsRuntimeDenylistPlan);
+  finishPhase('runtime-install', { protectedRuntime: turboJsWasmRuntimePlan.enabled, hostCapabilities: hostCapabilitiesPlan.capabilities.length });
   installBrowserAssetResolver(route, assetManifest, assetBaseUrl);
   startPhase('route-decode');
   const initialRuntime = routeRuntimeLoader(route);
@@ -432,10 +432,10 @@ export async function bootVenom(options) {
   executeRoute(initialRuntime.route, initialRuntime.vm, strings, opcodeMap, root, assetManifest, assetBaseUrl, hostBridgePlan);
   finishPhase('route-render', { route: initialRuntime.route.route });
   startPhase('script-execution');
-  const executedScripts = await executeScriptsForRoute(initialRuntime.route, initialRuntime.jsBundle, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan);
+  const executedScripts = await executeScriptsForRoute(initialRuntime.route, initialRuntime.jsBundle, scriptIsolationPlan, scriptPolicyPlan, turboJsChunkPlan, turboJsEnginePlan, scriptEnginePolicyPlan);
   finishPhase('script-execution', { executedScripts: executedScripts.length });
   startPhase('navigation-install');
-  installNavigation(routes, routeRuntimeLoader, strings, opcodeMap, root, assetManifest, assetBaseUrl, hostBridgePlan, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan);
+  installNavigation(routes, routeRuntimeLoader, strings, opcodeMap, root, assetManifest, assetBaseUrl, hostBridgePlan, scriptIsolationPlan, scriptPolicyPlan, turboJsChunkPlan, turboJsEnginePlan, scriptEnginePolicyPlan);
   finishPhase('navigation-install', { routes: routes.length });
 
   return {
@@ -467,97 +467,97 @@ export async function bootVenom(options) {
     timerBridgeMode: timerBridgePlan.enabled ? 'async-host-call' : 'none',
     eventQueueVersion: eventQueuePlan.version,
     eventQueueMode: eventQueuePlan.enabled ? 'enabled' : 'none',
-    quickJsBridgeVersion: quickJsBridgePlan.version,
-    quickJsBridgeMode: quickJsBridgePlan.mode,
+    turboJsBridgeVersion: turboJsBridgePlan.version,
+    turboJsBridgeMode: turboJsBridgePlan.mode,
     scriptIsolationVersion: scriptIsolationPlan.version,
     scriptIsolationMode: scriptIsolationPlan.mode,
     scriptPolicyVersion: scriptPolicyPlan.version,
     scriptPolicyMode: 'capability-metadata',
-    quickJsChunkVersion: quickJsChunkPlan.version,
-    quickJsChunkMode: quickJsChunkPlan.mode,
-    quickJsChunkCount: quickJsChunkPlan.chunkCount,
-    quickJsEngineVersion: quickJsEnginePlan.version,
-    quickJsEngineMode: quickJsEnginePlan.mode,
-    quickJsEngineEnabled: quickJsEnginePlan.enabled,
+    turboJsChunkVersion: turboJsChunkPlan.version,
+    turboJsChunkMode: turboJsChunkPlan.mode,
+    turboJsChunkCount: turboJsChunkPlan.chunkCount,
+    turboJsEngineVersion: turboJsEnginePlan.version,
+    turboJsEngineMode: turboJsEnginePlan.mode,
+    turboJsEngineEnabled: turboJsEnginePlan.enabled,
     scriptEnginePolicyVersion: scriptEnginePolicyPlan.version,
     scriptEngineFallback: scriptEnginePolicyPlan.fallback,
-    quickJsEngineModuleVersion: quickJsEngineModulePlan.version,
-    quickJsEngineModuleMode: quickJsEngineModulePlan.enabled ? quickJsEngineModulePlan.executionMode : 'none',
-    quickJsEngineModuleLoaded: !!quickJsEngineModuleUrl,
-    quickJsContextLifecycleVersion: quickJsContextLifecyclePlan.version,
-    quickJsContextLifecycleMode: quickJsContextLifecyclePlan.enabled ? quickJsContextLifecyclePlan.model : 'none',
+    turboJsEngineModuleVersion: turboJsEngineModulePlan.version,
+    turboJsEngineModuleMode: turboJsEngineModulePlan.enabled ? turboJsEngineModulePlan.executionMode : 'none',
+    turboJsEngineModuleLoaded: !!turboJsEngineModuleUrl,
+    turboJsContextLifecycleVersion: turboJsContextLifecyclePlan.version,
+    turboJsContextLifecycleMode: turboJsContextLifecyclePlan.enabled ? turboJsContextLifecyclePlan.model : 'none',
     hostCapabilitiesVersion: hostCapabilitiesPlan.version,
     hostCapabilityCount: hostCapabilitiesPlan.capabilities.length,
-    quickJsAdapterDiagnosticsVersion: quickJsAdapterDiagnosticsPlan.version,
-    quickJsAdapterDiagnosticsMode: quickJsAdapterDiagnosticsPlan.enabled ? 'enabled' : 'none',
-    quickJsSnapshotPolicyVersion: quickJsSnapshotPolicyPlan.version,
-    quickJsSnapshotRecordsVersion: quickJsSnapshotRecordsPlan.version,
-    quickJsReplayValidationVersion: quickJsReplayValidationPlan.version,
-    quickJsDeterminismLedgerVersion: quickJsDeterminismLedgerPlan.version,
-    quickJsAuditSealVersion: quickJsAuditSealPlan.version,
-    quickJsExecutionCommitVersion: quickJsExecutionCommitPlan.version,
-    quickJsRollbackPolicyVersion: quickJsRollbackPolicyPlan.version,
-    quickJsHostCallReceiptsVersion: quickJsHostCallReceiptsPlan.version,
-    quickJsReleaseAcceptanceVersion: quickJsReleaseAcceptancePlan.version,
-    quickJsCommitAuditVersion: quickJsCommitAuditPlan.version,
-    quickJsCapabilityPolicyVersion: quickJsCapabilityPolicyPlan.version,
-    quickJsHostIoPolicyVersion: quickJsHostIoPolicyPlan.version,
-    quickJsPermissionSealVersion: quickJsPermissionSealPlan.version,
-    quickJsPolicyReceiptsVersion: quickJsPolicyReceiptsPlan.version,
-    quickJsReleaseGateVersion: quickJsReleaseGatePlan.version,
-    quickJsHostIoDecisionVersion: quickJsHostIoDecisionPlan.version,
-    quickJsHostIoDenyTraceVersion: quickJsHostIoDenyTracePlan.version,
-    quickJsCapabilityLedgerVersion: quickJsCapabilityLedgerPlan.version,
-    quickJsPolicySealAuditVersion: quickJsPolicySealAuditPlan.version,
-    quickJsRuntimeDenylistVersion: quickJsRuntimeDenylistPlan.version,
-    quickJsWasmRuntimeVersion: quickJsWasmRuntimePlan.version,
-    quickJsWasmRuntimeMode: quickJsWasmRuntimePlan.enabled ? quickJsWasmRuntimePlan.executionMode : 'none',
-    quickJsWasmRuntimeLoaded: !!quickJsWasmUrl,
-    quickJsSourceTransferVersion: quickJsSourceTransferPlan.version,
-    quickJsSourceTransferMode: quickJsSourceTransferPlan.enabled ? 'enabled' : 'none',
-    quickJsConsoleBridgeVersion: quickJsConsoleBridgePlan.version,
-    quickJsConsoleBridgeMode: quickJsConsoleBridgePlan.enabled ? quickJsConsoleBridgePlan.mode : 'none',
-    quickJsExecutionRecordsVersion: quickJsExecutionRecordsPlan.version,
-    quickJsExecutionRecordsMode: quickJsExecutionRecordsPlan.enabled ? quickJsExecutionRecordsPlan.retention : 'none',
-    quickJsResultBridgeVersion: quickJsResultBridgePlan.version,
-    quickJsResultBridgeMode: quickJsResultBridgePlan.enabled ? quickJsResultBridgePlan.format : 'none',
-    quickJsFallbackPolicyVersion: quickJsFallbackPolicyPlan.version,
-    quickJsFallbackPolicyMode: quickJsFallbackPolicyPlan.enabled ? quickJsFallbackPolicyPlan.mode : 'none',
-    quickJsRuntimeAbi: quickJsRuntimeAbiPlan.abi,
-    quickJsHostImportCount: quickJsHostImportsPlan.importCount,
-    quickJsBytecodeManifestVersion: quickJsBytecodeManifestPlan.version,
-    quickJsBytecodeManifestMode: quickJsBytecodeManifestPlan.enabled ? quickJsBytecodeManifestPlan.format : 'none',
-    quickJsModuleResolverVersion: quickJsModuleResolverPlan.version,
-    quickJsModuleResolverMode: quickJsModuleResolverPlan.enabled ? quickJsModuleResolverPlan.mode : 'none',
-    quickJsExceptionAbi: quickJsExceptionAbiPlan.abi,
-    quickJsExceptionAbiVersion: quickJsExceptionAbiPlan.version,
-    quickJsHostTrapPolicy: quickJsHostTrapPolicyPlan.policy,
-    quickJsHostTrapPolicyVersion: quickJsHostTrapPolicyPlan.version,
-    quickJsExecutionLifecycleVersion: quickJsExecutionLifecyclePlan.version,
-    quickJsExecutionLifecycleStates: quickJsExecutionLifecyclePlan.states,
-    quickJsScriptBufferPolicyVersion: quickJsScriptBufferPolicyPlan.version,
-    quickJsContextLimitPolicyVersion: quickJsContextLimitPolicyPlan.version,
-    quickJsHostCallDispatchVersion: quickJsHostCallDispatchPlan.version,
-    quickJsHostCallDispatchCount: quickJsHostCallDispatchPlan.entryCount,
-    quickJsParityContractVersion: quickJsParityContractPlan.version,
-    quickJsReleaseFailClosedVersion: quickJsReleaseFailClosedPlan.version,
-    quickJsModuleGraphVersion: quickJsModuleGraphPlan.version,
-    quickJsModuleGraphCount: quickJsModuleGraphPlan.moduleCount,
-    quickJsModuleExecutionVersion: quickJsModuleExecutionPlan.version,
-    quickJsModuleExecutionMode: quickJsModuleExecutionPlan.enabled ? quickJsModuleExecutionPlan.mode : 'none',
-    quickJsModuleCacheVersion: quickJsModuleCachePlan.version,
-    quickJsResolverAuditVersion: quickJsResolverAuditPlan.version,
-    quickJsInteropFallbackVersion: quickJsInteropFallbackPlan.version,
-    quickJsExecutionPipelineVersion: quickJsExecutionPipelinePlan.version,
-    quickJsScriptRecordsVersion: quickJsScriptRecordsPlan.version,
-    quickJsEvalResultsVersion: quickJsEvalResultsPlan.version,
-    quickJsConsoleCaptureVersion: quickJsConsoleCapturePlan.version,
-    quickJsFailureReportsVersion: quickJsFailureReportsPlan.version,
-    quickJsExecutionJournalVersion: quickJsExecutionJournalPlan.version,
-    quickJsCheckpointPolicyVersion: quickJsCheckpointPolicyPlan.version,
-    quickJsReplayCursorVersion: quickJsReplayCursorPlan.version,
-    quickJsResumeStateVersion: quickJsResumeStatePlan.version,
-    quickJsDeterminismAuditVersion: quickJsDeterminismAuditPlan.version,
+    turboJsAdapterDiagnosticsVersion: turboJsAdapterDiagnosticsPlan.version,
+    turboJsAdapterDiagnosticsMode: turboJsAdapterDiagnosticsPlan.enabled ? 'enabled' : 'none',
+    turboJsSnapshotPolicyVersion: turboJsSnapshotPolicyPlan.version,
+    turboJsSnapshotRecordsVersion: turboJsSnapshotRecordsPlan.version,
+    turboJsReplayValidationVersion: turboJsReplayValidationPlan.version,
+    turboJsDeterminismLedgerVersion: turboJsDeterminismLedgerPlan.version,
+    turboJsAuditSealVersion: turboJsAuditSealPlan.version,
+    turboJsExecutionCommitVersion: turboJsExecutionCommitPlan.version,
+    turboJsRollbackPolicyVersion: turboJsRollbackPolicyPlan.version,
+    turboJsHostCallReceiptsVersion: turboJsHostCallReceiptsPlan.version,
+    turboJsReleaseAcceptanceVersion: turboJsReleaseAcceptancePlan.version,
+    turboJsCommitAuditVersion: turboJsCommitAuditPlan.version,
+    turboJsCapabilityPolicyVersion: turboJsCapabilityPolicyPlan.version,
+    turboJsHostIoPolicyVersion: turboJsHostIoPolicyPlan.version,
+    turboJsPermissionSealVersion: turboJsPermissionSealPlan.version,
+    turboJsPolicyReceiptsVersion: turboJsPolicyReceiptsPlan.version,
+    turboJsReleaseGateVersion: turboJsReleaseGatePlan.version,
+    turboJsHostIoDecisionVersion: turboJsHostIoDecisionPlan.version,
+    turboJsHostIoDenyTraceVersion: turboJsHostIoDenyTracePlan.version,
+    turboJsCapabilityLedgerVersion: turboJsCapabilityLedgerPlan.version,
+    turboJsPolicySealAuditVersion: turboJsPolicySealAuditPlan.version,
+    turboJsRuntimeDenylistVersion: turboJsRuntimeDenylistPlan.version,
+    turboJsWasmRuntimeVersion: turboJsWasmRuntimePlan.version,
+    turboJsWasmRuntimeMode: turboJsWasmRuntimePlan.enabled ? turboJsWasmRuntimePlan.executionMode : 'none',
+    turboJsWasmRuntimeLoaded: !!turboJsWasmUrl,
+    turboJsSourceTransferVersion: turboJsSourceTransferPlan.version,
+    turboJsSourceTransferMode: turboJsSourceTransferPlan.enabled ? 'enabled' : 'none',
+    turboJsConsoleBridgeVersion: turboJsConsoleBridgePlan.version,
+    turboJsConsoleBridgeMode: turboJsConsoleBridgePlan.enabled ? turboJsConsoleBridgePlan.mode : 'none',
+    turboJsExecutionRecordsVersion: turboJsExecutionRecordsPlan.version,
+    turboJsExecutionRecordsMode: turboJsExecutionRecordsPlan.enabled ? turboJsExecutionRecordsPlan.retention : 'none',
+    turboJsResultBridgeVersion: turboJsResultBridgePlan.version,
+    turboJsResultBridgeMode: turboJsResultBridgePlan.enabled ? turboJsResultBridgePlan.format : 'none',
+    turboJsFallbackPolicyVersion: turboJsFallbackPolicyPlan.version,
+    turboJsFallbackPolicyMode: turboJsFallbackPolicyPlan.enabled ? turboJsFallbackPolicyPlan.mode : 'none',
+    turboJsRuntimeAbi: turboJsRuntimeAbiPlan.abi,
+    turboJsHostImportCount: turboJsHostImportsPlan.importCount,
+    turboJsBytecodeManifestVersion: turboJsBytecodeManifestPlan.version,
+    turboJsBytecodeManifestMode: turboJsBytecodeManifestPlan.enabled ? turboJsBytecodeManifestPlan.format : 'none',
+    turboJsModuleResolverVersion: turboJsModuleResolverPlan.version,
+    turboJsModuleResolverMode: turboJsModuleResolverPlan.enabled ? turboJsModuleResolverPlan.mode : 'none',
+    turboJsExceptionAbi: turboJsExceptionAbiPlan.abi,
+    turboJsExceptionAbiVersion: turboJsExceptionAbiPlan.version,
+    turboJsHostTrapPolicy: turboJsHostTrapPolicyPlan.policy,
+    turboJsHostTrapPolicyVersion: turboJsHostTrapPolicyPlan.version,
+    turboJsExecutionLifecycleVersion: turboJsExecutionLifecyclePlan.version,
+    turboJsExecutionLifecycleStates: turboJsExecutionLifecyclePlan.states,
+    turboJsScriptBufferPolicyVersion: turboJsScriptBufferPolicyPlan.version,
+    turboJsContextLimitPolicyVersion: turboJsContextLimitPolicyPlan.version,
+    turboJsHostCallDispatchVersion: turboJsHostCallDispatchPlan.version,
+    turboJsHostCallDispatchCount: turboJsHostCallDispatchPlan.entryCount,
+    turboJsParityContractVersion: turboJsParityContractPlan.version,
+    turboJsReleaseFailClosedVersion: turboJsReleaseFailClosedPlan.version,
+    turboJsModuleGraphVersion: turboJsModuleGraphPlan.version,
+    turboJsModuleGraphCount: turboJsModuleGraphPlan.moduleCount,
+    turboJsModuleExecutionVersion: turboJsModuleExecutionPlan.version,
+    turboJsModuleExecutionMode: turboJsModuleExecutionPlan.enabled ? turboJsModuleExecutionPlan.mode : 'none',
+    turboJsModuleCacheVersion: turboJsModuleCachePlan.version,
+    turboJsResolverAuditVersion: turboJsResolverAuditPlan.version,
+    turboJsInteropFallbackVersion: turboJsInteropFallbackPlan.version,
+    turboJsExecutionPipelineVersion: turboJsExecutionPipelinePlan.version,
+    turboJsScriptRecordsVersion: turboJsScriptRecordsPlan.version,
+    turboJsEvalResultsVersion: turboJsEvalResultsPlan.version,
+    turboJsConsoleCaptureVersion: turboJsConsoleCapturePlan.version,
+    turboJsFailureReportsVersion: turboJsFailureReportsPlan.version,
+    turboJsExecutionJournalVersion: turboJsExecutionJournalPlan.version,
+    turboJsCheckpointPolicyVersion: turboJsCheckpointPolicyPlan.version,
+    turboJsReplayCursorVersion: turboJsReplayCursorPlan.version,
+    turboJsResumeStateVersion: turboJsResumeStatePlan.version,
+    turboJsDeterminismAuditVersion: turboJsDeterminismAuditPlan.version,
     routes: routes.map((item) => item.route),
   };
 }

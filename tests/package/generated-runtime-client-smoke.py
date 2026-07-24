@@ -11,10 +11,10 @@ with tempfile.TemporaryDirectory(prefix='venom-runtime-client-') as td:
     private = base/'.venom'/'dist'/'api'
     js = (private/'venom-client.js').read_text(encoding='utf-8')
     dts = (private/'venom-client.d.ts').read_text(encoding='utf-8')
-    assert "from '@venom-js/runtime'" in js
+    assert "from '@venom/runtime'" in js
     assert 'export function score(input, options)' in js
     assert 'callProtected("score", input, options)' in js
-    assert "import type { VenomCallOptions } from '@venom-js/runtime';" in dts
+    assert "import type { VenomCallOptions } from '@venom/runtime';" in dts
     assert 'export function score(input:' in dts
     assert (out/'assets/app/venom-client.js').is_file()
     assert (out/'assets/app/venom-client.d.ts').is_file()

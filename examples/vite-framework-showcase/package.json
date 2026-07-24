@@ -7,7 +7,7 @@
     "build": "vite build"
   },
   "devDependencies": {
-    "@venom-js/vite": "file:../../packages/vite",
+    "@venom/vite": "file:../../packages/vite",
     "typescript": "^5.8.0",
     "vite": "^6.0.0"
   }

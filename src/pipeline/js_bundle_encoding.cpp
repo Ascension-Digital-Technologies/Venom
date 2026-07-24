@@ -1,11 +1,11 @@
-#include "venom/base/error.hpp"
-#include "venom/internal/pipeline/js_bundle_encoding.hpp"
-#include "venom/graph/module_graph.hpp"
-#include "venom/internal/pipeline/js_discovery.hpp"
-#include "venom/internal/pipeline/js_rewriting.hpp"
-#include "venom/internal/pipeline/native_js_hardener.hpp"
-#include "venom/package/hash.hpp"
-#include "venom/quickjs/bytecode.hpp"
+#include "base/error.hpp"
+#include "pipeline/js_bundle_encoding.hpp"
+#include "graph/module_graph.hpp"
+#include "pipeline/js_discovery.hpp"
+#include "pipeline/js_rewriting.hpp"
+#include "pipeline/native_js_hardener.hpp"
+#include "package/hash.hpp"
+#include "turbojs/bytecode.hpp"
 
 #include <algorithm>
 #include <array>
@@ -18,7 +18,7 @@
 
 namespace venom::compiler {
 namespace {
-constexpr unsigned char kQuickJsEnvelopeMagic[8] = {'V','Q','J','S','E','0','0','6'}; // VQJSE006
+constexpr unsigned char kTurboJsEnvelopeMagic[8] = {'V','T','J','S','E','0','0','6'}; // VTJSE006
 
 void append_u32(std::vector<unsigned char>& out, std::uint32_t value) {
   out.push_back(static_cast<unsigned char>(value & 0xffu));
@@ -62,10 +62,10 @@ std::uint32_t bytecode_lane_fingerprint(const std::array<unsigned char, 16>& map
   return h;
 }
 
-std::vector<unsigned char> wrap_quickjs_record(const std::vector<unsigned char>& raw,
+std::vector<unsigned char> wrap_turbojs_record(const std::vector<unsigned char>& raw,
                                                 const std::string& salt,
                                                 const JsChunk& chunk) {
-  if (raw.size() > 0xffffffffu) raise_error("VENOM-E5000", "QuickJS envelope payload exceeds u32 limits");
+  if (raw.size() > 0xffffffffu) raise_error("VENOM-E5000", "TurboJS envelope payload exceeds u32 limits");
   constexpr std::uint32_t header_size = 48u;
   constexpr std::uint32_t lane_width = 16u;
   const std::uint32_t seed = envelope_seed(salt, chunk);
@@ -74,11 +74,11 @@ std::vector<unsigned char> wrap_quickjs_record(const std::vector<unsigned char>&
   const std::uint64_t raw_hash = venom::package::fnv1a64(raw);
   std::vector<unsigned char> out;
   out.reserve(header_size + raw.size());
-  out.insert(out.end(), std::begin(kQuickJsEnvelopeMagic), std::end(kQuickJsEnvelopeMagic));
+  out.insert(out.end(), std::begin(kTurboJsEnvelopeMagic), std::end(kTurboJsEnvelopeMagic));
   append_u32(out, 2u);
   append_u32(out, static_cast<std::uint32_t>(raw.size()));
   append_u32(out, seed);
-  append_u32(out, 0x01000300u); // QuickJS bytecode ABI fingerprint.
+  append_u32(out, 0x01000300u); // TurboJS bytecode ABI fingerprint.
   for (int i = 0; i < 8; ++i) out.push_back(static_cast<unsigned char>((raw_hash >> (i * 8)) & 0xffu));
   append_u32(out, header_size);
   append_u32(out, chunk.flags);
@@ -120,10 +120,10 @@ std::uint32_t js_envelope_seed(const std::string& salt, const JsChunk& chunk) {
   return envelope_seed(salt, chunk);
 }
 
-std::vector<unsigned char> wrap_quickjs_record_for_bundle(const std::vector<unsigned char>& raw,
+std::vector<unsigned char> wrap_turbojs_record_for_bundle(const std::vector<unsigned char>& raw,
                                                           const std::string& diversification_salt,
                                                           const JsChunk& chunk) {
-  return wrap_quickjs_record(raw, diversification_salt, chunk);
+  return wrap_turbojs_record(raw, diversification_salt, chunk);
 }
 
 std::string opaque_js_bytecode_label(const std::string& salt,
@@ -132,7 +132,7 @@ std::string opaque_js_bytecode_label(const std::string& salt,
   return opaque_bytecode_label(salt, domain, value);
 }
 
-std::vector<unsigned char> encode_js_bundle(const std::vector<JsChunk>& chunks, const graph::CanonicalModuleGraph& module_graph, const std::string& diversification_salt, bool development) {
+std::vector<unsigned char> encode_js_bundle(const std::vector<JsChunk>& chunks, const graph::CanonicalModuleGraph& module_graph, const std::string& diversification_salt, bool development, bool harden_public_javascript) {
   struct Entry {
     std::uint32_t route_offset = 0;
     std::uint32_t route_size = 0;
@@ -149,7 +149,7 @@ std::vector<unsigned char> encode_js_bundle(const std::vector<JsChunk>& chunks, 
   std::vector<Entry> entries;
   std::vector<unsigned char> text_blob;
   std::vector<unsigned char> code_blob;
-  std::vector<venom::quickjs::ModuleSourceRecord> module_sources;
+  std::vector<venom::turbojs::ModuleSourceRecord> module_sources;
   entries.reserve(chunks.size());
   module_sources.reserve(chunks.size());
 
@@ -173,7 +173,16 @@ std::vector<unsigned char> encode_js_bundle(const std::vector<JsChunk>& chunks, 
     } else if (browser_side && is_module) {
       const auto* module = module_graph.find_by_source(chunk.route, chunk.source);
       if (module == nullptr) raise_error("VENOM-E5000", "canonical module graph is missing browser source: " + chunk.source);
-      compiled_sources.push_back(graph::browser_module_identity_prefix(*module) + graph::browser_module_map_prefix(module_graph, *module) + chunk.code);
+      auto browser_code = chunk.code;
+      if (!development && harden_public_javascript) {
+        browser_code = native_js_hardener::harden(
+            "browser-module", browser_code, envelope_seed(diversification_salt, chunk));
+      }
+      compiled_sources.push_back(graph::browser_module_identity_prefix(*module) +
+          graph::browser_module_map_prefix(module_graph, *module) + std::move(browser_code));
+    } else if (browser_side && !development && harden_public_javascript) {
+      compiled_sources.push_back(native_js_hardener::harden(
+          "browser-script", chunk.code, envelope_seed(diversification_salt, chunk)));
     } else {
       compiled_sources.push_back(chunk.code);
     }
@@ -209,9 +218,9 @@ std::vector<unsigned char> encode_js_bundle(const std::vector<JsChunk>& chunks, 
     if (browser_side) payload.assign(compile_source.begin(), compile_source.end());
     else {
       const auto raw = (is_module && !is_dependency && has_module_requests)
-          ? venom::quickjs::compile_native_quickjs_module_bundle(compile_name, module_sources, true)
-          : venom::quickjs::compile_native_quickjs_bytecode(compile_source, compile_name, is_module, true, is_module ? &module_sources : nullptr);
-      payload = wrap_quickjs_record(raw, diversification_salt, chunk);
+          ? venom::turbojs::compile_native_turbojs_module_bundle(compile_name, module_sources, true)
+          : venom::turbojs::compile_native_turbojs_bytecode(compile_source, compile_name, is_module, true, is_module ? &module_sources : nullptr);
+      payload = wrap_turbojs_record(raw, diversification_salt, chunk);
     }
     entry.code_offset = static_cast<std::uint32_t>(code_blob.size());
     entry.code_size = static_cast<std::uint32_t>(payload.size());

@@ -5,16 +5,16 @@ import argparse, hashlib, json, re, subprocess, sys
 from pathlib import Path
 
 EXPECTED_EXPORTS = {
-    'venom_qjs_context_alloc','venom_qjs_context_free','venom_qjs_context_set_limits',
-    'venom_qjs_context_set_execution_limits','venom_qjs_script_buffer_alloc',
-    'venom_qjs_script_buffer_capacity','venom_qjs_script_buffer_set_expected_hash',
-    'venom_qjs_script_buffer_free','venom_qjs_bytecode_validate','venom_qjs_execute_bytecode',
-    'venom_qjs_compact_result_ptr','venom_qjs_diversification_install',
-    'venom_qjs_exception_message_ptr','venom_qjs_exception_message_size',
-    'venom_qjs_exception_clear','venom_qjs_upstream_quickjs_ready',
-    'venom_qjs_bridge_abi','venom_qjs_bridge_input_alloc','venom_qjs_bridge_input_capacity',
-    'venom_qjs_bridge_invoke','venom_qjs_bridge_result_ptr','venom_qjs_bridge_result_size',
-    'venom_qjs_bridge_release',
+    'venom_tjs_context_alloc','venom_tjs_context_free','venom_tjs_context_set_limits',
+    'venom_tjs_context_set_execution_limits','venom_tjs_script_buffer_alloc',
+    'venom_tjs_script_buffer_capacity','venom_tjs_script_buffer_set_expected_hash',
+    'venom_tjs_script_buffer_free','venom_tjs_bytecode_validate','venom_tjs_execute_bytecode',
+    'venom_tjs_compact_result_ptr','venom_tjs_diversification_install',
+    'venom_tjs_exception_message_ptr','venom_tjs_exception_message_size',
+    'venom_tjs_exception_clear','venom_tjs_upstream_turbojs_ready',
+    'venom_tjs_bridge_abi','venom_tjs_bridge_input_alloc','venom_tjs_bridge_input_capacity',
+    'venom_tjs_bridge_invoke','venom_tjs_bridge_result_ptr','venom_tjs_bridge_result_size',
+    'venom_tjs_bridge_release',
 }
 
 def sha256(path: Path) -> str:
@@ -34,25 +34,25 @@ def main() -> int:
     ap.add_argument('--json-out', type=Path)
     args=ap.parse_args(); root=args.repo_root.resolve()
     failures=[]; warnings=[]
-    header=root/'include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp'
-    abi_tool=root/'tools/quickjs_release_abi.py'
+    header=root/'src/generated/runtime/turbojs_runtime_wasm_blob.hpp'
+    abi_tool=root/'tools/turbojs_release_abi.py'
     lock_path=root/'toolchains.lock.json'
     cmake=root/'CMakeLists.txt'
-    if not header.exists(): failures.append('embedded QuickJS WASM header is missing')
+    if not header.exists(): failures.append('embedded TurboJS WASM header is missing')
     info={}
     if header.exists():
         text=header.read_text(encoding='utf-8')
-        m=re.search(r'kQuickJsRuntimeWasmBlobProvenance\s*=\s*R"[^\(]*\((.*?)\)[A-Za-z0-9_]*"', text, re.S)
-        if not m: failures.append('embedded QuickJS WASM provenance is missing')
+        m=re.search(r'kTurboJsRuntimeWasmBlobProvenance\s*=\s*R"[^\(]*\((.*?)\)[A-Za-z0-9_]*"', text, re.S)
+        if not m: failures.append('embedded TurboJS WASM provenance is missing')
         else: info=kv(m.group(1))
     expected={
-      'runtime_abi':'12','artifact_kind':'upstream-quickjs-wasm',
-      'runtime_implementation':'quickjs-wasm-upstream-quickjs','contract_only':'false',
-      'scaffold_runtime':'false','real_engine_candidate':'true','full_upstream_quickjs':'true',
-      'required_exports_satisfied':'true','missing_export_count':'0','bytecode_format':'VQJSBC03',
-      'module_bundle_contract':'VQJSMB04','literal_dynamic_import':'true',
+      'runtime_abi':'12','artifact_kind':'upstream-turbojs-wasm',
+      'runtime_implementation':'turbojs-wasm-upstream-turbojs','contract_only':'false',
+      'scaffold_runtime':'false','real_engine_candidate':'true','full_upstream_turbojs':'true',
+      'required_exports_satisfied':'true','missing_export_count':'0','bytecode_format':'VTJSBC03',
+      'module_bundle_contract':'VTJSMB04','literal_dynamic_import':'true',
       'native_object_reader':'JS_ReadObject','source_materialization':'false',
-      'venom_qjs_wasm_native_stack_capacity':'4194304',
+      'venom_tjs_wasm_native_stack_capacity':'4194304',
     }
     real_ok=True
     for k,v in expected.items():
@@ -64,8 +64,19 @@ def main() -> int:
         if args.require_real: failures.append('embedded runtime still declares a finish blocker')
     release_exports=[]
     if abi_tool.exists():
-        text=abi_tool.read_text(encoding='utf-8')
-        release_exports=re.findall(r"'((?:venom_qjs_)[A-Za-z0-9_]+)'", text)
+        try:
+            generated = subprocess.run(
+                [sys.executable, str(abi_tool), '-'],
+                cwd=root,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            # The generator writes to a path, so inspect the authoritative contract directly.
+            contract = json.loads((root/'contracts/turbojs-wasm-abi.json').read_text(encoding='utf-8'))
+            release_exports = [name for name in contract.get('requiredExports', []) if name != 'memory']
+        except Exception as exc:
+            failures.append(f'failed to read release ABI contract: {exc}')
         if set(release_exports)!=EXPECTED_EXPORTS:
             failures.append('release ABI allowlist differs from the 23-export production contract')
         if len(release_exports)!=23 or len(set(release_exports))!=23:

@@ -1,5 +1,5 @@
-#include "venom/core/site.hpp"
-#include "venom/internal/pipeline/chrome_extension.hpp"
+#include "core/site.hpp"
+#include "chrome_extension.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -90,14 +90,14 @@ int main() {
   const auto worker = venom::compiler::chrome_extension::context_policy(Context::ServiceWorker);
   if (!isolated.has_dom || !isolated.has_extension_api || !isolated.requires_visible_adapter) return 13;
   if (!main_world.has_dom || main_world.has_extension_api || !main_world.requires_visible_adapter) return 14;
-  if (worker.has_dom || !worker.has_extension_api || !worker.can_host_quickjs_wasm) return 15;
+  if (worker.has_dom || !worker.has_extension_api || !worker.can_host_turbojs_wasm) return 15;
   if (venom::compiler::chrome_extension::compatibility_summary(analysis).find("offscreen-document") == std::string::npos) return 16;
   venom::compiler::chrome_extension::validate_project(graph);
 
   const auto output = root / "dist";
   fs::create_directories(output);
   write(output / "index.html", "<html><body><script src=\"assets/javascript/loader.js\"></script></body></html>");
-  venom::compiler::chrome_extension::emit_extension_files(graph, output);
+  venom::compiler::chrome_extension::emit_extension_files(graph, output, false);
   const auto emitted_manifest = read(output / "manifest.json");
   if (emitted_manifest.find("\"service_worker\": \"assets/extension/venom-background.js\"") == std::string::npos) return 17;
   if (read(output / "assets/extension/venom-background.js").find("./background.js") == std::string::npos) return 18;
@@ -105,7 +105,7 @@ int main() {
   if (read(output / "assets/extension/venom-extension-host.js").find("Protected runtime is busy") == std::string::npos) return 20;
   if (read(output / "assets/extension/venom-extension-rpc.js").find("VenomExtensionRPC") == std::string::npos) return 21;
   const auto engine_page = read(output / "assets/extension/engine.html");
-  if (engine_page.find("venom-extension-host.js") == std::string::npos || engine_page.find("engine-host.js") == std::string::npos) return 22;
+  if (engine_page.find("venom-extension-host.js") == std::string::npos || engine_page.find("engine-host.js") != std::string::npos) return 22;
 
   fs::remove(root / "content.js");
   bool rejected = false;

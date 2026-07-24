@@ -18,7 +18,7 @@ with tempfile.TemporaryDirectory(prefix='venom-dom-compat-') as td:
     subprocess.run([str(venom), 'build', str(site), '--out', str(out), '--format', 'json'], check=True, stdout=subprocess.PIPE, text=True)
     meta = json.loads((out / 'assets' / 'app' / 'build.json').read_text())
     modules = set(meta.get('runtime_modules', []))
-    required = {'core', 'route', 'dom', 'quickjs', 'events', 'forms', 'observers', 'animation'}
+    required = {'core', 'route', 'dom', 'turbojs', 'events', 'forms', 'observers', 'animation'}
     missing = required - modules
     if missing:
         raise SystemExit(f'DOM compatibility fixture omitted modules: {sorted(missing)}')

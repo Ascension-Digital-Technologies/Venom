@@ -3,18 +3,18 @@
 > **Audience:** Security reviewers and runtime contributors  
 > **Status:** Stable  
 > **Applies to:** Venom 1.1.0
-Venom separates package decoding from protected JavaScript execution. The package runtime owns package upload, validation, section materialization, and retirement. The QuickJS runtime owns bytecode loading and execution.
+Venom separates package decoding from protected JavaScript execution. The package runtime owns package upload, validation, section materialization, and retirement. The TurboJS runtime owns bytecode loading and execution.
 
 ## Handoff contract
 
-Every decoded QuickJS record carries a short-lived handoff record containing:
+Every decoded TurboJS record carries a short-lived handoff record containing:
 
 - producer and consumer domain identities;
 - decoded byte length;
 - a byte-level integrity hash;
 - a binding hash over route, source, execution order, length, and byte hash.
 
-The QuickJS execution module independently recomputes and validates the handoff before allocating or executing the bytecode. Missing, stale, substituted, or context-confused handoffs fail closed.
+The TurboJS execution module independently recomputes and validates the handoff before allocating or executing the bytecode. Missing, stale, substituted, or context-confused handoffs fail closed.
 
 ## Security benefit
 

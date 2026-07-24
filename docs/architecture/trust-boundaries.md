@@ -14,15 +14,15 @@ The production distribution is public and attacker-controlled after delivery. Pa
 
 ## Browser/runtime boundary
 
-The page and protected worker use separate JavaScript runtimes and a private message channel. Browser code cannot directly call internal QuickJS objects, but a browser owner can instrument both runtimes.
+The page and protected worker use separate JavaScript runtimes and a private message channel. Browser code cannot directly call internal TurboJS objects, but a browser owner can instrument both runtimes.
 
 ## Decoder/executor boundary
 
-Package materialization and QuickJS execution are separated. Decoded records carry a content- and context-bound handoff that the execution domain verifies independently. This increases the work required to substitute records across routes, sources, or execution order.
+Package materialization and TurboJS execution are separated. Decoded records carry a content- and context-bound handoff that the execution domain verifies independently. This increases the work required to substitute records across routes, sources, or execution order.
 
 ## Memory boundary
 
-Package and QuickJS memories are WebAssembly linear memories. JavaScript uses centralized range-checked access where access is required, and transient plaintext is cleared at the earliest safe point. Browser-level tooling can still observe memory.
+Package and TurboJS memories are WebAssembly linear memories. JavaScript uses centralized range-checked access where access is required, and transient plaintext is cleared at the earliest safe point. Browser-level tooling can still observe memory.
 
 ## Server boundary
 

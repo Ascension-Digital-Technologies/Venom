@@ -1,4 +1,4 @@
-#include "quickjs.h"
+#include "turbojs.h"
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -13,7 +13,7 @@ static std::string read_text(const char* path) {
 static std::string exception_message(JSContext* context) {
   JSValue exception = JS_GetException(context);
   const char* text = JS_ToCString(context, exception);
-  std::string message = text ? text : "QuickJS bridge compiler exception";
+  std::string message = text ? text : "TurboJS bridge compiler exception";
   if (text) JS_FreeCString(context, text);
   JS_FreeValue(context, exception);
   return message;
@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
     const auto source = read_text(argv[1]);
     JSRuntime* runtime = JS_NewRuntime();
     JSContext* context = runtime ? JS_NewContext(runtime) : nullptr;
-    if (!runtime || !context) throw std::runtime_error("failed to create QuickJS compiler context");
+    if (!runtime || !context) throw std::runtime_error("failed to create TurboJS compiler context");
     JSValue object = JS_Eval(context, source.data(), source.size(), "<venom-typescript-bridge>",
                              JS_EVAL_TYPE_GLOBAL | JS_EVAL_FLAG_COMPILE_ONLY);
     if (JS_IsException(object)) throw std::runtime_error(exception_message(context));
@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
     uint8_t* bytes = JS_WriteObject(context, &size, object,
                                     JS_WRITE_OBJ_BYTECODE | JS_WRITE_OBJ_STRIP_SOURCE | JS_WRITE_OBJ_STRIP_DEBUG);
     JS_FreeValue(context, object);
-    if (!bytes || !size) throw std::runtime_error("QuickJS emitted empty bridge bytecode");
+    if (!bytes || !size) throw std::runtime_error("TurboJS emitted empty bridge bytecode");
     std::ofstream output(argv[2], std::ios::binary | std::ios::trunc);
     output.write(reinterpret_cast<const char*>(bytes), static_cast<std::streamsize>(size));
     js_free(context, bytes);

@@ -1,3 +1,4 @@
+// @venom: browser
 (() => {
   'use strict';
   if (globalThis.VelocitySkillModel) return;
@@ -63,17 +64,46 @@
   function contextFromResult(state, result) {
     const candidates = Array.isArray(result?.candidates) ? result.candidates : [];
     const legal = Math.max(1, Number(result?.legalMoves) || candidates.length || 1);
-    const best = Number(candidates[0]?.score ?? result?.score ?? 0);
-    const second = Number(candidates[1]?.score ?? best);
-    const closeness = Math.max(0, 1 - Math.min(1, Math.abs(best - second) / 180));
-    const complexity = Math.min(1, legal / 35) * 0.55 + closeness * 0.45;
+    const scores = candidates.map((candidate) => Number(candidate?.score)).filter(Number.isFinite);
+    const best = Number(scores[0] ?? result?.score ?? 0);
+    const second = Number(scores[1] ?? best);
+    const third = Number(scores[2] ?? second);
+    const bestGap = Math.abs(best - second);
+    const spread = scores.length > 1 ? Math.max(...scores) - Math.min(...scores) : 0;
+    const closeness = Math.max(0, 1 - Math.min(1, bestGap / 180));
+    const choiceDensity = Math.min(1, legal / 34);
+    const forcingMoves = candidates.filter((candidate) => candidate?.capture || candidate?.check || candidate?.promotion).length;
+    const forcingRatio = candidates.length ? forcingMoves / candidates.length : 0;
+    const tacticalVolatility = Math.min(1, forcingRatio * 0.72 + Math.min(1, spread / 420) * 0.28);
+    const ambiguity = Math.max(0, 1 - Math.min(1, Math.abs(second - third) / 160));
+    const inCheck = Boolean(state?.inCheck);
+    const remainingTimeMs = Number(state?.remainingTimeMs ?? state?.clockMs);
+    const incrementMs = Math.max(0, Number(state?.incrementMs) || 0);
+    const timePressure = remainingTimeMs > 0
+      ? Math.max(0, Math.min(1, 1 - (remainingTimeMs + incrementMs * 8) / 45000))
+      : 0;
+    const forcedMove = legal === 1;
+    const pieceCount = Number(state?.pieceCount || 32);
+    const gamePhase = pieceCount <= 12 ? 'endgame' : pieceCount <= 24 ? 'middlegame' : 'opening';
+    const phaseWeight = gamePhase === 'middlegame' ? 1 : gamePhase === 'endgame' ? 0.86 : 0.72;
+    let complexity = choiceDensity * 0.28 + closeness * 0.30 + ambiguity * 0.14 + tacticalVolatility * 0.28;
+    complexity *= phaseWeight;
+    if (inCheck) complexity = Math.min(1, complexity + 0.10);
+    if (forcedMove) complexity = 0.06;
+    else if (legal <= 3) complexity *= 0.55;
     return {
-      complexity,
+      complexity: Math.max(0, Math.min(1, complexity)),
       candidateCloseness: closeness,
-      forcedMove: legal === 1,
-      inCheck: Boolean(state?.inCheck),
+      candidateAmbiguity: ambiguity,
+      tacticalVolatility,
+      forcingMoves,
+      scoreSpread: spread,
+      bestGap,
+      forcedMove,
+      inCheck,
       legalMoves: legal,
-      gamePhase: Number(state?.pieceCount || 32) <= 12 ? 'endgame' : Number(state?.pieceCount || 32) <= 24 ? 'middlegame' : 'opening'
+      gamePhase,
+      timePressure
     };
   }
 
@@ -87,6 +117,9 @@
       lastMove: '',
       lastPositionKey: '',
       familiarPositions: new Map(),
+      recentMistakes: 0,
+      calmMoves: 0,
+      complexStreak: 0,
       telemetry: []
     };
   }
@@ -94,14 +127,26 @@
   function updateHumanState(humanState, observation = {}) {
     if (!humanState) return;
     humanState.moveNumber++;
-    humanState.fatigue = Math.min(1, humanState.fatigue + 0.008 + (observation.complexity || 0) * 0.006);
+    const complexity = Math.max(0, Math.min(1, Number(observation.complexity) || 0));
+    const forcedMove = Boolean(observation.forcedMove);
+    const calm = forcedMove || complexity < 0.28;
+    humanState.complexStreak = complexity > 0.68 ? Math.min(12, (humanState.complexStreak || 0) + 1) : Math.max(0, (humanState.complexStreak || 0) - 1);
+    humanState.calmMoves = calm ? Math.min(12, (humanState.calmMoves || 0) + 1) : 0;
+    const strain = 0.004 + complexity * 0.009 + Math.min(0.018, humanState.complexStreak * 0.0015);
+    const recovery = calm ? 0.012 + humanState.calmMoves * 0.0015 : 0;
+    humanState.fatigue = Math.max(0, Math.min(1, humanState.fatigue + strain - recovery));
+    humanState.tilt = Math.max(0, humanState.tilt * (calm ? 0.74 : 0.88));
+    humanState.confidence *= 0.94;
+
     const score = Number(observation.score);
     if (Number.isFinite(score) && Number.isFinite(humanState.lastScore)) {
       const swing = score - humanState.lastScore;
-      humanState.confidence = Math.max(-1, Math.min(1, humanState.confidence * 0.72 + Math.sign(swing) * Math.min(0.35, Math.abs(swing) / 500)));
+      humanState.confidence = Math.max(-1, Math.min(1, humanState.confidence + Math.sign(swing) * Math.min(0.35, Math.abs(swing) / 500)));
       if (swing < -120) humanState.tilt = Math.min(1, humanState.tilt + Math.min(0.28, Math.abs(swing) / 900));
-      else humanState.tilt *= 0.82;
     }
+    const mistakeType = String(observation.mistakeType || 'none');
+    if (mistakeType !== 'none' || Number(observation.selectedRank) > 2) humanState.recentMistakes = Math.min(4, (humanState.recentMistakes || 0) + 1);
+    else humanState.recentMistakes = Math.max(0, (humanState.recentMistakes || 0) - (calm ? 1 : 0.5));
     if (Number.isFinite(score)) humanState.lastScore = score;
     if (observation.positionKey && observation.move) {
       humanState.familiarPositions.set(observation.positionKey, observation.move);
@@ -115,12 +160,29 @@
     if (skill.id === 'maximum' || context.forcedMove) return { type: 'none', severity: 0 };
     const fatigue = humanState?.fatigue || 0;
     const tilt = humanState?.tilt || 0;
-    const risk = Math.min(0.48, skill.blunderRate * (0.65 + context.complexity * 1.8 + fatigue * 1.1 + tilt * 1.25));
+    const timePressure = context.timePressure || 0;
+    const confidence = humanState?.confidence || 0;
+    const recentMistakes = humanState?.recentMistakes || 0;
+    const correction = Math.max(0.46, 1 - recentMistakes * 0.16);
+    const confidenceRisk = confidence < 0 ? 1 + Math.abs(confidence) * 0.22 : 1 - confidence * 0.12;
+    const risk = Math.min(0.48, skill.blunderRate * (0.65 + context.complexity * 1.8 + fatigue * 1.1 + tilt * 1.25 + timePressure * 1.6) * correction * confidenceRisk);
     if (random() >= risk) return { type: 'none', severity: 0 };
     const roll = random();
     if (skill.rating <= 1000) return { type: roll < 0.45 ? 'tactical-oversight' : roll < 0.75 ? 'material-greed' : 'premature-attack', severity: 0.75 };
     if (skill.rating <= 1600) return { type: roll < 0.45 ? 'shallow-calculation' : roll < 0.75 ? 'misjudged-exchange' : 'plan-error', severity: 0.52 };
     return { type: roll < 0.55 ? 'quiet-resource-miss' : roll < 0.82 ? 'plan-error' : 'risk-overestimate', severity: 0.32 };
+  }
+
+
+  function candidateLossLimit(skill, context, mistake) {
+    if (skill.id === 'maximum') return 0;
+    const baseBySkill = { beginner: 340, casual: 260, intermediate: 185, club: 125, advanced: 80, expert: 48 };
+    let limit = baseBySkill[skill.id] || 125;
+    limit *= 0.78 + context.complexity * 0.72;
+    limit *= 1 + (context.timePressure || 0) * 0.55;
+    if (context.inCheck) limit *= 0.76;
+    if (mistake?.type !== 'none') limit *= 1 + (mistake.severity || 0) * 0.85;
+    return Math.max(24, Math.round(limit));
   }
 
   function adjustedCandidateScore(candidate, style, personality, mistake = { type: 'none' }) {
@@ -168,20 +230,23 @@
     const scored = candidates.map((candidate) => ({ candidate, score: adjustedCandidateScore(candidate, style, personality, mistake) }));
     scored.sort((a, b) => b.score - a.score);
     const bestScore = scored[0].score;
-    const effectiveTemperature = Math.max(5, skill.temperature * style.volatility * (1 - (personality.accuracyBias || 0)) * (0.75 + context.complexity * 0.65));
+    const lossLimit = candidateLossLimit(skill, context, mistake);
+    const plausible = scored.filter((item) => bestScore - item.score <= lossLimit);
+    const effectiveTemperature = Math.max(5, skill.temperature * style.volatility * (1 - (personality.accuracyBias || 0)) * (0.75 + context.complexity * 0.65) * (1 + context.timePressure * 0.45));
     const blunderRisk = mistake.type === 'none' ? 0 : Math.min(0.4, skill.blunderRate * (1 + mistake.severity * 3));
 
-    let pool = scored;
+    let pool = plausible.length ? plausible : scored.slice(0, 1);
     if (random() < blunderRisk && scored.length > 2) {
       const start = Math.max(1, Math.floor(scored.length * 0.45));
-      pool = scored.slice(start);
+      const riskyPool = scored.slice(start).filter((item) => bestScore - item.score <= lossLimit * 1.35);
+      if (riskyPool.length) pool = riskyPool;
     }
     const weighted = pool.map((item) => ({
       candidate: item.candidate,
       weight: Math.exp(-(bestScore - item.score) / effectiveTemperature)
     }));
     const selected = weightedPick(weighted, random) || scored[0].candidate;
-    return { move: selected.move, selected, context, blunderRisk, effectiveTemperature, mistake };
+    return { move: selected.move, selected, context, blunderRisk, effectiveTemperature, lossLimit, scoreLoss: Math.max(0, bestScore - adjustedCandidateScore(selected, style, personality, mistake)), mistake };
   }
 
   function searchOptions(settings) {
@@ -209,6 +274,6 @@
 
   globalThis.VelocitySkillModel = Object.freeze({
     SKILLS, STYLES, BEHAVIORS, createPersonality, createHumanState, updateHumanState,
-    chooseMove, searchOptions, behaviorModifiers, contextFromResult, mistakeProfile
+    chooseMove, searchOptions, behaviorModifiers, contextFromResult, mistakeProfile, candidateLossLimit
   });
 })();

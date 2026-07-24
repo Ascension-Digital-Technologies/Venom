@@ -1,6 +1,6 @@
 # TypeScript input
 
-Venom 1.1 accepts `.ts`, `.mts`, `.cts`, and `.tsx` files as compiler inputs. TypeScript is erased in memory before the existing JavaScript AST, scope, lowering, contract, and QuickJS bytecode phases run.
+Venom 1.1 accepts `.ts`, `.mts`, `.cts`, and `.tsx` files as compiler inputs. TypeScript is erased in memory before the existing JavaScript AST, scope, lowering, contract, and TurboJS bytecode phases run.
 
 No Node.js process or external TypeScript compiler is required for this path.
 

@@ -6,6 +6,8 @@ export interface VenomPluginOptions {
   site?: string;
   outDir?: string;
   profile?: "prod";
+  /** auto protects Vite output during production builds; source keeps legacy source-tree ingestion. */
+  mode?: "auto" | "source" | "vite-output";
   enabled?: boolean;
   buildOnStart?: boolean;
   buildOnHotUpdate?: boolean;
@@ -20,6 +22,8 @@ export interface VenomBuildStatus {
   durationMs: number;
   error: string | null;
   output: string;
+  framework?: "vite" | "react" | "vue" | "svelte";
+  input?: string;
   reason?: string;
 }
 

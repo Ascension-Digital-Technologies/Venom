@@ -12,7 +12,7 @@
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
-        "VENOM_ENABLE_FULL_QUICKJS": "ON",
+        "VENOM_ENABLE_FULL_TURBOJS": "ON",
         "VENOM_COMPILER_CACHE": "auto",
         "VENOM_ENABLE_PCH": "ON"
       }
@@ -67,9 +67,9 @@
       "inherits": "dev",
       "displayName": "Fast cached development",
       "cacheVariables": {
-        "VENOM_ENABLE_FULL_QUICKJS": "ON",
+        "VENOM_ENABLE_FULL_TURBOJS": "ON",
         "VENOM_ENABLE_IPO": "OFF",
-        "VENOM_ENABLE_QUICKJS_IPO": "OFF",
+        "VENOM_ENABLE_TURBOJS_IPO": "OFF",
         "VENOM_COMPILER_CACHE": "auto",
         "VENOM_ENABLE_PCH": "ON"
       }

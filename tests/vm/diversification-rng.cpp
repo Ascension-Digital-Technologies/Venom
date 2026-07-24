@@ -1,4 +1,4 @@
-#include "venom/vm/polymorph.hpp"
+#include "vm/polymorph.hpp"
 
 #include <array>
 #include <cctype>

@@ -19,8 +19,8 @@ TEXT_EXTENSIONS = {".js", ".json", ".html", ".css", ".txt", ".md", ".map"}
 FORBIDDEN_TEXT = (
     re.compile(rb"(?:^|[/'\"\\])(?:js|src)/[A-Za-z0-9_.\-/]+\.js"),
     re.compile(rb"function-extraction-plan|runtime-bridge-contract|bridge-rewrite-plan"),
-    re.compile(rb"VENOM_QJS_RUNTIME_ABI_V\d+"),
-    re.compile(rb"venom_qjs_[A-Za-z0-9_]+"),
+    re.compile(rb"VENOM_TJS_RUNTIME_ABI_V\d+"),
+    re.compile(rb"venom_tjs_[A-Za-z0-9_]+"),
     re.compile(rb"bridge-result|bridge-error|type:[\'\"](?:invoke|cancel)[\'\"]"),
 )
 

@@ -5,7 +5,7 @@
 
 > **Flagship Venom integration example · Paper trading only**
 
-NOVA TRADE is a full browser-native trading terminal that demonstrates how a complex application can keep rendering, charting, events, layout management, market simulation, and user interaction in the browser while moving proprietary risk, portfolio, order-policy, and signal logic into protected QuickJS/WASM execution.
+NOVA TRADE is a full browser-native trading terminal that demonstrates how a complex application can keep rendering, charting, events, layout management, market simulation, and user interaction in the browser while moving proprietary risk, portfolio, order-policy, and signal logic into protected TurboJS/WASM execution.
 
 It is intentionally larger than a toy example. The source includes a simulated market feed, advanced order entry, alerts, chart tooling, workspace presets, diagnostics, audit history, risk panels, and paper-trading state.
 
@@ -14,7 +14,7 @@ It is intentionally larger than a toy example. The source includes a simulated m
 - A large multi-file application can be compiled without flattening its browser architecture.
 - DOM, canvas/chart, keyboard, layout, and event code can remain browser-native.
 - Valuable policy and analytics functions can use a narrow asynchronous protected API.
-- Development and production use the same real QuickJS/WASM execution path.
+- Development and production use the same real TurboJS/WASM execution path.
 - Production output remains deployable as a normal static website.
 
 ## Execution boundary
@@ -25,9 +25,9 @@ It is intentionally larger than a toy example. The source includes a simulated m
 | Charts and drawing tools | Browser | Canvas/rendering integration |
 | Simulated market stream | Browser | UI-facing event source |
 | Order entry controls | Browser | Forms and interaction |
-| Order risk approval | **Protected QuickJS/WASM** | Proprietary policy logic |
-| Portfolio exposure scoring | **Protected QuickJS/WASM** | Valuable analytics |
-| Market signal generation | **Protected QuickJS/WASM** | Proprietary algorithm |
+| Order risk approval | **Protected TurboJS/WASM** | Proprietary policy logic |
+| Portfolio exposure scoring | **Protected TurboJS/WASM** | Valuable analytics |
+| Market signal generation | **Protected TurboJS/WASM** | Proprietary algorithm |
 | Bridge serialization | Worker boundary | Validated JSON-safe calls |
 
 ## Architecture
@@ -37,8 +37,8 @@ flowchart LR
     UI[Terminal UI and charts] --> ADAPTER[assets/js/venom-terminal.js]
     ADAPTER --> API[Venom public API]
     API --> WORKER[Dedicated worker]
-    WORKER --> QJS[QuickJS/WASM]
-    QJS --> ENGINE[protected/terminal-engine.js bytecode]
+    WORKER --> TJS[TurboJS/WASM]
+    TJS --> ENGINE[protected/terminal-engine.js bytecode]
     ENGINE --> RESULT[Risk, exposure, and signal results]
     RESULT --> UI
 ```
@@ -90,14 +90,14 @@ From the repository root:
 venom dev examples\nova-trade --open
 ```
 
-Development keeps generated runtime code readable and emits diagnostics, but protected logic still executes through the real QuickJS/WASM runtime.
+Development keeps generated runtime code readable and emits diagnostics, but protected logic still executes through the real TurboJS/WASM runtime.
 
 ## Build production
 
 ```powershell
-venom build examples\nova-trade --profile prod --out dist\nova-trade
-venom analyze dist\nova-trade
-venom verify dist\nova-trade
+venom build examples\nova-trade --profile prod --out examples\nova-trade\dist-venom
+venom analyze examples\nova-trade\dist-venom
+venom verify examples\nova-trade\dist-venom
 ```
 
 Serve the generated directory with an ordinary HTTP server. Do not open `index.html` directly from `file://`, because workers and WebAssembly require normal HTTP behavior.
@@ -109,7 +109,7 @@ A production build should contain hashed loader, worker, runtime, WASM, styleshe
 Use:
 
 ```powershell
-venom analyze dist\nova-trade --format json
+venom analyze examples\nova-trade\dist-venom --format json
 ```
 
 The release checker validates the real engine requirement, runtime/package binding, production policy, and common metadata/source leakage.

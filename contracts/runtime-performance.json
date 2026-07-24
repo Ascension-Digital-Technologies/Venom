@@ -17,7 +17,7 @@
   },
   "preloadPolicy": {
     "required": true,
-    "assets": ["loader", "runtime", "package", "quickjs-wasm", "worker"],
+    "assets": ["loader", "runtime", "package", "turbojs-wasm", "worker"],
     "cacheMode": "http-cache-only",
     "persistentPlaintextCacheAllowed": false
   },

@@ -10,7 +10,7 @@ function ensureProtectionBadge() {
   protectionBadge = document.createElement("div");
   protectionBadge.id = "venomProtectionStatus";
   protectionBadge.className = "account-dropdown";
-  protectionBadge.title = "Risk, order validation, and market-signal logic execute in Venom QuickJS/WASM";
+  protectionBadge.title = "Risk, order validation, and market-signal logic execute in Venom TurboJS/WASM";
   protectionBadge.innerHTML = '<span>VENOM</span><strong style="color:var(--purple)">Protected engine loading…</strong>';
   host?.prepend(protectionBadge);
   return protectionBadge;

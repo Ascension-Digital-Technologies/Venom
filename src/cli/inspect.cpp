@@ -1,7 +1,7 @@
-#include "venom/internal/cli/inspect.hpp"
+#include "cli/inspect.hpp"
 
-#include "venom/package/format.hpp"
-#include "venom/package/reader.hpp"
+#include "package/format.hpp"
+#include "package/reader.hpp"
 
 #include <iomanip>
 #include <iostream>
@@ -42,23 +42,23 @@ void print_flags(std::uint32_t flags) {
   if ((flags & venom::package::PackageFlagAsyncHostQueue) != 0u) emit("async-host-queue");
   if ((flags & venom::package::PackageFlagTimerBridge) != 0u) emit("timer-bridge");
   if ((flags & venom::package::PackageFlagEventQueue) != 0u) emit("event-queue");
-  if ((flags & venom::package::PackageFlagQuickJsBridge) != 0u) emit("quickjs-bridge");
+  if ((flags & venom::package::PackageFlagTurboJsBridge) != 0u) emit("turbojs-bridge");
   if ((flags & venom::package::PackageFlagScriptIsolation) != 0u) emit("script-isolation");
   if ((flags & venom::package::PackageFlagScriptPolicy) != 0u) emit("script-policy");
-  if ((flags & venom::package::PackageFlagQuickJsChunks) != 0u) emit("quickjs-chunks");
-  if ((flags & venom::package::PackageFlagQuickJsEngine) != 0u) emit("quickjs-engine");
+  if ((flags & venom::package::PackageFlagTurboJsChunks) != 0u) emit("turbojs-chunks");
+  if ((flags & venom::package::PackageFlagTurboJsEngine) != 0u) emit("turbojs-engine");
   if ((flags & venom::package::PackageFlagScriptEngineFallback) != 0u) emit("script-engine-fallback");
-  if ((flags & venom::package::PackageFlagQuickJsEngineModule) != 0u) emit("quickjs-engine-module");
-  if ((flags & venom::package::PackageFlagQuickJsContextLifecycle) != 0u) emit("quickjs-context-lifecycle");
+  if ((flags & venom::package::PackageFlagTurboJsEngineModule) != 0u) emit("turbojs-engine-module");
+  if ((flags & venom::package::PackageFlagTurboJsContextLifecycle) != 0u) emit("turbojs-context-lifecycle");
   if ((flags & venom::package::PackageFlagHostCapabilities) != 0u) emit("host-capabilities");
-  if ((flags & venom::package::PackageFlagQuickJsAdapterDiagnostics) != 0u) emit("quickjs-adapter-diagnostics");
-  if ((flags & venom::package::PackageFlagQuickJsWasmRuntime) != 0u) emit("quickjs-wasm-runtime");
-  if ((flags & venom::package::PackageFlagQuickJsSourceTransfer) != 0u) emit("quickjs-source-transfer");
-  if ((flags & venom::package::PackageFlagQuickJsConsoleBridge) != 0u) emit("quickjs-console-bridge");
-  if ((flags & venom::package::PackageFlagQuickJsExecutionRecords) != 0u) emit("quickjs-execution-records");
-  if ((flags & venom::package::PackageFlagQuickJsResultBridge) != 0u) emit("quickjs-result-bridge");
-  if ((flags & venom::package::PackageFlagQuickJsFallbackPolicy) != 0u) emit("quickjs-fallback-policy");
-  if ((flags & venom::package::PackageFlagQuickJsEngineBackend) != 0u) emit("quickjs-engine-backend");
+  if ((flags & venom::package::PackageFlagTurboJsAdapterDiagnostics) != 0u) emit("turbojs-adapter-diagnostics");
+  if ((flags & venom::package::PackageFlagTurboJsWasmRuntime) != 0u) emit("turbojs-wasm-runtime");
+  if ((flags & venom::package::PackageFlagTurboJsSourceTransfer) != 0u) emit("turbojs-source-transfer");
+  if ((flags & venom::package::PackageFlagTurboJsConsoleBridge) != 0u) emit("turbojs-console-bridge");
+  if ((flags & venom::package::PackageFlagTurboJsExecutionRecords) != 0u) emit("turbojs-execution-records");
+  if ((flags & venom::package::PackageFlagTurboJsResultBridge) != 0u) emit("turbojs-result-bridge");
+  if ((flags & venom::package::PackageFlagTurboJsFallbackPolicy) != 0u) emit("turbojs-fallback-policy");
+  if ((flags & venom::package::PackageFlagTurboJsEngineBackend) != 0u) emit("turbojs-engine-backend");
   const auto known = venom::package::PackageFlagProtectProfile |
                      venom::package::PackageFlagReleaseProfile |
                      venom::package::PackageFlagPolymorphic |
@@ -74,23 +74,23 @@ void print_flags(std::uint32_t flags) {
                      venom::package::PackageFlagAsyncHostQueue |
                      venom::package::PackageFlagTimerBridge |
                      venom::package::PackageFlagEventQueue |
-                     venom::package::PackageFlagQuickJsBridge |
+                     venom::package::PackageFlagTurboJsBridge |
                      venom::package::PackageFlagScriptIsolation |
                      venom::package::PackageFlagScriptPolicy |
-                     venom::package::PackageFlagQuickJsChunks |
-                     venom::package::PackageFlagQuickJsEngine |
+                     venom::package::PackageFlagTurboJsChunks |
+                     venom::package::PackageFlagTurboJsEngine |
                      venom::package::PackageFlagScriptEngineFallback |
-                     venom::package::PackageFlagQuickJsEngineModule |
-                     venom::package::PackageFlagQuickJsContextLifecycle |
+                     venom::package::PackageFlagTurboJsEngineModule |
+                     venom::package::PackageFlagTurboJsContextLifecycle |
                      venom::package::PackageFlagHostCapabilities |
-                     venom::package::PackageFlagQuickJsAdapterDiagnostics |
-                     venom::package::PackageFlagQuickJsWasmRuntime |
-                     venom::package::PackageFlagQuickJsSourceTransfer |
-                     venom::package::PackageFlagQuickJsConsoleBridge |
-                     venom::package::PackageFlagQuickJsExecutionRecords |
-                     venom::package::PackageFlagQuickJsResultBridge |
-                     venom::package::PackageFlagQuickJsFallbackPolicy |
-                     venom::package::PackageFlagQuickJsEngineBackend;
+                     venom::package::PackageFlagTurboJsAdapterDiagnostics |
+                     venom::package::PackageFlagTurboJsWasmRuntime |
+                     venom::package::PackageFlagTurboJsSourceTransfer |
+                     venom::package::PackageFlagTurboJsConsoleBridge |
+                     venom::package::PackageFlagTurboJsExecutionRecords |
+                     venom::package::PackageFlagTurboJsResultBridge |
+                     venom::package::PackageFlagTurboJsFallbackPolicy |
+                     venom::package::PackageFlagTurboJsEngineBackend;
   if ((flags & ~known) != 0u) emit("custom");
 }
 } // namespace

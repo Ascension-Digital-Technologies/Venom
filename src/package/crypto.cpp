@@ -1,7 +1,7 @@
-#include "venom/base/error.hpp"
-#include "venom/package/crypto.hpp"
+#include "base/error.hpp"
+#include "package/crypto.hpp"
 
-#include "venom/package/hash.hpp"
+#include "package/hash.hpp"
 
 #include <array>
 #include <cstdint>

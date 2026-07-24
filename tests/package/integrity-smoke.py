@@ -26,7 +26,7 @@ required = [
     'version: 40',
     'integrity-metadata',
     'integrity name="s.',
-    'quickjs_engine_module name="s.',
+    'turbojs_engine_module name="s.',
     'host_bridge name="s.',
     'fetch_bridge name="s.',
     'async_host_queue name="s.',
@@ -35,7 +35,7 @@ required = [
 missing = [item for item in required if item not in text]
 if missing:
     raise SystemExit('missing expected integrity inspect output: ' + ', '.join(missing))
-for forbidden in ('integrity-auth.vsig', 'quickjs-engine-module.vqem', 'runtime-policy.vhrd', 'host-calls.vhcb', 'fetch-bridge.vfch', 'async-host-queue.vahq'):
+for forbidden in ('integrity-auth.vsig', 'turbojs-engine-module.vqem', 'runtime-policy.vhrd', 'host-calls.vhcb', 'fetch-bridge.vfch', 'async-host-queue.vahq'):
     if forbidden in text:
         raise SystemExit('protect inspect leaked canonical internal name: ' + forbidden)
 print('integrity metadata smoke passed')

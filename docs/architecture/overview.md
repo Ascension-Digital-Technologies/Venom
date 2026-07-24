@@ -1,6 +1,6 @@
 # Architecture overview
 
-Venom is a compiler, package system, loader, worker runtime, QuickJS execution engine, WebAssembly package decoder, route runtime, release verifier, and signed update toolchain.
+Venom is a compiler, package system, loader, worker runtime, TurboJS execution engine, WebAssembly package decoder, route runtime, release verifier, and signed update toolchain.
 
 ## Build pipeline
 
@@ -10,7 +10,7 @@ HTML / CSS / JavaScript
         ├─ execution-runtime analysis
         ├─ route and asset compilation
         ├─ protected function/module extraction
-        ├─ QuickJS bytecode compilation
+        ├─ TurboJS bytecode compilation
         ├─ build-specific package and bytecode diversification
         ├─ runtime/loader generation and hardening
         └─ release verification
@@ -23,7 +23,7 @@ verified loader
   → dedicated worker
   → WASM-owned package upload and decoding
   → context-bound bytecode handoff
-  → QuickJS/WASM execution
+  → TurboJS/WASM execution
   → leased binary capability bridge
   → browser-owned rendering and interaction
 ```

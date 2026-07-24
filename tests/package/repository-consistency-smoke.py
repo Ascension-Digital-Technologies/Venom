@@ -40,7 +40,7 @@ required = {
     "Vite package consolidated": (root / "packages/vite/package.json").is_file(),
     "fuzz targets colocated with tests": (root / "tests/fuzz/targets/package_parser_fuzz.cpp").is_file(),
     "registry covers examples": {spec.directory for spec in registry.examples} == example_dirs,
-    "typed core error API": (root / "include/venom/base/error.hpp").is_file(),
+    "typed core error API": (root / "src/base/error.hpp").is_file(),
 }
 failed = [name for name, ok in required.items() if not ok]
 if failed:

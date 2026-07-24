@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import json, pathlib, subprocess, sys, tempfile
-from _quickjs_artifact import require_current_artifact
+from _turbojs_artifact import require_current_artifact
 
 if len(sys.argv) != 2:
     raise SystemExit('usage: runtime-module-specialization-smoke.py <venom>')
@@ -21,7 +21,7 @@ with tempfile.TemporaryDirectory(prefix='venom-runtime-modules-') as td:
 
     static_modules = set(static_meta['runtime_modules'])
     browser_modules = set(browser_meta['runtime_modules'])
-    required_core = {'core', 'route', 'dom', 'quickjs'}
+    required_core = {'core', 'route', 'dom', 'turbojs'}
     if not required_core.issubset(static_modules):
         raise SystemExit('static runtime omitted a required core module')
     if {'network', 'timers', 'events'} & static_modules:

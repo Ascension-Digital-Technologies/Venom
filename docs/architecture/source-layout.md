@@ -10,7 +10,6 @@ cmake/         CMake modules, source-domain targets, and configure templates
 contracts/     Versioned machine-readable product contracts
 docs/          Architecture, guides, operations, security, and audit records
 examples/      Complete runnable applications
-include/       Central public and internal C/C++ header tree
 packages/      Optional published ecosystem packages
 scripts/       Thin public launchers only
 src/           First-party product source and authored generator inputs
@@ -31,7 +30,7 @@ src/
 ├── graph/        Canonical module identity, dependency, and resolution model
 ├── package/      VBC format, crypto, compression, reader, and writer
 ├── pipeline/     Build orchestration, planning, rewriting, security, and packaging
-├── quickjs/      Venom-owned QuickJS ABI, bridge, bytecode, and engine adapters
+├── turbojs/      Venom-owned TurboJS ABI, bridge, bytecode, and engine adapters
 ├── remote/       Remote source normalization, locking, caching, and acquisition
 ├── runtime/      Native/WASM runtime services and translation units
 ├── templates/    Authored non-native generator inputs
@@ -48,41 +47,32 @@ The former catch-all `src/compiler/` hierarchy no longer exists. Its internal fo
 - runtime, update, ABI, and module services moved to `runtime`, `cli`, or `pipeline`.
 - command option models moved into `core/options.hpp`, so reusable code never includes the CLI parser surface.
 
-## Public and internal header boundaries
+## Colocated source and header layout
 
-Every first-party C/C++ header lives in one central include tree. Stable cross-domain APIs remain grouped by owning domain, while implementation-only surfaces are visibly separated beneath `internal/`:
+Each native domain keeps its headers beside the `.cpp` or `.c` files that implement them:
 
 ```text
-include/venom/
-├── <domain>/                 Stable cross-domain API headers
-├── generated/               Generated contracts and embedded public assets
-└── internal/
-    └── <domain>/             Implementation-only headers
-
 src/<domain>/
-└── *.c / *.cpp               Implementation translation units only
+├── feature.cpp
+├── feature.hpp
+├── internal_helper.cpp
+└── internal_helper.hpp
 ```
 
-Public cross-domain includes use the stable namespace form:
+Cross-domain includes are source-root relative, so ownership remains visible without a separate include tree:
 
 ```cpp
-#include <venom/package/reader.hpp>
-#include <venom/pipeline/build.hpp>
+#include "package/reader.hpp"
+#include "pipeline/build.hpp"
 ```
 
-Implementation files include their own private surfaces explicitly:
-
-```cpp
-#include <venom/internal/pipeline/build_support.hpp>
-```
-
-Public headers may never include `venom/internal/...`, and one domain may never include another domain's internal headers. The architecture gates enforce both rules, while also rejecting any first-party header that drifts back into `src/`.
+Generated C and C++ contracts follow the same rule under `src/generated/`. The configured version header is the only build-generated exception and is emitted beneath the build tree at `generated/core/version.hpp`.
 
 ## Build boundaries
 
-`cmake/source_domains.cmake` creates two targets for each compiled first-party domain: an interface API target exposing the central include root plus declared API dependencies, and a private object target containing the implementation. `venom_core` aggregates the object targets and publishes the deliberate API targets; no target receives a first-party `src/` include path. Internal-header ownership is enforced by the architecture checks rather than by source-directory visibility.
+`cmake/source_domains.cmake` still creates interface dependency targets and implementation object targets for every domain. The filesystem no longer separates exported and private headers; target dependencies and architecture checks enforce the intended domain graph while keeping related files together.
 
-The architecture checks at `tools/architecture/check_domain_dependencies.py` and `tools/architecture/check_header_boundaries.py` enforce allowed cross-domain includes, public-header resolution, private-header isolation, removal of legacy `domain/header.hpp` include spellings, and authored dependency acyclicity. See [dependency-rules.md](dependency-rules.md).
+The architecture checks at `tools/architecture/check_domain_dependencies.py` and `tools/architecture/check_header_boundaries.py` reject a top-level `include/` tree, nested include folders, obsolete `venom/...` include spellings, and missing source-domain include configuration. See [dependency-rules.md](dependency-rules.md).
 
 ## Frontend ownership
 
@@ -107,7 +97,7 @@ Parser APIs no longer live inside the build pipeline. The pipeline consumes fron
 JavaScript inside `src/` is never mixed with native implementation code:
 
 - `src/templates/browser/` contains ordered authored browser-runtime modules.
-- `src/templates/quickjs-engine/` contains ordered authored QuickJS wrapper modules.
+- `src/templates/turbojs-engine/` contains ordered authored TurboJS wrapper modules.
 - `src/templates/typescript/` contains the authored TypeScript bridge template.
 - `src/generated/runtime/javascript/` contains checked-in generated JavaScript snapshots.
 - `src/generated/runtime/metadata/` contains generated provenance metadata.
@@ -121,7 +111,7 @@ tests/frontends/   Language frontend runtime tests
 tests/graph/       Canonical graph tests
 tests/pipeline/    Planning and build-pipeline tests
 tests/package/     Package and broad static/integration gates
-tests/quickjs/     QuickJS integration tests
+tests/turbojs/     TurboJS integration tests
 tests/runtime/     Native/WASM runtime tests
 tests/vm/          Route VM tests
 ```

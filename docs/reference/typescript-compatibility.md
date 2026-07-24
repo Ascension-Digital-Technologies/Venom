@@ -1,6 +1,6 @@
 # TypeScript compatibility
 
-Venom 1.2 uses a native type-erasure frontend before JavaScript AST planning and QuickJS compilation.
+Venom 1.2 uses a native type-erasure frontend before JavaScript AST planning and TurboJS compilation.
 
 ## Supported in the native frontend
 

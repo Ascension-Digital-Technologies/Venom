@@ -13,8 +13,8 @@ with tempfile.TemporaryDirectory() as td:
         assert graph['edges']>=4,graph
         assert graph['dynamic_literal_edges']==1,graph
     else:
-        assert 'VQJSMB04' in (r.stdout+r.stderr),(r.stdout,r.stderr)
-        assert 'build-quickjs-wasm' in (r.stdout+r.stderr),(r.stdout,r.stderr)
+        assert 'VTJSMB04' in (r.stdout+r.stderr),(r.stdout,r.stderr)
+        assert 'build-turbojs-wasm' in (r.stdout+r.stderr),(r.stdout,r.stderr)
     c=subprocess.run([str(venom),'compatibility','check',str(site),'--format','json'],text=True,capture_output=True)
     assert c.returncode==0,(c.stdout,c.stderr)
     report=json.loads(c.stdout)

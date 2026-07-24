@@ -1,10 +1,15 @@
-#include "venom/base/error.hpp"
-#include "venom/internal/pipeline/native_js_hardener.hpp"
-#include "venom/frontends/javascript/embedded_bundles.hpp"
+#include "base/error.hpp"
+#include "core/process.hpp"
+#include "pipeline/native_js_hardener.hpp"
+#include "frontends/javascript/embedded_bundles.hpp"
 
-#include "quickjs.h"
+#include "turbojs.h"
 
+#include <atomic>
 #include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
@@ -16,9 +21,13 @@ namespace {
 
 using Clock = std::chrono::steady_clock;
 
+std::size_t g_fallback_calls = 0;
+std::string g_worker_executable;
+std::atomic<std::uint64_t> g_worker_counter{0};
+
 std::string value_text(JSContext* ctx, JSValueConst value) {
   const char* text = JS_ToCString(ctx, value);
-  if (!text) return "<unprintable QuickJS value>";
+  if (!text) return "<unprintable TurboJS value>";
   std::string result(text);
   JS_FreeCString(ctx, text);
   return result;
@@ -71,12 +80,14 @@ globalThis.window = globalThis;
 globalThis.__venom_hardener_done = false;
 globalThis.__venom_hardener_output = undefined;
 globalThis.__venom_hardener_error = undefined;
+globalThis.__venom_hardener_fallback = false;
 )JS";
 
 const char kResetInvocation[] = R"JS(
 globalThis.__venom_hardener_done = false;
 globalThis.__venom_hardener_output = undefined;
 globalThis.__venom_hardener_error = undefined;
+globalThis.__venom_hardener_fallback = false;
 )JS";
 
 const char kRunHardener[] = R"JS(
@@ -85,9 +96,11 @@ const char kRunHardener[] = R"JS(
     const kind = globalThis.__venom_hardener_kind;
     const source = globalThis.__venom_hardener_source;
     const seed = globalThis.__venom_hardener_seed >>> 0;
-    const moduleKind = kind === 'loader' || kind === 'engine' || kind === 'runtime' || kind === 'protected-module' || kind === 'extension-module';
+    const moduleKind = kind === 'loader' || kind === 'engine' || kind === 'runtime' || kind === 'protected-module' || kind === 'extension-module' || kind === 'browser-module';
     const protectedKind = kind === 'protected-script' || kind === 'protected-module';
     const extensionKind = kind.startsWith('extension-');
+    const browserKind = kind.startsWith('browser-');
+    const browserFacingKind = extensionKind || browserKind;
     const bytecodeKind = kind.startsWith('protected-');
     const largeAsset = source.length >= 32768;
     const hugeAsset = source.length >= 196608;
@@ -96,7 +109,7 @@ const char kRunHardener[] = R"JS(
       module: moduleKind,
       compress: {
         passes: hugeAsset ? 1 : (largeAsset ? 2 : 3),
-        booleans_as_integers: true,
+        booleans_as_integers: !browserFacingKind,
         drop_console: false,
         keep_fargs: false,
         unsafe_arrows: true,
@@ -109,28 +122,65 @@ const char kRunHardener[] = R"JS(
     });
     if (!minified.code) throw new Error('terser produced no output');
     let hardened = minified.code;
-    if (!extensionKind) hardened = globalThis.JavaScriptObfuscator.obfuscate(minified.code, {
-      target: 'browser-no-eval', compact: true, seed,
-      identifierNamesGenerator: 'hexadecimal', identifiersPrefix: '_v' + seed.toString(36) + '_',
-      renameGlobals: false, renameProperties: false,
-      stringArray: !bytecodeKind && !extensionKind, stringArrayEncoding: ['rc4'],
-      stringArrayThreshold: protectedKind ? 0.86 : (kind === 'runtime' ? 0.42 : 0.58),
-      stringArrayCallsTransform: !bytecodeKind && !extensionKind && (protectedKind || (kind === 'loader' && !hugeAsset)),
-      stringArrayCallsTransformThreshold: protectedKind ? 0.72 : 0.35,
-      stringArrayIndexesType: ['hexadecimal-number'],
-      stringArrayRotate: !bytecodeKind && !extensionKind, stringArrayShuffle: !bytecodeKind && !extensionKind,
-      stringArrayWrappersCount: 1, stringArrayWrappersChainedCalls: true,
-      stringArrayWrappersParametersMaxCount: 4, stringArrayWrappersType: 'function',
-      splitStrings: !bytecodeKind && !extensionKind && (protectedKind || (kind === 'loader' && !hugeAsset)), splitStringsChunkLength: protectedKind ? 7 : 12,
-      numbersToExpressions: !bytecodeKind && kind !== 'worker' && !extensionKind, simplify: kind !== 'worker' && !extensionKind,
-      transformObjectKeys: kind !== 'worker' && !extensionKind, unicodeEscapeSequence: false,
-      controlFlowFlattening: !bytecodeKind && !extensionKind && (protectedKind || ((kind === 'loader' || kind === 'runtime') && !hugeAsset)),
-      controlFlowFlatteningThreshold: protectedKind ? 0.34 : (largeAsset ? 0.06 : (kind === 'loader' ? 0.22 : 0.12)),
-      deadCodeInjection: !bytecodeKind && !extensionKind && (protectedKind || (kind === 'loader' && !largeAsset)),
-      deadCodeInjectionThreshold: protectedKind ? 0.045 : (kind === 'loader' ? 0.035 : 0.02),
-      selfDefending: !bytecodeKind && kind !== 'worker' && !extensionKind, debugProtection: false,
-      disableConsoleOutput: false, sourceMap: false
-    }).getObfuscatedCode();
+    {
+      // Worker, loader, and very large runtime assets put substantially more pressure on
+      // the embedded compiler realm. Use the deterministic conservative profile
+      // directly for those inputs so a native engine fault cannot occur before
+      // the JavaScript-level retry path is reached.
+      const forceConservative = browserFacingKind || kind === 'worker' || kind === 'loader' || hugeAsset;
+      const primaryOptions = {
+        target: 'browser-no-eval', compact: true, seed,
+        identifierNamesGenerator: 'hexadecimal', identifiersPrefix: '_v' + seed.toString(36) + '_',
+        renameGlobals: false, renameProperties: false,
+        stringArray: !bytecodeKind && !browserFacingKind, stringArrayEncoding: ['rc4'],
+        stringArrayThreshold: protectedKind ? 0.86 : (kind === 'runtime' ? 0.42 : 0.58),
+        stringArrayCallsTransform: !bytecodeKind && !browserFacingKind && (protectedKind || (kind === 'loader' && !hugeAsset)),
+        stringArrayCallsTransformThreshold: protectedKind ? 0.72 : 0.35,
+        stringArrayIndexesType: ['hexadecimal-number'],
+        stringArrayRotate: !bytecodeKind && !browserFacingKind, stringArrayShuffle: !bytecodeKind && !browserFacingKind,
+        stringArrayWrappersCount: 1, stringArrayWrappersChainedCalls: true,
+        stringArrayWrappersParametersMaxCount: 4, stringArrayWrappersType: 'function',
+        splitStrings: !bytecodeKind && !browserFacingKind && (protectedKind || (kind === 'loader' && !hugeAsset)), splitStringsChunkLength: protectedKind ? 7 : 12,
+        numbersToExpressions: !bytecodeKind && kind !== 'worker' && !browserFacingKind, simplify: kind !== 'worker' && !browserFacingKind,
+        transformObjectKeys: kind !== 'worker' && !browserFacingKind, unicodeEscapeSequence: false,
+        controlFlowFlattening: !bytecodeKind && !browserFacingKind && (protectedKind || ((kind === 'loader' || kind === 'runtime') && !hugeAsset)),
+        controlFlowFlatteningThreshold: protectedKind ? 0.34 : (largeAsset ? 0.06 : (kind === 'loader' ? 0.22 : 0.12)),
+        deadCodeInjection: !bytecodeKind && !browserFacingKind && (protectedKind || (kind === 'loader' && !largeAsset)),
+        deadCodeInjectionThreshold: protectedKind ? 0.045 : (kind === 'loader' ? 0.035 : 0.02),
+        selfDefending: !bytecodeKind && kind !== 'worker' && !browserFacingKind, debugProtection: false,
+        disableConsoleOutput: false, sourceMap: false
+      };
+      const fallbackOptions = {
+        target: 'browser-no-eval', compact: true, seed,
+        identifierNamesGenerator: 'hexadecimal', identifiersPrefix: '_vf' + seed.toString(36) + '_',
+        renameGlobals: false, renameProperties: false,
+        stringArray: !bytecodeKind, stringArrayEncoding: ['rc4'], stringArrayThreshold: 0.48,
+        stringArrayCallsTransform: false, stringArrayIndexesType: ['hexadecimal-number'],
+        stringArrayRotate: !bytecodeKind, stringArrayShuffle: !bytecodeKind,
+        stringArrayWrappersCount: 1, stringArrayWrappersChainedCalls: false,
+        stringArrayWrappersParametersMaxCount: 2, stringArrayWrappersType: 'function',
+        splitStrings: false, numbersToExpressions: false, simplify: false,
+        transformObjectKeys: false, unicodeEscapeSequence: false,
+        controlFlowFlattening: false, deadCodeInjection: false,
+        selfDefending: false, debugProtection: false,
+        disableConsoleOutput: false, sourceMap: false
+      };
+      if (forceConservative) {
+        hardened = globalThis.JavaScriptObfuscator.obfuscate(minified.code, fallbackOptions).getObfuscatedCode();
+        globalThis.__venom_hardener_fallback = true;
+      } else {
+        try {
+          hardened = globalThis.JavaScriptObfuscator.obfuscate(minified.code, primaryOptions).getObfuscatedCode();
+        } catch (primaryError) {
+          // Some transform combinations are seed-sensitive in javascript-obfuscator.
+          // Retry with a deterministic conservative profile rather than failing a
+          // valid production build. The fallback remains minified, mangled, string-
+          // array encoded and browser-no-eval compliant.
+          hardened = globalThis.JavaScriptObfuscator.obfuscate(minified.code, fallbackOptions).getObfuscatedCode();
+          globalThis.__venom_hardener_fallback = true;
+        }
+      }
+    }
     const bindingMarker = bindingMatch ? `;void\"vbind:${bindingMatch[1]}\";` : '';
     globalThis.__venom_hardener_output = hardened + bindingMarker;
   } catch (error) {
@@ -182,6 +232,9 @@ class PersistentHardener {
       raise_error("VENOM-E5000", "embedded JS hardener produced no string output");
     }
     auto result = value_text(context_, output);
+    JSValue fallback = JS_GetPropertyStr(context_, global, "__venom_hardener_fallback");
+    if (JS_ToBool(context_, fallback) > 0) ++g_fallback_calls;
+    JS_FreeValue(context_, fallback);
     JS_FreeValue(context_, output);
     JS_FreeValue(context_, global);
 
@@ -199,14 +252,14 @@ class PersistentHardener {
  private:
   void initialize() {
     runtime_ = JS_NewRuntime();
-    if (!runtime_) raise_error("VENOM-E5000", "embedded JS hardener could not create QuickJS runtime");
+    if (!runtime_) raise_error("VENOM-E5000", "embedded JS hardener could not create TurboJS runtime");
     JS_SetMemoryLimit(runtime_, 768ull * 1024ull * 1024ull);
     JS_SetMaxStackSize(runtime_, 8ull * 1024ull * 1024ull);
     context_ = JS_NewContext(runtime_);
     if (!context_) {
       JS_FreeRuntime(runtime_);
       runtime_ = nullptr;
-      raise_error("VENOM-E5000", "embedded JS hardener could not create QuickJS context");
+      raise_error("VENOM-E5000", "embedded JS hardener could not create TurboJS context");
     }
     eval_checked(context_, kBootstrap, sizeof(kBootstrap) - 1, "<venom-hardener-bootstrap>");
     eval_checked(context_, embedded_js_assets::terser_bundle().data(), embedded_js_assets::terser_bundle().size(), "<embedded-terser-5.49.0>");
@@ -232,9 +285,19 @@ HardenerRuntimeStats g_stats;
 
 }  // namespace
 
-std::string harden(const std::string& kind, const std::string& source, std::uint32_t seed) {
+std::string harden_in_process(const std::string& kind, const std::string& source, std::uint32_t seed) {
   std::lock_guard<std::mutex> lock(g_mutex);
   const auto total_start = Clock::now();
+  // Heavy browser assets, including the bootstrap loader, are isolated in a fresh TurboJS realm. This avoids
+  // carrying allocator and obfuscator state from protected-script compilation
+  // into the worker/runtime hardening phase, which can surface as an uncatchable
+  // native access violation on Windows.
+  const bool isolate_heavy_asset = kind == "worker" || kind == "runtime" ||
+      kind == "engine" || kind == "loader" || source.size() >= 196608u;
+  if (isolate_heavy_asset && g_hardener) {
+    g_hardener.reset();
+    ++g_stats.resets;
+  }
   if (!g_hardener) {
     const auto init_start = Clock::now();
     g_hardener = std::make_unique<PersistentHardener>();
@@ -259,14 +322,131 @@ std::string harden(const std::string& kind, const std::string& source, std::uint
   }
 }
 
+
+void configure_worker_executable(std::string path) {
+  std::lock_guard<std::mutex> lock(g_mutex);
+  g_worker_executable = std::move(path);
+}
+
+namespace {
+
+bool requires_worker_isolation(const std::string& kind, std::size_t source_size) {
+  return kind == "worker" || kind == "runtime" || kind == "engine" ||
+         kind == "loader" || source_size >= 196608u;
+}
+
+std::filesystem::path worker_temp_path(const char* suffix) {
+  const auto counter = g_worker_counter.fetch_add(1, std::memory_order_relaxed);
+  const auto ticks = static_cast<std::uint64_t>(
+      std::chrono::steady_clock::now().time_since_epoch().count());
+  return std::filesystem::temp_directory_path() /
+      ("venom-hardener-" + std::to_string(ticks) + "-" + std::to_string(counter) + suffix);
+}
+
+void write_worker_input(const std::filesystem::path& path, const std::string& source) {
+  std::ofstream output(path, std::ios::binary | std::ios::trunc);
+  if (!output) raise_error("VENOM-E5000", "unable to create isolated hardener input");
+  output.write(source.data(), static_cast<std::streamsize>(source.size()));
+  output.flush();
+  if (!output) raise_error("VENOM-E5000", "unable to write isolated hardener input");
+}
+
+std::string read_worker_output(const std::filesystem::path& path, std::size_t* fallbacks) {
+  std::ifstream input(path, std::ios::binary);
+  if (!input) raise_error("VENOM-E5000", "isolated hardener produced no output");
+  std::string magic;
+  std::string fallback_line;
+  std::string size_line;
+  if (!std::getline(input, magic) || !std::getline(input, fallback_line) || !std::getline(input, size_line) ||
+      magic != "VENOM-HARDENER-WORKER-1") {
+    raise_error("VENOM-E5000", "isolated hardener produced a malformed response");
+  }
+  std::size_t expected = 0;
+  std::size_t fallback_count = 0;
+  try {
+    fallback_count = static_cast<std::size_t>(std::stoull(fallback_line));
+    expected = static_cast<std::size_t>(std::stoull(size_line));
+  } catch (...) {
+    raise_error("VENOM-E5000", "isolated hardener response metadata is invalid");
+  }
+  std::string payload{std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
+  if (payload.size() != expected) {
+    raise_error("VENOM-E5000", "isolated hardener response was truncated");
+  }
+  if (fallbacks) *fallbacks = fallback_count;
+  return payload;
+}
+
+void remove_worker_file(const std::filesystem::path& path) {
+  std::error_code ignored;
+  std::filesystem::remove(path, ignored);
+}
+
+}  // namespace
+
+std::string harden(const std::string& kind, const std::string& source, std::uint32_t seed) {
+  std::string worker;
+  {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    worker = g_worker_executable;
+  }
+  if (!requires_worker_isolation(kind, source.size()) || worker.empty() ||
+      !std::filesystem::is_regular_file(worker)) {
+    return harden_in_process(kind, source, seed);
+  }
+
+  const auto input_path = worker_temp_path(".input.js");
+  const auto output_path = worker_temp_path(".output.bin");
+  write_worker_input(input_path, source);
+  const auto total_start = Clock::now();
+  int last_status = -1;
+  for (int attempt = 0; attempt < 2; ++attempt) {
+    remove_worker_file(output_path);
+    {
+      std::lock_guard<std::mutex> lock(g_mutex);
+      ++g_stats.subprocess_calls;
+      if (attempt != 0) ++g_stats.subprocess_retries;
+    }
+    last_status = run_process(worker, {kind, std::to_string(seed), input_path.string(), output_path.string()});
+    if (last_status == 0) {
+      std::size_t fallbacks = 0;
+      try {
+        auto result = read_worker_output(output_path, &fallbacks);
+        remove_worker_file(input_path);
+        remove_worker_file(output_path);
+        std::lock_guard<std::mutex> lock(g_mutex);
+        ++g_stats.calls;
+        g_stats.fallbacks += fallbacks;
+        g_stats.input_bytes += source.size();
+        g_stats.output_bytes += result.size();
+        g_stats.total_ms += std::chrono::duration<double, std::milli>(Clock::now() - total_start).count();
+        return result;
+      } catch (...) {
+        last_status = -2;
+      }
+    }
+  }
+  remove_worker_file(input_path);
+  remove_worker_file(output_path);
+  {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    ++g_stats.subprocess_failures;
+  }
+  raise_error("VENOM-E5000", "isolated JavaScript hardener failed after retry (status " +
+      std::to_string(last_status) + ")");
+}
+
 HardenerRuntimeStats runtime_stats() {
   std::lock_guard<std::mutex> lock(g_mutex);
-  return g_stats;
+  auto stats = g_stats;
+  stats.fallbacks += g_fallback_calls;
+  return stats;
 }
 
 void reset_runtime_stats() {
   std::lock_guard<std::mutex> lock(g_mutex);
   g_stats = {};
+  g_fallback_calls = 0;
 }
 
 void shutdown() {

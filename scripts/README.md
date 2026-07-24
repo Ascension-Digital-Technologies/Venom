@@ -26,8 +26,9 @@ Windows launchers live in `scripts/windows/`. Linux and macOS launchers live in 
 | TSX Showcase | `scripts\windows\build-and-launch-tsx-showcase.bat` | `scripts/linux/build-and-launch-tsx-showcase.sh` |
 | Aegis Operations | `scripts\windows\build-and-launch-aegis-operations.bat` | `scripts/linux/build-and-launch-aegis-operations.sh` |
 | JavaScript Playground | `scripts\windows\build-and-launch-javascript-playground.bat` | `scripts/linux/build-and-launch-javascript-playground.sh` |
-| QuickJS Benchmark | `scripts\windows\build-and-launch-quickjs-benchmark.bat` | `scripts/linux/build-and-launch-quickjs-benchmark.sh` |
+| TurboJS Benchmark | `scripts\windows\build-and-launch-turbojs-benchmark.bat` | `scripts/linux/build-and-launch-turbojs-benchmark.sh` |
 | Vite Framework Showcase | `scripts\windows\build-and-launch-vite-framework-showcase.bat` | `scripts/linux/build-and-launch-vite-framework-showcase.sh` |
+| React + Vite Showcase | `scripts\windows\build-and-launch-react-vite-showcase.bat` | `scripts/linux/build-and-launch-react-vite-showcase.sh` |
 | Chrome Extension | `scripts\windows\build-and-launch-chrome-extension.bat` | `scripts/linux/build-and-launch-chrome-extension.sh` |
 
 All named wrappers are generated from `contracts/examples.json` by `tools/generate_example_launchers.py` and delegate to `tools/launch_example.py`. Run the generator with `--check` to detect launcher drift without rewriting files. Numbered example identifiers are intentionally not part of the public or internal launcher interface.

@@ -4,7 +4,7 @@ set(VENOM_COMPILER_CACHE "auto" CACHE STRING "Compiler cache: auto, none, ccache
 set_property(CACHE VENOM_COMPILER_CACHE PROPERTY STRINGS auto none ccache sccache)
 option(VENOM_ENABLE_PCH "Use a precompiled header for the C++ compiler pipeline" ON)
 option(VENOM_ENABLE_MSVC_MP "Enable MSVC multi-process compilation (/MP)" ON)
-option(VENOM_ENABLE_QUICKJS_IPO "Apply IPO/LTO to the vendored QuickJS static library" OFF)
+option(VENOM_ENABLE_TURBOJS_IPO "Apply IPO/LTO to the vendored TurboJS static library" OFF)
 
 function(venom_configure_compiler_cache)
   string(TOLOWER "${VENOM_COMPILER_CACHE}" _venom_cache_mode)

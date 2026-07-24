@@ -8,7 +8,7 @@ required = [
     'let activeGeneration = 0;',
     "assertGeneration(requestGeneration, 'fetch response')",
     "stale route generation rejected for event dispatch",
-    "stale route generation rejected for QuickJS execution",
+    "stale route generation rejected for TurboJS execution",
     'activateRouteGeneration(generation)',
     'crypto.getRandomValues',
     'routeGeneration: boundGeneration',

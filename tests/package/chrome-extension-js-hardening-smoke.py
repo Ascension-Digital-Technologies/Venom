@@ -10,6 +10,8 @@ assert 'harden_extension_js(file.relative' in emitter
 for name in ("venom-extension-rpc.js", "venom-extension-host.js", "venom-extension-broker.js", "venom-background.js"):
     assert f'harden_extension_js("{name}"' in emitter
 assert 'extension-module' in hardener
+assert 'booleans_as_integers: !extensionKind' in hardener
+assert 'booleans_as_integers: true' not in hardener
 assert 'extension-script' in emitter
 assert 'extension-worker' in emitter
 assert 'const auto extension_build_salt' in emitter

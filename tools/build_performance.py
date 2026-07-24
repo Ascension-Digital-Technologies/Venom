@@ -27,7 +27,7 @@ def main() -> int:
     ap.add_argument('--parallel',type=int,default=max(1,min(8,os.cpu_count() or 2)))
     ap.add_argument('--compiler-cache',choices=['auto','none','ccache','sccache'],default='auto')
     ap.add_argument('--with-ipo',action='store_true')
-    ap.add_argument('--with-quickjs-ipo',action='store_true')
+    ap.add_argument('--with-turbojs-ipo',action='store_true')
     ap.add_argument('--skip-clean',action='store_true')
     ap.add_argument('--json-out',type=Path)
     args=ap.parse_args()
@@ -39,7 +39,7 @@ def main() -> int:
     cmake=['cmake','-S',str(root),'-B',str(build),'-G',args.generator,
            f'-DCMAKE_BUILD_TYPE={args.config}',f'-DVENOM_COMPILER_CACHE={args.compiler_cache}',
            f'-DVENOM_ENABLE_IPO={"ON" if args.with_ipo else "OFF"}',
-           f'-DVENOM_ENABLE_QUICKJS_IPO={"ON" if args.with_quickjs_ipo else "OFF"}',
+           f'-DVENOM_ENABLE_TURBOJS_IPO={"ON" if args.with_turbojs_ipo else "OFF"}',
            '-DVENOM_ENABLE_PCH=ON']
     rc_cfg,t_cfg=run(cmake,root,logs/'configure.log')
     steps=[{'name':'configure','seconds':round(t_cfg,3),'passed':rc_cfg==0}]
@@ -62,7 +62,7 @@ def main() -> int:
     report={
       'schema':'venom.build-performance.v1','passed':all(s['passed'] for s in steps),
       'environment':{'platform':platform.platform(),'python':platform.python_version(),'cpu_count':os.cpu_count(),'generator':args.generator,'parallel':args.parallel},
-      'configuration':{'pch':True,'compiler_cache':args.compiler_cache,'ipo':args.with_ipo,'quickjs_ipo':args.with_quickjs_ipo},
+      'configuration':{'pch':True,'compiler_cache':args.compiler_cache,'ipo':args.with_ipo,'turbojs_ipo':args.with_turbojs_ipo},
       'steps':steps,'artifacts':{'venom_bytes':size(exe)},'cache_stats':cache_stats,
     }
     text=json.dumps(report,indent=2)

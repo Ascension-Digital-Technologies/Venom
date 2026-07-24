@@ -1,0 +1,100 @@
+{
+  "schema": "VENOM_EXAMPLE_CERTIFICATION_RESULT_V1",
+  "generatedAt": "2026-07-17T04:28:55.088225+00:00",
+  "passed": true,
+  "profile": "prod",
+  "contract": {
+    "path": "contracts/examples.json",
+    "sha256": "456afc1ce87dbd65ef00df2c2958d95f6ee65efc6c7b51ae833835d62ad17ba7"
+  },
+  "examples": [
+    {
+      "id": "protected-chess",
+      "number": 1,
+      "path": "examples/protected-chess",
+      "passed": true,
+      "buildPassed": true,
+      "verifyPassed": true,
+      "runtimePassed": true,
+      "leakScanPassed": true,
+      "durationMs": 60330
+    },
+    {
+      "id": "nova-trade",
+      "number": 2,
+      "path": "examples/nova-trade",
+      "passed": true,
+      "buildPassed": true,
+      "verifyPassed": true,
+      "runtimePassed": true,
+      "leakScanPassed": true,
+      "durationMs": 46501
+    },
+    {
+      "id": "bot-detection",
+      "number": 3,
+      "path": "examples/bot-detection",
+      "passed": true,
+      "buildPassed": true,
+      "verifyPassed": true,
+      "runtimePassed": true,
+      "leakScanPassed": true,
+      "durationMs": 45181
+    },
+    {
+      "id": "typescript-showcase",
+      "number": 4,
+      "path": "examples/typescript-showcase",
+      "passed": true,
+      "buildPassed": true,
+      "verifyPassed": true,
+      "runtimePassed": true,
+      "leakScanPassed": true,
+      "durationMs": 51395
+    },
+    {
+      "id": "tsx-showcase",
+      "number": 5,
+      "path": "examples/tsx-showcase",
+      "passed": true,
+      "buildPassed": true,
+      "verifyPassed": true,
+      "runtimePassed": true,
+      "leakScanPassed": true,
+      "durationMs": 41341
+    },
+    {
+      "id": "aegis-operations",
+      "number": 6,
+      "path": "examples/aegis-operations",
+      "passed": true,
+      "buildPassed": true,
+      "verifyPassed": true,
+      "runtimePassed": true,
+      "leakScanPassed": true,
+      "durationMs": 57812
+    },
+    {
+      "id": "javascript-playground",
+      "number": 7,
+      "path": "examples/javascript-playground",
+      "passed": true,
+      "buildPassed": true,
+      "verifyPassed": true,
+      "runtimePassed": true,
+      "leakScanPassed": true,
+      "durationMs": 39066
+    },
+    {
+      "id": "vite-framework-showcase",
+      "number": 8,
+      "path": "examples/vite-framework-showcase",
+      "passed": true,
+      "buildPassed": true,
+      "verifyPassed": true,
+      "runtimePassed": true,
+      "leakScanPassed": true,
+      "durationMs": 41227
+    }
+  ]
+}

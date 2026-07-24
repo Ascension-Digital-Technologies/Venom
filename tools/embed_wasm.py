@@ -6,19 +6,19 @@ import argparse
 import hashlib
 from pathlib import Path
 
-DEFAULT_PROVENANCE = """VENOM_QJS_WASM_EMBED_V2
+DEFAULT_PROVENANCE = """VENOM_TJS_WASM_EMBED_V2
 version=2
 runtime_abi=12
 package_version=83
 artifact_kind=contract-scaffold
-runtime_implementation=quickjs-wasm-contract-scaffold
+runtime_implementation=turbojs-wasm-contract-scaffold
 runtime_claim=contract-boundary
 contract_only=true
 scaffold_runtime=true
 real_engine_candidate=false
-full_upstream_quickjs=false
+full_upstream_turbojs=false
 fallback_required=false
-finish_blocker=run_build_quickjs_wasm_and_embed_verified_artifact
+finish_blocker=run_build_turbojs_wasm_and_embed_verified_artifact
 required_exports_satisfied=false
 missing_export_count=0
 """
@@ -58,9 +58,9 @@ def emit_header(wasm: bytes, output: Path, namespace: str, symbol: str, provenan
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("wasm", type=Path, help="input .wasm file")
-    ap.add_argument("--out", type=Path, default=Path("include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp"))
+    ap.add_argument("--out", type=Path, default=Path("src/generated/runtime/turbojs_runtime_wasm_blob.hpp"))
     ap.add_argument("--namespace", default="venom::compiler")
-    ap.add_argument("--symbol", default="kQuickJsRuntimeWasmBlob")
+    ap.add_argument("--symbol", default="kTurboJsRuntimeWasmBlob")
     ap.add_argument("--manifest", type=Path, help="verified manifest to embed as provenance")
     args = ap.parse_args()
 
@@ -69,8 +69,8 @@ def main() -> int:
         raise SystemExit(f"{args.wasm} is not a WebAssembly module")
     provenance = args.manifest.read_text(encoding="utf-8") if args.manifest else DEFAULT_PROVENANCE
     for version in ("V3", "V2"):
-        artifact_marker = f"VENOM_QJS_WASM_ARTIFACT_{version}"
-        embed_marker = f"VENOM_QJS_WASM_EMBED_{version}"
+        artifact_marker = f"VENOM_TJS_WASM_ARTIFACT_{version}"
+        embed_marker = f"VENOM_TJS_WASM_EMBED_{version}"
         if artifact_marker in provenance:
             provenance = provenance.replace(artifact_marker, embed_marker, 1)
             break

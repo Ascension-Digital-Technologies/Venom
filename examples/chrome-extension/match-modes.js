@@ -1,3 +1,4 @@
+// @venom: browser
 (() => {
   'use strict';
   if (globalThis.VelocityMatchModes) return;

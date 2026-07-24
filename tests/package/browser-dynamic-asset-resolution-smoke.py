@@ -52,6 +52,17 @@ def main() -> int:
     if not runtime_cpp.is_file() or not runtime_template.is_file() or not asset_runtime_cpp.is_file() or not wasm_runtime_cpp.is_file():
         fail("missing runtime generator sources")
 
+    assets_cpp = repo / "src/pipeline/assets.cpp"
+    if not assets_cpp.is_file():
+        fail("missing asset pipeline source")
+    assets_text = assets_cpp.read_text(encoding="utf-8")
+    for marker in [
+        "A placeholder matches one or more characters inside the current path",
+        "matches_template_from(path, pattern, candidate, next_pattern)",
+    ]:
+        if marker not in assets_text:
+            fail(f"asset template matcher is missing marker: {marker}")
+
     runtime_text = runtime_cpp.read_text(encoding="utf-8")
     runtime_template_text = runtime_template.read_text(encoding="utf-8")
     asset_runtime_text = asset_runtime_cpp.read_text(encoding="utf-8")
@@ -150,9 +161,9 @@ console.log(JSON.stringify({{passed:true, pawn:pawn.src, routed:routed.src}}));
         output_hashes = sorted(hashlib.sha256(path.read_bytes()).hexdigest() for path in images)
         if source_hashes != output_hashes:
             fail("emitted chess-piece image bytes do not match the source asset set")
-        runtime_files = sorted((dist / "assets/runtime").glob("r.*.js"))
-        if len(runtime_files) != 1:
-            fail(f"expected one runtime JS file, found {len(runtime_files)}")
+        javascript_files = sorted((dist / "assets/javascript").glob("*.js"))
+        if len(javascript_files) < 3:
+            fail(f"expected protected JavaScript runtime assets, found {len(javascript_files)}")
         # Production runtime identifiers are intentionally hardened. The source-level
         # contract and executable resolver behavior above validate the implementation;
         # strict runtime verification validates the emitted protected distribution.

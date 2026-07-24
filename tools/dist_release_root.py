@@ -40,7 +40,7 @@ def make_root(dist: Path) -> dict:
     build=json.loads(build_path.read_text(encoding='utf-8'))
     closure=build.get('protection_closure')
     if not isinstance(closure,dict): raise SystemExit('build.json lacks protection_closure')
-    for k in ('requested','resolved','expected_quickjs_records'):
+    for k in ('requested','resolved','expected_turbojs_records'):
         if not isinstance(closure.get(k),int) or closure[k] < 0: raise SystemExit(f'invalid protection_closure.{k}')
     if closure['requested'] != closure['resolved']: raise SystemExit('unresolved protected intents cannot be signed')
     files=[{'path':rel,'size':p.stat().st_size,'sha256':sha256_file(p)} for rel,p in safe_files(dist)]

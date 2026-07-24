@@ -1,5 +1,5 @@
-#include "venom/base/error.hpp"
-#include "venom/package/format.hpp"
+#include "base/error.hpp"
+#include "package/format.hpp"
 
 #include <stdexcept>
 
@@ -16,7 +16,7 @@ const char* section_type_name(SectionType type) {
     case SectionType::DomTemplates: return "dom_templates";
     case SectionType::Css: return "css";
     case SectionType::JavaScript: return "javascript";
-    case SectionType::QuickJs: return "quickjs";
+    case SectionType::TurboJs: return "turbojs";
     case SectionType::VmBytecode: return "vm_bytecode";
     case SectionType::Asset: return "asset";
     case SectionType::Integrity: return "integrity";
@@ -27,77 +27,77 @@ const char* section_type_name(SectionType type) {
     case SectionType::AsyncHostQueue: return "async_host_queue";
     case SectionType::TimerBridge: return "timer_bridge";
     case SectionType::EventQueue: return "event_queue";
-    case SectionType::QuickJsBridge: return "quickjs_bridge";
+    case SectionType::TurboJsBridge: return "turbojs_bridge";
     case SectionType::ScriptIsolation: return "script_isolation";
     case SectionType::ScriptPolicy: return "script_policy";
-    case SectionType::QuickJsChunks: return "quickjs_chunks";
-    case SectionType::QuickJsEngine: return "quickjs_engine";
+    case SectionType::TurboJsChunks: return "turbojs_chunks";
+    case SectionType::TurboJsEngine: return "turbojs_engine";
     case SectionType::ScriptEnginePolicy: return "script_engine_policy";
-    case SectionType::QuickJsEngineModule: return "quickjs_engine_module";
-    case SectionType::QuickJsContextLifecycle: return "quickjs_context_lifecycle";
+    case SectionType::TurboJsEngineModule: return "turbojs_engine_module";
+    case SectionType::TurboJsContextLifecycle: return "turbojs_context_lifecycle";
     case SectionType::HostCapabilities: return "host_capabilities";
-    case SectionType::QuickJsAdapterDiagnostics: return "quickjs_adapter_diagnostics";
-    case SectionType::QuickJsWasmRuntime: return "quickjs_wasm_runtime";
-    case SectionType::QuickJsSourceTransfer: return "quickjs_source_transfer";
-    case SectionType::QuickJsConsoleBridge: return "quickjs_console_bridge";
-    case SectionType::QuickJsExecutionRecords: return "quickjs_execution_records";
-    case SectionType::QuickJsResultBridge: return "quickjs_result_bridge";
-    case SectionType::QuickJsFallbackPolicy: return "quickjs_fallback_policy";
-    case SectionType::QuickJsEngineBackend: return "quickjs_engine_backend";
-    case SectionType::QuickJsNativeParity: return "quickjs_native_parity";
-    case SectionType::QuickJsExecutionMode: return "quickjs_execution_mode";
-    case SectionType::QuickJsRuntimeAbi: return "quickjs_runtime_abi";
-    case SectionType::QuickJsHostImports: return "quickjs_host_imports";
-    case SectionType::QuickJsHeapLimits: return "quickjs_heap_limits";
-    case SectionType::QuickJsScriptBuffer: return "quickjs_script_buffer";
-    case SectionType::QuickJsConsoleAbi: return "quickjs_console_abi";
-    case SectionType::QuickJsParityProbe: return "quickjs_parity_probe";
-    case SectionType::QuickJsReleaseFallback: return "quickjs_release_fallback";
-    case SectionType::QuickJsBytecodeManifest: return "quickjs_bytecode_manifest";
-    case SectionType::QuickJsModuleResolver: return "quickjs_module_resolver";
-    case SectionType::QuickJsExceptionAbi: return "quickjs_exception_abi";
-    case SectionType::QuickJsHostTrapPolicy: return "quickjs_host_trap_policy";
-    case SectionType::QuickJsExecutionLifecycle: return "quickjs_execution_lifecycle";
-    case SectionType::QuickJsScriptBufferPolicy: return "quickjs_script_buffer_policy";
-    case SectionType::QuickJsContextLimitPolicy: return "quickjs_context_limit_policy";
-    case SectionType::QuickJsHostCallDispatch: return "quickjs_host_call_dispatch";
-    case SectionType::QuickJsParityContract: return "quickjs_parity_contract";
-    case SectionType::QuickJsReleaseFailClosed: return "quickjs_release_failclosed";
-    case SectionType::QuickJsModuleGraph: return "quickjs_module_graph";
-    case SectionType::QuickJsModuleExecution: return "quickjs_module_execution";
-    case SectionType::QuickJsModuleCache: return "quickjs_module_cache";
-    case SectionType::QuickJsResolverAudit: return "quickjs_resolver_audit";
-    case SectionType::QuickJsInteropFallback: return "quickjs_interop_fallback";
-    case SectionType::QuickJsExecutionPipeline: return "quickjs_execution_pipeline";
-    case SectionType::QuickJsScriptRecords: return "quickjs_script_records";
-    case SectionType::QuickJsEvalResults: return "quickjs_eval_results";
-    case SectionType::QuickJsConsoleCapture: return "quickjs_console_capture";
-    case SectionType::QuickJsFailureReports: return "quickjs_failure_reports";
-    case SectionType::QuickJsExecutionJournal: return "quickjs_execution_journal";
-    case SectionType::QuickJsCheckpointPolicy: return "quickjs_checkpoint_policy";
-    case SectionType::QuickJsReplayCursor: return "quickjs_replay_cursor";
-    case SectionType::QuickJsResumeState: return "quickjs_resume_state";
-    case SectionType::QuickJsDeterminismAudit: return "quickjs_determinism_audit";
-    case SectionType::QuickJsSnapshotPolicy: return "quickjs_snapshot_policy";
-    case SectionType::QuickJsSnapshotRecords: return "quickjs_snapshot_records";
-    case SectionType::QuickJsReplayValidation: return "quickjs_replay_validation";
-    case SectionType::QuickJsDeterminismLedger: return "quickjs_determinism_ledger";
-    case SectionType::QuickJsAuditSeal: return "quickjs_audit_seal";
-    case SectionType::QuickJsExecutionCommit: return "quickjs_execution_commit";
-    case SectionType::QuickJsRollbackPolicy: return "quickjs_rollback_policy";
-    case SectionType::QuickJsHostCallReceipts: return "quickjs_host_call_receipts";
-    case SectionType::QuickJsReleaseAcceptance: return "quickjs_release_acceptance";
-    case SectionType::QuickJsCommitAudit: return "quickjs_commit_audit";
-    case SectionType::QuickJsCapabilityPolicy: return "quickjs_capability_policy";
-    case SectionType::QuickJsHostIoPolicy: return "quickjs_host_io_policy";
-    case SectionType::QuickJsPermissionSeal: return "quickjs_permission_seal";
-    case SectionType::QuickJsPolicyReceipts: return "quickjs_policy_receipts";
-    case SectionType::QuickJsReleaseGate: return "quickjs_release_gate";
-    case SectionType::QuickJsHostIoDecision: return "quickjs_host_io_decision";
-    case SectionType::QuickJsHostIoDenyTrace: return "quickjs_host_io_deny_trace";
-    case SectionType::QuickJsCapabilityLedger: return "quickjs_capability_ledger";
-    case SectionType::QuickJsPolicySealAudit: return "quickjs_policy_seal_audit";
-    case SectionType::QuickJsRuntimeDenylist: return "quickjs_runtime_denylist";
+    case SectionType::TurboJsAdapterDiagnostics: return "turbojs_adapter_diagnostics";
+    case SectionType::TurboJsWasmRuntime: return "turbojs_wasm_runtime";
+    case SectionType::TurboJsSourceTransfer: return "turbojs_source_transfer";
+    case SectionType::TurboJsConsoleBridge: return "turbojs_console_bridge";
+    case SectionType::TurboJsExecutionRecords: return "turbojs_execution_records";
+    case SectionType::TurboJsResultBridge: return "turbojs_result_bridge";
+    case SectionType::TurboJsFallbackPolicy: return "turbojs_fallback_policy";
+    case SectionType::TurboJsEngineBackend: return "turbojs_engine_backend";
+    case SectionType::TurboJsNativeParity: return "turbojs_native_parity";
+    case SectionType::TurboJsExecutionMode: return "turbojs_execution_mode";
+    case SectionType::TurboJsRuntimeAbi: return "turbojs_runtime_abi";
+    case SectionType::TurboJsHostImports: return "turbojs_host_imports";
+    case SectionType::TurboJsHeapLimits: return "turbojs_heap_limits";
+    case SectionType::TurboJsScriptBuffer: return "turbojs_script_buffer";
+    case SectionType::TurboJsConsoleAbi: return "turbojs_console_abi";
+    case SectionType::TurboJsParityProbe: return "turbojs_parity_probe";
+    case SectionType::TurboJsReleaseFallback: return "turbojs_release_fallback";
+    case SectionType::TurboJsBytecodeManifest: return "turbojs_bytecode_manifest";
+    case SectionType::TurboJsModuleResolver: return "turbojs_module_resolver";
+    case SectionType::TurboJsExceptionAbi: return "turbojs_exception_abi";
+    case SectionType::TurboJsHostTrapPolicy: return "turbojs_host_trap_policy";
+    case SectionType::TurboJsExecutionLifecycle: return "turbojs_execution_lifecycle";
+    case SectionType::TurboJsScriptBufferPolicy: return "turbojs_script_buffer_policy";
+    case SectionType::TurboJsContextLimitPolicy: return "turbojs_context_limit_policy";
+    case SectionType::TurboJsHostCallDispatch: return "turbojs_host_call_dispatch";
+    case SectionType::TurboJsParityContract: return "turbojs_parity_contract";
+    case SectionType::TurboJsReleaseFailClosed: return "turbojs_release_failclosed";
+    case SectionType::TurboJsModuleGraph: return "turbojs_module_graph";
+    case SectionType::TurboJsModuleExecution: return "turbojs_module_execution";
+    case SectionType::TurboJsModuleCache: return "turbojs_module_cache";
+    case SectionType::TurboJsResolverAudit: return "turbojs_resolver_audit";
+    case SectionType::TurboJsInteropFallback: return "turbojs_interop_fallback";
+    case SectionType::TurboJsExecutionPipeline: return "turbojs_execution_pipeline";
+    case SectionType::TurboJsScriptRecords: return "turbojs_script_records";
+    case SectionType::TurboJsEvalResults: return "turbojs_eval_results";
+    case SectionType::TurboJsConsoleCapture: return "turbojs_console_capture";
+    case SectionType::TurboJsFailureReports: return "turbojs_failure_reports";
+    case SectionType::TurboJsExecutionJournal: return "turbojs_execution_journal";
+    case SectionType::TurboJsCheckpointPolicy: return "turbojs_checkpoint_policy";
+    case SectionType::TurboJsReplayCursor: return "turbojs_replay_cursor";
+    case SectionType::TurboJsResumeState: return "turbojs_resume_state";
+    case SectionType::TurboJsDeterminismAudit: return "turbojs_determinism_audit";
+    case SectionType::TurboJsSnapshotPolicy: return "turbojs_snapshot_policy";
+    case SectionType::TurboJsSnapshotRecords: return "turbojs_snapshot_records";
+    case SectionType::TurboJsReplayValidation: return "turbojs_replay_validation";
+    case SectionType::TurboJsDeterminismLedger: return "turbojs_determinism_ledger";
+    case SectionType::TurboJsAuditSeal: return "turbojs_audit_seal";
+    case SectionType::TurboJsExecutionCommit: return "turbojs_execution_commit";
+    case SectionType::TurboJsRollbackPolicy: return "turbojs_rollback_policy";
+    case SectionType::TurboJsHostCallReceipts: return "turbojs_host_call_receipts";
+    case SectionType::TurboJsReleaseAcceptance: return "turbojs_release_acceptance";
+    case SectionType::TurboJsCommitAudit: return "turbojs_commit_audit";
+    case SectionType::TurboJsCapabilityPolicy: return "turbojs_capability_policy";
+    case SectionType::TurboJsHostIoPolicy: return "turbojs_host_io_policy";
+    case SectionType::TurboJsPermissionSeal: return "turbojs_permission_seal";
+    case SectionType::TurboJsPolicyReceipts: return "turbojs_policy_receipts";
+    case SectionType::TurboJsReleaseGate: return "turbojs_release_gate";
+    case SectionType::TurboJsHostIoDecision: return "turbojs_host_io_decision";
+    case SectionType::TurboJsHostIoDenyTrace: return "turbojs_host_io_deny_trace";
+    case SectionType::TurboJsCapabilityLedger: return "turbojs_capability_ledger";
+    case SectionType::TurboJsPolicySealAudit: return "turbojs_policy_seal_audit";
+    case SectionType::TurboJsRuntimeDenylist: return "turbojs_runtime_denylist";
     case SectionType::PackageFeatures: return "package_features";
   }
   return "unknown";
@@ -110,7 +110,7 @@ bool is_known_section_type(std::uint32_t value) {
     case SectionType::DomTemplates:
     case SectionType::Css:
     case SectionType::JavaScript:
-    case SectionType::QuickJs:
+    case SectionType::TurboJs:
     case SectionType::VmBytecode:
     case SectionType::Asset:
     case SectionType::Integrity:
@@ -121,77 +121,77 @@ bool is_known_section_type(std::uint32_t value) {
     case SectionType::AsyncHostQueue:
     case SectionType::TimerBridge:
     case SectionType::EventQueue:
-    case SectionType::QuickJsBridge:
+    case SectionType::TurboJsBridge:
     case SectionType::ScriptIsolation:
     case SectionType::ScriptPolicy:
-    case SectionType::QuickJsChunks:
-    case SectionType::QuickJsEngine:
+    case SectionType::TurboJsChunks:
+    case SectionType::TurboJsEngine:
     case SectionType::ScriptEnginePolicy:
-    case SectionType::QuickJsEngineModule:
-    case SectionType::QuickJsContextLifecycle:
+    case SectionType::TurboJsEngineModule:
+    case SectionType::TurboJsContextLifecycle:
     case SectionType::HostCapabilities:
-    case SectionType::QuickJsAdapterDiagnostics:
-    case SectionType::QuickJsWasmRuntime:
-    case SectionType::QuickJsSourceTransfer:
-    case SectionType::QuickJsConsoleBridge:
-    case SectionType::QuickJsExecutionRecords:
-    case SectionType::QuickJsResultBridge:
-    case SectionType::QuickJsFallbackPolicy:
-    case SectionType::QuickJsEngineBackend:
-    case SectionType::QuickJsNativeParity:
-    case SectionType::QuickJsExecutionMode:
-    case SectionType::QuickJsRuntimeAbi:
-    case SectionType::QuickJsHostImports:
-    case SectionType::QuickJsHeapLimits:
-    case SectionType::QuickJsScriptBuffer:
-    case SectionType::QuickJsConsoleAbi:
-    case SectionType::QuickJsParityProbe:
-    case SectionType::QuickJsReleaseFallback:
-    case SectionType::QuickJsBytecodeManifest:
-    case SectionType::QuickJsModuleResolver:
-    case SectionType::QuickJsExceptionAbi:
-    case SectionType::QuickJsHostTrapPolicy:
-    case SectionType::QuickJsExecutionLifecycle:
-    case SectionType::QuickJsScriptBufferPolicy:
-    case SectionType::QuickJsContextLimitPolicy:
-    case SectionType::QuickJsHostCallDispatch:
-    case SectionType::QuickJsParityContract:
-    case SectionType::QuickJsReleaseFailClosed:
-    case SectionType::QuickJsModuleGraph:
-    case SectionType::QuickJsModuleExecution:
-    case SectionType::QuickJsModuleCache:
-    case SectionType::QuickJsResolverAudit:
-    case SectionType::QuickJsInteropFallback:
-    case SectionType::QuickJsExecutionPipeline:
-    case SectionType::QuickJsScriptRecords:
-    case SectionType::QuickJsEvalResults:
-    case SectionType::QuickJsConsoleCapture:
-    case SectionType::QuickJsFailureReports:
-    case SectionType::QuickJsExecutionJournal:
-    case SectionType::QuickJsCheckpointPolicy:
-    case SectionType::QuickJsReplayCursor:
-    case SectionType::QuickJsResumeState:
-    case SectionType::QuickJsDeterminismAudit:
-    case SectionType::QuickJsSnapshotPolicy:
-    case SectionType::QuickJsSnapshotRecords:
-    case SectionType::QuickJsReplayValidation:
-    case SectionType::QuickJsDeterminismLedger:
-    case SectionType::QuickJsAuditSeal:
-    case SectionType::QuickJsExecutionCommit:
-    case SectionType::QuickJsRollbackPolicy:
-    case SectionType::QuickJsHostCallReceipts:
-    case SectionType::QuickJsReleaseAcceptance:
-    case SectionType::QuickJsCommitAudit:
-    case SectionType::QuickJsCapabilityPolicy:
-    case SectionType::QuickJsHostIoPolicy:
-    case SectionType::QuickJsPermissionSeal:
-    case SectionType::QuickJsPolicyReceipts:
-    case SectionType::QuickJsReleaseGate:
-    case SectionType::QuickJsHostIoDecision:
-    case SectionType::QuickJsHostIoDenyTrace:
-    case SectionType::QuickJsCapabilityLedger:
-    case SectionType::QuickJsPolicySealAudit:
-    case SectionType::QuickJsRuntimeDenylist:
+    case SectionType::TurboJsAdapterDiagnostics:
+    case SectionType::TurboJsWasmRuntime:
+    case SectionType::TurboJsSourceTransfer:
+    case SectionType::TurboJsConsoleBridge:
+    case SectionType::TurboJsExecutionRecords:
+    case SectionType::TurboJsResultBridge:
+    case SectionType::TurboJsFallbackPolicy:
+    case SectionType::TurboJsEngineBackend:
+    case SectionType::TurboJsNativeParity:
+    case SectionType::TurboJsExecutionMode:
+    case SectionType::TurboJsRuntimeAbi:
+    case SectionType::TurboJsHostImports:
+    case SectionType::TurboJsHeapLimits:
+    case SectionType::TurboJsScriptBuffer:
+    case SectionType::TurboJsConsoleAbi:
+    case SectionType::TurboJsParityProbe:
+    case SectionType::TurboJsReleaseFallback:
+    case SectionType::TurboJsBytecodeManifest:
+    case SectionType::TurboJsModuleResolver:
+    case SectionType::TurboJsExceptionAbi:
+    case SectionType::TurboJsHostTrapPolicy:
+    case SectionType::TurboJsExecutionLifecycle:
+    case SectionType::TurboJsScriptBufferPolicy:
+    case SectionType::TurboJsContextLimitPolicy:
+    case SectionType::TurboJsHostCallDispatch:
+    case SectionType::TurboJsParityContract:
+    case SectionType::TurboJsReleaseFailClosed:
+    case SectionType::TurboJsModuleGraph:
+    case SectionType::TurboJsModuleExecution:
+    case SectionType::TurboJsModuleCache:
+    case SectionType::TurboJsResolverAudit:
+    case SectionType::TurboJsInteropFallback:
+    case SectionType::TurboJsExecutionPipeline:
+    case SectionType::TurboJsScriptRecords:
+    case SectionType::TurboJsEvalResults:
+    case SectionType::TurboJsConsoleCapture:
+    case SectionType::TurboJsFailureReports:
+    case SectionType::TurboJsExecutionJournal:
+    case SectionType::TurboJsCheckpointPolicy:
+    case SectionType::TurboJsReplayCursor:
+    case SectionType::TurboJsResumeState:
+    case SectionType::TurboJsDeterminismAudit:
+    case SectionType::TurboJsSnapshotPolicy:
+    case SectionType::TurboJsSnapshotRecords:
+    case SectionType::TurboJsReplayValidation:
+    case SectionType::TurboJsDeterminismLedger:
+    case SectionType::TurboJsAuditSeal:
+    case SectionType::TurboJsExecutionCommit:
+    case SectionType::TurboJsRollbackPolicy:
+    case SectionType::TurboJsHostCallReceipts:
+    case SectionType::TurboJsReleaseAcceptance:
+    case SectionType::TurboJsCommitAudit:
+    case SectionType::TurboJsCapabilityPolicy:
+    case SectionType::TurboJsHostIoPolicy:
+    case SectionType::TurboJsPermissionSeal:
+    case SectionType::TurboJsPolicyReceipts:
+    case SectionType::TurboJsReleaseGate:
+    case SectionType::TurboJsHostIoDecision:
+    case SectionType::TurboJsHostIoDenyTrace:
+    case SectionType::TurboJsCapabilityLedger:
+    case SectionType::TurboJsPolicySealAudit:
+    case SectionType::TurboJsRuntimeDenylist:
     case SectionType::PackageFeatures:
       return true;
   }
@@ -249,7 +249,8 @@ void validate_section_name(const std::string& name) {
   if (name.size() > kMaxSectionNameBytes) {
     raise_error("VENOM-E4000", "package section name exceeds maximum length");
   }
-  for (unsigned char ch : name) {
+  for (const char raw_ch : name) {
+    const auto ch = static_cast<unsigned char>(raw_ch);
     if (ch == 0u || ch == '\t' || ch == '\n' || ch == '\r' || ch < 0x20u || ch == 0x7fu) {
       raise_error("VENOM-E4000", "package section name contains a control character");
     }

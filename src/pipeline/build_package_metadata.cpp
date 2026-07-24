@@ -1,14 +1,15 @@
-#include "venom/base/error.hpp"
-#include "venom/internal/pipeline/build_package_metadata.hpp"
-#include "venom/internal/pipeline/build_support.hpp"
-#include "venom/internal/pipeline/assets.hpp"
-#include "venom/graph/module_graph.hpp"
+#include "base/error.hpp"
+#include "pipeline/build_package_metadata.hpp"
+#include "pipeline/build_support.hpp"
+#include "pipeline/assets.hpp"
+#include "graph/module_graph.hpp"
+#include "generated/contracts/turbojs_wasm_abi.hpp"
 
-#include "venom/package/crypto.hpp"
-#include "venom/package/hash.hpp"
-#include "venom/quickjs/abi.hpp"
-#include "venom/quickjs/bytecode.hpp"
-#include "venom/vm/encoder.hpp"
+#include "package/crypto.hpp"
+#include "package/hash.hpp"
+#include "turbojs/abi.hpp"
+#include "turbojs/bytecode.hpp"
+#include "vm/encoder.hpp"
 
 #include <algorithm>
 #include <sstream>
@@ -25,7 +26,7 @@ ReleaseBuildPolicy resolve_release_build_policy(const Profile& profile,
   ReleaseBuildPolicy policy;
   policy.release_like = profile.kind == ProfileKind::Prod || profile.fail_closed || options.strict_release;
   policy.has_scripts = script_count != 0;
-  policy.backend = options.quickjs_backend.empty() ? "scaffold" : options.quickjs_backend;
+  policy.backend = options.turbojs_backend.empty() ? "scaffold" : options.turbojs_backend;
   policy.backend_is_scaffold = policy.backend == "scaffold";
   policy.backend_is_real_browser = policy.backend == "wasm-real";
   policy.fallback_allowed = options.allow_host_fallback && !policy.release_like && !options.deny_host_fallback && !options.strict_release;
@@ -34,13 +35,13 @@ ReleaseBuildPolicy resolve_release_build_policy(const Profile& profile,
 
   if (policy.release_like && policy.has_scripts && policy.backend_is_scaffold && !policy.fallback_allowed) {
     policy.decision = "deny-build";
-    policy.reason = "script-bearing release package requires host-JS fallback because QuickJS backend is scaffold";
+    policy.reason = "script-bearing release package requires host-JS fallback because TurboJS backend is scaffold";
   } else if (policy.release_like && policy.has_scripts && policy.backend == "native") {
     policy.decision = "deny-build";
-    policy.reason = "native QuickJS is compile-time only and cannot execute browser scripts in release output";
+    policy.reason = "native TurboJS is compile-time only and cannot execute browser scripts in release output";
   } else if (policy.release_like && policy.has_scripts && policy.backend == "wasm-real") {
     policy.decision = "allow-build";
-    policy.reason = "script-bearing release package uses fail-closed QuickJS/WASM backend contract";
+    policy.reason = "script-bearing release package uses fail-closed TurboJS/WASM backend contract";
   } else if (policy.unsafe_release_fallback) {
     policy.decision = "allow-unsafe-fallback";
     policy.reason = "explicit host fallback override accepted for compatibility package";
@@ -56,8 +57,8 @@ void enforce_release_build_policy(const ReleaseBuildPolicy& policy, std::size_t 
     std::ostringstream err;
     err << "release build denied: site contains " << script_count
         << " script chunk" << (script_count == 1 ? "" : "s")
-        << ", quickjs backend '" << policy.backend << "' cannot satisfy strict release execution ("
-        << policy.reason << "). Protected and release profiles cannot enable host fallback; use --quickjs-backend wasm-real for the protected QuickJS/WASM execution backend.";
+        << ", turbojs backend '" << policy.backend << "' cannot satisfy strict release execution ("
+        << policy.reason << "). Protected and release profiles cannot enable host fallback; use --turbojs-backend wasm-real for the protected TurboJS/WASM execution backend.";
     raise_error("VENOM-E5000", err.str());
   }
 }
@@ -72,7 +73,7 @@ std::string make_release_build_policy_metadata(const Profile& profile,
       << "package_version=" << venom::package::kVersion << "\n"
       << "profile=" << profile.name << "\n"
       << "runtime_mode=" << options.runtime << "\n"
-      << "quickjs_backend=" << policy.backend << "\n"
+      << "turbojs_backend=" << policy.backend << "\n"
       << "script_count=" << script_count << "\n"
       << "release_like=" << (policy.release_like ? "true" : "false") << "\n"
       << "fallback_allowed=" << (policy.fallback_allowed ? "true" : "false") << "\n"
@@ -163,14 +164,16 @@ void append_u32_local(std::vector<unsigned char>& out, std::uint32_t value) {
   out.push_back(static_cast<unsigned char>((value >> 24u) & 0xffu));
 }
 
-std::vector<unsigned char> make_quickjs_abi_fingerprint() {
-  // VQAF0001 + version + FNV-1a fingerprint of the one supported release ABI.
+std::vector<unsigned char> make_turbojs_abi_fingerprint() {
+  // VQAF0001 + version + the generated authoritative release ABI fingerprint.
+  // The generator owns canonicalization; package and browser runtime consume the
+  // same constant so contract drift cannot occur through duplicate algorithms.
   std::vector<unsigned char> out;
   out.insert(out.end(), {'V','Q','A','F','0','0','0','1'});
   append_u32_local(out, 1u);
-  append_u32_local(out, 0x3b9ace76u);
-  append_u32_local(out, 12u);
-  append_u32_local(out, 16u);
+  append_u32_local(out, venom::generated::turbojs_wasm_abi::release_abi_fingerprint);
+  append_u32_local(out, venom::generated::turbojs_wasm_abi::runtime_abi);
+  append_u32_local(out, static_cast<std::uint32_t>(venom::generated::turbojs_wasm_abi::required_exports.size()));
   return out;
 }
 
@@ -184,8 +187,8 @@ std::vector<unsigned char> make_release_diversification_table(const venom::vm::P
   std::vector<std::uint32_t> field_ids(kResultFieldCount);
   for (std::uint32_t i = 0; i < kHostCallCount; ++i) host_ids[i] = i + 1u;
   for (std::uint32_t i = 0; i < kResultFieldCount; ++i) field_ids[i] = i;
-  venom::vm::DiversificationRng host_rng(poly, "quickjs-host-wire-map");
-  venom::vm::DiversificationRng field_rng(poly, "quickjs-result-field-map");
+  venom::vm::DiversificationRng host_rng(poly, "turbojs-host-wire-map");
+  venom::vm::DiversificationRng field_rng(poly, "turbojs-result-field-map");
   std::shuffle(host_ids.begin(), host_ids.end(), host_rng);
   std::shuffle(field_ids.begin(), field_ids.end(), field_rng);
 
@@ -236,7 +239,7 @@ std::vector<unsigned char> encode_route_script_bundle(const std::vector<JsChunk>
   std::vector<Entry> entries;
   std::vector<unsigned char> text_blob;
   std::vector<unsigned char> code_blob;
-  std::vector<venom::quickjs::ModuleSourceRecord> module_sources;
+  std::vector<venom::turbojs::ModuleSourceRecord> module_sources;
   entries.reserve(chunks.size());
   module_sources.reserve(chunks.size());
 
@@ -285,12 +288,12 @@ std::vector<unsigned char> encode_route_script_bundle(const std::vector<JsChunk>
     std::vector<unsigned char> payload;
     if (browser_side) {
       // Browser-runtime chunks must remain browser-executable source. Encoding
-      // them as QuickJS bytecode leaves chunk.code empty at runtime and causes
+      // them as TurboJS bytecode leaves chunk.code empty at runtime and causes
       // the browser executor to silently skip the script.
       const auto& browser_source = compiled_sources[chunk_index];
       payload.assign(browser_source.begin(), browser_source.end());
     } else {
-      payload = venom::quickjs::compile_native_quickjs_bytecode(
+      payload = venom::turbojs::compile_native_turbojs_bytecode(
           chunk.code,
           source_label,
           is_module,
@@ -396,8 +399,8 @@ std::string make_release_profile_metadata(const Profile& profile,
       << "profile=" << profile.name << "\n"
       << "security_target=" << (native_target ? "native" : (options.security_target == "browser" ? "browser" : options.security_target)) << "\n"
       << "runtime_mode=" << options.runtime << "\n"
-      << "quickjs_backend=" << release_policy.backend << "\n"
-      << "quickjs_execution_backend=" << (release_policy.backend == "wasm-real" ? "quickjs-wasm-real" : release_policy.backend) << "\n"
+      << "turbojs_backend=" << release_policy.backend << "\n"
+      << "turbojs_execution_backend=" << (release_policy.backend == "wasm-real" ? "turbojs-wasm-real" : release_policy.backend) << "\n"
       << "wasm_backend_required=" << ((release_policy.backend == "wasm-real" && script_count != 0u) ? "true" : "false") << "\n"
       << "host_js_fallback_allowed=" << ((release_policy.fallback_allowed && release_policy.backend != "wasm-real") ? "true" : "false") << "\n"
       << "script_count=" << script_count << "\n"
@@ -437,10 +440,10 @@ std::string make_package_binding_metadata(const Profile& profile,
                                           const std::vector<unsigned char>& runtime_wasm_bytes,
                                           const std::string& style_name,
                                           const std::string& css,
-                                          const std::string& quickjs_engine_name,
-                                          const std::string& quickjs_engine_module,
-                                          const std::string& quickjs_wasm_name,
-                                          const std::vector<unsigned char>& quickjs_wasm_bytes,
+                                          const std::string& turbojs_engine_name,
+                                          const std::string& turbojs_engine_module,
+                                          const std::string& turbojs_wasm_name,
+                                          const std::vector<unsigned char>& turbojs_wasm_bytes,
                                           const std::string& worker_name,
                                           const std::string& worker_runtime) {
   struct BoundAsset {
@@ -452,8 +455,8 @@ std::string make_package_binding_metadata(const Profile& profile,
   assets.push_back({"runtime", runtime_name, venom::package::sha256_hex(bytes_from_string(runtime))});
   if (!runtime_wasm_name.empty()) assets.push_back({"runtime_wasm", runtime_wasm_name, venom::package::sha256_hex(runtime_wasm_bytes)});
   assets.push_back({"style", style_name, venom::package::sha256_hex(bytes_from_string(css))});
-  assets.push_back({"quickjs_engine", quickjs_engine_name, venom::package::sha256_hex(bytes_from_string(quickjs_engine_module))});
-  assets.push_back({"quickjs_wasm", quickjs_wasm_name, venom::package::sha256_hex(quickjs_wasm_bytes)});
+  assets.push_back({"turbojs_engine", turbojs_engine_name, venom::package::sha256_hex(bytes_from_string(turbojs_engine_module))});
+  assets.push_back({"turbojs_wasm", turbojs_wasm_name, venom::package::sha256_hex(turbojs_wasm_bytes)});
   if (!worker_name.empty()) assets.push_back({"worker", worker_name, venom::package::sha256_hex(bytes_from_string(worker_runtime))});
 
   std::ostringstream out;
@@ -502,8 +505,8 @@ bool package_feature_required_in_release(const PendingPackageSection& section) {
     return false;
   }
   if (section.name == "profile-diagnostics.txt" || section.name == "script-diagnostics.txt" ||
-      section.name == "bundle-preview.js" || section.name == "quickjs-probe.txt" ||
-      section.name == "quickjs-bridge-plan.txt") {
+      section.name == "bundle-preview.js" || section.name == "turbojs-probe.txt" ||
+      section.name == "turbojs-bridge-plan.txt") {
     return false;
   }
   return true;

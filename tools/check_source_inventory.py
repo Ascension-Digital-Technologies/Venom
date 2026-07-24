@@ -12,11 +12,11 @@ from pathlib import Path
 
 SOURCE_SUFFIXES = {".c", ".cc", ".cpp", ".cxx"}
 CHECKED_IN_GENERATED_SNAPSHOTS = {
-    "src/generated/runtime/quickjs_engine_module.cpp",
+    "src/generated/runtime/turbojs_engine_module.cpp",
 }
 
 EXTERNAL_WASM_SOURCES = {
-    "src/runtime/quickjs_runtime_scaffold.c",
+    "src/runtime/turbojs_runtime_scaffold.c",
     "src/runtime/wasm_runtime.c",
 }
 IGNORED_PREFIXES = ("third_party/",)

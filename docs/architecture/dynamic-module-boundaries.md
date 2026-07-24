@@ -12,7 +12,7 @@ module.exports = feature;
 exports.run = feature.run;
 ```
 
-Literal dynamic imports are resolved for graph visibility, but remain a runtime execution boundary because protected QuickJS module lowering does not currently preserve browser bundler chunk loading semantics. Non-literal imports are additionally unresolved at build time.
+Literal dynamic imports are resolved for graph visibility, but remain a runtime execution boundary because protected TurboJS module lowering does not currently preserve browser bundler chunk loading semantics. Non-literal imports are additionally unresolved at build time.
 
 CommonJS is treated conservatively because `require`, mutable export objects, loader caches, and cyclic initialization have runtime identity semantics that differ from native ES modules.
 

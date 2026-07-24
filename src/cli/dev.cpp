@@ -1,6 +1,6 @@
-#include "venom/base/error.hpp"
-#include "venom/internal/cli/dev.hpp"
-#include "venom/core/process.hpp"
+#include "base/error.hpp"
+#include "cli/dev.hpp"
+#include "core/process.hpp"
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>

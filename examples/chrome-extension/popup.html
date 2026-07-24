@@ -103,6 +103,36 @@
       </div>
     </details>
 
+
+    <details>
+      <summary>Recorded mouse profile</summary>
+      <p class="mode-note">On an authorized local or owned page, record several natural drags. Only normalized path shape and timing are stored—not page coordinates or clicked content.</p>
+      <div class="actions recorder-actions">
+        <button id="record-mouse">Record</button>
+        <button id="save-mouse">Save recording</button>
+        <button id="clear-mouse">Clear</button>
+      </div>
+    </details>
+
+
+    <details open>
+      <summary>Health and mouse diagnostics</summary>
+      <div id="diagnostics" class="diagnostics-grid">
+        <span>Engine</span><strong id="diag-engine">Not started</strong>
+        <span>Board read</span><strong id="diag-board">—</strong>
+        <span>Recoveries</span><strong id="diag-recovery">0</strong>
+        <span>Mouse profile</span><strong id="diag-profile">None</strong>
+        <span>Movement confidence</span><strong id="diag-confidence">—</strong>
+        <span>Last move</span><strong id="diag-move">—</strong>
+      </div>
+      <canvas id="mouse-preview" width="330" height="150" aria-label="Recorded mouse path preview"></canvas>
+      <p id="profile-advice" class="mode-note">Record several short, medium, and long drags to build a reliable profile.</p>
+      <div class="actions diagnostic-actions">
+        <button id="refresh-diagnostics">Refresh</button>
+        <button id="copy-diagnostics">Copy diagnostics</button>
+      </div>
+    </details>
+
     <div class="actions">
       <button id="start" class="primary">Start</button>
       <button id="stop">Stop</button>

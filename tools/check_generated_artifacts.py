@@ -47,26 +47,26 @@ def main() -> int:
         else:
             failures.extend(compare(browser, root / "src/generated/runtime/javascript/browser_runtime.js", root))
 
-        quickjs = temp / "quickjs_engine_module.cpp"
+        turbojs = temp / "turbojs_engine_module.cpp"
         result = run_command([
             sys.executable,
-            root / "tools/generators/runtime/generate_quickjs_engine_module.py",
-            "--input-dir", root / "src/templates/quickjs-engine",
-            "--prefix", root / "tools/generators/runtime/templates/quickjs_engine_module.prefix.cpp",
-            "--suffix", root / "tools/generators/runtime/templates/quickjs_engine_module.suffix.cpp",
-            "--output", quickjs,
+            root / "tools/generators/runtime/generate_turbojs_engine_module.py",
+            "--input-dir", root / "src/templates/turbojs-engine",
+            "--prefix", root / "tools/generators/runtime/templates/turbojs_engine_module.prefix.cpp",
+            "--suffix", root / "tools/generators/runtime/templates/turbojs_engine_module.suffix.cpp",
+            "--output", turbojs,
         ], cwd=root, timeout=60)
         if not result.passed:
-            failures.append("QuickJS module regeneration failed:\n" + result.output)
+            failures.append("TurboJS module regeneration failed:\n" + result.output)
         else:
-            failures.extend(compare(quickjs, root / "src/generated/runtime/quickjs_engine_module.cpp", root))
+            failures.extend(compare(turbojs, root / "src/generated/runtime/turbojs_engine_module.cpp", root))
 
     if failures:
         print("generated artifact check failed:")
         for failure in failures:
             print(f"  - {failure}")
         return 1
-    print("generated artifact check passed: browser runtime and QuickJS module snapshots are synchronized")
+    print("generated artifact check passed: browser runtime and TurboJS module snapshots are synchronized")
     return 0
 
 

@@ -23,8 +23,8 @@ failed = subprocess.run(
 if failed.returncode == 0:
     raise SystemExit('release build with script chunks and scaffold backend unexpectedly succeeded')
 combined = failed.stdout + failed.stderr
-if 'release build denied' not in combined or 'quickjs backend' not in combined or 'protected and release profiles cannot enable host fallback' not in combined.lower():
-    raise SystemExit('release failure did not explain the strict QuickJS fallback policy: ' + combined)
+if 'release build denied' not in combined or 'turbojs backend' not in combined or 'protected and release profiles cannot enable host fallback' not in combined.lower():
+    raise SystemExit('release failure did not explain the strict TurboJS fallback policy: ' + combined)
 
 rejected = out_root / 'rejected-release-fallback'
 rejected_run = subprocess.run(

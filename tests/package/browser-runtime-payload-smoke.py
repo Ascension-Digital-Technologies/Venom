@@ -20,8 +20,8 @@ for marker in required_build:
         raise SystemExit(f'missing lazy browser-source packaging marker: {marker}')
 
 required_runtime = [
-    'browser script chunk cannot contain QuickJS bytecode',
-    'browser script chunk was packaged as QuickJS bytecode',
+    'browser script chunk cannot contain TurboJS bytecode',
+    'browser script chunk was packaged as TurboJS bytecode',
 ]
 for marker in required_runtime:
     if marker not in runtime:

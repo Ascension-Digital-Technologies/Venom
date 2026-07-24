@@ -10,18 +10,18 @@ from pathlib import Path
 
 def sha256(p:Path): return hashlib.sha256(p.read_bytes()).hexdigest()
 def embedded_wasm(root:Path):
-    h=root/'include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp'
+    h=root/'src/generated/runtime/turbojs_runtime_wasm_blob.hpp'
     values=bytearray(); inside=False
     with h.open('r',encoding='utf-8',errors='replace') as f:
         for line in f:
             if not inside:
-                if 'kQuickJsRuntimeWasmBlob[]' in line: inside=True
+                if 'kTurboJsRuntimeWasmBlob[]' in line: inside=True
                 continue
             if '};' in line: break
             for token in line.split(','):
                 token=token.strip()
                 if token.startswith('0x'): values.append(int(token,16))
-    if not values: raise RuntimeError('embedded QuickJS/WASM byte array not found')
+    if not values: raise RuntimeError('embedded TurboJS/WASM byte array not found')
     return bytes(values)
 
 def dist_metrics(d:Path):
@@ -34,13 +34,13 @@ def dist_metrics(d:Path):
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('--repo-root',type=Path,default=Path(__file__).resolve().parents[1]); ap.add_argument('--artifact',type=Path); ap.add_argument('--dist',type=Path); ap.add_argument('--budget',type=Path); ap.add_argument('--json-out',type=Path); ap.add_argument('--format',choices=['text','json'],default='text')
     a=ap.parse_args(); root=a.repo_root.resolve(); data=a.artifact.read_bytes() if a.artifact else embedded_wasm(root)
-    abi_text=(root/'tools/quickjs_release_abi.py').read_text(encoding='utf-8')
+    abi_text=(root/'tools/turbojs_release_abi.py').read_text(encoding='utf-8')
     block=re.search(r'RELEASE_ABI\s*=\s*\[(.*?)\]',abi_text,re.S)
-    exports=re.findall(r"['\"](venom_qjs_[A-Za-z0-9_]+)['\"]",block.group(1) if block else '')
-    report={'schema':'venom.runtime-performance.v1','quickjs_wasm':{'raw_bytes':len(data),'gzip_bytes':len(gzip.compress(data,compresslevel=9,mtime=0)),'brotli_bytes':len(brotli.compress(data,quality=11)) if brotli else None,'sha256':hashlib.sha256(data).hexdigest(),'release_abi_exports':len(exports)},'distribution':dist_metrics(a.dist) if a.dist else None,'gates':[],'passed':True}
+    exports=re.findall(r"['\"](venom_tjs_[A-Za-z0-9_]+)['\"]",block.group(1) if block else '')
+    report={'schema':'venom.runtime-performance.v1','turbojs_wasm':{'raw_bytes':len(data),'gzip_bytes':len(gzip.compress(data,compresslevel=9,mtime=0)),'brotli_bytes':len(brotli.compress(data,quality=11)) if brotli else None,'sha256':hashlib.sha256(data).hexdigest(),'release_abi_exports':len(exports)},'distribution':dist_metrics(a.dist) if a.dist else None,'gates':[],'passed':True}
     budget=a.budget or root/'contracts/runtime-performance.json'
     if budget.exists():
-      b=json.loads(budget.read_text())['budgets']; pairs=[('quickjs_wasm.raw_bytes','quickjs_wasm_raw_bytes'),('quickjs_wasm.gzip_bytes','quickjs_wasm_gzip_bytes'),('quickjs_wasm.brotli_bytes','quickjs_wasm_brotli_bytes'),('quickjs_wasm.release_abi_exports','release_abi_exports')]
+      b=json.loads(budget.read_text())['budgets']; pairs=[('turbojs_wasm.raw_bytes','turbojs_wasm_raw_bytes'),('turbojs_wasm.gzip_bytes','turbojs_wasm_gzip_bytes'),('turbojs_wasm.brotli_bytes','turbojs_wasm_brotli_bytes'),('turbojs_wasm.release_abi_exports','release_abi_exports')]
       if report['distribution']:
         pairs += [('distribution.javascript_bytes','distribution_javascript_bytes'),('distribution.total_bytes','distribution_total_bytes')]
       for path,key in pairs:
@@ -52,7 +52,7 @@ def main():
     text=json.dumps(report,indent=2)
     if a.format=='json': print(text)
     else:
-      q=report['quickjs_wasm']; print('Venom runtime performance report'); print(f"QuickJS/WASM raw: {q['raw_bytes']} bytes"); print(f"QuickJS/WASM gzip: {q['gzip_bytes']} bytes"); print(f"QuickJS/WASM brotli: {q['brotli_bytes'] if q['brotli_bytes'] is not None else 'unavailable'}"); print(f"Release ABI exports: {q['release_abi_exports']}")
+      q=report['turbojs_wasm']; print('Venom runtime performance report'); print(f"TurboJS/WASM raw: {q['raw_bytes']} bytes"); print(f"TurboJS/WASM gzip: {q['gzip_bytes']} bytes"); print(f"TurboJS/WASM brotli: {q['brotli_bytes'] if q['brotli_bytes'] is not None else 'unavailable'}"); print(f"Release ABI exports: {q['release_abi_exports']}")
       for g in report['gates']: print(f"[{'PASS' if g['passed'] else 'FAIL'}] {g['metric']}: {g['actual']} <= {g['prod']}")
     if a.json_out: a.json_out.write_text(text+'\n')
     return 0 if report['passed'] else 60

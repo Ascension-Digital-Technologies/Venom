@@ -1,6 +1,6 @@
-#include "venom/base/error.hpp"
-#include "venom/internal/cli/dist_analyzer.hpp"
-#include "venom/package/hash.hpp"
+#include "base/error.hpp"
+#include "cli/dist_analyzer.hpp"
+#include "package/hash.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -87,7 +87,7 @@ bool contains_forbidden_marker(const std::filesystem::path& path, std::string& m
   std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
   static const std::vector<std::string> markers = {
     "function minimax", "Piece Square Tables", "VAEAD001", "VSEAL001",
-    "VENOM_QJS_RUNTIME_ABI_", "js/ai-engine.js::", "src/compiler/"
+    "VENOM_TJS_RUNTIME_ABI_", "js/ai-engine.js::", "src/compiler/"
   };
   for (const auto& item : markers) {
     if (text.find(item) != std::string::npos) { marker = item; return true; }

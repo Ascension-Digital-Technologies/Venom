@@ -10,7 +10,7 @@ The authoritative policy is `contracts/release-certification.json`. It declares:
 - required browser engines;
 - static repository and contract gates;
 - examples that must build successfully;
-- production examples that must pass real QuickJS/WASM verification;
+- production examples that must pass real TurboJS/WASM verification;
 - production examples that must pass protected-source leak scanning;
 - browser fixtures and public compatibility claims.
 
@@ -58,7 +58,7 @@ python tests/browser/venom_examples_e2e.py \
   --json-out build/browser-certification.json
 ```
 
-It verifies real QuickJS/WASM execution, result transfer, context isolation, circular-value handling, console limits, interrupt recovery, protected application boot, route navigation, and browser error cleanliness.
+It verifies real TurboJS/WASM execution, result transfer, context isolation, circular-value handling, console limits, interrupt recovery, protected application boot, route navigation, and browser error cleanliness.
 
 ## Aggregation
 

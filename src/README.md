@@ -1,6 +1,6 @@
 # Source tree ownership
 
-The `src/` tree is divided into first-class product domains and now contains implementation translation units only. Every first-party header lives in the repository-level `include/venom/` tree: stable APIs under `include/venom/<domain>/` and implementation-only surfaces under `include/venom/internal/<domain>/`. Each native domain compiles independently through `cmake/source_domains.cmake`; `venom_core` is only the final object aggregation boundary.
+The `src/` tree is divided into first-class product domains. Each native domain compiles independently through `cmake/source_domains.cmake`; `venom_core` is only the final object aggregation boundary.
 
 ```text
 src/
@@ -19,7 +19,7 @@ src/
 ├── package/                  VBC package format and storage primitives
 ├── pipeline/
 │   └── planning/             Package and section construction plans
-├── quickjs/                  QuickJS ABI, bytecode, bridge, and engine integration
+├── turbojs/                  TurboJS ABI, bytecode, bridge, and engine integration
 ├── remote/                   Remote source cache, lock, integrity, and acquisition
 ├── runtime/                  Native/WASM runtime services and probes
 ├── templates/                Authored JavaScript generator inputs
@@ -35,8 +35,7 @@ src/
 - Pipeline code coordinates lower-level domains and owns build-specific planning.
 - Authored `.js` belongs only under `src/templates/`.
 - Generated `.js` and `.json` belong under explicitly named generated JavaScript or metadata folders.
-- Venom QuickJS integration belongs under `src/quickjs/`; upstream QuickJS remains under `third_party/quickjs/`.
-- Stable API headers belong in `include/venom/<domain>/`; implementation headers belong in `include/venom/internal/<domain>/`; no first-party headers are allowed under `src/`.
-- New cross-domain public includes must be added deliberately to the architecture policy and remain acyclic; cross-domain `venom/internal/...` includes are forbidden.
+- Venom TurboJS integration belongs under `src/turbojs/`; upstream TurboJS remains under `third_party/turbojs/`.
+- New cross-domain includes must be added deliberately to the architecture policy and remain acyclic.
 
 Run `python tools/architecture/check_domain_dependencies.py .` to verify the dependency boundaries.

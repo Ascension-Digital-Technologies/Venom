@@ -99,15 +99,15 @@ dist-release/
 
 ## Release boundaries
 
-This packaging pass does not change the QuickJS/WASM truth model:
+This packaging pass does not change the TurboJS/WASM truth model:
 
 ```txt
 verify-runtime --require-real-engine
 ```
 
-still fails on the checked-in contract scaffold until `scripts/linux/build-emsdk.sh or scripts/windows/build-emsdk.bat` is run with Emscripten and the verified upstream QuickJS WASM artifact is embedded.
+still fails on the checked-in contract scaffold until `scripts/linux/build-emsdk.sh or scripts/windows/build-emsdk.bat` is run with Emscripten and the verified upstream TurboJS WASM artifact is embedded.
 
-The binary release is suitable for building and inspecting protected website packages, but a release should not claim full upstream browser QuickJS/WASM parity until the strict real-engine gate passes.
+The binary release is suitable for building and inspecting protected website packages, but a release should not claim full upstream browser TurboJS/WASM parity until the strict real-engine gate passes.
 
 
 ## Platform package layout

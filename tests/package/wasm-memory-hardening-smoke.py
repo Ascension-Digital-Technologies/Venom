@@ -2,10 +2,10 @@
 from pathlib import Path
 import sys
 root = Path(sys.argv[1] if len(sys.argv) > 1 else '.').resolve()
-worker = ((root/'src/generated/runtime/worker_runtime_js.cpp').read_text() + (root/'include/venom/generated/runtime/worker_runtime_template.hpp').read_text())
-engine = (root/'src/generated/runtime/quickjs_engine_module.cpp').read_text()
+worker = ((root/'src/generated/runtime/worker_runtime_js.cpp').read_text() + (root/'src/generated/runtime/worker_runtime_template.hpp').read_text())
+engine = (root/'src/generated/runtime/turbojs_engine_module.cpp').read_text()
 required_worker = ['secureMemoryRange','secureMemoryWrite','secureMemoryRead','secureMemoryZero','envelope.fill(0)','resultBytes.fill(0)']
-required_engine = ['memoryRange','readWasmBytes','zeroWasmRange','QuickJS script input']
+required_engine = ['memoryRange','readWasmBytes','zeroWasmRange','TurboJS script input']
 for marker in required_worker:
     assert marker in worker, f'missing worker memory hardening marker: {marker}'
 for marker in required_engine:

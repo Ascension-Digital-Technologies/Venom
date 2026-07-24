@@ -1,0 +1,11 @@
+node_modules/
+coverage/
+dist/
+release/
+*.zip
+*.sha256
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log

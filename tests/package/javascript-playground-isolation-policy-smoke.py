@@ -1,7 +1,7 @@
 from pathlib import Path
 root=Path(__file__).resolve().parents[2]
 app=(root/'examples/javascript-playground/browser/app.js').read_text(encoding='utf-8')
-engine=(root/'src/generated/runtime/quickjs_engine_module.cpp').read_text(encoding='utf-8')
+engine=(root/'src/generated/runtime/turbojs_engine_module.cpp').read_text(encoding='utf-8')
 required_app=[
   '/__venom/playground/session','X-Venom-Playground-Token','executionPolicy',
   'isolation: "ephemeral"','heapLimitBytes','stackLimitBytes','interruptBudget',
@@ -12,7 +12,7 @@ for token in required_app:
 required_engine=[
   'const executionPolicy =','effectiveHeapLimit','effectiveStackLimit',
   'effectiveInterruptBudget','effectivePendingJobLimit','maxBridgeInputBytes','maxResultBytes',
-  'QuickJS bridge result exceeds configured result limit'
+  'TurboJS bridge result exceeds configured result limit'
 ]
 for token in required_engine:
     assert token in engine, f'missing runtime isolation enforcement: {token}'

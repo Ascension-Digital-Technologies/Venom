@@ -156,6 +156,16 @@ def install(source: Path, prefix: Path, bin_dir: Path, verifier: Path, public_ke
     set_executable(temp_command)
     os.replace(temp_command, command_path)
 
+    helper_name = "venom_hardener_worker.exe" if command_path.suffix.lower() == ".exe" else "venom_hardener_worker"
+    installed_helper = installed_binary.parent / helper_name
+    if not installed_helper.is_file():
+        raise SystemExit(f"release is missing the hardener worker: {installed_helper}")
+    helper_command = bin_dir / helper_name
+    temp_helper = bin_dir / (helper_name + ".tmp")
+    shutil.copy2(installed_helper, temp_helper)
+    set_executable(temp_helper)
+    os.replace(temp_helper, helper_command)
+
     receipt = {
         "schema_version": SCHEMA_VERSION,
         "product": PRODUCT,

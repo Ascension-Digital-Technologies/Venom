@@ -4,18 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Venom JavaScript Playground</title>
-  <meta name="description" content="Compile and execute JavaScript inside Venom's protected QuickJS/WASM runtime.">
+  <meta name="description" content="Compile and execute JavaScript inside Venom's protected TurboJS/WASM runtime.">
   <link rel="stylesheet" href="./styles/main.css">
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><div class="mark">V</div><div><strong>Venom Playground</strong><span>QuickJS/WASM JavaScript compiler</span></div></div>
+    <div class="brand"><div class="mark">V</div><div><strong>Venom Playground</strong><span>TurboJS/WASM JavaScript compiler</span></div></div>
     <div class="engine-badge"><i></i> Protected engine online</div>
   </header>
   <main>
     <section class="hero">
-      <div><span class="eyebrow">ISOLATED EXECUTION LAB</span><h1>Run JavaScript beyond the browser runtime.</h1><p>Paste JavaScript, compile it inside Venom's embedded QuickJS/WASM engine, and inspect structured console output, return values, timing, and protected runtime errors.</p></div>
-      <div class="trust-card"><strong>Execution boundary</strong><ul><li>No browser <code>eval</code></li><li>No DOM or window access</li><li>No host JS fallback</li><li>Fail-closed QuickJS bridge</li></ul></div>
+      <div><span class="eyebrow">ISOLATED EXECUTION LAB</span><h1>Run JavaScript beyond the browser runtime.</h1><p>Paste JavaScript, compile it inside Venom's embedded TurboJS/WASM engine, and inspect structured console output, return values, timing, and protected runtime errors.</p></div>
+      <div class="trust-card"><strong>Execution boundary</strong><ul><li>No browser <code>eval</code></li><li>No DOM or window access</li><li>No host JS fallback</li><li>Fail-closed TurboJS bridge</li></ul></div>
     </section>
     <section class="toolbar">
       <label>Example<select id="examples"></select></label>
@@ -29,15 +29,15 @@
       </article>
       <article class="panel output-panel">
         <header><strong>Execution output</strong><span id="status" data-state="idle">Ready</span></header>
-        <div id="output"><div class="empty-state"><div class="engine-icon">Q</div><h3>QuickJS is ready</h3><p>Compile the script to start an isolated execution.</p></div></div>
+        <div id="output"><div class="empty-state"><div class="engine-icon">Q</div><h3>TurboJS is ready</h3><p>Compile the script to start an isolated execution.</p></div></div>
       </article>
     </section>
     <section class="bottom-grid">
       <article class="input-card"><header><strong>JSON input</strong><span>available as <code>input</code></span></header><textarea id="input-editor" spellcheck="false"></textarea></article>
-      <article class="metrics-card"><div><span>Runtime</span><strong>QuickJS/WASM</strong></div><div><span>Duration</span><strong id="metric-duration">—</strong></div><div><span>Console entries</span><strong id="metric-logs">0</strong></div><div><span>Result type</span><strong id="metric-result">—</strong></div></article>
+      <article class="metrics-card"><div><span>Runtime</span><strong>TurboJS/WASM</strong></div><div><span>Duration</span><strong id="metric-duration">—</strong></div><div><span>Console entries</span><strong id="metric-logs">0</strong></div><div><span>Result type</span><strong id="metric-result">—</strong></div></article>
     </section>
   </main>
-  <footer><span>Venom protected JavaScript compiler</span><span>User code executes inside the embedded QuickJS/WASM boundary.</span></footer>
+  <footer><span>Venom protected JavaScript compiler</span><span>User code executes inside the embedded TurboJS/WASM boundary.</span></footer>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Venom JavaScript Playground","applicationCategory":"DeveloperApplication"}</script>
   <script type="module" src="./browser/app.js"></script>
 </body>

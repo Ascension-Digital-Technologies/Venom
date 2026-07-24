@@ -1,9 +1,9 @@
-function installVenomHostBridge(root, pkg, routes, assetManifest, runtimePolicy, hostBridgePlan, fetchBridgePlan, asyncQueuePlan, timerBridgePlan, eventQueuePlan, quickJsBridgePlan, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan, quickJsEngineModulePlan = null, quickJsEngineModuleUrl = null, quickJsContextLifecyclePlan = null, hostCapabilitiesPlan = null, quickJsAdapterDiagnosticsPlan = null, quickJsWasmRuntimePlan = null, quickJsWasmUrl = null, quickJsSourceTransferPlan = null, quickJsConsoleBridgePlan = null, quickJsExecutionRecordsPlan = null, quickJsResultBridgePlan = null, quickJsFallbackPolicyPlan = null, quickJsRuntimeAbiPlan = null, quickJsHostImportsPlan = null, quickJsHeapLimitsPlan = null, quickJsScriptBufferPlan = null, quickJsConsoleAbiPlan = null, quickJsParityProbePlan = null, quickJsReleaseFallbackPlan = null, quickJsBytecodeManifestPlan = null, quickJsModuleResolverPlan = null, quickJsExceptionAbiPlan = null, quickJsHostTrapPolicyPlan = null, quickJsExecutionLifecyclePlan = null, quickJsScriptBufferPolicyPlan = null, quickJsContextLimitPolicyPlan = null, quickJsHostCallDispatchPlan = null, quickJsParityContractPlan = null, quickJsReleaseFailClosedPlan = null, quickJsModuleGraphPlan = null, quickJsModuleExecutionPlan = null, quickJsModuleCachePlan = null, quickJsResolverAuditPlan = null, quickJsInteropFallbackPlan = null, quickJsExecutionJournalPlan = null, quickJsCheckpointPolicyPlan = null, quickJsReplayCursorPlan = null, quickJsResumeStatePlan = null, quickJsDeterminismAuditPlan = null, quickJsSnapshotPolicyPlan = null, quickJsSnapshotRecordsPlan = null, quickJsReplayValidationPlan = null, quickJsDeterminismLedgerPlan = null, quickJsAuditSealPlan = null, quickJsExecutionCommitPlan = null, quickJsRollbackPolicyPlan = null, quickJsHostCallReceiptsPlan = null, quickJsReleaseAcceptancePlan = null, quickJsCommitAuditPlan = null, quickJsCapabilityPolicyPlan = null, quickJsHostIoPolicyPlan = null, quickJsPermissionSealPlan = null, quickJsPolicyReceiptsPlan = null, quickJsReleaseGatePlan = null, quickJsHostIoDecisionPlan = null, quickJsHostIoDenyTracePlan = null, quickJsCapabilityLedgerPlan = null, quickJsPolicySealAuditPlan = null, quickJsRuntimeDenylistPlan = null) {
-  const asyncQueue = createAsyncHostQueue(fetchBridgePlan, asyncQueuePlan, timerBridgePlan, quickJsBridgePlan);
+function installVenomHostBridge(root, pkg, routes, assetManifest, runtimePolicy, hostBridgePlan, fetchBridgePlan, asyncQueuePlan, timerBridgePlan, eventQueuePlan, turboJsBridgePlan, scriptIsolationPlan, scriptPolicyPlan, turboJsChunkPlan, turboJsEnginePlan, scriptEnginePolicyPlan, turboJsEngineModulePlan = null, turboJsEngineModuleUrl = null, turboJsContextLifecyclePlan = null, hostCapabilitiesPlan = null, turboJsAdapterDiagnosticsPlan = null, turboJsWasmRuntimePlan = null, turboJsWasmUrl = null, turboJsSourceTransferPlan = null, turboJsConsoleBridgePlan = null, turboJsExecutionRecordsPlan = null, turboJsResultBridgePlan = null, turboJsFallbackPolicyPlan = null, turboJsRuntimeAbiPlan = null, turboJsHostImportsPlan = null, turboJsHeapLimitsPlan = null, turboJsScriptBufferPlan = null, turboJsConsoleAbiPlan = null, turboJsParityProbePlan = null, turboJsReleaseFallbackPlan = null, turboJsBytecodeManifestPlan = null, turboJsModuleResolverPlan = null, turboJsExceptionAbiPlan = null, turboJsHostTrapPolicyPlan = null, turboJsExecutionLifecyclePlan = null, turboJsScriptBufferPolicyPlan = null, turboJsContextLimitPolicyPlan = null, turboJsHostCallDispatchPlan = null, turboJsParityContractPlan = null, turboJsReleaseFailClosedPlan = null, turboJsModuleGraphPlan = null, turboJsModuleExecutionPlan = null, turboJsModuleCachePlan = null, turboJsResolverAuditPlan = null, turboJsInteropFallbackPlan = null, turboJsExecutionJournalPlan = null, turboJsCheckpointPolicyPlan = null, turboJsReplayCursorPlan = null, turboJsResumeStatePlan = null, turboJsDeterminismAuditPlan = null, turboJsSnapshotPolicyPlan = null, turboJsSnapshotRecordsPlan = null, turboJsReplayValidationPlan = null, turboJsDeterminismLedgerPlan = null, turboJsAuditSealPlan = null, turboJsExecutionCommitPlan = null, turboJsRollbackPolicyPlan = null, turboJsHostCallReceiptsPlan = null, turboJsReleaseAcceptancePlan = null, turboJsCommitAuditPlan = null, turboJsCapabilityPolicyPlan = null, turboJsHostIoPolicyPlan = null, turboJsPermissionSealPlan = null, turboJsPolicyReceiptsPlan = null, turboJsReleaseGatePlan = null, turboJsHostIoDecisionPlan = null, turboJsHostIoDenyTracePlan = null, turboJsCapabilityLedgerPlan = null, turboJsPolicySealAuditPlan = null, turboJsRuntimeDenylistPlan = null) {
+  const asyncQueue = createAsyncHostQueue(fetchBridgePlan, asyncQueuePlan, timerBridgePlan, turboJsBridgePlan);
   const eventQueue = createEventQueue(eventQueuePlan);
   const domHandles = createDomHandleRegistry(root, asyncQueuePlan && asyncQueuePlan.maxDomHandles ? asyncQueuePlan.maxDomHandles : 4096);
   let bridgeRef = null;
-  const quickJsEngine = createQuickJsEngine(asyncQueue, quickJsEnginePlan, scriptEnginePolicyPlan, quickJsBridgePlan, quickJsEngineModulePlan, quickJsEngineModuleUrl, quickJsContextLifecyclePlan, hostCapabilitiesPlan, quickJsAdapterDiagnosticsPlan, quickJsWasmRuntimePlan, quickJsWasmUrl, quickJsSourceTransferPlan, quickJsConsoleBridgePlan, quickJsExecutionRecordsPlan, quickJsResultBridgePlan, quickJsFallbackPolicyPlan, quickJsRuntimeAbiPlan, quickJsHostImportsPlan, quickJsHeapLimitsPlan, quickJsScriptBufferPlan, quickJsConsoleAbiPlan, quickJsParityProbePlan, quickJsReleaseFallbackPlan, quickJsBytecodeManifestPlan, quickJsModuleResolverPlan, quickJsExceptionAbiPlan, quickJsHostTrapPolicyPlan, quickJsExecutionLifecyclePlan, quickJsScriptBufferPolicyPlan, quickJsContextLimitPolicyPlan, quickJsHostCallDispatchPlan, quickJsParityContractPlan, quickJsReleaseFailClosedPlan, quickJsModuleGraphPlan, quickJsModuleExecutionPlan, quickJsModuleCachePlan, quickJsResolverAuditPlan, quickJsInteropFallbackPlan, quickJsExecutionJournalPlan, quickJsCheckpointPolicyPlan, quickJsReplayCursorPlan, quickJsResumeStatePlan, quickJsDeterminismAuditPlan, quickJsSnapshotPolicyPlan, quickJsSnapshotRecordsPlan, quickJsReplayValidationPlan, quickJsDeterminismLedgerPlan, quickJsAuditSealPlan, quickJsExecutionCommitPlan, quickJsRollbackPolicyPlan, quickJsHostCallReceiptsPlan, quickJsReleaseAcceptancePlan, quickJsCommitAuditPlan, quickJsCapabilityPolicyPlan, quickJsHostIoPolicyPlan, quickJsPermissionSealPlan, quickJsPolicyReceiptsPlan, quickJsReleaseGatePlan, quickJsHostIoDecisionPlan, quickJsHostIoDenyTracePlan, quickJsCapabilityLedgerPlan, quickJsPolicySealAuditPlan, quickJsRuntimeDenylistPlan);
+  const turboJsEngine = createTurboJsEngine(asyncQueue, turboJsEnginePlan, scriptEnginePolicyPlan, turboJsBridgePlan, turboJsEngineModulePlan, turboJsEngineModuleUrl, turboJsContextLifecyclePlan, hostCapabilitiesPlan, turboJsAdapterDiagnosticsPlan, turboJsWasmRuntimePlan, turboJsWasmUrl, turboJsSourceTransferPlan, turboJsConsoleBridgePlan, turboJsExecutionRecordsPlan, turboJsResultBridgePlan, turboJsFallbackPolicyPlan, turboJsRuntimeAbiPlan, turboJsHostImportsPlan, turboJsHeapLimitsPlan, turboJsScriptBufferPlan, turboJsConsoleAbiPlan, turboJsParityProbePlan, turboJsReleaseFallbackPlan, turboJsBytecodeManifestPlan, turboJsModuleResolverPlan, turboJsExceptionAbiPlan, turboJsHostTrapPolicyPlan, turboJsExecutionLifecyclePlan, turboJsScriptBufferPolicyPlan, turboJsContextLimitPolicyPlan, turboJsHostCallDispatchPlan, turboJsParityContractPlan, turboJsReleaseFailClosedPlan, turboJsModuleGraphPlan, turboJsModuleExecutionPlan, turboJsModuleCachePlan, turboJsResolverAuditPlan, turboJsInteropFallbackPlan, turboJsExecutionJournalPlan, turboJsCheckpointPolicyPlan, turboJsReplayCursorPlan, turboJsResumeStatePlan, turboJsDeterminismAuditPlan, turboJsSnapshotPolicyPlan, turboJsSnapshotRecordsPlan, turboJsReplayValidationPlan, turboJsDeterminismLedgerPlan, turboJsAuditSealPlan, turboJsExecutionCommitPlan, turboJsRollbackPolicyPlan, turboJsHostCallReceiptsPlan, turboJsReleaseAcceptancePlan, turboJsCommitAuditPlan, turboJsCapabilityPolicyPlan, turboJsHostIoPolicyPlan, turboJsPermissionSealPlan, turboJsPolicyReceiptsPlan, turboJsReleaseGatePlan, turboJsHostIoDecisionPlan, turboJsHostIoDenyTracePlan, turboJsCapabilityLedgerPlan, turboJsPolicySealAuditPlan, turboJsRuntimeDenylistPlan);
   const bridge = Object.freeze({
     version: 1,
     packageVersion: pkg.version,
@@ -25,125 +25,125 @@ function installVenomHostBridge(root, pkg, routes, assetManifest, runtimePolicy,
     timerBridgeMode: timerBridgePlan && timerBridgePlan.enabled ? 'async-host-call' : 'none',
     eventQueueVersion: eventQueuePlan ? eventQueuePlan.version : 0,
     eventQueueMode: eventQueuePlan && eventQueuePlan.enabled ? 'enabled' : 'none',
-    quickJsBridgeVersion: quickJsBridgePlan ? quickJsBridgePlan.version : 0,
-    quickJsBridgeMode: quickJsBridgePlan ? quickJsBridgePlan.mode : 'none',
+    turboJsBridgeVersion: turboJsBridgePlan ? turboJsBridgePlan.version : 0,
+    turboJsBridgeMode: turboJsBridgePlan ? turboJsBridgePlan.mode : 'none',
     scriptIsolationVersion: scriptIsolationPlan ? scriptIsolationPlan.version : 0,
     scriptIsolationMode: scriptIsolationPlan ? scriptIsolationPlan.mode : 'none',
     scriptPolicyVersion: scriptPolicyPlan ? scriptPolicyPlan.version : 0,
     scriptPolicyMode: scriptPolicyPlan ? 'capability-metadata' : 'none',
-    quickJsChunkVersion: quickJsChunkPlan ? quickJsChunkPlan.version : 0,
-    quickJsChunkMode: quickJsChunkPlan ? quickJsChunkPlan.mode : 'none',
-    quickJsChunkCount: quickJsChunkPlan ? quickJsChunkPlan.chunkCount : 0,
-    quickJsEngineVersion: quickJsEnginePlan ? quickJsEnginePlan.version : 0,
-    quickJsEngineMode: quickJsEnginePlan ? quickJsEnginePlan.mode : 'none',
-    quickJsEngineEnabled: quickJsEnginePlan ? !!quickJsEnginePlan.enabled : false,
+    turboJsChunkVersion: turboJsChunkPlan ? turboJsChunkPlan.version : 0,
+    turboJsChunkMode: turboJsChunkPlan ? turboJsChunkPlan.mode : 'none',
+    turboJsChunkCount: turboJsChunkPlan ? turboJsChunkPlan.chunkCount : 0,
+    turboJsEngineVersion: turboJsEnginePlan ? turboJsEnginePlan.version : 0,
+    turboJsEngineMode: turboJsEnginePlan ? turboJsEnginePlan.mode : 'none',
+    turboJsEngineEnabled: turboJsEnginePlan ? !!turboJsEnginePlan.enabled : false,
     scriptEnginePolicyVersion: scriptEnginePolicyPlan ? scriptEnginePolicyPlan.version : 0,
     scriptEngineFallback: scriptEnginePolicyPlan ? scriptEnginePolicyPlan.fallback : 'none',
-    quickJsEngineModuleVersion: quickJsEngineModulePlan ? quickJsEngineModulePlan.version : 0,
-    quickJsEngineModuleMode: quickJsEngineModulePlan && quickJsEngineModulePlan.enabled ? quickJsEngineModulePlan.executionMode : 'none',
-    quickJsEngineModuleLoaded: !!quickJsEngineModuleUrl,
-    quickJsEngineModuleUrl: quickJsEngineModuleUrl || '',
-    quickJsContextLifecycleVersion: quickJsContextLifecyclePlan ? quickJsContextLifecyclePlan.version : 0,
-    quickJsContextLifecycleMode: quickJsContextLifecyclePlan && quickJsContextLifecyclePlan.enabled ? quickJsContextLifecyclePlan.model : 'none',
+    turboJsEngineModuleVersion: turboJsEngineModulePlan ? turboJsEngineModulePlan.version : 0,
+    turboJsEngineModuleMode: turboJsEngineModulePlan && turboJsEngineModulePlan.enabled ? turboJsEngineModulePlan.executionMode : 'none',
+    turboJsEngineModuleLoaded: !!turboJsEngineModuleUrl,
+    turboJsEngineModuleUrl: turboJsEngineModuleUrl || '',
+    turboJsContextLifecycleVersion: turboJsContextLifecyclePlan ? turboJsContextLifecyclePlan.version : 0,
+    turboJsContextLifecycleMode: turboJsContextLifecyclePlan && turboJsContextLifecyclePlan.enabled ? turboJsContextLifecyclePlan.model : 'none',
     hostCapabilitiesVersion: hostCapabilitiesPlan ? hostCapabilitiesPlan.version : 0,
     hostCapabilityCount: hostCapabilitiesPlan && hostCapabilitiesPlan.capabilities ? hostCapabilitiesPlan.capabilities.length : 0,
-    quickJsAdapterDiagnosticsVersion: quickJsAdapterDiagnosticsPlan ? quickJsAdapterDiagnosticsPlan.version : 0,
-    quickJsAdapterDiagnosticsMode: quickJsAdapterDiagnosticsPlan && quickJsAdapterDiagnosticsPlan.enabled ? 'enabled' : 'none',
-    quickJsWasmRuntimeVersion: quickJsWasmRuntimePlan ? quickJsWasmRuntimePlan.version : 0,
-    quickJsWasmRuntimeMode: quickJsWasmRuntimePlan && quickJsWasmRuntimePlan.enabled ? quickJsWasmRuntimePlan.executionMode : 'none',
-    quickJsWasmUrl: quickJsWasmUrl || '',
-    quickJsSourceTransferVersion: quickJsSourceTransferPlan ? quickJsSourceTransferPlan.version : 0,
-    quickJsSourceTransferMode: quickJsSourceTransferPlan && quickJsSourceTransferPlan.enabled ? 'enabled' : 'none',
-    quickJsConsoleBridgeVersion: quickJsConsoleBridgePlan ? quickJsConsoleBridgePlan.version : 0,
-    quickJsConsoleBridgeMode: quickJsConsoleBridgePlan && quickJsConsoleBridgePlan.enabled ? quickJsConsoleBridgePlan.mode : 'none',
-    quickJsExecutionRecordsVersion: quickJsExecutionRecordsPlan ? quickJsExecutionRecordsPlan.version : 0,
-    quickJsExecutionRecordsMode: quickJsExecutionRecordsPlan && quickJsExecutionRecordsPlan.enabled ? quickJsExecutionRecordsPlan.retention : 'none',
-    quickJsResultBridgeVersion: quickJsResultBridgePlan ? quickJsResultBridgePlan.version : 0,
-    quickJsResultBridgeMode: quickJsResultBridgePlan && quickJsResultBridgePlan.enabled ? quickJsResultBridgePlan.format : 'none',
-    quickJsFallbackPolicyVersion: quickJsFallbackPolicyPlan ? quickJsFallbackPolicyPlan.version : 0,
-    quickJsFallbackPolicyMode: quickJsFallbackPolicyPlan && quickJsFallbackPolicyPlan.enabled ? quickJsFallbackPolicyPlan.mode : 'none',
-    quickJsRuntimeAbi: quickJsRuntimeAbiPlan ? quickJsRuntimeAbiPlan.abi : 0,
-    quickJsRuntimeAbiHash: quickJsRuntimeAbiPlan ? quickJsRuntimeAbiPlan.tableHash : '',
-    quickJsHostImportCount: quickJsHostImportsPlan ? quickJsHostImportsPlan.importCount : 0,
-    quickJsHeapLimit: quickJsHeapLimitsPlan ? quickJsHeapLimitsPlan.heapLimit : 0,
-    quickJsScriptBufferCapacity: quickJsScriptBufferPlan ? quickJsScriptBufferPlan.capacity : 0,
-    quickJsConsoleAbi: quickJsConsoleAbiPlan ? quickJsConsoleAbiPlan.abi : 0,
-    quickJsParityProbeExpected: quickJsParityProbePlan ? quickJsParityProbePlan.expected : '',
-    quickJsReleaseFallbackPolicy: quickJsReleaseFallbackPlan ? quickJsReleaseFallbackPlan.policy : '',
-    quickJsBytecodeManifestVersion: quickJsBytecodeManifestPlan ? quickJsBytecodeManifestPlan.version : 0,
-    quickJsBytecodeManifestMode: quickJsBytecodeManifestPlan && quickJsBytecodeManifestPlan.enabled ? quickJsBytecodeManifestPlan.format : 'none',
-    quickJsBytecodeChunkCount: quickJsBytecodeManifestPlan ? quickJsBytecodeManifestPlan.chunkCount : 0,
-    quickJsModuleResolverVersion: quickJsModuleResolverPlan ? quickJsModuleResolverPlan.version : 0,
-    quickJsModuleResolverMode: quickJsModuleResolverPlan && quickJsModuleResolverPlan.enabled ? quickJsModuleResolverPlan.mode : 'none',
-    quickJsExceptionAbi: quickJsExceptionAbiPlan ? quickJsExceptionAbiPlan.abi : 0,
-    quickJsExceptionAbiVersion: quickJsExceptionAbiPlan ? quickJsExceptionAbiPlan.version : 0,
-    quickJsHostTrapPolicy: quickJsHostTrapPolicyPlan ? quickJsHostTrapPolicyPlan.policy : '',
-    quickJsHostTrapPolicyVersion: quickJsHostTrapPolicyPlan ? quickJsHostTrapPolicyPlan.version : 0,
-    quickJsExecutionLifecycleVersion: quickJsExecutionLifecyclePlan ? quickJsExecutionLifecyclePlan.version : 0,
-    quickJsExecutionLifecycleStates: quickJsExecutionLifecyclePlan ? quickJsExecutionLifecyclePlan.states : '',
-    quickJsScriptBufferPolicyVersion: quickJsScriptBufferPolicyPlan ? quickJsScriptBufferPolicyPlan.version : 0,
-    quickJsContextLimitPolicyVersion: quickJsContextLimitPolicyPlan ? quickJsContextLimitPolicyPlan.version : 0,
-    quickJsHostCallDispatchVersion: quickJsHostCallDispatchPlan ? quickJsHostCallDispatchPlan.version : 0,
-    quickJsHostCallDispatchCount: quickJsHostCallDispatchPlan ? quickJsHostCallDispatchPlan.entryCount : 0,
-    quickJsParityContractVersion: quickJsParityContractPlan ? quickJsParityContractPlan.version : 0,
-    quickJsReleaseFailClosedVersion: quickJsReleaseFailClosedPlan ? quickJsReleaseFailClosedPlan.version : 0,
-    quickJsModuleGraphVersion: quickJsModuleGraphPlan ? quickJsModuleGraphPlan.version : 0,
-    quickJsModuleGraphCount: quickJsModuleGraphPlan ? quickJsModuleGraphPlan.moduleCount : 0,
-    quickJsModuleExecutionVersion: quickJsModuleExecutionPlan ? quickJsModuleExecutionPlan.version : 0,
-    quickJsModuleExecutionMode: quickJsModuleExecutionPlan && quickJsModuleExecutionPlan.enabled ? quickJsModuleExecutionPlan.mode : 'none',
-    quickJsModuleCacheVersion: quickJsModuleCachePlan ? quickJsModuleCachePlan.version : 0,
-    quickJsResolverAuditVersion: quickJsResolverAuditPlan ? quickJsResolverAuditPlan.version : 0,
-    quickJsInteropFallbackVersion: quickJsInteropFallbackPlan ? quickJsInteropFallbackPlan.version : 0,
-    quickJsExecutionJournalVersion: quickJsExecutionJournalPlan ? quickJsExecutionJournalPlan.version : 0,
-    quickJsCheckpointPolicyVersion: quickJsCheckpointPolicyPlan ? quickJsCheckpointPolicyPlan.version : 0,
-    quickJsReplayCursorVersion: quickJsReplayCursorPlan ? quickJsReplayCursorPlan.version : 0,
-    quickJsResumeStateVersion: quickJsResumeStatePlan ? quickJsResumeStatePlan.version : 0,
-    quickJsDeterminismAuditVersion: quickJsDeterminismAuditPlan ? quickJsDeterminismAuditPlan.version : 0,
-    quickJsSnapshotPolicyVersion: quickJsSnapshotPolicyPlan ? quickJsSnapshotPolicyPlan.version : 0,
-    quickJsSnapshotRecordsVersion: quickJsSnapshotRecordsPlan ? quickJsSnapshotRecordsPlan.version : 0,
-    quickJsReplayValidationVersion: quickJsReplayValidationPlan ? quickJsReplayValidationPlan.version : 0,
-    quickJsDeterminismLedgerVersion: quickJsDeterminismLedgerPlan ? quickJsDeterminismLedgerPlan.version : 0,
-    quickJsAuditSealVersion: quickJsAuditSealPlan ? quickJsAuditSealPlan.version : 0,
-    quickJsExecutionCommitVersion: quickJsExecutionCommitPlan ? quickJsExecutionCommitPlan.version : 0,
-    quickJsRollbackPolicyVersion: quickJsRollbackPolicyPlan ? quickJsRollbackPolicyPlan.version : 0,
-    quickJsHostCallReceiptsVersion: quickJsHostCallReceiptsPlan ? quickJsHostCallReceiptsPlan.version : 0,
-    quickJsReleaseAcceptanceVersion: quickJsReleaseAcceptancePlan ? quickJsReleaseAcceptancePlan.version : 0,
-    quickJsCommitAuditVersion: quickJsCommitAuditPlan ? quickJsCommitAuditPlan.version : 0,
-    quickJsCapabilityPolicyVersion: quickJsCapabilityPolicyPlan ? quickJsCapabilityPolicyPlan.version : 0,
-    quickJsHostIoPolicyVersion: quickJsHostIoPolicyPlan ? quickJsHostIoPolicyPlan.version : 0,
-    quickJsPermissionSealVersion: quickJsPermissionSealPlan ? quickJsPermissionSealPlan.version : 0,
-    quickJsPolicyReceiptsVersion: quickJsPolicyReceiptsPlan ? quickJsPolicyReceiptsPlan.version : 0,
-    quickJsReleaseGateVersion: quickJsReleaseGatePlan ? quickJsReleaseGatePlan.version : 0,
-    quickJsHostIoDecisionVersion: quickJsHostIoDecisionPlan ? quickJsHostIoDecisionPlan.version : 0,
-    quickJsHostIoDenyTraceVersion: quickJsHostIoDenyTracePlan ? quickJsHostIoDenyTracePlan.version : 0,
-    quickJsCapabilityLedgerVersion: quickJsCapabilityLedgerPlan ? quickJsCapabilityLedgerPlan.version : 0,
-    quickJsPolicySealAuditVersion: quickJsPolicySealAuditPlan ? quickJsPolicySealAuditPlan.version : 0,
-    quickJsRuntimeDenylistVersion: quickJsRuntimeDenylistPlan ? quickJsRuntimeDenylistPlan.version : 0,
-    quickJsExecutionJournal() { return quickJsEngine.executionJournal ? quickJsEngine.executionJournal() : Object.freeze({ plan: quickJsExecutionJournalPlan || null, records: [] }); },
-    quickJsCheckpointPolicy() { return quickJsEngine.checkpointPolicy ? quickJsEngine.checkpointPolicy() : Object.freeze({ plan: quickJsCheckpointPolicyPlan || null }); },
-    quickJsReplayCursor() { return quickJsEngine.replayCursor ? quickJsEngine.replayCursor() : Object.freeze({ plan: quickJsReplayCursorPlan || null, sequence: 0 }); },
-    quickJsResumeState() { return quickJsEngine.resumeState ? quickJsEngine.resumeState() : Object.freeze({ plan: quickJsResumeStatePlan || null }); },
-    quickJsDeterminismAudit() { return quickJsEngine.determinismAudit ? quickJsEngine.determinismAudit() : Object.freeze({ plan: quickJsDeterminismAuditPlan || null }); },
-    quickJsSnapshotPolicy() { return quickJsEngine.snapshotPolicy ? quickJsEngine.snapshotPolicy() : Object.freeze({ plan: quickJsSnapshotPolicyPlan || null }); },
-    quickJsSnapshotRecord() { return quickJsEngine.snapshotRecord ? quickJsEngine.snapshotRecord() : Object.freeze({ plan: quickJsSnapshotRecordsPlan || null }); },
-    quickJsReplayValidation() { return quickJsEngine.replayValidation ? quickJsEngine.replayValidation() : Object.freeze({ plan: quickJsReplayValidationPlan || null }); },
-    quickJsDeterminismLedger() { return quickJsEngine.determinismLedger ? quickJsEngine.determinismLedger() : Object.freeze({ plan: quickJsDeterminismLedgerPlan || null }); },
-    quickJsAuditSeal() { return quickJsEngine.auditSeal ? quickJsEngine.auditSeal() : Object.freeze({ plan: quickJsAuditSealPlan || null }); },
-    quickJsExecutionCommit() { return quickJsEngine.executionCommit ? quickJsEngine.executionCommit() : Object.freeze({ plan: quickJsExecutionCommitPlan || null }); },
-    quickJsRollbackPolicy() { return quickJsEngine.rollbackPolicy ? quickJsEngine.rollbackPolicy() : Object.freeze({ plan: quickJsRollbackPolicyPlan || null }); },
-    quickJsHostCallReceipts() { return quickJsEngine.hostCallReceipts ? quickJsEngine.hostCallReceipts() : Object.freeze({ plan: quickJsHostCallReceiptsPlan || null }); },
-    quickJsReleaseAcceptance() { return quickJsEngine.releaseAcceptance ? quickJsEngine.releaseAcceptance() : Object.freeze({ plan: quickJsReleaseAcceptancePlan || null }); },
-    quickJsCommitAudit() { return quickJsEngine.commitAudit ? quickJsEngine.commitAudit() : Object.freeze({ plan: quickJsCommitAuditPlan || null }); },
-    quickJsCapabilityPolicy() { return quickJsEngine.capabilityPolicy ? quickJsEngine.capabilityPolicy() : Object.freeze({ plan: quickJsCapabilityPolicyPlan || null }); },
-    quickJsHostIoPolicy() { return quickJsEngine.hostIoPolicy ? quickJsEngine.hostIoPolicy() : Object.freeze({ plan: quickJsHostIoPolicyPlan || null }); },
-    quickJsPermissionSeal() { return quickJsEngine.permissionSeal ? quickJsEngine.permissionSeal() : Object.freeze({ plan: quickJsPermissionSealPlan || null }); },
-    quickJsPolicyReceipts() { return quickJsEngine.policyReceipts ? quickJsEngine.policyReceipts() : Object.freeze({ plan: quickJsPolicyReceiptsPlan || null }); },
-    quickJsReleaseGate() { return quickJsEngine.releaseGate ? quickJsEngine.releaseGate() : Object.freeze({ plan: quickJsReleaseGatePlan || null }); },
-    quickJsHostIoDecision() { return quickJsEngine.hostIoDecision ? quickJsEngine.hostIoDecision() : Object.freeze({ plan: quickJsHostIoDecisionPlan || null }); },
-    quickJsHostIoDenyTrace() { return quickJsEngine.hostIoDenyTrace ? quickJsEngine.hostIoDenyTrace() : Object.freeze({ plan: quickJsHostIoDenyTracePlan || null }); },
-    quickJsCapabilityLedger() { return quickJsEngine.capabilityLedger ? quickJsEngine.capabilityLedger() : Object.freeze({ plan: quickJsCapabilityLedgerPlan || null }); },
-    quickJsPolicySealAudit() { return quickJsEngine.policySealAudit ? quickJsEngine.policySealAudit() : Object.freeze({ plan: quickJsPolicySealAuditPlan || null }); },
-    quickJsRuntimeDenylist() { return quickJsEngine.runtimeDenylist ? quickJsEngine.runtimeDenylist() : Object.freeze({ plan: quickJsRuntimeDenylistPlan || null }); },
+    turboJsAdapterDiagnosticsVersion: turboJsAdapterDiagnosticsPlan ? turboJsAdapterDiagnosticsPlan.version : 0,
+    turboJsAdapterDiagnosticsMode: turboJsAdapterDiagnosticsPlan && turboJsAdapterDiagnosticsPlan.enabled ? 'enabled' : 'none',
+    turboJsWasmRuntimeVersion: turboJsWasmRuntimePlan ? turboJsWasmRuntimePlan.version : 0,
+    turboJsWasmRuntimeMode: turboJsWasmRuntimePlan && turboJsWasmRuntimePlan.enabled ? turboJsWasmRuntimePlan.executionMode : 'none',
+    turboJsWasmUrl: turboJsWasmUrl || '',
+    turboJsSourceTransferVersion: turboJsSourceTransferPlan ? turboJsSourceTransferPlan.version : 0,
+    turboJsSourceTransferMode: turboJsSourceTransferPlan && turboJsSourceTransferPlan.enabled ? 'enabled' : 'none',
+    turboJsConsoleBridgeVersion: turboJsConsoleBridgePlan ? turboJsConsoleBridgePlan.version : 0,
+    turboJsConsoleBridgeMode: turboJsConsoleBridgePlan && turboJsConsoleBridgePlan.enabled ? turboJsConsoleBridgePlan.mode : 'none',
+    turboJsExecutionRecordsVersion: turboJsExecutionRecordsPlan ? turboJsExecutionRecordsPlan.version : 0,
+    turboJsExecutionRecordsMode: turboJsExecutionRecordsPlan && turboJsExecutionRecordsPlan.enabled ? turboJsExecutionRecordsPlan.retention : 'none',
+    turboJsResultBridgeVersion: turboJsResultBridgePlan ? turboJsResultBridgePlan.version : 0,
+    turboJsResultBridgeMode: turboJsResultBridgePlan && turboJsResultBridgePlan.enabled ? turboJsResultBridgePlan.format : 'none',
+    turboJsFallbackPolicyVersion: turboJsFallbackPolicyPlan ? turboJsFallbackPolicyPlan.version : 0,
+    turboJsFallbackPolicyMode: turboJsFallbackPolicyPlan && turboJsFallbackPolicyPlan.enabled ? turboJsFallbackPolicyPlan.mode : 'none',
+    turboJsRuntimeAbi: turboJsRuntimeAbiPlan ? turboJsRuntimeAbiPlan.abi : 0,
+    turboJsRuntimeAbiHash: turboJsRuntimeAbiPlan ? turboJsRuntimeAbiPlan.tableHash : '',
+    turboJsHostImportCount: turboJsHostImportsPlan ? turboJsHostImportsPlan.importCount : 0,
+    turboJsHeapLimit: turboJsHeapLimitsPlan ? turboJsHeapLimitsPlan.heapLimit : 0,
+    turboJsScriptBufferCapacity: turboJsScriptBufferPlan ? turboJsScriptBufferPlan.capacity : 0,
+    turboJsConsoleAbi: turboJsConsoleAbiPlan ? turboJsConsoleAbiPlan.abi : 0,
+    turboJsParityProbeExpected: turboJsParityProbePlan ? turboJsParityProbePlan.expected : '',
+    turboJsReleaseFallbackPolicy: turboJsReleaseFallbackPlan ? turboJsReleaseFallbackPlan.policy : '',
+    turboJsBytecodeManifestVersion: turboJsBytecodeManifestPlan ? turboJsBytecodeManifestPlan.version : 0,
+    turboJsBytecodeManifestMode: turboJsBytecodeManifestPlan && turboJsBytecodeManifestPlan.enabled ? turboJsBytecodeManifestPlan.format : 'none',
+    turboJsBytecodeChunkCount: turboJsBytecodeManifestPlan ? turboJsBytecodeManifestPlan.chunkCount : 0,
+    turboJsModuleResolverVersion: turboJsModuleResolverPlan ? turboJsModuleResolverPlan.version : 0,
+    turboJsModuleResolverMode: turboJsModuleResolverPlan && turboJsModuleResolverPlan.enabled ? turboJsModuleResolverPlan.mode : 'none',
+    turboJsExceptionAbi: turboJsExceptionAbiPlan ? turboJsExceptionAbiPlan.abi : 0,
+    turboJsExceptionAbiVersion: turboJsExceptionAbiPlan ? turboJsExceptionAbiPlan.version : 0,
+    turboJsHostTrapPolicy: turboJsHostTrapPolicyPlan ? turboJsHostTrapPolicyPlan.policy : '',
+    turboJsHostTrapPolicyVersion: turboJsHostTrapPolicyPlan ? turboJsHostTrapPolicyPlan.version : 0,
+    turboJsExecutionLifecycleVersion: turboJsExecutionLifecyclePlan ? turboJsExecutionLifecyclePlan.version : 0,
+    turboJsExecutionLifecycleStates: turboJsExecutionLifecyclePlan ? turboJsExecutionLifecyclePlan.states : '',
+    turboJsScriptBufferPolicyVersion: turboJsScriptBufferPolicyPlan ? turboJsScriptBufferPolicyPlan.version : 0,
+    turboJsContextLimitPolicyVersion: turboJsContextLimitPolicyPlan ? turboJsContextLimitPolicyPlan.version : 0,
+    turboJsHostCallDispatchVersion: turboJsHostCallDispatchPlan ? turboJsHostCallDispatchPlan.version : 0,
+    turboJsHostCallDispatchCount: turboJsHostCallDispatchPlan ? turboJsHostCallDispatchPlan.entryCount : 0,
+    turboJsParityContractVersion: turboJsParityContractPlan ? turboJsParityContractPlan.version : 0,
+    turboJsReleaseFailClosedVersion: turboJsReleaseFailClosedPlan ? turboJsReleaseFailClosedPlan.version : 0,
+    turboJsModuleGraphVersion: turboJsModuleGraphPlan ? turboJsModuleGraphPlan.version : 0,
+    turboJsModuleGraphCount: turboJsModuleGraphPlan ? turboJsModuleGraphPlan.moduleCount : 0,
+    turboJsModuleExecutionVersion: turboJsModuleExecutionPlan ? turboJsModuleExecutionPlan.version : 0,
+    turboJsModuleExecutionMode: turboJsModuleExecutionPlan && turboJsModuleExecutionPlan.enabled ? turboJsModuleExecutionPlan.mode : 'none',
+    turboJsModuleCacheVersion: turboJsModuleCachePlan ? turboJsModuleCachePlan.version : 0,
+    turboJsResolverAuditVersion: turboJsResolverAuditPlan ? turboJsResolverAuditPlan.version : 0,
+    turboJsInteropFallbackVersion: turboJsInteropFallbackPlan ? turboJsInteropFallbackPlan.version : 0,
+    turboJsExecutionJournalVersion: turboJsExecutionJournalPlan ? turboJsExecutionJournalPlan.version : 0,
+    turboJsCheckpointPolicyVersion: turboJsCheckpointPolicyPlan ? turboJsCheckpointPolicyPlan.version : 0,
+    turboJsReplayCursorVersion: turboJsReplayCursorPlan ? turboJsReplayCursorPlan.version : 0,
+    turboJsResumeStateVersion: turboJsResumeStatePlan ? turboJsResumeStatePlan.version : 0,
+    turboJsDeterminismAuditVersion: turboJsDeterminismAuditPlan ? turboJsDeterminismAuditPlan.version : 0,
+    turboJsSnapshotPolicyVersion: turboJsSnapshotPolicyPlan ? turboJsSnapshotPolicyPlan.version : 0,
+    turboJsSnapshotRecordsVersion: turboJsSnapshotRecordsPlan ? turboJsSnapshotRecordsPlan.version : 0,
+    turboJsReplayValidationVersion: turboJsReplayValidationPlan ? turboJsReplayValidationPlan.version : 0,
+    turboJsDeterminismLedgerVersion: turboJsDeterminismLedgerPlan ? turboJsDeterminismLedgerPlan.version : 0,
+    turboJsAuditSealVersion: turboJsAuditSealPlan ? turboJsAuditSealPlan.version : 0,
+    turboJsExecutionCommitVersion: turboJsExecutionCommitPlan ? turboJsExecutionCommitPlan.version : 0,
+    turboJsRollbackPolicyVersion: turboJsRollbackPolicyPlan ? turboJsRollbackPolicyPlan.version : 0,
+    turboJsHostCallReceiptsVersion: turboJsHostCallReceiptsPlan ? turboJsHostCallReceiptsPlan.version : 0,
+    turboJsReleaseAcceptanceVersion: turboJsReleaseAcceptancePlan ? turboJsReleaseAcceptancePlan.version : 0,
+    turboJsCommitAuditVersion: turboJsCommitAuditPlan ? turboJsCommitAuditPlan.version : 0,
+    turboJsCapabilityPolicyVersion: turboJsCapabilityPolicyPlan ? turboJsCapabilityPolicyPlan.version : 0,
+    turboJsHostIoPolicyVersion: turboJsHostIoPolicyPlan ? turboJsHostIoPolicyPlan.version : 0,
+    turboJsPermissionSealVersion: turboJsPermissionSealPlan ? turboJsPermissionSealPlan.version : 0,
+    turboJsPolicyReceiptsVersion: turboJsPolicyReceiptsPlan ? turboJsPolicyReceiptsPlan.version : 0,
+    turboJsReleaseGateVersion: turboJsReleaseGatePlan ? turboJsReleaseGatePlan.version : 0,
+    turboJsHostIoDecisionVersion: turboJsHostIoDecisionPlan ? turboJsHostIoDecisionPlan.version : 0,
+    turboJsHostIoDenyTraceVersion: turboJsHostIoDenyTracePlan ? turboJsHostIoDenyTracePlan.version : 0,
+    turboJsCapabilityLedgerVersion: turboJsCapabilityLedgerPlan ? turboJsCapabilityLedgerPlan.version : 0,
+    turboJsPolicySealAuditVersion: turboJsPolicySealAuditPlan ? turboJsPolicySealAuditPlan.version : 0,
+    turboJsRuntimeDenylistVersion: turboJsRuntimeDenylistPlan ? turboJsRuntimeDenylistPlan.version : 0,
+    turboJsExecutionJournal() { return turboJsEngine.executionJournal ? turboJsEngine.executionJournal() : Object.freeze({ plan: turboJsExecutionJournalPlan || null, records: [] }); },
+    turboJsCheckpointPolicy() { return turboJsEngine.checkpointPolicy ? turboJsEngine.checkpointPolicy() : Object.freeze({ plan: turboJsCheckpointPolicyPlan || null }); },
+    turboJsReplayCursor() { return turboJsEngine.replayCursor ? turboJsEngine.replayCursor() : Object.freeze({ plan: turboJsReplayCursorPlan || null, sequence: 0 }); },
+    turboJsResumeState() { return turboJsEngine.resumeState ? turboJsEngine.resumeState() : Object.freeze({ plan: turboJsResumeStatePlan || null }); },
+    turboJsDeterminismAudit() { return turboJsEngine.determinismAudit ? turboJsEngine.determinismAudit() : Object.freeze({ plan: turboJsDeterminismAuditPlan || null }); },
+    turboJsSnapshotPolicy() { return turboJsEngine.snapshotPolicy ? turboJsEngine.snapshotPolicy() : Object.freeze({ plan: turboJsSnapshotPolicyPlan || null }); },
+    turboJsSnapshotRecord() { return turboJsEngine.snapshotRecord ? turboJsEngine.snapshotRecord() : Object.freeze({ plan: turboJsSnapshotRecordsPlan || null }); },
+    turboJsReplayValidation() { return turboJsEngine.replayValidation ? turboJsEngine.replayValidation() : Object.freeze({ plan: turboJsReplayValidationPlan || null }); },
+    turboJsDeterminismLedger() { return turboJsEngine.determinismLedger ? turboJsEngine.determinismLedger() : Object.freeze({ plan: turboJsDeterminismLedgerPlan || null }); },
+    turboJsAuditSeal() { return turboJsEngine.auditSeal ? turboJsEngine.auditSeal() : Object.freeze({ plan: turboJsAuditSealPlan || null }); },
+    turboJsExecutionCommit() { return turboJsEngine.executionCommit ? turboJsEngine.executionCommit() : Object.freeze({ plan: turboJsExecutionCommitPlan || null }); },
+    turboJsRollbackPolicy() { return turboJsEngine.rollbackPolicy ? turboJsEngine.rollbackPolicy() : Object.freeze({ plan: turboJsRollbackPolicyPlan || null }); },
+    turboJsHostCallReceipts() { return turboJsEngine.hostCallReceipts ? turboJsEngine.hostCallReceipts() : Object.freeze({ plan: turboJsHostCallReceiptsPlan || null }); },
+    turboJsReleaseAcceptance() { return turboJsEngine.releaseAcceptance ? turboJsEngine.releaseAcceptance() : Object.freeze({ plan: turboJsReleaseAcceptancePlan || null }); },
+    turboJsCommitAudit() { return turboJsEngine.commitAudit ? turboJsEngine.commitAudit() : Object.freeze({ plan: turboJsCommitAuditPlan || null }); },
+    turboJsCapabilityPolicy() { return turboJsEngine.capabilityPolicy ? turboJsEngine.capabilityPolicy() : Object.freeze({ plan: turboJsCapabilityPolicyPlan || null }); },
+    turboJsHostIoPolicy() { return turboJsEngine.hostIoPolicy ? turboJsEngine.hostIoPolicy() : Object.freeze({ plan: turboJsHostIoPolicyPlan || null }); },
+    turboJsPermissionSeal() { return turboJsEngine.permissionSeal ? turboJsEngine.permissionSeal() : Object.freeze({ plan: turboJsPermissionSealPlan || null }); },
+    turboJsPolicyReceipts() { return turboJsEngine.policyReceipts ? turboJsEngine.policyReceipts() : Object.freeze({ plan: turboJsPolicyReceiptsPlan || null }); },
+    turboJsReleaseGate() { return turboJsEngine.releaseGate ? turboJsEngine.releaseGate() : Object.freeze({ plan: turboJsReleaseGatePlan || null }); },
+    turboJsHostIoDecision() { return turboJsEngine.hostIoDecision ? turboJsEngine.hostIoDecision() : Object.freeze({ plan: turboJsHostIoDecisionPlan || null }); },
+    turboJsHostIoDenyTrace() { return turboJsEngine.hostIoDenyTrace ? turboJsEngine.hostIoDenyTrace() : Object.freeze({ plan: turboJsHostIoDenyTracePlan || null }); },
+    turboJsCapabilityLedger() { return turboJsEngine.capabilityLedger ? turboJsEngine.capabilityLedger() : Object.freeze({ plan: turboJsCapabilityLedgerPlan || null }); },
+    turboJsPolicySealAudit() { return turboJsEngine.policySealAudit ? turboJsEngine.policySealAudit() : Object.freeze({ plan: turboJsPolicySealAuditPlan || null }); },
+    turboJsRuntimeDenylist() { return turboJsEngine.runtimeDenylist ? turboJsEngine.runtimeDenylist() : Object.freeze({ plan: turboJsRuntimeDenylistPlan || null }); },
     asyncHostQueueSnapshot() {
       return asyncQueue.snapshot();
     },
@@ -175,86 +175,86 @@ function installVenomHostBridge(root, pkg, routes, assetManifest, runtimePolicy,
     eventQueueSnapshot() {
       return eventQueue.snapshot();
     },
-    callQuickJs(entry, payload) {
-      return asyncQueue.callQuickJs(entry, payload);
+    callTurboJs(entry, payload) {
+      return asyncQueue.callTurboJs(entry, payload);
     },
-    createQuickJsContext(route, source, order) {
-      return quickJsEngine.createContext(route, source, order);
+    createTurboJsContext(route, source, order) {
+      return turboJsEngine.createContext(route, source, order);
     },
-    executeQuickJsChunk(chunk, route) {
-      return quickJsEngine.executeChunk(chunk, route, bridgeRef || this);
+    executeTurboJsChunk(chunk, route) {
+      return turboJsEngine.executeChunk(chunk, route, bridgeRef || this);
     },
-    destroyQuickJsContext(route, source, order) {
-      return quickJsEngine.destroyContext(route, source, order);
+    destroyTurboJsContext(route, source, order) {
+      return turboJsEngine.destroyContext(route, source, order);
     },
-    quickJsContextSnapshot() {
-      return quickJsEngine.contextSnapshot();
+    turboJsContextSnapshot() {
+      return turboJsEngine.contextSnapshot();
     },
-    quickJsEngineModuleStatus() {
-      return quickJsEngine.moduleStatus();
+    turboJsEngineModuleStatus() {
+      return turboJsEngine.moduleStatus();
     },
-    quickJsExecutionSnapshot() {
-      return quickJsEngine.executionSnapshot();
+    turboJsExecutionSnapshot() {
+      return turboJsEngine.executionSnapshot();
     },
-    quickJsConsoleEvents() {
-      return quickJsEngine.consoleEvents();
+    turboJsConsoleEvents() {
+      return turboJsEngine.consoleEvents();
     },
-    clearQuickJsConsoleEvents() {
-      return quickJsEngine.clearConsoleEvents();
+    clearTurboJsConsoleEvents() {
+      return turboJsEngine.clearConsoleEvents();
     },
-    quickJsFallbackPolicy() {
-      return quickJsEngine.fallbackPolicy();
+    turboJsFallbackPolicy() {
+      return turboJsEngine.fallbackPolicy();
     },
-    quickJsAbiTable() {
-      return quickJsEngine.abiTable();
+    turboJsAbiTable() {
+      return turboJsEngine.abiTable();
     },
-    quickJsHostImportTable() {
-      return quickJsEngine.hostImportTable();
+    turboJsHostImportTable() {
+      return turboJsEngine.hostImportTable();
     },
-    quickJsParityProbe() {
-      return quickJsEngine.parityProbe();
+    turboJsParityProbe() {
+      return turboJsEngine.parityProbe();
     },
-    quickJsBytecodeManifest() {
-      return quickJsEngine.bytecodeManifest();
+    turboJsBytecodeManifest() {
+      return turboJsEngine.bytecodeManifest();
     },
-    quickJsModuleResolver() {
-      return quickJsEngine.moduleResolver();
+    turboJsModuleResolver() {
+      return turboJsEngine.moduleResolver();
     },
-    quickJsExceptionAbi() {
-      return quickJsEngine.exceptionAbi();
+    turboJsExceptionAbi() {
+      return turboJsEngine.exceptionAbi();
     },
-    quickJsHostTrapPolicy() {
-      return quickJsEngine.hostTrapPolicy();
+    turboJsHostTrapPolicy() {
+      return turboJsEngine.hostTrapPolicy();
     },
-    quickJsExecutionLifecycle() {
-      return quickJsEngine.executionLifecycle();
+    turboJsExecutionLifecycle() {
+      return turboJsEngine.executionLifecycle();
     },
-    quickJsScriptBufferPolicy() {
-      return quickJsEngine.scriptBufferPolicy();
+    turboJsScriptBufferPolicy() {
+      return turboJsEngine.scriptBufferPolicy();
     },
-    quickJsContextLimitPolicy() {
-      return quickJsEngine.contextLimitPolicy();
+    turboJsContextLimitPolicy() {
+      return turboJsEngine.contextLimitPolicy();
     },
-    quickJsHostCallDispatch() {
-      return quickJsEngine.hostCallDispatch();
+    turboJsHostCallDispatch() {
+      return turboJsEngine.hostCallDispatch();
     },
-    quickJsParityContract() {
-      return quickJsEngine.parityContract();
+    turboJsParityContract() {
+      return turboJsEngine.parityContract();
     },
-    quickJsReleaseFailClosed() {
-      return quickJsEngine.releaseFailClosed();
+    turboJsReleaseFailClosed() {
+      return turboJsEngine.releaseFailClosed();
     },
-    quickJsModuleGraph() {
-      return quickJsEngine.moduleGraph();
+    turboJsModuleGraph() {
+      return turboJsEngine.moduleGraph();
     },
-    quickJsModuleCacheSnapshot() {
-      return quickJsEngine.moduleCacheSnapshot();
+    turboJsModuleCacheSnapshot() {
+      return turboJsEngine.moduleCacheSnapshot();
     },
-    quickJsResolverAudit() {
-      return quickJsEngine.resolverAudit();
+    turboJsResolverAudit() {
+      return turboJsEngine.resolverAudit();
     },
-    quickJsInteropFallback() {
-      return quickJsEngine.interopFallback();
+    turboJsInteropFallback() {
+      return turboJsEngine.interopFallback();
     },
     createScriptScope(route, source, order) {
       const record = asyncQueue.enqueue('script.scopeCreate', { route: String(route || ''), source: String(source || ''), order: order >>> 0 });
@@ -274,7 +274,7 @@ function installVenomHostBridge(root, pkg, routes, assetManifest, runtimePolicy,
     advanceDomGeneration() { return domHandles.nextGeneration(); },
     teardownRoute(reason = 'route-teardown') {
       const route = globalThis.location && globalThis.location.pathname ? normalizeRoute(globalThis.location.pathname) : '/';
-      const contexts = quickJsEngine.destroyRoute(route);
+      const contexts = turboJsEngine.destroyRoute(route);
       const events = eventQueue.clear();
       asyncQueue.resetRoute(reason);
       return Object.freeze({ route, contexts: contexts.destroyed, events, reason: String(reason) });
@@ -512,8 +512,16 @@ function createBrowserModuleLinker(chunks, routeName) {
 }
 
 async function executeBrowserScriptChunk(chunk, moduleLinker = null) {
+  // Manifest V3 extension pages cannot execute blob-backed modules under their
+  // mandatory CSP. Chrome-facing browser adapters are emitted as hardened,
+  // physical extension resources and loaded by the generated route shell.
+  // Keep their packaged copies for graph/audit metadata, but never execute
+  // those copies through the website blob-module linker.
+  if (typeof location !== 'undefined' && location.protocol === 'chrome-extension:') {
+    return Object.freeze({ ...chunk, executed: false, external: true, browser: true, chromeExtension: true });
+  }
   if (chunk && chunk.bytecodeBytes && chunk.bytecodeBytes.length) {
-    throw new Error('browser script chunk was packaged as QuickJS bytecode: ' + (chunk.source || '<script>'));
+    throw new Error('browser script chunk was packaged as TurboJS bytecode: ' + (chunk.source || '<script>'));
   }
   if (!chunk || !chunk.code || !String(chunk.code).trim()) return Object.freeze({ ...chunk, executed: false, empty: true, browser: true });
   if (typeof document === 'undefined' || !document.createElement) throw new Error('browser script execution requires document.createElement');
@@ -534,26 +542,26 @@ async function executeBrowserScriptChunk(chunk, moduleLinker = null) {
   return Object.freeze({ ...chunk, executed: true, browser: true });
 }
 
-async function executeScriptChunk(chunk, route, scriptIsolationPlan = null, scriptPolicyPlan = null, quickJsChunkPlan = null, quickJsEnginePlan = null, scriptEnginePolicyPlan = null, browserModuleLinker = null) {
+async function executeScriptChunk(chunk, route, scriptIsolationPlan = null, scriptPolicyPlan = null, turboJsChunkPlan = null, turboJsEnginePlan = null, scriptEnginePolicyPlan = null, browserModuleLinker = null) {
   const bridge = globalThis.__venomRuntime || null;
   if (bridge && typeof bridge.checkScriptPolicy === 'function') bridge.checkScriptPolicy(chunk);
   if (bridge && typeof bridge.createScriptScope === 'function') bridge.createScriptScope(route && route.route ? route.route : chunk.route, chunk.source, chunk.order);
   const startRecord = bridge && typeof bridge.enqueueHostCall === 'function'
     ? bridge.enqueueHostCall(scriptPolicyPlan && scriptPolicyPlan.chunkStartHostCall ? scriptPolicyPlan.chunkStartHostCall : 'script.chunkStart', { route: chunk.route, source: chunk.source, order: chunk.order })
     : null;
-  if (bridge && typeof bridge.callQuickJs === 'function') {
-    const qjsBoundaryRecord = bridge.callQuickJs('chunk:' + chunk.order, { route: chunk.route, source: chunk.source, bytes: chunk.code ? chunk.code.length : 0, boundary: quickJsChunkPlan ? quickJsChunkPlan.mode : 'engine-input', engine: quickJsEnginePlan ? quickJsEnginePlan.mode : 'bootstrap' });
-    if (bridge && typeof bridge.settleHostCall === 'function' && qjsBoundaryRecord && qjsBoundaryRecord.id) {
-      bridge.settleHostCall(qjsBoundaryRecord.id, 'fulfilled', { boundary: quickJsChunkPlan ? quickJsChunkPlan.mode : 'engine-input', engine: quickJsEnginePlan ? quickJsEnginePlan.mode : 'bootstrap' });
+  if (bridge && typeof bridge.callTurboJs === 'function') {
+    const tjsBoundaryRecord = bridge.callTurboJs('chunk:' + chunk.order, { route: chunk.route, source: chunk.source, bytes: chunk.code ? chunk.code.length : 0, boundary: turboJsChunkPlan ? turboJsChunkPlan.mode : 'engine-input', engine: turboJsEnginePlan ? turboJsEnginePlan.mode : 'bootstrap' });
+    if (bridge && typeof bridge.settleHostCall === 'function' && tjsBoundaryRecord && tjsBoundaryRecord.id) {
+      bridge.settleHostCall(tjsBoundaryRecord.id, 'fulfilled', { boundary: turboJsChunkPlan ? turboJsChunkPlan.mode : 'engine-input', engine: turboJsEnginePlan ? turboJsEnginePlan.mode : 'bootstrap' });
     }
   }
   let executed;
   if ((chunk.flags & SCRIPT_FLAG.BROWSER) !== 0) executed = await executeBrowserScriptChunk(chunk, browserModuleLinker);
-  else if (bridge && typeof bridge.executeQuickJsChunk === 'function') {
-    executed = await bridge.executeQuickJsChunk(chunk, route);
+  else if (bridge && typeof bridge.executeTurboJsChunk === 'function') {
+    executed = await bridge.executeTurboJsChunk(chunk, route);
   } else {
     const denyHostFallback = !!(scriptEnginePolicyPlan && String(scriptEnginePolicyPlan.fallback || '').includes('deny-host-js'));
-    if (denyHostFallback) throw new Error('QuickJS/WASM backend unavailable; protected host JS fallback denied');
+    if (denyHostFallback) throw new Error('TurboJS/WASM backend unavailable; protected host JS fallback denied');
     const fallbackRecord = bridge && typeof bridge.enqueueHostCall === 'function'
       ? bridge.enqueueHostCall(scriptEnginePolicyPlan && scriptEnginePolicyPlan.fallback ? 'script.engineFallback' : 'script.engineFallback', { route: chunk.route, source: chunk.source, order: chunk.order })
       : null;
@@ -566,11 +574,11 @@ __VENOM_RUNTIME_LEGACY_FALLBACK_BLOCK__
     }
     if (bridge && fallbackRecord) bridge.settleHostCall(fallbackRecord.id, 'fulfilled', { executed: !!executed.executed });
   }
-  if (bridge && startRecord) bridge.settleHostCall(startRecord.id, 'fulfilled', { executed: !!(executed && executed.executed), isolated: !!scriptIsolationPlan, engine: quickJsEnginePlan ? quickJsEnginePlan.mode : 'none' });
-  return Object.freeze({ ...executed, isolated: !!scriptIsolationPlan, isolationMode: scriptIsolationPlan ? scriptIsolationPlan.mode : 'none', quickJsBoundary: quickJsChunkPlan ? quickJsChunkPlan.mode : 'none', quickJsEngine: quickJsEnginePlan ? quickJsEnginePlan.mode : 'none' });
+  if (bridge && startRecord) bridge.settleHostCall(startRecord.id, 'fulfilled', { executed: !!(executed && executed.executed), isolated: !!scriptIsolationPlan, engine: turboJsEnginePlan ? turboJsEnginePlan.mode : 'none' });
+  return Object.freeze({ ...executed, isolated: !!scriptIsolationPlan, isolationMode: scriptIsolationPlan ? scriptIsolationPlan.mode : 'none', turboJsBoundary: turboJsChunkPlan ? turboJsChunkPlan.mode : 'none', turboJsEngine: turboJsEnginePlan ? turboJsEnginePlan.mode : 'none' });
 }
 
-async function executeScriptsForRoute(route, jsBundle, scriptIsolationPlan = null, scriptPolicyPlan = null, quickJsChunkPlan = null, quickJsEnginePlan = null, scriptEnginePolicyPlan = null) {
+async function executeScriptsForRoute(route, jsBundle, scriptIsolationPlan = null, scriptPolicyPlan = null, turboJsChunkPlan = null, turboJsEnginePlan = null, scriptEnginePolicyPlan = null) {
   assertRuntimeIntegrity(activeRuntimeOpcodeMap);
   if (!jsBundle || !Array.isArray(jsBundle.chunks)) return [];
   const selected = jsBundle.chunks.filter((chunk) => ((chunk.route === route.route || chunk.route === '*' || chunk.route === '') && (chunk.flags & SCRIPT_FLAG.DEPENDENCY) === 0));
@@ -602,7 +610,7 @@ async function executeScriptsForRoute(route, jsBundle, scriptIsolationPlan = nul
   try {
     for (const chunk of selected) {
       // Keep script execution deterministic: execute in document order.
-      executed.push(await executeScriptChunk(chunk, route, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan, browserModuleLinker));
+      executed.push(await executeScriptChunk(chunk, route, scriptIsolationPlan, scriptPolicyPlan, turboJsChunkPlan, turboJsEnginePlan, scriptEnginePolicyPlan, browserModuleLinker));
     }
   } finally {
     browserModuleLinker.dispose();

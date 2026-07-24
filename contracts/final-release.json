@@ -1,6 +1,6 @@
 {
   "schema": "VENOM_FINAL_RELEASE_CONTRACT_V1",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "buildProfile": "prod",
   "requiredExampleCount": 8,
   "requiredBrowserEngines": [
@@ -15,7 +15,7 @@
   ],
   "requiredContracts": [
     "runtime-api.json",
-    "quickjs-wasm-abi.json",
+    "turbojs-wasm-abi.json",
     "examples.json",
     "browser-certification.json",
     "release-certification.json",
@@ -42,7 +42,7 @@
   "claims": [
     "One production-grade build profile",
     "Protected browser imports are lowered before browser module graph serialization",
-    "Real QuickJS/WASM execution is required for certified releases",
+    "Real TurboJS/WASM execution is required for certified releases",
     "All certification-eligible examples are production certified",
     "Browser boot completion is distinct from worker readiness",
     "Decoded protected content is never persistently cached",

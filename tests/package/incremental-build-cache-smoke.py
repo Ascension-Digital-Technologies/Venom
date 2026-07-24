@@ -14,7 +14,7 @@ with tempfile.TemporaryDirectory(prefix='venom-cache-smoke-') as td:
     report=json.loads((base/'.venom'/'dist'/'build-performance.json').read_text(encoding='utf-8'))
     assert report['phases'], 'performance report must contain phase timings in quiet mode'
     assert report['cache']['typescript']['hits'] >= 5, report
-    assert report['cache']['quickjs_bytecode']['hits'] >= 1, report
+    assert report['cache']['turbojs_bytecode']['hits'] >= 1, report
     assert report['cache']['typescript']['misses'] == 0, report
     assert warm <= cold * 1.25, (cold,warm)
 print('incremental build cache smoke passed')

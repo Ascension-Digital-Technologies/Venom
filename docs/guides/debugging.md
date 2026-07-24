@@ -2,7 +2,7 @@
 
 > **Applies to:** Venom 1.1.0
 
-Use the production-grade build path to diagnose application behavior while still executing protected code through the real QuickJS/WASM path. Do not debug a production failure by disabling verification or introducing host-JavaScript fallback behavior.
+Use the production-grade build path to diagnose application behavior while still executing protected code through the real TurboJS/WASM path. Do not debug a production failure by disabling verification or introducing host-JavaScript fallback behavior.
 
 ## First checks
 

@@ -22,7 +22,7 @@ The contract describes the first argument and the returned object. Additional ca
 
 ## Runtime enforcement
 
-Venom emits validators inside the protected QuickJS bridge registry. Validation therefore occurs at the protected boundary even when browser-side code bypasses generated TypeScript declarations.
+Venom emits validators inside the protected TurboJS bridge registry. Validation therefore occurs at the protected boundary even when browser-side code bypasses generated TypeScript declarations.
 
 - Required fields must be present.
 - Optional fields are checked when supplied.

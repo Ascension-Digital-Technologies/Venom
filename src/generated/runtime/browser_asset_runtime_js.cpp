@@ -1,4 +1,4 @@
-#include "venom/pipeline/js.hpp"
+#include "pipeline/js.hpp"
 
 namespace venom::compiler {
 

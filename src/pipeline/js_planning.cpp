@@ -1,5 +1,5 @@
-#include "venom/base/error.hpp"
-#include "venom/internal/pipeline/js_planning.hpp"
+#include "base/error.hpp"
+#include "pipeline/js_planning.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -358,7 +358,7 @@ std::vector<FunctionExtractionRecord> analyze_function_extraction(const std::vec
       rec.reason = "browser function requires real DOM semantics; synchronous protected-to-browser invocation is not yet safely representable";
       rec.blockers.push_back("synchronous cross-runtime result bridge unavailable");
     } else if (fn.execution == "protected" && file_browser) {
-      // QuickJS supports ordinary JavaScript semantics such as `this`,
+      // TurboJS supports ordinary JavaScript semantics such as `this`,
       // `arguments`, nested functions, and `with`. Only syntax that requires the
       // browser runtime or cannot be serialized across the JSON bridge is rejected.
       // Use member-access tokens to avoid false positives in comments such as

@@ -1,0 +1,24 @@
+{
+  "name": "@venom/venom",
+  "version": "3.0.0",
+  "description": "The Venom CLI for zero-config protection of websites, Vite, React, and Chrome extensions",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "bin": {
+    "venom": "./src/cli.js"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "venom.config.schema.json"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}

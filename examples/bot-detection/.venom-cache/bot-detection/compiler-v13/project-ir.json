@@ -1,0 +1,24 @@
+{
+  "schema":"venom-project-ir",
+  "version":12,
+  "root":"/mnt/data/venom_examples_fix/venom-3.0.0/examples/bot-detection",
+  "project_fingerprint":"88a1938e53befb0c601cd558afb2f88ec1527fc830ac55e79bf2434d867ae6e9",
+  "files":[{"path":"assets/css/main.css","extension":".css","size":16082,"sha256":"c755b549b986217805b9f5ecacc2fdac11c7b11acf3bcd1b8d72c60557f9cd91"},{"path":"assets/js/app.js","extension":".js","size":15526,"sha256":"3bdfa6060ac5eb18e3379e117c96b45845075dc8d9001560e956db00bc03692d"},{"path":"assets/js/fingerprint.js","extension":".js","size":24092,"sha256":"c10a353eb4a085b668bb0f176608973273f5f8b83d6d4d87d5b13e9b6e70625c"},{"path":"index.html","extension":".html","size":6426,"sha256":"14fbff8e60b4dda552b977f4dd94418a3ad6af21d12b6ed4d37e022974c11b0f"},{"path":"protected/bot-engine.js","extension":".js","size":23385,"sha256":"190844b0e9159b941eb7534ec4a6847b87ae62bc6066639a13b899d170492ad9"},{"path":"venom.browser.json","extension":".json","size":2712,"sha256":"8fc6778cdf8fa496f450795bcf5e5155e44a566e3e2d1993ffd7bbded9872308"},{"path":"venom.toml","extension":".toml","size":159,"sha256":"0e398337fdff230cc293d22aab4ba5812bf914dbb3ca8d90b75b1d450956fae9"}],
+  "routes":["/"],
+  "scripts":["assets/js/app.js","assets/js/fingerprint.js","protected/bot-engine.js"],
+  "styles":["assets/css/main.css"],
+  "assets":["venom.browser.json","venom.toml"],
+  "protected_modules":[{"route":"/","source":"assets/js/fingerprint.js","order":0,"flags":2064,"source_bytes":24092,"ast_nodes":3228,"ast_functions":87,"ast_declarations":100,"ast_imports":0,"ast_exports":0,"ast_top_level_declarations":0,"ast_lexical_scopes":88,"ast_global_references":35,"typescript_transpiled":false,"typescript_erased_declarations":0,"typescript_erased_annotations":0,"typescript_erased_assertions":0},{"route":"/","source":"protected/bot-engine.js","order":1,"flags":6418,"source_bytes":387,"ast_nodes":3037,"ast_functions":42,"ast_declarations":138,"ast_imports":0,"ast_exports":2,"ast_top_level_declarations":35,"ast_lexical_scopes":43,"ast_global_references":8,"typescript_transpiled":false,"typescript_erased_declarations":0,"typescript_erased_annotations":0,"typescript_erased_assertions":0},{"route":"/","source":"assets/js/app.js","order":2,"flags":2064,"source_bytes":15526,"ast_nodes":1720,"ast_functions":34,"ast_declarations":47,"ast_imports":0,"ast_exports":0,"ast_top_level_declarations":0,"ast_lexical_scopes":35,"ast_global_references":20,"typescript_transpiled":false,"typescript_erased_declarations":0,"typescript_erased_annotations":0,"typescript_erased_assertions":0}],
+  "module_edge_count":0,
+  "protected_export_count":2,
+  "protected_contracts":{
+  "schema":"venom-protected-contracts",
+  "version":1,
+  "exports":[
+    {"name":"beginAssessmentSession","source":"protected/bot-engine.js","candidate":"xaf6cfd13411812041e0dfe2eb7270908","input":[],"output":[]},
+    {"name":"assessClient","source":"protected/bot-engine.js","candidate":"xc87503dcb4879e88ce169695f8b39d68","input":[],"output":[]}
+  ]
+}
+,
+  "plan_fingerprint":"5cd97d73666a60efb2f25aaa5e549d49e3a7392f810d87a126ccd7291bdbf1c4"
+}

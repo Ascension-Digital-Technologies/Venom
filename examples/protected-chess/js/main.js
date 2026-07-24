@@ -331,7 +331,7 @@ function setBenchmarkSummary(totalElapsed, totalNodes, completed, total, failed)
     summary.hidden = completed === 0;
     summary.className = failed ? 'benchmark-final-summary benchmark-final-fail' : 'benchmark-final-summary benchmark-final-pass';
     summary.textContent = completed === total
-      ? (failed ? 'Benchmark completed with one or more failed workloads. Results are shown below.' : 'Benchmark complete. All protected QuickJS workloads passed.')
+      ? (failed ? 'Benchmark completed with one or more failed workloads. Results are shown below.' : 'Benchmark complete. All protected TurboJS workloads passed.')
       : 'Benchmark progress: ' + completed + ' of ' + total + ' workloads completed.';
   }
 }
@@ -371,7 +371,7 @@ async function executeBenchmarkTest(test) {
   var wallElapsed = Math.max(0.001, finished - started);
   result.engineElapsedMs = engineElapsed;
   result.wallElapsedMs = wallElapsed;
-  // Benchmark the complete protected QuickJS/WASM call. This remains reliable even
+  // Benchmark the complete protected TurboJS/WASM call. This remains reliable even
   // when the sandboxed engine clock has millisecond resolution or is unavailable.
   result.elapsedMs = wallElapsed;
   var nodes = Number(result.nodes || result.positions || result.nodeCount || 0);
@@ -644,7 +644,7 @@ async function verifyProtectedRuntime() {
     await ensureProtectedRuntime();
     var identity = await callChessEngine({ action: 'identity' });
     $('#runtime-state').text(identity.protected ? 'Protected engine v' + (identity.version || '2') + ' verified' : 'Runtime unavailable');
-    $('#runtime-name').text(identity.runtime || 'QuickJS / WASM');
+    $('#runtime-name').text(identity.runtime || 'TurboJS / WASM');
     $button.prop('disabled', false).text('Start Game');
     setStatus('Protected engine verified and ready.', false);
   } catch (error) {

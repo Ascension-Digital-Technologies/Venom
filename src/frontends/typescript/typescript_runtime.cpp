@@ -1,14 +1,14 @@
-#include "venom/base/error.hpp"
-#include "venom/internal/frontends/typescript/typescript_runtime.hpp"
+#include "base/error.hpp"
+#include "frontends/typescript/typescript_runtime.hpp"
 
-#include "venom/core/diagnostic.hpp"
-#include "venom/generated/compiler/typescript_compiler_asset.hpp"
-#include "venom/generated/compiler/typescript_bridge_bytecode.hpp"
-#include "venom/package/hash.hpp"
+#include "core/diagnostic.hpp"
+#include "generated/compiler/typescript_compiler_asset.hpp"
+#include "generated/compiler/typescript_bridge_bytecode.hpp"
+#include "package/hash.hpp"
 
-#ifdef VENOM_ENABLE_FULL_QUICKJS
+#ifdef VENOM_ENABLE_FULL_TURBOJS
 extern "C" {
-#include "quickjs.h"
+#include "turbojs.h"
 }
 #endif
 
@@ -79,7 +79,7 @@ const char* kBridgeSource = R"VENOM_TS_BRIDGE(
 })(globalThis);
 )VENOM_TS_BRIDGE";
 
-#ifdef VENOM_ENABLE_FULL_QUICKJS
+#ifdef VENOM_ENABLE_FULL_TURBOJS
 class Value {
 public:
   Value(JSContext* context, JSValue value) : context_(context), value_(value) {}
@@ -147,7 +147,7 @@ std::vector<TypeScriptDiagnostic> diagnostic_array(JSContext* context, JSValueCo
 EmbeddedRuntime::EmbeddedRuntime(EmbeddedRuntimeLimits limits) : limits_(limits) { initialize(); }
 
 EmbeddedRuntime::~EmbeddedRuntime() {
-#ifdef VENOM_ENABLE_FULL_QUICKJS
+#ifdef VENOM_ENABLE_FULL_TURBOJS
   if (transpile_function_opaque_) {
     auto* value = static_cast<JSValue*>(transpile_function_opaque_);
     JS_FreeValue(context_, *value);
@@ -160,16 +160,16 @@ EmbeddedRuntime::~EmbeddedRuntime() {
 }
 
 void EmbeddedRuntime::initialize() {
-#ifndef VENOM_ENABLE_FULL_QUICKJS
-  raise_error("VENOM-E2000", "embedded TypeScript frontend requires full QuickJS support");
+#ifndef VENOM_ENABLE_FULL_TURBOJS
+  raise_error("VENOM-E2000", "embedded TypeScript frontend requires full TurboJS support");
 #else
   const auto started = std::chrono::steady_clock::now();
   runtime_ = JS_NewRuntime();
-  if (!runtime_) raise_error("VENOM-E2000", "failed to create embedded TypeScript QuickJS runtime");
+  if (!runtime_) raise_error("VENOM-E2000", "failed to create embedded TypeScript TurboJS runtime");
   JS_SetMemoryLimit(runtime_, limits_.heap_limit_bytes);
   JS_SetMaxStackSize(runtime_, limits_.stack_limit_bytes);
   context_ = JS_NewContext(runtime_);
-  if (!context_) raise_error("VENOM-E2000", "failed to create embedded TypeScript QuickJS context");
+  if (!context_) raise_error("VENOM-E2000", "failed to create embedded TypeScript TurboJS context");
 
   initialize_from_source();
   const char* bridge = std::getenv("VENOM_TYPESCRIPT_BRIDGE");
@@ -202,7 +202,7 @@ void EmbeddedRuntime::initialize() {
 }
 
 void EmbeddedRuntime::initialize_from_source() {
-#ifdef VENOM_ENABLE_FULL_QUICKJS
+#ifdef VENOM_ENABLE_FULL_TURBOJS
   auto compiler_source = venom::generated::typescript::compiler_source();
   if (compiler_source.size() != venom::generated::typescript::compiler_source_size())
     raise_error("VENOM-E2000", "embedded TypeScript compiler asset size mismatch");
@@ -217,14 +217,14 @@ void EmbeddedRuntime::initialize_from_source() {
 }
 
 void EmbeddedRuntime::evaluate_bytecode() {
-#ifdef VENOM_ENABLE_FULL_QUICKJS
-  constexpr std::uint32_t kQuickJsBytecodeAbi = 27u;
-  const std::string quickjs_version = std::to_string(QJS_VERSION_MAJOR) + "." +
-                                      std::to_string(QJS_VERSION_MINOR) + "." +
-                                      std::to_string(QJS_VERSION_PATCH);
-  if (venom::generated::typescript::bridge_bytecode_quickjs_version() != quickjs_version)
-    raise_error("VENOM-E2000", "embedded TypeScript bridge bytecode QuickJS version mismatch");
-  if (venom::generated::typescript::bridge_bytecode_abi() != kQuickJsBytecodeAbi)
+#ifdef VENOM_ENABLE_FULL_TURBOJS
+  constexpr std::uint32_t kTurboJsBytecodeAbi = 27u;
+  const std::string turbojs_version = std::to_string(TJS_VERSION_MAJOR) + "." +
+                                      std::to_string(TJS_VERSION_MINOR) + "." +
+                                      std::to_string(TJS_VERSION_PATCH);
+  if (venom::generated::typescript::bridge_bytecode_turbojs_version() != turbojs_version)
+    raise_error("VENOM-E2000", "embedded TypeScript bridge bytecode TurboJS version mismatch");
+  if (venom::generated::typescript::bridge_bytecode_abi() != kTurboJsBytecodeAbi)
     raise_error("VENOM-E2000", "embedded TypeScript bridge bytecode ABI mismatch");
   const auto* bytes = venom::generated::typescript::bridge_bytecode_data();
   const auto size = venom::generated::typescript::bridge_bytecode_size();
@@ -240,7 +240,7 @@ void EmbeddedRuntime::evaluate_bytecode() {
 }
 
 void EmbeddedRuntime::evaluate_script(const std::string& source, const char* filename) {
-#ifdef VENOM_ENABLE_FULL_QUICKJS
+#ifdef VENOM_ENABLE_FULL_TURBOJS
   Value value(context_, JS_Eval(context_, source.data(), source.size(), filename, JS_EVAL_TYPE_GLOBAL));
   if (JS_IsException(value.get())) raise_error("VENOM-E2000", exception_message());
 #else
@@ -249,10 +249,10 @@ void EmbeddedRuntime::evaluate_script(const std::string& source, const char* fil
 }
 
 std::string EmbeddedRuntime::exception_message() const {
-#ifdef VENOM_ENABLE_FULL_QUICKJS
+#ifdef VENOM_ENABLE_FULL_TURBOJS
   JSValue exception = JS_GetException(context_);
   const char* text = JS_ToCString(context_, exception);
-  std::string message = text ? text : "embedded TypeScript QuickJS exception";
+  std::string message = text ? text : "embedded TypeScript TurboJS exception";
   if (text) JS_FreeCString(context_, text);
   JSValue stack = JS_GetPropertyStr(context_, exception, "stack");
   if (!JS_IsUndefined(stack)) {
@@ -269,9 +269,9 @@ std::string EmbeddedRuntime::exception_message() const {
 }
 
 TranspileResult EmbeddedRuntime::transpile(const std::string& source, const std::string& filename) {
-#ifndef VENOM_ENABLE_FULL_QUICKJS
+#ifndef VENOM_ENABLE_FULL_TURBOJS
   (void)source; (void)filename;
-  raise_error("VENOM-E2000", "embedded TypeScript frontend requires full QuickJS support");
+  raise_error("VENOM-E2000", "embedded TypeScript frontend requires full TurboJS support");
 #else
   if (source.size() > limits_.source_limit_bytes) raise_error("VENOM-E2000", "TypeScript source exceeds embedded frontend input limit");
   auto* function = static_cast<JSValue*>(transpile_function_opaque_);
@@ -289,7 +289,7 @@ TranspileResult EmbeddedRuntime::transpile(const std::string& source, const std:
   output.typescript = true;
   output.javascript = string_property(context_, result.get(), "javascript");
   output.source_map = string_property(context_, result.get(), "sourceMap");
-  output.frontend = "embedded-quickjs-typescript";
+  output.frontend = "embedded-turbojs-typescript";
   output.frontend_version = string_property(context_, result.get(), "version");
 
   {

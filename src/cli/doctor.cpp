@@ -1,5 +1,5 @@
-#include "venom/internal/cli/doctor.hpp"
-#include "venom/core/version.hpp"
+#include "cli/doctor.hpp"
+#include "core/version.hpp"
 #include <array>
 #include <cstdio>
 #include <cstdlib>
@@ -82,18 +82,18 @@ bool run_doctor(const DoctorOptions& options) {
   const bool embedded_hardener =
       fs::exists("src/pipeline/native_js_hardener.cpp") &&
       fs::exists("src/frontends/javascript/embedded_bundles.cpp") &&
-      fs::exists("include/venom/frontends/javascript/embedded_bundles.hpp");
+      fs::exists("src/frontends/javascript/embedded_bundles.hpp");
 
-  add(checks, "js-hardener", embedded_hardener ? "embedded QuickJS hardener: Terser 5.49.0 + javascript-obfuscator 5.4.7" : "embedded hardener payload missing",
+  add(checks, "js-hardener", embedded_hardener ? "embedded TurboJS hardener: Terser 5.49.0 + javascript-obfuscator 5.4.7" : "embedded hardener payload missing",
       embedded_hardener, "Restore the native hardener source and embedded bundle payload.", required("js-hardener"));
 
-  const bool blob_present = fs::exists("include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp");
-  add(checks, "quickjs-wasm-source", blob_present ? "embedded runtime source present" : "embedded runtime source missing", blob_present, "Run the QuickJS/WASM setup and build scripts.");
-  Probe quickjs;
-  if (blob_present && fs::exists("tools/quickjs_wasm_cutover.py")) {
-    quickjs = probe(python_command + " tools/quickjs_wasm_cutover.py --repo-root . --verify-embedded --require-real");
+  const bool blob_present = fs::exists("src/generated/runtime/turbojs_runtime_wasm_blob.hpp");
+  add(checks, "turbojs-wasm-source", blob_present ? "embedded runtime source present" : "embedded runtime source missing", blob_present, "Run the TurboJS/WASM setup and build scripts.");
+  Probe turbojs;
+  if (blob_present && fs::exists("tools/turbojs_wasm_cutover.py")) {
+    turbojs = probe(python_command + " tools/turbojs_wasm_cutover.py --repo-root . --verify-embedded --require-real");
   }
-  add(checks, "quickjs-wasm-verification", quickjs.ok ? "strict embedded provenance verified" : "strict embedded provenance verification failed", quickjs.ok, "Rebuild and verify the canonical QuickJS/WASM runtime.");
+  add(checks, "turbojs-wasm-verification", turbojs.ok ? "strict embedded provenance verified" : "strict embedded provenance verification failed", turbojs.ok, "Rebuild and verify the canonical TurboJS/WASM runtime.");
 
   const auto emcc = probe("emcc --version");
   add(checks, "emscripten", emcc.ok ? first_line(emcc.output) : "emcc not available", emcc.ok, "Run scripts/linux/build-emsdk.sh or scripts/windows/build-emsdk.bat before rebuilding the runtime.", required("emscripten"));

@@ -2,7 +2,7 @@
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
-module = (root / 'src/generated/runtime/quickjs_engine_module.cpp').read_text(encoding='utf-8')
+module = (root / 'src/generated/runtime/turbojs_engine_module.cpp').read_text(encoding='utf-8')
 harness = (root / 'tests/runtime/browser-compat-harness.mjs').read_text(encoding='utf-8')
 doc = (root / 'docs/host-api-bridge-implementation.md').read_text(encoding='utf-8')
 
@@ -24,7 +24,7 @@ required_module = [
 ]
 for needle in required_module:
     if needle not in module:
-        raise SystemExit(f'missing host bridge implementation marker in quickjs_engine_module.cpp: {needle}')
+        raise SystemExit(f'missing host bridge implementation marker in turbojs_engine_module.cpp: {needle}')
 
 required_harness = [
     'host bridge replay did not apply browser host effects',

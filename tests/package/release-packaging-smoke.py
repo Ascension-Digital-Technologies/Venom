@@ -54,10 +54,10 @@ def main() -> int:
         out / 'scripts' / 'package-release.sh',
         out / 'scripts' / 'verify-release.sh',
         out / 'tools' / 'verify_release.py',
-        out / 'tools' / 'quickjs_wasm_preflight.py',
-        out / 'tools' / 'quickjs_wasm_cutover.py',
+        out / 'tools' / 'turbojs_wasm_preflight.py',
+        out / 'tools' / 'turbojs_wasm_cutover.py',
         out / 'tools' / 'setup_emscripten.py',
-        out / 'licenses' / 'QUICKJS-LICENSE',
+        out / 'licenses' / 'TURBOJS-LICENSE',
     ]
     missing = [str(p.relative_to(out)) for p in required if not p.exists()]
     if missing:
@@ -70,7 +70,7 @@ def main() -> int:
         return 1
 
     manifest = (out / 'RELEASE_MANIFEST.txt').read_text(encoding='utf-8')
-    for needle in ('VENOM_RELEASE_MANIFEST_V1', 'venom', 'docs/security-model.md', 'docs/release-signing.md', 'examples/protected-chess/index.html', 'scripts/build.sh', 'scripts/package-release.sh', 'scripts/verify-release.sh', 'tools/verify_release.py', 'tools/quickjs_wasm_preflight.py', 'tools/quickjs_wasm_cutover.py', 'tools/setup_emscripten.py'):
+    for needle in ('VENOM_RELEASE_MANIFEST_V1', 'venom', 'docs/security-model.md', 'docs/release-signing.md', 'examples/protected-chess/index.html', 'scripts/build.sh', 'scripts/package-release.sh', 'scripts/verify-release.sh', 'tools/verify_release.py', 'tools/turbojs_wasm_preflight.py', 'tools/turbojs_wasm_cutover.py', 'tools/setup_emscripten.py'):
         if needle not in manifest:
             print(f'RELEASE_MANIFEST.txt missing {needle!r}', file=sys.stderr)
             return 1

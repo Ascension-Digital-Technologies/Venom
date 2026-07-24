@@ -1,6 +1,6 @@
 # Venom TSX Showcase
 
-A small typed UI application compiled through Venom's native TypeScript and JSX frontends. The browser-side `app.tsx` is lowered to classic `React.createElement` calls, linked with a local lightweight JSX runtime, and calls a protected TypeScript pricing module executed through QuickJS/WASM.
+A small typed UI application compiled through Venom's native TypeScript and JSX frontends. The browser-side `app.tsx` is lowered to classic `React.createElement` calls, linked with a local lightweight JSX runtime, and calls a protected TypeScript pricing module executed through TurboJS/WASM.
 
 ## Demonstrated features
 

@@ -16,7 +16,7 @@ v0.39 keeps debug package names readable, but protect/release packages can redac
 
 ## v0.37 package feature table
 
-v0.37 adds `package-features.vfeat` as `SectionType::PackageFeatures` (`88`). The 32-bit package flags are now treated as coarse profile/runtime metadata only. Fine-grained QuickJS, host bridge, runtime policy, module, replay, snapshot, and host-I/O capabilities are represented as table records with section type, section name, release-required status, and decoded-section SHA-256 digest. Native C++, browser JavaScript, and the C runtime all know this section type; release packages require the feature table before execution.
+v0.37 adds `package-features.vfeat` as `SectionType::PackageFeatures` (`88`). The 32-bit package flags are now treated as coarse profile/runtime metadata only. Fine-grained TurboJS, host bridge, runtime policy, module, replay, snapshot, and host-I/O capabilities are represented as table records with section type, section name, release-required status, and decoded-section SHA-256 digest. Native C++, browser JavaScript, and the C runtime all know this section type; release packages require the feature table before execution.
 
 The table is intentionally not a signing claim. Integrity remains `sha256-software-v1`; protected payloads use either the browser-runnable `venom-aead-section-v1` envelope or the audited native `libsodium-xchacha20poly1305-ietf-v1` provider, and package signing remains an explicit future provider.
 
@@ -93,7 +93,7 @@ The older 64-bit FNV table hashes remain fast structural checks over stored payl
 3  dom_templates
 4  css
 5  javascript
-6  quickjs
+6  turbojs
 7  vm_bytecode
 8  asset
 9  integrity
@@ -104,7 +104,7 @@ The older 64-bit FNV table hashes remain fast structural checks over stored payl
 
 ## Host bridge metadata
 
-`host-calls.vhcb` is a readable `host_bridge` section with magic `VENOM_HOST_BRIDGE_V2`. It records the current runtime mode, stable host-call IDs, inline-event binding policy, and enabled fetch metadata plus planned QuickJS bridge slots. This is metadata for runtime validation and diagnostics; it is not encryption.
+`host-calls.vhcb` is a readable `host_bridge` section with magic `VENOM_HOST_BRIDGE_V2`. It records the current runtime mode, stable host-call IDs, inline-event binding policy, and enabled fetch metadata plus planned TurboJS bridge slots. This is metadata for runtime validation and diagnostics; it is not encryption.
 
 ## Route sections
 
@@ -155,7 +155,7 @@ opcode_xor=<u32>
 operand_xor=<u32>,<u32>,<u32>
 shuffle_strings=<0|1>
 shuffle_routes=<0|1>
-host_call dom=<u16> event=<u16> fetch=<u16> quickjs=<u16>
+host_call dom=<u16> event=<u16> fetch=<u16> turbojs=<u16>
 opcode_map:
   <logical> => <physical>
 ```
@@ -196,83 +196,83 @@ v0.19 adds package flags and section types for the next host-call layer:
 ```txt
 15 timer_bridge     timer-bridge.vtmr
 16 event_queue      event-queue.vevq
-17 quickjs_bridge   quickjs-bridge.vqjs
+17 turbojs_bridge   turbojs-bridge.vtjs
 ```
 
-`async-host-queue.vahq` is now metadata version 3 and advertises fetch, timer, event, WASM, script isolation, and QuickJS chunk request boundaries. v0.19 also adds:
+`async-host-queue.vahq` is now metadata version 3 and advertises fetch, timer, event, WASM, script isolation, and TurboJS chunk request boundaries. v0.19 also adds:
 
 ```txt
 18 script_isolation  script-isolation.vsis
 19 script_policy     script-policy.vscp
-20 quickjs_chunks    quickjs-chunks.vqbc
+20 turbojs_chunks    turbojs-chunks.vqbc
 ```
 
-QuickJS browser execution is a route-scoped chunk boundary, not a full QuickJS/WASM execution claim yet.
+TurboJS browser execution is a route-scoped chunk boundary, not a full TurboJS/WASM execution claim yet.
 
 
-## v0.37 QuickJS engine adapter lifecycle sections
+## v0.37 TurboJS engine adapter lifecycle sections
 
-v0.37 keeps the QuickJS engine bootstrap flags, then adds adapter-lifecycle metadata for the browser module boundary:
+v0.37 keeps the TurboJS engine bootstrap flags, then adds adapter-lifecycle metadata for the browser module boundary:
 
 ```txt
-quickjs-engine package flag
+turbojs-engine package flag
 script-engine-fallback package flag
-quickjs-engine-module package flag
-quickjs-context-lifecycle package flag
+turbojs-engine-module package flag
+turbojs-context-lifecycle package flag
 host-capabilities package flag
-quickjs-adapter-diagnostics package flag
+turbojs-adapter-diagnostics package flag
 
-quickjs_engine section type: quickjs-engine.vqse
+turbojs_engine section type: turbojs-engine.vqse
 script_engine_policy section type: script-engine-policy.vsep
-quickjs_engine_module section type: quickjs-engine-module.vqem
-quickjs_context_lifecycle section type: quickjs-context-lifecycle.vqcl
+turbojs_engine_module section type: turbojs-engine-module.vqem
+turbojs_context_lifecycle section type: turbojs-context-lifecycle.vqcl
 host_capabilities section type: host-capabilities.vhcap
-quickjs_adapter_diagnostics section type: quickjs-adapter-diagnostics.vqad
+turbojs_adapter_diagnostics section type: turbojs-adapter-diagnostics.vqad
 ```
 
-`quickjs-engine.vqse` records the route-scoped reusable context model and host capability binding metadata. `quickjs-context-lifecycle.vqcl` records context create/reuse/destroy host calls. `host-capabilities.vhcap` records the injected browser bridge capabilities made visible to the engine adapter. `quickjs-adapter-diagnostics.vqad` records the adapter contract and fallback status so the future QuickJS/WASM engine can replace the current module behind the same interface.
+`turbojs-engine.vqse` records the route-scoped reusable context model and host capability binding metadata. `turbojs-context-lifecycle.vqcl` records context create/reuse/destroy host calls. `host-capabilities.vhcap` records the injected browser bridge capabilities made visible to the engine adapter. `turbojs-adapter-diagnostics.vqad` records the adapter contract and fallback status so the future TurboJS/WASM engine can replace the current module behind the same interface.
 
 
-## v0.37 QuickJS execution result bridge sections
+## v0.37 TurboJS execution result bridge sections
 
-v0.37 adds three metadata sections that make script execution auditable without claiming final QuickJS bytecode execution yet:
+v0.37 adds three metadata sections that make script execution auditable without claiming final TurboJS bytecode execution yet:
 
-- `quickjs-execution-records.vqer` describes per-route execution records and runtime snapshot retention.
-- `quickjs-result-bridge.vqrb` describes the JSON result record boundary emitted by the QuickJS/WASM scaffold and consumed by the JS adapter.
-- `quickjs-fallback-policy.vqfp` describes the explicit policy gate for host-JS compatibility fallback.
+- `turbojs-execution-records.vqer` describes per-route execution records and runtime snapshot retention.
+- `turbojs-result-bridge.vqrb` describes the JSON result record boundary emitted by the TurboJS/WASM scaffold and consumed by the JS adapter.
+- `turbojs-fallback-policy.vqfp` describes the explicit policy gate for host-JS compatibility fallback.
 
-The corresponding package flags are `quickjs-execution-records`, `quickjs-result-bridge`, and `quickjs-fallback-policy`.
+The corresponding package flags are `turbojs-execution-records`, `turbojs-result-bridge`, and `turbojs-fallback-policy`.
 
 
-## v0.37 QuickJS real engine ABI expansion sections
+## v0.37 TurboJS real engine ABI expansion sections
 
-v0.37 also adds the explicit QuickJS runtime ABI expansion layer:
+v0.37 also adds the explicit TurboJS runtime ABI expansion layer:
 
 ```txt
-36 quickjs_runtime_abi       quickjs-runtime-abi.vqra
-37 quickjs_host_imports      quickjs-host-imports.vqhi
-38 quickjs_heap_limits       quickjs-heap-limits.vqhl
-39 quickjs_script_buffer     quickjs-script-buffer.vqsb
-40 quickjs_console_abi       quickjs-console-abi.vqca
-41 quickjs_parity_probe      quickjs-parity-probe.vqpp
-42 quickjs_release_fallback  quickjs-release-fallback.vqrf
-43 quickjs_bytecode_manifest quickjs-bytecode-manifest.vqbm
-44 quickjs_module_resolver   quickjs-module-resolver.vqmr
-45 quickjs_exception_abi     quickjs-exception-abi.vqex
-46 quickjs_host_trap_policy  quickjs-host-trap-policy.vqtp
+36 turbojs_runtime_abi       turbojs-runtime-abi.vqra
+37 turbojs_host_imports      turbojs-host-imports.vqhi
+38 turbojs_heap_limits       turbojs-heap-limits.vqhl
+39 turbojs_script_buffer     turbojs-script-buffer.vqsb
+40 turbojs_console_abi       turbojs-console-abi.vqca
+41 turbojs_parity_probe      turbojs-parity-probe.vqpp
+42 turbojs_release_fallback  turbojs-release-fallback.vqrf
+43 turbojs_bytecode_manifest turbojs-bytecode-manifest.vqbm
+44 turbojs_module_resolver   turbojs-module-resolver.vqmr
+45 turbojs_exception_abi     turbojs-exception-abi.vqex
+46 turbojs_host_trap_policy  turbojs-host-trap-policy.vqtp
 ```
 
-These sections describe the runtime ABI table, host-call import design, context heap/stack accounting limits, script byte-buffer allocation API, console callback ABI, native/WASM parity probe, strict release fallback policy, bytecode buffer manifest records, package-relative module resolver contracts, exception record ABI, and host-trap policy. The JavaScript runtime parses and exposes them through `globalThis.__venomRuntime` so the real QuickJS backend can be swapped in behind the same verified boundary.
+These sections describe the runtime ABI table, host-call import design, context heap/stack accounting limits, script byte-buffer allocation API, console callback ABI, native/WASM parity probe, strict release fallback policy, bytecode buffer manifest records, package-relative module resolver contracts, exception record ABI, and host-trap policy. The JavaScript runtime parses and exposes them through `globalThis.__venomRuntime` so the real TurboJS backend can be swapped in behind the same verified boundary.
 
 
-## v0.37 QuickJS backend replacement path
+## v0.37 TurboJS backend replacement path
 
-The package now includes `quickjs-engine-backend.vqeb`, `quickjs-native-parity.vqnp`, and `quickjs-execution-mode.vqxm`. These sections record backend selection, native QuickJS parity scope, execution mode, source-transfer requirements, result-bridge requirements, and explicit fallback policy. The generated QuickJS WASM asset exposes backend-status exports so the adapter can record whether the backend candidate accepted the chunk and whether fallback was required. Full in-browser QuickJS C bytecode execution is still not claimed.
+The package now includes `turbojs-engine-backend.vqeb`, `turbojs-native-parity.vqnp`, and `turbojs-execution-mode.vqxm`. These sections record backend selection, native TurboJS parity scope, execution mode, source-transfer requirements, result-bridge requirements, and explicit fallback policy. The generated TurboJS WASM asset exposes backend-status exports so the adapter can record whether the backend candidate accepted the chunk and whether fallback was required. Full in-browser TurboJS C bytecode execution is still not claimed.
 
 
 ## v0.37 release build policy
 
-v0.37 adds `quickjs-release-build-policy.vqbp` as a release-policy record. Default release builds with packaged script chunks fail at build time while the browser QuickJS backend is still the scaffold candidate, unless the user passes the explicit unsafe fallback override. The policy record captures backend selection, script count, fallback allow/deny state, and the resulting build decision.
+v0.37 adds `turbojs-release-build-policy.vqbp` as a release-policy record. Default release builds with packaged script chunks fail at build time while the browser TurboJS backend is still the scaffold candidate, unless the user passes the explicit unsafe fallback override. The policy record captures backend selection, script count, fallback allow/deny state, and the resulting build decision.
 
 ## v0.45 protected layout polymorphism
 

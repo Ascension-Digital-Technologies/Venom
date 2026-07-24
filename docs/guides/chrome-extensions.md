@@ -7,7 +7,7 @@ Venom supports Chrome Manifest V3 projects through:
 target = "chrome-extension"
 ```
 
-The extension project must contain a root `manifest.json` and at least one HTML extension page, such as an action popup or options page. Venom builds the HTML page through the sealed QuickJS/WASM route pipeline, preserves stable packaged paths required by `chrome.scripting.executeScript`, and emits a load-unpacked directory.
+The extension project must contain a root `manifest.json` and at least one HTML extension page, such as an action popup or options page. Venom builds the HTML page through the sealed TurboJS/WASM route pipeline, preserves stable packaged paths required by `chrome.scripting.executeScript`, and emits a load-unpacked directory.
 
 The emitted Manifest V3 policy includes:
 
@@ -15,7 +15,7 @@ The emitted Manifest V3 policy includes:
 script-src 'self' 'wasm-unsafe-eval'; object-src 'self'
 ```
 
-This permits the embedded QuickJS WebAssembly runtime while retaining the Manifest V3 prohibition on remote code and inline executable scripts.
+This permits the embedded TurboJS WebAssembly runtime while retaining the Manifest V3 prohibition on remote code and inline executable scripts.
 
 ## Example
 
@@ -59,7 +59,7 @@ Dynamic resource names that cannot be determined statically must be declared exp
 
 Venom assigns every executable extension resource to its actual Chrome execution world. JavaScript imports inherit the world of their manifest entrypoint rather than being treated as generic static files.
 
-| Context | DOM | `chrome.*` APIs | Direct QuickJS/WASM host | Venom treatment |
+| Context | DOM | `chrome.*` APIs | Direct TurboJS/WASM host | Venom treatment |
 |---|---:|---:|---:|---|
 | Extension page | Yes | Yes | Yes | May host protected exports directly |
 | Service worker | No | Yes | Worker-safe only | Stable adapter or worker runtime |

@@ -1,8 +1,8 @@
-#include "venom/base/error.hpp"
-#include "venom/internal/pipeline/planning/package_plan.hpp"
+#include "base/error.hpp"
+#include "pipeline/planning/package_plan.hpp"
 
-#include "venom/package/format.hpp"
-#include "venom/vm/polymorph.hpp"
+#include "package/format.hpp"
+#include "vm/polymorph.hpp"
 
 #include <algorithm>
 #include <fstream>

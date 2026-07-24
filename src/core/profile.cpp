@@ -1,7 +1,7 @@
-#include "venom/base/error.hpp"
-#include "venom/core/profile.hpp"
+#include "base/error.hpp"
+#include "core/profile.hpp"
 
-#include "venom/package/format.hpp"
+#include "package/format.hpp"
 
 #include <sstream>
 #include <stdexcept>

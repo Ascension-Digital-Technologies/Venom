@@ -6,7 +6,7 @@ A complete Venom example written in TypeScript. It demonstrates the native TypeS
 
 ![Venom TypeScript AST showcase](screenshot.png)
 
-The screenshot above shows the completed example running with browser-rendered TypeScript UI code and the quote calculation executing through the protected QuickJS/WASM runtime.
+The screenshot above shows the completed example running with browser-rendered TypeScript UI code and the quote calculation executing through the protected TurboJS/WASM runtime.
 
 ## Demonstrated compiler features
 
@@ -24,8 +24,8 @@ The screenshot above shows the completed example running with browser-rendered T
 ## Build
 
 ```powershell
-venom build examples\typescript-showcase --profile prod --out dist\typescript-showcase
-venom verify dist\typescript-showcase
+venom build examples\typescript-showcase --profile prod --out examples\typescript-showcase\dist-venom
+venom verify examples\typescript-showcase\dist-venom
 ```
 
 Development server:
@@ -34,4 +34,4 @@ Development server:
 venom dev examples\typescript-showcase --open
 ```
 
-The protected quote engine calculates pricing, discounts, tax, a risk score, and a parity result. The UI and DOM operations remain in the browser runtime while the calculation graph executes through QuickJS/WASM.
+The protected quote engine calculates pricing, discounts, tax, a risk score, and a parity result. The UI and DOM operations remain in the browser runtime while the calculation graph executes through TurboJS/WASM.

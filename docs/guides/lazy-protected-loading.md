@@ -1,6 +1,6 @@
 # Lazy protected loading
 
-Venom can keep protected QuickJS registries outside the main VBC package and activate only the registry group required by a protected call.
+Venom can keep protected TurboJS registries outside the main VBC package and activate only the registry group required by a protected call.
 
 ```toml
 [runtime.lazy_loading]
@@ -20,7 +20,7 @@ assets/app/
 
 When only one registry group exists, the compact name remains `registry.<hash>.vqc`.
 
-The protected manifest maps every opaque candidate ID to its owning chunk. On the first call, the worker fetches only that chunk, verifies its SHA-256 digest, activates the native QuickJS record, and caches the ready state in memory. Concurrent calls share one activation promise per chunk.
+The protected manifest maps every opaque candidate ID to its owning chunk. On the first call, the worker fetches only that chunk, verifies its SHA-256 digest, activates the native TurboJS record, and caches the ready state in memory. Concurrent calls share one activation promise per chunk.
 
 Protected-module dependencies remain in the same module-graph chunk so dependency order is preserved. Individually lowered protected functions are held in a separate function registry chunk. Preload hints activate only the chunk containing the named export.
 

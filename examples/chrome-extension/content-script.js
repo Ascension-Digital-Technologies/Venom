@@ -1,15 +1,36 @@
+// @venom: browser
 (() => {
   'use strict';
-  const CONTROLLER_KEY = '__VELOCITY_CHESS_CONTROLLER_V045__';
+  const CONTROLLER_KEY = '__VELOCITY_CHESS_CONTROLLER_V0110__';
   const previousController = globalThis[CONTROLLER_KEY];
   if (previousController && typeof previousController.dispose === 'function') {
     try { previousController.dispose(); } catch (_) {}
   }
 
-  const REQUEST_EVENT = 'VELOCITY_CHESS_EXTENSION_REQUEST_V045';
-  const RESPONSE_EVENT = 'VELOCITY_CHESS_EXTENSION_RESPONSE_V045';
+  const REQUEST_EVENT = 'VELOCITY_CHESS_EXTENSION_REQUEST_V0110';
+  const RESPONSE_EVENT = 'VELOCITY_CHESS_EXTENSION_RESPONSE_V0110';
+
+  function isMissingReceiverError(error) {
+    const message = error instanceof Error ? error.message : String(error || '');
+    return /Could not establish connection|Receiving end does not exist/i.test(message);
+  }
+
+  async function sendBackgroundMessage(message, attempts = 5) {
+    let lastError;
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      try {
+        return await chrome.runtime.sendMessage(message);
+      } catch (error) {
+        lastError = error;
+        if (!isMissingReceiverError(error) || attempt + 1 >= attempts) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 75 * (attempt + 1)));
+      }
+    }
+    throw lastError || new Error('Velocity background service worker is unavailable');
+  }
   const humanizer = globalThis.VelocityHumanizer;
   const skillModel = globalThis.VelocitySkillModel;
+  const mouseRecorder = globalThis.VelocityMouseRecorder;
   if (!humanizer) throw new Error('Velocity humanization module was not loaded');
   if (!skillModel) throw new Error('Velocity skill model was not loaded');
 
@@ -30,7 +51,12 @@
     lastRecoveryAt: 0,
     humanState: null,
     lastDecisionAt: 0,
-    telemetry: []
+    telemetry: [],
+    lastStateReadAt: 0,
+    lastObservedPosition: '',
+    lastPositionChangeAt: 0,
+    staleProbeCount: 0,
+    proactiveRecoveries: 0
   };
   let requestCounter = 0;
   const pending = new Map();
@@ -82,7 +108,8 @@
       dragMinMs,
       dragMaxMs,
       humanize: input.humanize !== false,
-      varyMoveTiming: input.varyMoveTiming !== false
+      varyMoveTiming: input.varyMoveTiming !== false,
+      recordedMouseProfile: input.recordedMouseProfile && typeof input.recordedMouseProfile === 'object' ? input.recordedMouseProfile : null
     };
   }
 
@@ -102,7 +129,17 @@
   }
 
   async function readState() {
-    return bridge('GET_STATE', {}, 3500);
+    const state = await bridge('GET_STATE', {}, 3500);
+    const now = Date.now();
+    session.lastStateReadAt = now;
+    if (state?.positionKey && state.positionKey !== session.lastObservedPosition) {
+      session.lastObservedPosition = state.positionKey;
+      session.lastPositionChangeAt = now;
+      session.staleProbeCount = 0;
+    } else if (state?.positionKey) {
+      session.staleProbeCount++;
+    }
+    return state;
   }
 
   async function waitForPositionChange(originalKey, generation, timeoutMs = 8000) {
@@ -115,7 +152,34 @@
     throw new Error('The visual chessboard did not change after the move');
   }
 
-  const RECOVERABLE_ERROR = /(timed out|still animating|could not be determined|could not be interpreted|did not change|did not accept|unable to find|unable to locate|board was found)/i;
+  const RECOVERABLE_ERROR = /(timed out|still animating|could not be determined|could not be interpreted|did not change|did not accept|unable to find|unable to locate|board was found|not currently visible|no visible chessboard|incomplete)/i;
+
+
+  function shouldProactivelyRecover(state, playingSide) {
+    if (!state || state.gameOver || !playingSide) return false;
+    const health = state.boardHealth || {};
+    if (health.rootConnected === false || Number(health.confidence || 0) < 0.55) return true;
+    const stagnantMs = Date.now() - (session.lastPositionChangeAt || Date.now());
+    const ourTurn = shouldPlay(state.turn, playingSide);
+    // Only reset aggressively while it is our turn. During the opponent's turn,
+    // a long unchanged position can simply mean they are thinking.
+    return ourTurn && session.staleProbeCount >= 36 && stagnantMs >= 9000;
+  }
+
+  async function proactiveRecovery(generation, reason) {
+    if (!session.running || generation !== session.generation) return false;
+    session.proactiveRecoveries++;
+    session.totalRecoveries++;
+    session.lastRecoveryAt = Date.now();
+    session.status = `Refreshing frozen board state · ${reason}`;
+    await hardResetVisualState();
+    await sleep(220);
+    if (!session.running || generation !== session.generation) return false;
+    await readState();
+    session.lastError = '';
+    session.staleProbeCount = 0;
+    return true;
+  }
 
   async function hardResetVisualState() {
     await bridge('RESET_STATE', {}, 5000);
@@ -152,6 +216,10 @@
         const state = await readState();
         session.recoveryCount = 0;
         const playingSide = resolvePlayingSide(state);
+        if (shouldProactivelyRecover(state, playingSide)) {
+          await proactiveRecovery(generation, state.boardHealth?.rootConnected === false ? 'board root replaced' : 'position stopped updating');
+          continue;
+        }
         if (!playingSide) {
           session.status = 'Detecting your side from the visual board…';
           await sleep(250);
@@ -172,23 +240,21 @@
 
         session.status = 'Velocity is thinking…';
         const searchOptions = skillModel.searchOptions(session.settings);
-        const response = await chrome.runtime.sendMessage({
+        const analysisResponse = await sendBackgroundMessage({
+          type: 'VELOCITY_ANALYZE',
           target: 'velocity-background',
-          type: 'ANALYZE',
-          payload: {
-            fen: state.fen,
-            options: {
-              maxDepth: searchOptions.maxDepth,
-              moveTimeMs: searchOptions.moveTimeMs,
-              candidateCount: searchOptions.candidateCount,
-              hashBits: 18
-            }
+          fen: state.fen,
+          options: {
+            maxDepth: searchOptions.maxDepth,
+            moveTimeMs: searchOptions.moveTimeMs,
+            candidateCount: searchOptions.candidateCount,
+            hashBits: 18
           }
         });
-        if (!response || response.ok !== true) {
-          throw new Error(response?.error || 'Protected Velocity engine did not return a result');
+        if (!analysisResponse?.ok) {
+          throw new Error(analysisResponse?.error || 'Protected engine analysis failed');
         }
-        const result = response.result;
+        const result = analysisResponse.result;
         const decision = skillModel.chooseMove(result, state, session.settings, session.personality, session.humanState);
         if (!decision.move) {
           session.running = false;
@@ -197,10 +263,11 @@
         }
 
         const timingResult = { ...result, score: Number(decision.selected?.score ?? result.score) || 0 };
-        const timing = humanizer.chooseMoveDelay(state, timingResult, session.settings, session.timingMemory, session.personality.random);
+        const scoreShock = Number.isFinite(session.humanState?.lastScore) ? Math.min(1, Math.abs((Number(decision.selected?.score) || 0) - session.humanState.lastScore) / 420) : 0;
+        const timingContext = { ...decision.context, familiar: Boolean(decision.context.familiar), surprise: scoreShock };
+        const timing = humanizer.chooseMoveDelay(state, timingResult, session.settings, session.timingMemory, session.personality.random, timingContext);
         const modifiers = skillModel.behaviorModifiers(session.settings, session.personality);
         const humanState = session.humanState || {};
-        const scoreShock = Number.isFinite(humanState.lastScore) ? Math.min(1, Math.abs((Number(decision.selected?.score) || 0) - humanState.lastScore) / 420) : 0;
         const fatigueScale = 1 + (humanState.fatigue || 0) * 0.16;
         const surpriseScale = 1 + scoreShock * 0.42;
         const confidenceScale = 1 - Math.max(-0.12, Math.min(0.1, (humanState.confidence || 0) * 0.08));
@@ -244,6 +311,9 @@
           thinkMs: timing.waitMs + Number(result.elapsedMs || 0),
           complexity: decision.context.complexity,
           mistakeType: decision.mistake?.type || 'none',
+          scoreLoss: Math.max(0, Number(result.candidates?.[0]?.score ?? result.score) - Number(decision.selected?.score ?? result.score)),
+          lossLimit: Number(decision.lossLimit || 0),
+          timePressure: Number(decision.context.timePressure || 0),
           fatigue: session.humanState?.fatigue || 0,
           skill: session.settings.skillLevel,
           style: session.settings.playStyle
@@ -252,7 +322,12 @@
         if (session.telemetry.length > 200) session.telemetry.shift();
         skillModel.updateHumanState(session.humanState, {
           positionKey: state.positionKey, move: decision.move,
-          score: telemetryEntry.score, complexity: decision.context.complexity
+          score: telemetryEntry.score, complexity: decision.context.complexity,
+          forcedMove: decision.context.forcedMove,
+          mistakeType: telemetryEntry.mistakeType,
+          selectedRank: telemetryEntry.selectedRank,
+          thinkMs: telemetryEntry.thinkMs,
+          timePressure: telemetryEntry.timePressure
         });
         const mistakeLabel = telemetryEntry.mistakeType === 'none' ? '' : ` · ${telemetryEntry.mistakeType}`;
         session.status = `Played ${decision.move} · ${session.settings.skillLevel}${mistakeLabel} · depth ${result.depth} · ${Number(result.nodes || 0).toLocaleString()} nodes`;
@@ -270,11 +345,27 @@
     session.running = false;
     session.generation++;
     session.channel = String(channel || '');
-    session.settings = normalizeSettings(inputSettings);
+    let recordedMouseProfile = null;
+    if (mouseRecorder && typeof mouseRecorder.load === 'function') {
+      try {
+        recordedMouseProfile = await Promise.race([
+          mouseRecorder.load(),
+          new Promise((resolve) => setTimeout(() => resolve(null), 350))
+        ]);
+      } catch (_) {
+        recordedMouseProfile = null;
+      }
+    }
+    session.settings = normalizeSettings({ ...inputSettings, recordedMouseProfile });
     session.lastError = '';
     session.recoveryCount = 0;
     session.totalRecoveries = 0;
     session.lastRecoveryAt = 0;
+    session.lastStateReadAt = 0;
+    session.lastObservedPosition = '';
+    session.lastPositionChangeAt = Date.now();
+    session.staleProbeCount = 0;
+    session.proactiveRecoveries = 0;
     session.personality = skillModel.createPersonality(`${session.channel}:${Date.now()}`);
     session.humanState = skillModel.createHumanState();
     session.telemetry = [];
@@ -329,6 +420,10 @@
       recoveryCount: session.recoveryCount,
       totalRecoveries: session.totalRecoveries,
       lastRecoveryAt: session.lastRecoveryAt,
+      proactiveRecoveries: session.proactiveRecoveries,
+      lastStateReadAt: session.lastStateReadAt,
+      lastPositionChangeAt: session.lastPositionChangeAt,
+      staleProbeCount: session.staleProbeCount,
       humanState: session.humanState ? {
         moveNumber: session.humanState.moveNumber,
         fatigue: session.humanState.fatigue,
@@ -336,7 +431,45 @@
         tilt: session.humanState.tilt
       } : null,
       telemetryCount: session.telemetry.length,
-      recentTelemetry: session.telemetry.slice(-8)
+      recentTelemetry: session.telemetry.slice(-8),
+      mouseProfileQuality: humanizer?.assessRecordedProfile ? humanizer.assessRecordedProfile(session.settings?.recordedMouseProfile || null) : null
+    };
+  }
+
+
+  async function startMouseRecording() {
+    if (!mouseRecorder) return { ok: false, error: 'Mouse recorder was not loaded' };
+    if (session.running) stopController();
+    return mouseRecorder.start();
+  }
+
+  async function stopMouseRecording() {
+    if (!mouseRecorder) return { ok: false, error: 'Mouse recorder was not loaded' };
+    return mouseRecorder.stop();
+  }
+
+  async function clearMouseRecording() {
+    if (!mouseRecorder) return { ok: false, error: 'Mouse recorder was not loaded' };
+    return mouseRecorder.clear();
+  }
+
+  async function mouseRecordingStatus() {
+    if (!mouseRecorder) return { ok: false, error: 'Mouse recorder was not loaded' };
+    return mouseRecorder.status();
+  }
+
+
+  async function diagnostics() {
+    const base = controllerStatus();
+    let recorder = { savedSamples: 0, recording: false, quality: { score: 0, label: 'None' }, profile: null };
+    if (mouseRecorder?.status) {
+      try { recorder = await mouseRecorder.status(); } catch (_) {}
+    }
+    return {
+      ...base,
+      recorder,
+      generatedAt: Date.now(),
+      lastMove: session.telemetry.at(-1) || null
     };
   }
 
@@ -355,6 +488,11 @@
     start: startController,
     stop: stopController,
     status: controllerStatus,
+    startMouseRecording,
+    stopMouseRecording,
+    clearMouseRecording,
+    mouseRecordingStatus,
+    diagnostics,
     dispose: disposeController
   });
   globalThis[CONTROLLER_KEY] = controller;

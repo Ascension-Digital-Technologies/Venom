@@ -10,6 +10,7 @@ REMOTE_EXEC_RE=re.compile(r"(?:importScripts\s*\(|(?:import|fetch)\s*\(|new\s+(?
 INLINE_SCRIPT_RE=re.compile(r'<script\b(?![^>]*\bsrc\s*=)[^>]*>(.*?)</script\s*>',re.I|re.S)
 SCRIPT_SRC_RE=re.compile(r'<script\b[^>]*\bsrc\s*=\s*([\"\'])(.*?)\1',re.I|re.S)
 LINK_RE=re.compile(r'<(?:script|link)\b[^>]*(?:src|href)\s*=\s*([\"\'])(.*?)\1',re.I|re.S)
+CHROME_RUNTIME_URL_RE=re.compile(r"\bchrome\.runtime\.getURL\s*\(\s*([`\"'])((?:\\.|(?!\1).)*)\1\s*\)",re.S)
 DANGEROUS_JS=[re.compile(r'\beval\s*\('),re.compile(r'\bnew\s+Function\s*\('),re.compile(r'\bimport\s*\(\s*[`\"\']https?://',re.I)]
 DEV_NAMES={'.git','.github','node_modules','tests','test','docs','examples','src','build','dist'}
 DEV_FILES={'package.json','package-lock.json','yarn.lock','pnpm-lock.yaml','venom.toml','README.md','CHANGES.md','CONTRIBUTING.md'}
@@ -75,8 +76,17 @@ def js_audit(a:Audit,path:Path):
     for rx in DANGEROUS_JS:
         if rx.search(text): a.error(f'forbidden dynamic code pattern in {rel}: {rx.pattern}')
     if REMOTE_EXEC_RE.search(text): a.error(f'remote executable loading primitive in JavaScript: {rel}')
+    # chrome.runtime.getURL() resolves from the extension root, regardless of
+    # which adapter contains the call. Record literal targets so missing static
+    # resources fail store readiness instead of surfacing as a runtime fetch error.
+    for match in CHROME_RUNTIME_URL_RE.finditer(text):
+        target=match.group(2)
+        if '${' in target:
+            a.warn(f'dynamic chrome.runtime.getURL target cannot be verified statically in {rel}: {target}')
+            continue
+        add_ref(a,target,f'{rel}:chrome.runtime.getURL')
     # Hardened extension files should be compact and free of source comments. This is a conservative evidence check.
-    if rel.startswith('assets/extension/'):
+    if rel.startswith('assets/extension/') or '/' not in rel:
         if len(text)>400 and ('\n' in text and text.count('\n')>max(8,len(text)//500)): a.warn(f'JavaScript may not be fully compacted: {rel}')
         if re.search(r'(^|\n)\s*(//|/\*)',text): a.error(f'JavaScript contains source comments and may have bypassed hardening: {rel}')
         a.hardened.append(rel)
@@ -89,13 +99,28 @@ def main():
     manifest=root/'manifest.json'
     if not manifest.is_file(): a.error('manifest.json must be the only root file and is missing')
     root_entries=[p.name for p in root.iterdir()]
-    extras=sorted(x for x in root_entries if x not in {'manifest.json','assets'})
-    if extras: a.error('unexpected root entries: '+', '.join(extras))
     try: m=json.loads(manifest.read_text('utf-8')) if manifest.is_file() else {}
     except Exception as e: a.error(f'invalid manifest.json: {e}'); m={}
     walk_manifest(a,m)
+    allowed_root={'manifest.json','assets'}
+    for ref in a.refs:
+        path=PurePosixPath(ref)
+        if len(path.parts)==1 and path.suffix.lower() in {'.html','.htm'}:
+            allowed_root.add(path.name)
+    # chrome.scripting.executeScript requires stable extension-relative file
+    # paths. Root-level hardened adapters are valid Manifest V3 resources and
+    # are audited below with the same dynamic-code and remote-load checks.
+    for entry in root.iterdir():
+        if entry.is_file() and entry.suffix.lower() in JS_SUFFIXES:
+            allowed_root.add(entry.name)
+    extras=sorted(x for x in root_entries if x not in allowed_root)
+    if extras: a.error('unexpected root entries: '+', '.join(extras))
     csp=(m.get('content_security_policy') or {}).get('extension_pages','') if isinstance(m.get('content_security_policy'),dict) else str(m.get('content_security_policy',''))
     if "'unsafe-eval'" in csp: a.error("extension CSP must not contain 'unsafe-eval'")
+    if "'wasm-unsafe-eval'" not in csp:
+        a.error("extension CSP must contain 'wasm-unsafe-eval' for the protected TurboJS/WASM runtime")
+    if "script-src 'self'" not in csp:
+        a.error("extension CSP must restrict scripts to 'self'")
     if 'http:' in csp or 'https:' in csp or '*' in csp: a.error('extension CSP permits remote or wildcard sources')
     perms=list(m.get('permissions') or []); hosts=list(m.get('host_permissions') or [])
     high={'tabs','history','bookmarks','downloads','cookies','management','webRequest','webRequestBlocking','nativeMessaging','debugger','proxy'}

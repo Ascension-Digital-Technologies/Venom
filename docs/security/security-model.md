@@ -11,7 +11,7 @@ The objective is to increase the time, specialization, tooling, and per-build ef
 
 ## Protected source representation
 
-Protected JavaScript is compiled into QuickJS bytecode. The production distribution does not include the original protected module text, comments, formatting, source maps, or most source-level identifiers. Canonical QuickJS records are wrapped in build-specific `VQJSE006` envelopes before package emission.
+Protected JavaScript is compiled into TurboJS bytecode. The production distribution does not include the original protected module text, comments, formatting, source maps, or most source-level identifiers. Canonical TurboJS records are wrapped in build-specific `VTJSE006` envelopes before package emission.
 
 The exact original source therefore cannot be recovered byte-for-byte from `dist/`. A determined analyst may still observe runtime behavior or decoded records and reconstruct equivalent logic.
 
@@ -19,11 +19,11 @@ The exact original source therefore cannot be recovered byte-for-byte from `dist
 
 Production builds can vary package section ordering, padding, identifiers, aliases, physical Route VM opcodes, instruction-field layouts, masks, host-call classes, DOM command identifiers, string ordering, and stored bytecode envelopes. Equivalent application behavior can therefore have materially different physical representations across builds.
 
-Venom does not claim to renumber upstream QuickJS interpreter opcodes. Its own Route VM uses build-specific physical opcodes, while QuickJS records are transformed by build-specific envelopes and byte permutations.
+Venom does not claim to renumber upstream TurboJS interpreter opcodes. Its own Route VM uses build-specific physical opcodes, while TurboJS records are transformed by build-specific envelopes and byte permutations.
 
 ## Runtime isolation
 
-Protected execution occurs inside QuickJS/WASM hosted by a dedicated worker. The page receives an asynchronous API rather than direct access to protected runtime objects. Package decoding and QuickJS execution are treated as separate responsibilities with a validated handoff record.
+Protected execution occurs inside TurboJS/WASM hosted by a dedicated worker. The page receives an asynchronous API rather than direct access to protected runtime objects. Package decoding and TurboJS execution are treated as separate responsibilities with a validated handoff record.
 
 Worker isolation is a software boundary, not a hardware security boundary. A browser owner can instrument workers and WebAssembly execution.
 

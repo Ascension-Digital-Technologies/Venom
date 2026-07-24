@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://venom.dev/schemas/venom-config-v1.json",
+  "title": "Venom project configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "input": { "type": "string", "minLength": 1 },
+    "output": { "type": "string", "minLength": 1 },
+    "profile": { "type": "string", "minLength": 1 },
+    "build": { "type": "boolean" },
+    "buildScript": { "type": "string", "minLength": 1 },
+    "venom": { "type": "string", "minLength": 1 },
+    "args": { "type": "array", "items": { "type": "string" } }
+  }
+}

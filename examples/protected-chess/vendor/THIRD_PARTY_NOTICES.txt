@@ -16,6 +16,6 @@ The local chessboard compatibility implementation in vendor/chessboardjs/js is p
 of this project adaptation and uses the public chessboard.js callback/class contract.
 
 Velocity Chess 0.5.0
-High-performance JavaScript chess engine integrated into the protected QuickJS runtime.
+High-performance JavaScript chess engine integrated into the protected TurboJS runtime.
 License declared by the supplied package metadata: MIT.
 The supplied archive did not include a standalone license file or author field.

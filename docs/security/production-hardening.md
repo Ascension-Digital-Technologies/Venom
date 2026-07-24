@@ -1,13 +1,13 @@
 # Production Hardening
 
-> **Applies to:** Venom 1.1.0
+> **Applies to:** Venom 2.0.0
 
-A production build must use the `prod` profile and pass the release verification pipeline. Development output is not a production substitute even though it uses the real QuickJS/WASM execution path.
+A production build must use the `prod` profile and pass the release verification pipeline. Development output is not a production substitute even though it uses the real TurboJS/WASM execution path.
 
 ## Required controls
 
 - install and verify the locked JavaScript hardener;
-- use the verified embedded QuickJS/WASM runtime;
+- use the verified embedded TurboJS/WASM runtime;
 - build the entire distribution in one invocation;
 - require fail-closed execution with no host-JavaScript fallback;
 - verify package, loader, worker, runtime, stylesheet, and WASM bindings;
@@ -15,6 +15,14 @@ A production build must use the `prod` profile and pass the release verification
 - qualify routes, browser APIs, modules, and protected exports;
 - sign stable release metadata;
 - preserve release evidence.
+
+Production asset emission is allowlist-driven. Venom follows assets referenced by
+HTML routes, their linked stylesheets, and the planned JavaScript/module graph.
+Unreferenced input files are not copied or embedded merely because they exist in
+the project directory. After emission, the compiler reopens `dist/` and requires
+the file set to match the build plan exactly; unexpected files, symlinks, missing
+files, and unsupported filesystem entries fail the build and remove the partial
+distribution.
 
 ## Application boundary
 
@@ -36,4 +44,4 @@ For the complete release pipeline, use [Production release verification](../oper
 
 ## Prohibited shortcuts
 
-Do not ship source maps, readable protected modules, debug manifests, internal engineering reports, development runtime files, unsigned stable metadata, or a distribution assembled from files produced by different builds.
+Do not ship source maps, readable protected modules, debug manifests, internal engineering reports, development runtime files, unsigned stable metadata, unreferenced project files, or a distribution assembled from files produced by different builds.

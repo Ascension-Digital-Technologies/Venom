@@ -2,7 +2,7 @@
 
 > **Applies to:** Venom 1.1.0
 
-The Venom protection planner is a local static-analysis tool that recommends whether JavaScript files and functions should execute in the protected QuickJS/WASM runtime, remain browser-side, or receive manual review. It never contacts a server and never overrides an explicit developer decision.
+The Venom protection planner is a local static-analysis tool that recommends whether JavaScript files and functions should execute in the protected TurboJS/WASM runtime, remain browser-side, or receive manual review. It never contacts a server and never overrides an explicit developer decision.
 
 ## Run the planner
 

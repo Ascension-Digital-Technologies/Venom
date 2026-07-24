@@ -168,7 +168,7 @@ def main() -> int:
 
         if args.build_examples:
             leak_scan = root / "tools/check_production_leaks.py"
-            for example in ("protected-chess", "nova-trade", "bot-detection", "typescript-showcase", "tsx-showcase", "aegis-operations", "quickjs-benchmark", "chrome-extension"):
+            for example in ("protected-chess", "nova-trade", "bot-detection", "typescript-showcase", "tsx-showcase", "aegis-operations", "turbojs-benchmark", "chrome-extension"):
                 site = root / "examples" / example
                 step(f"analyze-{example}", [str(venom), "analyze", str(site), "--format", "json"])
                 for profile in ("prod",):

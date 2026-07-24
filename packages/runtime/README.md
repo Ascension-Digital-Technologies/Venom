@@ -1,9 +1,9 @@
-# @venom-js/runtime
+# @venom/runtime
 
-Stable browser SDK for Venom protected QuickJS/WASM applications.
+Stable browser SDK for Venom protected TurboJS/WASM applications.
 
 ```ts
-import { initializeVenom, callProtected } from "@venom-js/runtime";
+import { initializeVenom, callProtected } from "@venom/runtime";
 
 await initializeVenom();
 const result = await callProtected<{ values: number[] }, { score: number }>(

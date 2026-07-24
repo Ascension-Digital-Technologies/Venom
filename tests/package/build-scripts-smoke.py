@@ -11,7 +11,7 @@ examples = {
     'build-and-launch-tsx-showcase',
     'build-and-launch-aegis-operations',
     'build-and-launch-javascript-playground',
-    'build-and-launch-quickjs-benchmark',
+    'build-and-launch-turbojs-benchmark',
     'build-and-launch-chrome-extension',
 }
 core = {'build', 'build-emsdk', 'package-release', 'verify-release', 'build-and-launch-website'}

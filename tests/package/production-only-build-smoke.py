@@ -34,8 +34,8 @@ def assert_production_dist(out: Path):
     required = {
         'loader': 'loader/loader.*.js',
         'runtime js bridge': 'runtime/r.*.js',
-        'quickjs engine': 'runtime/engine.*.js',
-        'quickjs wasm': 'runtime/runtime.*.wasm',
+        'turbojs engine': 'runtime/engine.*.js',
+        'turbojs wasm': 'runtime/runtime.*.wasm',
         'wasm runtime': 'runtime/rw.*.wasm',
         'worker': 'workers/worker.*.js',
         'css': 'style/s.*.css',

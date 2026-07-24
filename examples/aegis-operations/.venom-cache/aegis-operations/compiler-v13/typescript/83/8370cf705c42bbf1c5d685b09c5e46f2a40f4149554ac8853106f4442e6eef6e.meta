@@ -1,0 +1,7 @@
+schema=3
+frontend=embedded-turbojs-typescript
+version=5.8.3
+bridge=1
+tsx=1
+diagnostics=0
+jsx=2

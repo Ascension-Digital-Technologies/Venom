@@ -2,7 +2,7 @@
 
 > **Applies to:** Venom 1.1.0
 
-Protected modules package related JavaScript logic into the QuickJS/WASM execution runtime while exposing only declared asynchronous exports to browser code.
+Protected modules package related JavaScript logic into the TurboJS/WASM execution runtime while exposing only declared asynchronous exports to browser code.
 
 ## Declaring a protected module
 
@@ -14,7 +14,7 @@ export function calculateRisk(order) {
 }
 ```
 
-The module implementation is compiled to QuickJS bytecode and stored in the protected package. Browser code does not import the source module directly; it calls the generated Venom export surface.
+The module implementation is compiled to TurboJS bytecode and stored in the protected package. Browser code does not import the source module directly; it calls the generated Venom export surface.
 
 ## Browser invocation
 
@@ -31,10 +31,10 @@ Keep DOM access, framework lifecycle state, event objects, browser handles, and 
 
 ## Module graphs
 
-Venom resolves supported local protected-module dependencies, binds the module graph to the package metadata, and validates the QuickJS bytecode ABI at runtime. Dynamic module behavior should be qualified with the compatibility suite before production use.
+Venom resolves supported local protected-module dependencies, binds the module graph to the package metadata, and validates the TurboJS bytecode ABI at runtime. Dynamic module behavior should be qualified with the compatibility suite before production use.
 
 ## Errors
 
-Protected errors are sanitized before they cross the bridge. Applications should handle stable error categories rather than depending on internal QuickJS stack details or source filenames.
+Protected errors are sanitized before they cross the bridge. Applications should handle stable error categories rather than depending on internal TurboJS stack details or source filenames.
 
 See [Protected functions](protected-functions.md), [Browser bridge](browser-bridge.md), and [JavaScript API](../reference/javascript-api.md).

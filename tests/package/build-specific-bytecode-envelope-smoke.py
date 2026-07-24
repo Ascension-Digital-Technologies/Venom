@@ -9,30 +9,30 @@ metadata = (root / 'src/pipeline/build_runtime_module_metadata.cpp').read_text(e
 security = (root / 'src/pipeline/security_analysis.cpp').read_text(encoding='utf-8')
 
 required_cpp = [
-    'VQJSE006', 'wrap_quickjs_record', 'envelope_seed', 'xorshift32',
+    'VTJSE006', 'wrap_turbojs_record', 'envelope_seed', 'xorshift32',
     'bytecode_lane_map', 'bytecode_lane_fingerprint', 'lane_width = 16u',
     'diversification_salt', 'fnv1a64(raw)', '0x01000300u'
 ]
 for marker in required_cpp:
     assert marker in js_cpp, f'missing bytecode envelope compiler marker: {marker}'
 required_runtime = [
-    'decodeQuickJsEnvelope', "asciiOf(bytes.slice(0, 8)) !== 'VQJSE006'",
-    'quickJsEnvelopeLaneMap', 'quickJsEnvelopeLaneFingerprint',
+    'decodeTurboJsEnvelope', "asciiOf(bytes.slice(0, 8)) !== 'VTJSE006'",
+    'turboJsEnvelopeLaneMap', 'turboJsEnvelopeLaneFingerprint',
     'expectedLaneFingerprint', 'laneWidth !== 16',
     'bytecodeAbi !== 0x01000300', 'fnv1a64(decoded) !== expectedHash',
-    "storedCodeBytes.fill(0)", "bytecodeMagic !== 'VQJSMB04'"
+    "storedCodeBytes.fill(0)", "bytecodeMagic !== 'VTJSMB04'"
 ]
 for marker in required_runtime:
     assert marker in runtime, f'missing bytecode envelope runtime marker: {marker}'
 for marker in [
-    'package_envelope=build-specific-quickjs-envelope-v2',
-    'package_envelope_magic=VQJSE006',
+    'package_envelope=build-specific-turbojs-envelope-v2',
+    'package_envelope_magic=VTJSE006',
     'package_envelope_permutation=per-build-16-byte-lane-map'
 ]:
     assert marker in metadata, f'missing bytecode envelope metadata: {marker}'
-assert 'payload_starts_with(section.data, "VQJSE006")' in security
+assert 'payload_starts_with(section.data, "VTJSE006")' in security
 assert 'count_js_bundle_flagged_payload_prefix' in security
-assert 'contains_bytes(section.data, "VQJSBC03")' not in security
+assert 'contains_bytes(section.data, "VTJSBC03")' not in security
 
 MASK = 0xffffffff
 
@@ -92,7 +92,7 @@ def inverse(encoded: bytes, value: int) -> bytes:
             out[block + block_map[stored_lane]] = byte
     return bytes(out)
 
-raw = b'VQJSBC03' + bytes(range(73))
+raw = b'VTJSBC03' + bytes(range(73))
 a = seed('build-a', '/', 'protected.js', 1)
 b = seed('build-b', '/', 'protected.js', 1)
 assert a != b and lane_map(a) != lane_map(b)

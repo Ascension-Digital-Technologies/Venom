@@ -1,5 +1,5 @@
-#include "venom/base/error.hpp"
-#include "venom/internal/pipeline/security_artifact_inspection.hpp"
+#include "base/error.hpp"
+#include "pipeline/security_artifact_inspection.hpp"
 
 #include <algorithm>
 #include <fstream>

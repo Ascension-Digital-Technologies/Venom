@@ -1,0 +1,14 @@
+[project]
+entry = "dist"
+output = "dist-venom"
+
+[build]
+profile = "prod"
+harden_public_javascript = true
+
+[runtime]
+engine = "turbojs-wasm"
+fail_closed = true
+
+[security]
+deny_host_js_fallback = true

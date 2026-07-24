@@ -2,7 +2,7 @@
 """Analyze a Venom hardened/browser dist folder.
 
 This is a diagnostic tool: it does not modify the dist. It reports file hashes,
-package/runtime truth metadata, production-only layout status, and QuickJS WASM
+package/runtime truth metadata, production-only layout status, and TurboJS WASM
 ABI/runtime-value status.
 """
 from __future__ import annotations
@@ -49,7 +49,7 @@ def parse_loader(loader: Path | None) -> dict[str, str]:
         return {}
     text = loader.read_text(encoding='utf-8', errors='replace')
     out: dict[str, str] = {}
-    for key in ('packageUrl', 'runtimeUrl', 'runtimeWasmUrl', 'styleUrl', 'quickJsEngineUrl', 'quickJsWasmUrl', 'workerUrl', 'expectedPackageHash', 'expectedQuickJsWasmSha256', 'hardened'):
+    for key in ('packageUrl', 'runtimeUrl', 'runtimeWasmUrl', 'styleUrl', 'turboJsEngineUrl', 'turboJsWasmUrl', 'workerUrl', 'expectedPackageHash', 'expectedTurboJsWasmSha256', 'hardened'):
         m = re.search(rf'{key}\s*:\s*(?:new URL\(\'([^\']+)\'|\'([^\']+)\'|(true|false))', text)
         if m:
             out[key] = next((g for g in m.groups() if g is not None), '')
@@ -85,8 +85,8 @@ def validate_production_layout(dist: Path) -> list[str]:
         'stylesheet': rf'assets/style/s\.{HASH_RE}\.css',
         'loader': rf'assets/loader/loader\.{HASH_RE}\.js',
         'runtime bridge': rf'assets/runtime/r\.{HASH_RE}\.js',
-        'QuickJS engine': rf'assets/runtime/engine\.{HASH_RE}\.js',
-        'QuickJS WASM': rf'assets/runtime/runtime\.{HASH_RE}\.wasm',
+        'TurboJS engine': rf'assets/runtime/engine\.{HASH_RE}\.js',
+        'TurboJS WASM': rf'assets/runtime/runtime\.{HASH_RE}\.wasm',
         'runtime WASM': rf'assets/runtime/rw\.{HASH_RE}\.wasm',
         'worker': rf'assets/workers/worker\.{HASH_RE}\.js',
     }
@@ -95,7 +95,7 @@ def validate_production_layout(dist: Path) -> list[str]:
             failures.append(f'missing production {label}: {pattern}')
     forbidden_paths = {
         'sw.js', 'favicon.ico', 'assets/app.vbc', 'assets/asset-manifest.txt',
-        'assets/runtime.js', 'assets/quickjs-engine.js', 'assets/quickjs-runtime.wasm',
+        'assets/runtime.js', 'assets/turbojs-engine.js', 'assets/turbojs-runtime.wasm',
     }
     for rel in rels:
         if rel in forbidden_paths or rel.endswith('.map') or rel.endswith('.d.ts'):
@@ -104,7 +104,7 @@ def validate_production_layout(dist: Path) -> list[str]:
             parts = rel.split('/')
             if len(parts) >= 3 and parts[1] in RESERVED_ASSET_ROOTS:
                 continue
-            if len(parts) == 2 and parts[1] in {'app.vbc', 'loader.js', 'runtime.js', 'quickjs-engine.js'}:
+            if len(parts) == 2 and parts[1] in {'app.vbc', 'loader.js', 'runtime.js', 'turbojs-engine.js'}:
                 failures.append(f'legacy flat asset path is not allowed: {rel}')
     loader_files = [dist / rel for rel in rels if re.fullmatch(rf'assets/loader/loader\.{HASH_RE}\.js', rel)]
     if loader_files:
@@ -114,13 +114,13 @@ def validate_production_layout(dist: Path) -> list[str]:
             "packageUrl: new URL('../app/app.",
             "styleUrl: new URL('../style/s.",
             "runtimeUrl: new URL('../runtime/r.",
-            "quickJsEngineUrl: new URL('../runtime/engine.",
-            "quickJsWasmUrl: new URL('../runtime/runtime.",
+            "turboJsEngineUrl: new URL('../runtime/engine.",
+            "turboJsWasmUrl: new URL('../runtime/runtime.",
             "runtimeWasmUrl: new URL('../runtime/rw.",
             "workerUrl: new URL('../workers/worker.",
             "new Worker(bootOptions.workerUrl",
             "protocol: 1",
-            "expectedQuickJsWasmSha256:",
+            "expectedTurboJsWasmSha256:",
         ]
         for needle in expected_loader_refs:
             if needle not in loader_text:
@@ -171,14 +171,14 @@ def main() -> int:
 
     app = find_one(['assets/app/app.*.vbc'], dist)
     loader = find_one(['assets/loader/loader.*.js'], dist)
-    qjs_wasm = find_one(['assets/runtime/runtime.*.wasm'], dist)
+    tjs_wasm = find_one(['assets/runtime/runtime.*.wasm'], dist)
     runtime_wasm = find_one(['assets/runtime/rw.*.wasm'], dist)
 
     production_layout_failures = validate_production_layout(dist)
     recon_markers = {
         'semantic runtime names': ('executionJournal', 'capabilityLedger', 'snapshotCapture', 'determinismAudit'),
         'source evaluation': ('new Function', 'eval('),
-        'debug metadata': ('sourceMappingURL', 'quickjs-probe', 'strict_release=false'),
+        'debug metadata': ('sourceMappingURL', 'turbojs-probe', 'strict_release=false'),
     }
     marker_hits: dict[str, list[str]] = {}
     text_assets = []
@@ -198,7 +198,7 @@ def main() -> int:
         'files': files,
         'app_package': str(app.relative_to(dist)) if app else '',
         'loader': str(loader.relative_to(dist)) if loader else '',
-        'quickjs_wasm': str(qjs_wasm.relative_to(dist)) if qjs_wasm else '',
+        'turbojs_wasm': str(tjs_wasm.relative_to(dist)) if tjs_wasm else '',
         'runtime_wasm': str(runtime_wasm.relative_to(dist)) if runtime_wasm else '',
         'loader_config': parse_loader(loader),
         'production_layout_pass': not production_layout_failures,
@@ -227,19 +227,19 @@ def main() -> int:
         report['runtime_remote_chunks'] = int(real_values.get('runtime_remote_chunks', '0') or 0)
 
     temporary_manifest_dir: Path | None = None
-    if qjs_wasm:
+    if tjs_wasm:
         if args.manifest_dir:
             manifest_dir = args.manifest_dir.resolve()
             manifest_dir.mkdir(parents=True, exist_ok=True)
         else:
             temporary_manifest_dir = Path(tempfile.mkdtemp(prefix='venom-analysis-')).resolve()
             manifest_dir = temporary_manifest_dir
-        manifest = manifest_dir / 'quickjs-runtime.analysis.manifest.txt'
-        exports_json = manifest_dir / 'quickjs-runtime.analysis.exports.json'
-        release_abi_json = manifest_dir / 'quickjs-runtime.release-abi.json'
+        manifest = manifest_dir / 'turbojs-runtime.analysis.manifest.txt'
+        exports_json = manifest_dir / 'turbojs-runtime.analysis.exports.json'
+        release_abi_json = manifest_dir / 'turbojs-runtime.release-abi.json'
         abi_rc, abi_out = run([
             sys.executable,
-            str(repo / 'tools' / 'quickjs_release_abi.py'),
+            str(repo / 'tools' / 'turbojs_release_abi.py'),
             str(release_abi_json),
         ])
         if abi_rc != 0:
@@ -248,7 +248,7 @@ def main() -> int:
             cmd = [
                 sys.executable,
                 str(repo / 'tools' / 'wasm_exports.py'),
-                str(qjs_wasm),
+                str(tjs_wasm),
                 '--require-json', str(release_abi_json),
                 '--exact-exports',
                 '--manifest', str(manifest),
@@ -260,12 +260,12 @@ def main() -> int:
                 '--fail-missing',
             ]
             rc, out = run(cmd)
-        report['quickjs_wasm_value_returncode'] = rc
-        report['quickjs_wasm_value_output'] = out
-        report['quickjs_wasm_analysis_manifest'] = str(manifest)
-        report['quickjs_wasm_analysis_exports_json'] = str(exports_json)
+        report['turbojs_wasm_value_returncode'] = rc
+        report['turbojs_wasm_value_output'] = out
+        report['turbojs_wasm_analysis_manifest'] = str(manifest)
+        report['turbojs_wasm_analysis_exports_json'] = str(exports_json)
         if manifest.exists():
-            report['quickjs_wasm_analysis_manifest_text'] = manifest.read_text(encoding='utf-8')
+            report['turbojs_wasm_analysis_manifest_text'] = manifest.read_text(encoding='utf-8')
 
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -278,7 +278,7 @@ def main() -> int:
     print(f'[venom]   files: {report["file_count"]}')
     print(f'[venom]   app: {report["app_package"] or "missing"}')
     print(f'[venom]   production layout: {"PASS" if report.get("production_layout_pass") else "FAIL"}')
-    print(f'[venom]   quickjs wasm: {report["quickjs_wasm"] or "missing"}')
+    print(f'[venom]   turbojs wasm: {report["turbojs_wasm"] or "missing"}')
     print(f'[venom]   reconnaissance score: {report["reconnaissance_score"]}/100')
     if 'verify_runtime_returncode' in report:
         print(f'[venom]   verify-runtime: rc={report["verify_runtime_returncode"]}')
@@ -286,8 +286,8 @@ def main() -> int:
     if 'remote_vendor_metadata' in report:
         print(f'[venom]   remote vendors: {report["remote_vendor_count"]} packaged, {report["runtime_remote_chunks"]} runtime URL chunks')
         print(f'[venom]   vendor lock: {"PASS" if report.get("remote_vendor_lock") else "FAIL"} mode={report.get("remote_vendor_lock_mode") or "none"} entries={report.get("remote_vendor_lock_entries", 0)}')
-    if 'quickjs_wasm_value_returncode' in report:
-        print(f'[venom]   quickjs wasm runtime value gate: rc={report["quickjs_wasm_value_returncode"]}')
+    if 'turbojs_wasm_value_returncode' in report:
+        print(f'[venom]   turbojs wasm runtime value gate: rc={report["turbojs_wasm_value_returncode"]}')
     if args.out:
         print(f'[venom]   report: {args.out}')
 
@@ -296,7 +296,7 @@ def main() -> int:
             for failure in production_layout_failures:
                 print(f'[venom]   layout failure: {failure}', file=sys.stderr)
             return 1
-        if report.get('verify_runtime_require_real_returncode', 0) != 0 or report.get('quickjs_wasm_value_returncode', 0) != 0:
+        if report.get('verify_runtime_require_real_returncode', 0) != 0 or report.get('turbojs_wasm_value_returncode', 0) != 0:
             return 1
         if 'remote_vendor_lock' in report and not report.get('remote_vendor_lock'):
             return 1

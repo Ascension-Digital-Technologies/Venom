@@ -1,5 +1,5 @@
-#include "venom/core/console.hpp"
-#include "venom/core/options.hpp"
+#include "core/console.hpp"
+#include "core/options.hpp"
 
 #include <cstdlib>
 #include <iomanip>

@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 root=Path(__file__).resolve().parents[2]
-fixture=root/'examples'/'react16-umd-site'
+fixture=root/'tests'/'fixtures'/'sites'/'react16-umd-site'
 manifest=json.loads((fixture/'venom.browser.json').read_text(encoding='utf-8'))
 assert manifest['schema_version']==1
 assert manifest['id']=='react16-umd-production'

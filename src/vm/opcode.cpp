@@ -1,4 +1,4 @@
-#include "venom/vm/opcode.hpp"
+#include "vm/opcode.hpp"
 
 namespace venom::vm {
 
@@ -12,7 +12,7 @@ std::string opcode_name(LogicalOpcode opcode) {
     case LogicalOpcode::AppendChild: return "append_child";
     case LogicalOpcode::EnterElement: return "enter_element";
     case LogicalOpcode::LeaveElement: return "leave_element";
-    case LogicalOpcode::CallQuickJs: return "call_quickjs";
+    case LogicalOpcode::CallTurboJs: return "call_turbojs";
     case LogicalOpcode::Halt: return "halt";
   }
   return "unknown";

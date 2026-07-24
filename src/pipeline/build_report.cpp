@@ -1,6 +1,6 @@
-#include "venom/internal/pipeline/build_report.hpp"
-#include "venom/internal/pipeline/build_package_metadata.hpp"
-#include "venom/package/format.hpp"
+#include "pipeline/build_report.hpp"
+#include "pipeline/build_package_metadata.hpp"
+#include "package/format.hpp"
 
 #include <algorithm>
 #include <iostream>
@@ -33,7 +33,7 @@ void print_build_protection_report(const Profile& profile,
   bool release_profile = false;
   bool layout_polymorphic = false;
   bool lazy_sections = false;
-  std::size_t quickjs_bytecode_records = 0;
+  std::size_t turbojs_bytecode_records = 0;
   for (const auto& section : package.sections) {
     if ((section.flags & venom::package::SectionFlagEncrypted) != 0u) {
       ++encrypted_sections;
@@ -57,7 +57,7 @@ void print_build_protection_report(const Profile& profile,
       lazy_sections = true;
     }
     if (section.type == venom::package::SectionType::JavaScript) {
-      quickjs_bytecode_records += count_marker(section.data, "VQJSE006");
+      turbojs_bytecode_records += count_marker(section.data, "VTJSE006");
     }
   }
   const auto runtime_sections = count_marker(package_bytes, "VAEAD001");
@@ -84,7 +84,7 @@ void print_build_protection_report(const Profile& profile,
             << "  provider_runtime_sections: " << runtime_sections << "\n"
             << "  provider_libsodium_sections: " << sodium_sections << "\n"
             << "  provider_legacy_sections: " << legacy_sections << "\n"
-            << "  quickjs_bytecode_records: " << quickjs_bytecode_records << "\n"
+            << "  turbojs_bytecode_records: " << turbojs_bytecode_records << "\n"
             << "  package_binding: " << (package_binding ? "yes" : "no") << "\n"
             << "  release_profile: " << (release_profile ? "yes" : "no") << "\n"
             << "  layout_polymorphic: " << (layout_polymorphic ? "yes" : "no") << "\n"

@@ -9,7 +9,7 @@ root = Path(__file__).resolve().parents[2]
 venom = Path(sys.argv[1])
 site = root / 'tests/fixtures/sites/protected-module'
 
-with tempfile.TemporaryDirectory(prefix='venom-protected-module-') as temp:
+with tempfile.TemporaryDirectory(prefix='venomed-module-') as temp:
     temp_root = Path(temp)
     out = temp_root / 'dist'
     subprocess.run([

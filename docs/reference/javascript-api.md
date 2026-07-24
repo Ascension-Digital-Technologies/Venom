@@ -2,7 +2,7 @@
 
 > **Applies to:** Venom 1.1.0
 
-The browser-facing API provides readiness and asynchronous access to protected exports. It intentionally does not expose internal QuickJS contexts, package records, workers, message ports, or runtime memory.
+The browser-facing API provides readiness and asynchronous access to protected exports. It intentionally does not expose internal TurboJS contexts, package records, workers, message ports, or runtime memory.
 
 ## Wait for readiness
 
@@ -38,7 +38,7 @@ Functions, symbols, DOM nodes, browser handles, cyclic objects, class instances 
 
 ## Errors
 
-Failures reject the promise with a sanitized bridge/runtime error. Applications should log the stable category and user-safe message. Internal bytecode, package offsets, QuickJS pointers, and protected source details are not part of the public error contract.
+Failures reject the promise with a sanitized bridge/runtime error. Applications should log the stable category and user-safe message. Internal bytecode, package offsets, TurboJS pointers, and protected source details are not part of the public error contract.
 
 ## Concurrency and limits
 

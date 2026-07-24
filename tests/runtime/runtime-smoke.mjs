@@ -88,13 +88,13 @@ globalThis.fetch = async (url) => {
 const assetFiles = await readdir(join(distDir, 'assets'));
 const runtimeFile = assetFiles.find((name) => expectedMode === 'wasm' ? /^runtime-js-bridge(\.[a-f0-9]+)?\.js$/.test(name) : /^runtime(\.[a-f0-9]+)?\.js$/.test(name));
 const packageFile = assetFiles.find((name) => /^app(\.[a-f0-9]+)?\.vbc$/.test(name));
-const quickJsEngineFile = assetFiles.find((name) => /^quickjs-engine(\.[a-f0-9]+)?\.js$/.test(name));
-if (!runtimeFile || !packageFile || !quickJsEngineFile) throw new Error('missing runtime/package/QuickJS engine assets');
+const turboJsEngineFile = assetFiles.find((name) => /^turbojs-engine(\.[a-f0-9]+)?\.js$/.test(name));
+if (!runtimeFile || !packageFile || !turboJsEngineFile) throw new Error('missing runtime/package/TurboJS engine assets');
 
 const root = new ElementNode('div');
 const runtime = await import(pathToFileURL(join(distDir, 'assets', runtimeFile)));
 const assetBaseUrl = pathToFileURL(join(distDir, 'assets') + '/').href;
-const result = await runtime.bootVenom({ root, packageUrl: './' + packageFile, assetBaseUrl, quickJsEngineUrl: pathToFileURL(join(distDir, 'assets', quickJsEngineFile)).href });
+const result = await runtime.bootVenom({ root, packageUrl: './' + packageFile, assetBaseUrl, turboJsEngineUrl: pathToFileURL(join(distDir, 'assets', turboJsEngineFile)).href });
 const text = root.toText();
 
 if (result.packageVersion !== 40) {
@@ -137,13 +137,13 @@ if (expectedMode === 'wasm' && Number(root.attributes.get('data-venom-wasm-dom-o
 if (expectedMode === 'wasm' && Number(root.attributes.get('data-venom-wasm-dom-bytes') || '0') < 16) {
   throw new Error('runtime did not expose WASM binary DOM operation byte count');
 }
-const earlyQuickJsSnapshot = globalThis.__venomRuntime && typeof globalThis.__venomRuntime.quickJsExecutionSnapshot === 'function'
-  ? globalThis.__venomRuntime.quickJsExecutionSnapshot()
+const earlyTurboJsSnapshot = globalThis.__venomRuntime && typeof globalThis.__venomRuntime.turboJsExecutionSnapshot === 'function'
+  ? globalThis.__venomRuntime.turboJsExecutionSnapshot()
   : null;
-const earlyQuickJsRecords = earlyQuickJsSnapshot && Array.isArray(earlyQuickJsSnapshot.records) ? earlyQuickJsSnapshot.records : [];
-const quickJsWasmAccepted = earlyQuickJsRecords.some((entry) => entry && entry.kind === 'quickjs.executionRecord' && entry.wasmAccepted === true);
-if (result.scripts < 1 || result.executedScripts < 1 || (globalThis.__venomExampleScript !== 1 && !quickJsWasmAccepted)) {
-  throw new Error(`runtime did not execute packaged JS chunk or accept QuickJS WASM boundary: scripts=${result.scripts} executed=${result.executedScripts} marker=${globalThis.__venomExampleScript} wasmAccepted=${quickJsWasmAccepted}`);
+const earlyTurboJsRecords = earlyTurboJsSnapshot && Array.isArray(earlyTurboJsSnapshot.records) ? earlyTurboJsSnapshot.records : [];
+const turboJsWasmAccepted = earlyTurboJsRecords.some((entry) => entry && entry.kind === 'turbojs.executionRecord' && entry.wasmAccepted === true);
+if (result.scripts < 1 || result.executedScripts < 1 || (globalThis.__venomExampleScript !== 1 && !turboJsWasmAccepted)) {
+  throw new Error(`runtime did not execute packaged JS chunk or accept TurboJS WASM boundary: scripts=${result.scripts} executed=${result.executedScripts} marker=${globalThis.__venomExampleScript} wasmAccepted=${turboJsWasmAccepted}`);
 }
 if (!globalThis.__venomRuntime || globalThis.__venomRuntime.packageVersion !== 40) {
   throw new Error('runtime did not install the Venom host bridge');
@@ -173,112 +173,112 @@ if (result.timerBridgeVersion !== 1 || result.timerBridgeMode !== 'async-host-ca
 if (result.eventQueueVersion !== 1 || result.eventQueueMode !== 'enabled') {
   throw new Error(`event queue metadata was not parsed: version=${result.eventQueueVersion} mode=${result.eventQueueMode}`);
 }
-if (result.quickJsBridgeVersion !== 10 || result.quickJsBridgeMode !== 'engine-backend-select') {
-  throw new Error(`QuickJS bridge metadata was not parsed: version=${result.quickJsBridgeVersion} mode=${result.quickJsBridgeMode}`);
+if (result.turboJsBridgeVersion !== 10 || result.turboJsBridgeMode !== 'engine-backend-select') {
+  throw new Error(`TurboJS bridge metadata was not parsed: version=${result.turboJsBridgeVersion} mode=${result.turboJsBridgeMode}`);
 }
 
-if (result.scriptIsolationVersion !== 4 || result.scriptIsolationMode !== 'route-scoped' || result.scriptPolicyVersion !== 4 || result.quickJsChunkVersion !== 7 || result.quickJsChunkMode !== 'engine-input' || result.quickJsEngineVersion !== 7 || result.quickJsEngineMode !== 'engine-backend-replacement-path') {
-  throw new Error(`script isolation / QuickJS chunk metadata was not parsed: ${JSON.stringify({scriptIsolationVersion: result.scriptIsolationVersion, scriptIsolationMode: result.scriptIsolationMode, scriptPolicyVersion: result.scriptPolicyVersion, quickJsChunkVersion: result.quickJsChunkVersion, quickJsChunkMode: result.quickJsChunkMode})}`);
+if (result.scriptIsolationVersion !== 4 || result.scriptIsolationMode !== 'route-scoped' || result.scriptPolicyVersion !== 4 || result.turboJsChunkVersion !== 7 || result.turboJsChunkMode !== 'engine-input' || result.turboJsEngineVersion !== 7 || result.turboJsEngineMode !== 'engine-backend-replacement-path') {
+  throw new Error(`script isolation / TurboJS chunk metadata was not parsed: ${JSON.stringify({scriptIsolationVersion: result.scriptIsolationVersion, scriptIsolationMode: result.scriptIsolationMode, scriptPolicyVersion: result.scriptPolicyVersion, turboJsChunkVersion: result.turboJsChunkVersion, turboJsChunkMode: result.turboJsChunkMode})}`);
 }
-if (globalThis.__venomRuntime.scriptIsolationMode !== 'route-scoped' || globalThis.__venomRuntime.quickJsChunkMode !== 'engine-input' || globalThis.__venomRuntime.quickJsChunkCount < 1 || globalThis.__venomRuntime.quickJsEngineMode !== 'engine-backend-replacement-path') {
-  throw new Error('Venom host bridge did not expose script isolation / QuickJS chunk metadata');
+if (globalThis.__venomRuntime.scriptIsolationMode !== 'route-scoped' || globalThis.__venomRuntime.turboJsChunkMode !== 'engine-input' || globalThis.__venomRuntime.turboJsChunkCount < 1 || globalThis.__venomRuntime.turboJsEngineMode !== 'engine-backend-replacement-path') {
+  throw new Error('Venom host bridge did not expose script isolation / TurboJS chunk metadata');
 }
 
-if (result.quickJsEngineModuleVersion !== 10 || result.quickJsEngineModuleMode !== 'quickjs-wasm-abi12-upstream-global-host-api-shims' || result.quickJsEngineModuleLoaded !== true) {
-  throw new Error(`QuickJS engine module metadata was not active: ${JSON.stringify({version: result.quickJsEngineModuleVersion, mode: result.quickJsEngineModuleMode, loaded: result.quickJsEngineModuleLoaded})}`);
+if (result.turboJsEngineModuleVersion !== 10 || result.turboJsEngineModuleMode !== 'turbojs-wasm-abi12-upstream-global-host-api-shims' || result.turboJsEngineModuleLoaded !== true) {
+  throw new Error(`TurboJS engine module metadata was not active: ${JSON.stringify({version: result.turboJsEngineModuleVersion, mode: result.turboJsEngineModuleMode, loaded: result.turboJsEngineModuleLoaded})}`);
 }
-if (globalThis.__venomRuntime.quickJsEngineModuleMode !== 'quickjs-wasm-abi12-upstream-global-host-api-shims' || globalThis.__venomQuickJsModuleProbe < 1) {
-  throw new Error('QuickJS engine module did not execute the route script chunk');
+if (globalThis.__venomRuntime.turboJsEngineModuleMode !== 'turbojs-wasm-abi12-upstream-global-host-api-shims' || globalThis.__venomTurboJsModuleProbe < 1) {
+  throw new Error('TurboJS engine module did not execute the route script chunk');
 }
-if (result.quickJsContextLifecycleVersion !== 4 || result.quickJsContextLifecycleMode !== 'route-scoped-reusable' || result.hostCapabilitiesVersion !== 2 || result.hostCapabilityCount < 7 || result.quickJsAdapterDiagnosticsVersion !== 4) {
-  throw new Error(`QuickJS adapter lifecycle metadata was not active: ${JSON.stringify({context: result.quickJsContextLifecycleVersion, hostCapabilities: result.hostCapabilitiesVersion, diagnostics: result.quickJsAdapterDiagnosticsVersion})}`);
+if (result.turboJsContextLifecycleVersion !== 4 || result.turboJsContextLifecycleMode !== 'route-scoped-reusable' || result.hostCapabilitiesVersion !== 2 || result.hostCapabilityCount < 7 || result.turboJsAdapterDiagnosticsVersion !== 4) {
+  throw new Error(`TurboJS adapter lifecycle metadata was not active: ${JSON.stringify({context: result.turboJsContextLifecycleVersion, hostCapabilities: result.hostCapabilitiesVersion, diagnostics: result.turboJsAdapterDiagnosticsVersion})}`);
 }
-const contextSnapshot = globalThis.__venomRuntime.quickJsContextSnapshot();
+const contextSnapshot = globalThis.__venomRuntime.turboJsContextSnapshot();
 if (!contextSnapshot || contextSnapshot.count < 1) {
-  throw new Error(`QuickJS context lifecycle snapshot was not populated: ${JSON.stringify(contextSnapshot)}`);
+  throw new Error(`TurboJS context lifecycle snapshot was not populated: ${JSON.stringify(contextSnapshot)}`);
 }
-const moduleStatus = globalThis.__venomRuntime.quickJsEngineModuleStatus();
+const moduleStatus = globalThis.__venomRuntime.turboJsEngineModuleStatus();
 if (!moduleStatus || moduleStatus.moduleLoaded !== true || moduleStatus.contextCount < 1) {
-  throw new Error(`QuickJS engine module status was not populated: ${JSON.stringify(moduleStatus)}`);
+  throw new Error(`TurboJS engine module status was not populated: ${JSON.stringify(moduleStatus)}`);
 }
 
-if (result.quickJsExecutionRecordsVersion !== 4 || result.quickJsResultBridgeVersion !== 4 || result.quickJsFallbackPolicyVersion !== 4) {
-  throw new Error(`QuickJS result bridge metadata was not active: ${JSON.stringify({executionRecords: result.quickJsExecutionRecordsVersion, resultBridge: result.quickJsResultBridgeVersion, fallbackPolicy: result.quickJsFallbackPolicyVersion})}`);
+if (result.turboJsExecutionRecordsVersion !== 4 || result.turboJsResultBridgeVersion !== 4 || result.turboJsFallbackPolicyVersion !== 4) {
+  throw new Error(`TurboJS result bridge metadata was not active: ${JSON.stringify({executionRecords: result.turboJsExecutionRecordsVersion, resultBridge: result.turboJsResultBridgeVersion, fallbackPolicy: result.turboJsFallbackPolicyVersion})}`);
 }
-const qjsExecutionSnapshot = globalThis.__venomRuntime.quickJsExecutionSnapshot();
-if (!qjsExecutionSnapshot || qjsExecutionSnapshot.count < 1) {
-  throw new Error(`QuickJS execution records were not captured: ${JSON.stringify(qjsExecutionSnapshot)}`);
+const tjsExecutionSnapshot = globalThis.__venomRuntime.turboJsExecutionSnapshot();
+if (!tjsExecutionSnapshot || tjsExecutionSnapshot.count < 1) {
+  throw new Error(`TurboJS execution records were not captured: ${JSON.stringify(tjsExecutionSnapshot)}`);
 }
-if (typeof globalThis.__venomRuntime.quickJsFallbackPolicy !== 'function' || globalThis.__venomRuntime.quickJsFallbackPolicy().mode !== 'explicit-policy-gated') {
-  throw new Error('QuickJS fallback policy was not exposed through the host bridge');
+if (typeof globalThis.__venomRuntime.turboJsFallbackPolicy !== 'function' || globalThis.__venomRuntime.turboJsFallbackPolicy().mode !== 'explicit-policy-gated') {
+  throw new Error('TurboJS fallback policy was not exposed through the host bridge');
 }
-if (typeof globalThis.__venomRuntime.quickJsAbiTable !== 'function' || globalThis.__venomRuntime.quickJsAbiTable().abi < 12 || globalThis.__venomRuntime.quickJsRuntimeAbi < 12) {
-  throw new Error('QuickJS runtime ABI table was not exposed through the host bridge');
+if (typeof globalThis.__venomRuntime.turboJsAbiTable !== 'function' || globalThis.__venomRuntime.turboJsAbiTable().abi < 12 || globalThis.__venomRuntime.turboJsRuntimeAbi < 12) {
+  throw new Error('TurboJS runtime ABI table was not exposed through the host bridge');
 }
-if (typeof globalThis.__venomRuntime.quickJsHostImportTable !== 'function' || globalThis.__venomRuntime.quickJsHostImportTable().importCount < 1 || globalThis.__venomRuntime.quickJsHostImportCount < 1) {
-  throw new Error('QuickJS host import table was not exposed through the host bridge');
+if (typeof globalThis.__venomRuntime.turboJsHostImportTable !== 'function' || globalThis.__venomRuntime.turboJsHostImportTable().importCount < 1 || globalThis.__venomRuntime.turboJsHostImportCount < 1) {
+  throw new Error('TurboJS host import table was not exposed through the host bridge');
 }
-if (typeof globalThis.__venomRuntime.quickJsParityProbe !== 'function' || !globalThis.__venomRuntime.quickJsParityProbe()) {
-  throw new Error('QuickJS parity probe was not exposed through the host bridge');
+if (typeof globalThis.__venomRuntime.turboJsParityProbe !== 'function' || !globalThis.__venomRuntime.turboJsParityProbe()) {
+  throw new Error('TurboJS parity probe was not exposed through the host bridge');
 }
-if (globalThis.__venomRuntime.quickJsHeapLimit < 1024 || globalThis.__venomRuntime.quickJsScriptBufferCapacity < 1024 || globalThis.__venomRuntime.quickJsConsoleAbi < 1) {
-  throw new Error('QuickJS heap/script-buffer/console ABI metadata was not exposed through the host bridge');
+if (globalThis.__venomRuntime.turboJsHeapLimit < 1024 || globalThis.__venomRuntime.turboJsScriptBufferCapacity < 1024 || globalThis.__venomRuntime.turboJsConsoleAbi < 1) {
+  throw new Error('TurboJS heap/script-buffer/console ABI metadata was not exposed through the host bridge');
 }
-if (globalThis.__venomRuntime.quickJsBytecodeManifestVersion < 1 || globalThis.__venomRuntime.quickJsModuleResolverVersion !== 1 || globalThis.__venomRuntime.quickJsExceptionAbi < 1 || globalThis.__venomRuntime.quickJsHostTrapPolicyVersion !== 1) {
-  throw new Error(`QuickJS bytecode/module/exception/trap metadata was not exposed: ${JSON.stringify({bytecode: globalThis.__venomRuntime.quickJsBytecodeManifestVersion, moduleResolver: globalThis.__venomRuntime.quickJsModuleResolverVersion, exceptionAbi: globalThis.__venomRuntime.quickJsExceptionAbi, trapPolicy: globalThis.__venomRuntime.quickJsHostTrapPolicyVersion})}`);
-}
-
-if (globalThis.__venomRuntime.quickJsExecutionLifecycleVersion !== 1 || globalThis.__venomRuntime.quickJsHostCallDispatchCount < 34 || globalThis.__venomRuntime.quickJsReleaseFailClosedVersion !== 1) {
-  throw new Error(`QuickJS v0.37 execution-pipeline metadata was not exposed: ${JSON.stringify({lifecycle: globalThis.__venomRuntime.quickJsExecutionLifecycleVersion, hostDispatch: globalThis.__venomRuntime.quickJsHostCallDispatchCount, release: globalThis.__venomRuntime.quickJsReleaseFailClosedVersion})}`);
+if (globalThis.__venomRuntime.turboJsBytecodeManifestVersion < 1 || globalThis.__venomRuntime.turboJsModuleResolverVersion !== 1 || globalThis.__venomRuntime.turboJsExceptionAbi < 1 || globalThis.__venomRuntime.turboJsHostTrapPolicyVersion !== 1) {
+  throw new Error(`TurboJS bytecode/module/exception/trap metadata was not exposed: ${JSON.stringify({bytecode: globalThis.__venomRuntime.turboJsBytecodeManifestVersion, moduleResolver: globalThis.__venomRuntime.turboJsModuleResolverVersion, exceptionAbi: globalThis.__venomRuntime.turboJsExceptionAbi, trapPolicy: globalThis.__venomRuntime.turboJsHostTrapPolicyVersion})}`);
 }
 
-if (globalThis.__venomRuntime.quickJsModuleGraphVersion !== 1 || globalThis.__venomRuntime.quickJsModuleExecutionVersion !== 1 || globalThis.__venomRuntime.quickJsModuleCacheVersion !== 1 || globalThis.__venomRuntime.quickJsResolverAuditVersion !== 1 || globalThis.__venomRuntime.quickJsInteropFallbackVersion !== 1) {
-  throw new Error(`QuickJS module graph/cache/audit/fallback metadata was not exposed: ${JSON.stringify({moduleGraph: globalThis.__venomRuntime.quickJsModuleGraphVersion, moduleExecution: globalThis.__venomRuntime.quickJsModuleExecutionVersion, moduleCache: globalThis.__venomRuntime.quickJsModuleCacheVersion, resolverAudit: globalThis.__venomRuntime.quickJsResolverAuditVersion, interopFallback: globalThis.__venomRuntime.quickJsInteropFallbackVersion})}`);
+if (globalThis.__venomRuntime.turboJsExecutionLifecycleVersion !== 1 || globalThis.__venomRuntime.turboJsHostCallDispatchCount < 34 || globalThis.__venomRuntime.turboJsReleaseFailClosedVersion !== 1) {
+  throw new Error(`TurboJS v0.37 execution-pipeline metadata was not exposed: ${JSON.stringify({lifecycle: globalThis.__venomRuntime.turboJsExecutionLifecycleVersion, hostDispatch: globalThis.__venomRuntime.turboJsHostCallDispatchCount, release: globalThis.__venomRuntime.turboJsReleaseFailClosedVersion})}`);
 }
-if (typeof globalThis.__venomRuntime.quickJsModuleGraph !== 'function' || typeof globalThis.__venomRuntime.quickJsModuleCacheSnapshot !== 'function' || typeof globalThis.__venomRuntime.quickJsResolverAudit !== 'function' || typeof globalThis.__venomRuntime.quickJsInteropFallback !== 'function') {
-  throw new Error('QuickJS module graph/cache/audit/fallback helpers were not exposed through the host bridge');
+
+if (globalThis.__venomRuntime.turboJsModuleGraphVersion !== 1 || globalThis.__venomRuntime.turboJsModuleExecutionVersion !== 1 || globalThis.__venomRuntime.turboJsModuleCacheVersion !== 1 || globalThis.__venomRuntime.turboJsResolverAuditVersion !== 1 || globalThis.__venomRuntime.turboJsInteropFallbackVersion !== 1) {
+  throw new Error(`TurboJS module graph/cache/audit/fallback metadata was not exposed: ${JSON.stringify({moduleGraph: globalThis.__venomRuntime.turboJsModuleGraphVersion, moduleExecution: globalThis.__venomRuntime.turboJsModuleExecutionVersion, moduleCache: globalThis.__venomRuntime.turboJsModuleCacheVersion, resolverAudit: globalThis.__venomRuntime.turboJsResolverAuditVersion, interopFallback: globalThis.__venomRuntime.turboJsInteropFallbackVersion})}`);
 }
-const qjsModuleGraph = globalThis.__venomRuntime.quickJsModuleGraph();
-if (!qjsModuleGraph || qjsModuleGraph.version !== 1 || qjsModuleGraph.executions < 0) {
-  throw new Error(`QuickJS module graph helper returned invalid data: ${JSON.stringify(qjsModuleGraph)}`);
+if (typeof globalThis.__venomRuntime.turboJsModuleGraph !== 'function' || typeof globalThis.__venomRuntime.turboJsModuleCacheSnapshot !== 'function' || typeof globalThis.__venomRuntime.turboJsResolverAudit !== 'function' || typeof globalThis.__venomRuntime.turboJsInteropFallback !== 'function') {
+  throw new Error('TurboJS module graph/cache/audit/fallback helpers were not exposed through the host bridge');
 }
-if (globalThis.__venomRuntime.quickJsExecutionJournalVersion !== 1 || globalThis.__venomRuntime.quickJsCheckpointPolicyVersion !== 1 || globalThis.__venomRuntime.quickJsReplayCursorVersion !== 1 || globalThis.__venomRuntime.quickJsResumeStateVersion !== 1 || globalThis.__venomRuntime.quickJsDeterminismAuditVersion !== 1) {
-  throw new Error(`QuickJS replay/checkpoint metadata was not exposed: ${JSON.stringify({journal: globalThis.__venomRuntime.quickJsExecutionJournalVersion, checkpoint: globalThis.__venomRuntime.quickJsCheckpointPolicyVersion, replay: globalThis.__venomRuntime.quickJsReplayCursorVersion, resume: globalThis.__venomRuntime.quickJsResumeStateVersion, audit: globalThis.__venomRuntime.quickJsDeterminismAuditVersion})}`);
+const tjsModuleGraph = globalThis.__venomRuntime.turboJsModuleGraph();
+if (!tjsModuleGraph || tjsModuleGraph.version !== 1 || tjsModuleGraph.executions < 0) {
+  throw new Error(`TurboJS module graph helper returned invalid data: ${JSON.stringify(tjsModuleGraph)}`);
 }
-if (typeof globalThis.__venomRuntime.quickJsExecutionJournal !== 'function' || typeof globalThis.__venomRuntime.quickJsCheckpointPolicy !== 'function' || typeof globalThis.__venomRuntime.quickJsReplayCursor !== 'function' || typeof globalThis.__venomRuntime.quickJsResumeState !== 'function' || typeof globalThis.__venomRuntime.quickJsDeterminismAudit !== 'function') {
-  throw new Error('QuickJS replay/checkpoint helpers were not exposed through the host bridge');
+if (globalThis.__venomRuntime.turboJsExecutionJournalVersion !== 1 || globalThis.__venomRuntime.turboJsCheckpointPolicyVersion !== 1 || globalThis.__venomRuntime.turboJsReplayCursorVersion !== 1 || globalThis.__venomRuntime.turboJsResumeStateVersion !== 1 || globalThis.__venomRuntime.turboJsDeterminismAuditVersion !== 1) {
+  throw new Error(`TurboJS replay/checkpoint metadata was not exposed: ${JSON.stringify({journal: globalThis.__venomRuntime.turboJsExecutionJournalVersion, checkpoint: globalThis.__venomRuntime.turboJsCheckpointPolicyVersion, replay: globalThis.__venomRuntime.turboJsReplayCursorVersion, resume: globalThis.__venomRuntime.turboJsResumeStateVersion, audit: globalThis.__venomRuntime.turboJsDeterminismAuditVersion})}`);
 }
-if (globalThis.__venomRuntime.quickJsSnapshotPolicyVersion !== 1 || globalThis.__venomRuntime.quickJsSnapshotRecordsVersion !== 1 || globalThis.__venomRuntime.quickJsReplayValidationVersion !== 1 || globalThis.__venomRuntime.quickJsDeterminismLedgerVersion !== 1 || globalThis.__venomRuntime.quickJsAuditSealVersion !== 1) {
-  throw new Error(`QuickJS snapshot/audit-seal metadata was not exposed: ${JSON.stringify({snapshotPolicy: globalThis.__venomRuntime.quickJsSnapshotPolicyVersion, snapshotRecords: globalThis.__venomRuntime.quickJsSnapshotRecordsVersion, replayValidation: globalThis.__venomRuntime.quickJsReplayValidationVersion, ledger: globalThis.__venomRuntime.quickJsDeterminismLedgerVersion, auditSeal: globalThis.__venomRuntime.quickJsAuditSealVersion})}`);
+if (typeof globalThis.__venomRuntime.turboJsExecutionJournal !== 'function' || typeof globalThis.__venomRuntime.turboJsCheckpointPolicy !== 'function' || typeof globalThis.__venomRuntime.turboJsReplayCursor !== 'function' || typeof globalThis.__venomRuntime.turboJsResumeState !== 'function' || typeof globalThis.__venomRuntime.turboJsDeterminismAudit !== 'function') {
+  throw new Error('TurboJS replay/checkpoint helpers were not exposed through the host bridge');
 }
-if (globalThis.__venomRuntime.quickJsExecutionCommitVersion !== 1 || globalThis.__venomRuntime.quickJsRollbackPolicyVersion !== 1 || globalThis.__venomRuntime.quickJsHostCallReceiptsVersion !== 1 || globalThis.__venomRuntime.quickJsReleaseAcceptanceVersion !== 1 || globalThis.__venomRuntime.quickJsCommitAuditVersion !== 1) {
-  throw new Error(`QuickJS commit/rollback/release metadata was not exposed: ${JSON.stringify({commit: globalThis.__venomRuntime.quickJsExecutionCommitVersion, rollback: globalThis.__venomRuntime.quickJsRollbackPolicyVersion, receipts: globalThis.__venomRuntime.quickJsHostCallReceiptsVersion, acceptance: globalThis.__venomRuntime.quickJsReleaseAcceptanceVersion, audit: globalThis.__venomRuntime.quickJsCommitAuditVersion})}`);
+if (globalThis.__venomRuntime.turboJsSnapshotPolicyVersion !== 1 || globalThis.__venomRuntime.turboJsSnapshotRecordsVersion !== 1 || globalThis.__venomRuntime.turboJsReplayValidationVersion !== 1 || globalThis.__venomRuntime.turboJsDeterminismLedgerVersion !== 1 || globalThis.__venomRuntime.turboJsAuditSealVersion !== 1) {
+  throw new Error(`TurboJS snapshot/audit-seal metadata was not exposed: ${JSON.stringify({snapshotPolicy: globalThis.__venomRuntime.turboJsSnapshotPolicyVersion, snapshotRecords: globalThis.__venomRuntime.turboJsSnapshotRecordsVersion, replayValidation: globalThis.__venomRuntime.turboJsReplayValidationVersion, ledger: globalThis.__venomRuntime.turboJsDeterminismLedgerVersion, auditSeal: globalThis.__venomRuntime.turboJsAuditSealVersion})}`);
 }
-if (typeof globalThis.__venomRuntime.quickJsSnapshotPolicy !== 'function' || typeof globalThis.__venomRuntime.quickJsAuditSeal !== 'function' || typeof globalThis.__venomRuntime.quickJsExecutionCommit !== 'function' || typeof globalThis.__venomRuntime.quickJsRollbackPolicy !== 'function' || typeof globalThis.__venomRuntime.quickJsHostCallReceipts !== 'function' || typeof globalThis.__venomRuntime.quickJsReleaseAcceptance !== 'function' || typeof globalThis.__venomRuntime.quickJsCommitAudit !== 'function') {
-  throw new Error('QuickJS snapshot/commit/release helpers were not exposed through the host bridge');
+if (globalThis.__venomRuntime.turboJsExecutionCommitVersion !== 1 || globalThis.__venomRuntime.turboJsRollbackPolicyVersion !== 1 || globalThis.__venomRuntime.turboJsHostCallReceiptsVersion !== 1 || globalThis.__venomRuntime.turboJsReleaseAcceptanceVersion !== 1 || globalThis.__venomRuntime.turboJsCommitAuditVersion !== 1) {
+  throw new Error(`TurboJS commit/rollback/release metadata was not exposed: ${JSON.stringify({commit: globalThis.__venomRuntime.turboJsExecutionCommitVersion, rollback: globalThis.__venomRuntime.turboJsRollbackPolicyVersion, receipts: globalThis.__venomRuntime.turboJsHostCallReceiptsVersion, acceptance: globalThis.__venomRuntime.turboJsReleaseAcceptanceVersion, audit: globalThis.__venomRuntime.turboJsCommitAuditVersion})}`);
 }
-if (globalThis.__venomRuntime.quickJsCapabilityPolicyVersion !== 1 || globalThis.__venomRuntime.quickJsHostIoPolicyVersion !== 1 || globalThis.__venomRuntime.quickJsPermissionSealVersion !== 1 || globalThis.__venomRuntime.quickJsPolicyReceiptsVersion !== 1 || globalThis.__venomRuntime.quickJsReleaseGateVersion !== 1) {
-  throw new Error(`QuickJS capability/I-O/release-gate metadata was not exposed: ${JSON.stringify({capability: globalThis.__venomRuntime.quickJsCapabilityPolicyVersion, io: globalThis.__venomRuntime.quickJsHostIoPolicyVersion, seal: globalThis.__venomRuntime.quickJsPermissionSealVersion, receipts: globalThis.__venomRuntime.quickJsPolicyReceiptsVersion, gate: globalThis.__venomRuntime.quickJsReleaseGateVersion})}`);
+if (typeof globalThis.__venomRuntime.turboJsSnapshotPolicy !== 'function' || typeof globalThis.__venomRuntime.turboJsAuditSeal !== 'function' || typeof globalThis.__venomRuntime.turboJsExecutionCommit !== 'function' || typeof globalThis.__venomRuntime.turboJsRollbackPolicy !== 'function' || typeof globalThis.__venomRuntime.turboJsHostCallReceipts !== 'function' || typeof globalThis.__venomRuntime.turboJsReleaseAcceptance !== 'function' || typeof globalThis.__venomRuntime.turboJsCommitAudit !== 'function') {
+  throw new Error('TurboJS snapshot/commit/release helpers were not exposed through the host bridge');
 }
-if (typeof globalThis.__venomRuntime.quickJsCapabilityPolicy !== 'function' || typeof globalThis.__venomRuntime.quickJsHostIoPolicy !== 'function' || typeof globalThis.__venomRuntime.quickJsPermissionSeal !== 'function' || typeof globalThis.__venomRuntime.quickJsPolicyReceipts !== 'function' || typeof globalThis.__venomRuntime.quickJsReleaseGate !== 'function') {
-  throw new Error('QuickJS capability/I-O/release-gate helpers were not exposed through the host bridge');
+if (globalThis.__venomRuntime.turboJsCapabilityPolicyVersion !== 1 || globalThis.__venomRuntime.turboJsHostIoPolicyVersion !== 1 || globalThis.__venomRuntime.turboJsPermissionSealVersion !== 1 || globalThis.__venomRuntime.turboJsPolicyReceiptsVersion !== 1 || globalThis.__venomRuntime.turboJsReleaseGateVersion !== 1) {
+  throw new Error(`TurboJS capability/I-O/release-gate metadata was not exposed: ${JSON.stringify({capability: globalThis.__venomRuntime.turboJsCapabilityPolicyVersion, io: globalThis.__venomRuntime.turboJsHostIoPolicyVersion, seal: globalThis.__venomRuntime.turboJsPermissionSealVersion, receipts: globalThis.__venomRuntime.turboJsPolicyReceiptsVersion, gate: globalThis.__venomRuntime.turboJsReleaseGateVersion})}`);
 }
-if (globalThis.__venomRuntime.quickJsHostIoDecisionVersion !== 1 || globalThis.__venomRuntime.quickJsHostIoDenyTraceVersion !== 1 || globalThis.__venomRuntime.quickJsCapabilityLedgerVersion !== 1 || globalThis.__venomRuntime.quickJsPolicySealAuditVersion !== 1 || globalThis.__venomRuntime.quickJsRuntimeDenylistVersion !== 1) {
-  throw new Error(`QuickJS host I/O decision/deny/audit metadata was not exposed: ${JSON.stringify({decision: globalThis.__venomRuntime.quickJsHostIoDecisionVersion, deny: globalThis.__venomRuntime.quickJsHostIoDenyTraceVersion, ledger: globalThis.__venomRuntime.quickJsCapabilityLedgerVersion, audit: globalThis.__venomRuntime.quickJsPolicySealAuditVersion, denylist: globalThis.__venomRuntime.quickJsRuntimeDenylistVersion})}`);
+if (typeof globalThis.__venomRuntime.turboJsCapabilityPolicy !== 'function' || typeof globalThis.__venomRuntime.turboJsHostIoPolicy !== 'function' || typeof globalThis.__venomRuntime.turboJsPermissionSeal !== 'function' || typeof globalThis.__venomRuntime.turboJsPolicyReceipts !== 'function' || typeof globalThis.__venomRuntime.turboJsReleaseGate !== 'function') {
+  throw new Error('TurboJS capability/I-O/release-gate helpers were not exposed through the host bridge');
 }
-if (typeof globalThis.__venomRuntime.quickJsHostIoDecision !== 'function' || typeof globalThis.__venomRuntime.quickJsHostIoDenyTrace !== 'function' || typeof globalThis.__venomRuntime.quickJsCapabilityLedger !== 'function' || typeof globalThis.__venomRuntime.quickJsPolicySealAudit !== 'function' || typeof globalThis.__venomRuntime.quickJsRuntimeDenylist !== 'function') {
-  throw new Error('QuickJS host I/O decision/deny/audit helpers were not exposed through the host bridge');
+if (globalThis.__venomRuntime.turboJsHostIoDecisionVersion !== 1 || globalThis.__venomRuntime.turboJsHostIoDenyTraceVersion !== 1 || globalThis.__venomRuntime.turboJsCapabilityLedgerVersion !== 1 || globalThis.__venomRuntime.turboJsPolicySealAuditVersion !== 1 || globalThis.__venomRuntime.turboJsRuntimeDenylistVersion !== 1) {
+  throw new Error(`TurboJS host I/O decision/deny/audit metadata was not exposed: ${JSON.stringify({decision: globalThis.__venomRuntime.turboJsHostIoDecisionVersion, deny: globalThis.__venomRuntime.turboJsHostIoDenyTraceVersion, ledger: globalThis.__venomRuntime.turboJsCapabilityLedgerVersion, audit: globalThis.__venomRuntime.turboJsPolicySealAuditVersion, denylist: globalThis.__venomRuntime.turboJsRuntimeDenylistVersion})}`);
 }
-const qjsConsoleEvents = globalThis.__venomRuntime.quickJsConsoleEvents();
-if (!Array.isArray(qjsConsoleEvents) || qjsConsoleEvents.length < 1) {
-  throw new Error(`QuickJS console bridge did not capture console events: ${JSON.stringify(qjsConsoleEvents)}`);
+if (typeof globalThis.__venomRuntime.turboJsHostIoDecision !== 'function' || typeof globalThis.__venomRuntime.turboJsHostIoDenyTrace !== 'function' || typeof globalThis.__venomRuntime.turboJsCapabilityLedger !== 'function' || typeof globalThis.__venomRuntime.turboJsPolicySealAudit !== 'function' || typeof globalThis.__venomRuntime.turboJsRuntimeDenylist !== 'function') {
+  throw new Error('TurboJS host I/O decision/deny/audit helpers were not exposed through the host bridge');
+}
+const tjsConsoleEvents = globalThis.__venomRuntime.turboJsConsoleEvents();
+if (!Array.isArray(tjsConsoleEvents) || tjsConsoleEvents.length < 1) {
+  throw new Error(`TurboJS console bridge did not capture console events: ${JSON.stringify(tjsConsoleEvents)}`);
 }
 
 if (!globalThis.__venomRuntime || globalThis.__venomRuntime.fetchBridgeMode !== 'async-host-call' || globalThis.__venomRuntime.asyncHostQueueMode !== 'enabled') {
   throw new Error('Venom host bridge did not expose fetch/async queue mode');
 }
-if (globalThis.__venomRuntime.timerBridgeMode !== 'async-host-call' || globalThis.__venomRuntime.eventQueueMode !== 'enabled' || globalThis.__venomRuntime.quickJsBridgeMode !== 'engine-backend-select') {
-  throw new Error('Venom host bridge did not expose timer/event/QuickJS bridge modes');
+if (globalThis.__venomRuntime.timerBridgeMode !== 'async-host-call' || globalThis.__venomRuntime.eventQueueMode !== 'enabled' || globalThis.__venomRuntime.turboJsBridgeMode !== 'engine-backend-select') {
+  throw new Error('Venom host bridge did not expose timer/event/TurboJS bridge modes');
 }
 const queued = globalThis.__venomRuntime.enqueueHostCall('test.echo', { ok: true });
 if (!queued || queued.state !== 'pending') {
@@ -294,11 +294,11 @@ if (!timer || timer.state !== 'scheduled') {
   throw new Error('Venom timer bridge did not schedule a timer');
 }
 globalThis.__venomRuntime.cancelTimer(timer.id);
-const qjsCall = globalThis.__venomRuntime.callQuickJs('route.main', { route: result.route });
-if (!qjsCall || qjsCall.state !== 'pending' || qjsCall.mode !== 'engine-backend-select') {
-  throw new Error(`Venom QuickJS bridge placeholder did not enqueue a call: ${JSON.stringify(qjsCall)}`);
+const tjsCall = globalThis.__venomRuntime.callTurboJs('route.main', { route: result.route });
+if (!tjsCall || tjsCall.state !== 'pending' || tjsCall.mode !== 'engine-backend-select') {
+  throw new Error(`Venom TurboJS bridge placeholder did not enqueue a call: ${JSON.stringify(tjsCall)}`);
 }
-globalThis.__venomRuntime.settleHostCall(qjsCall.id, 'fulfilled', { ok: true });
+globalThis.__venomRuntime.settleHostCall(tjsCall.id, 'fulfilled', { ok: true });
 
 if (globalThis.__venomRuntime.eventBindingMode !== 'inline-attribute') {
   throw new Error(`host bridge did not expose inline event binding mode: ${globalThis.__venomRuntime.eventBindingMode}`);

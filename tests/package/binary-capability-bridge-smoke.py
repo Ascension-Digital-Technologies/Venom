@@ -1,7 +1,7 @@
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
-worker = ((root / "src/generated/runtime/worker_runtime_js.cpp").read_text(encoding="utf-8") + (root / "include/venom/generated/runtime/worker_runtime_template.hpp").read_text(encoding="utf-8"))
+worker = ((root / "src/generated/runtime/worker_runtime_js.cpp").read_text(encoding="utf-8") + (root / "src/generated/runtime/worker_runtime_template.hpp").read_text(encoding="utf-8"))
 loader = (root / "src/pipeline/js.cpp").read_text(encoding="utf-8")
 planning = (root / "src/pipeline/js_planning.cpp").read_text(encoding="utf-8")
 

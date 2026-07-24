@@ -1,7 +1,7 @@
-#include "venom/vm/polymorph.hpp"
+#include "vm/polymorph.hpp"
 
-#include "venom/vm/opcode.hpp"
-#include "venom/package/hash.hpp"
+#include "vm/opcode.hpp"
+#include "package/hash.hpp"
 
 #include <algorithm>
 #include <array>
@@ -64,7 +64,7 @@ std::vector<unsigned char> PolymorphicPlan::encode_binary() const {
   push_u32(operand_masks[2]);
   for (const auto word : word_layout) out.push_back(static_cast<unsigned char>(word));
   push_u16(host_calls.dom); push_u16(host_calls.event);
-  push_u16(host_calls.fetch); push_u16(host_calls.quickjs);
+  push_u16(host_calls.fetch); push_u16(host_calls.turbojs);
   push_u32(static_cast<std::uint32_t>(logical_to_physical.size()));
   for (const auto physical : dom_commands.logical_to_physical) push_u16(physical);
   for (const auto field : dom_commands.field_layout) out.push_back(field);
@@ -97,7 +97,7 @@ std::string PolymorphicPlan::describe() const {
   out << "host_call dom=" << hex16(host_calls.dom)
       << " event=" << hex16(host_calls.event)
       << " fetch=" << hex16(host_calls.fetch)
-      << " quickjs=" << hex16(host_calls.quickjs) << "\n";
+      << " turbojs=" << hex16(host_calls.turbojs) << "\n";
   out << "dom_command_map=";
   for (std::size_t i = 0; i < dom_commands.logical_to_physical.size(); ++i) {
     if (i) out << ",";
@@ -178,7 +178,7 @@ PolymorphicPlan make_polymorphic_plan(std::uint32_t deterministic_seed, bool ena
     LogicalOpcode::Nop, LogicalOpcode::LoadConst, LogicalOpcode::CreateElement,
     LogicalOpcode::SetAttribute, LogicalOpcode::SetText, LogicalOpcode::AppendChild,
     LogicalOpcode::EnterElement, LogicalOpcode::LeaveElement,
-    LogicalOpcode::CallQuickJs, LogicalOpcode::Halt,
+    LogicalOpcode::CallTurboJs, LogicalOpcode::Halt,
   };
 
   PolymorphicPlan plan;
@@ -216,7 +216,7 @@ PolymorphicPlan make_polymorphic_plan(std::uint32_t deterministic_seed, bool ena
   plan.host_calls.dom = static_cast<std::uint16_t>(0x100u + (host_rng() & 0x3ffu));
   plan.host_calls.event = static_cast<std::uint16_t>(0x500u + (host_rng() & 0x3ffu));
   plan.host_calls.fetch = static_cast<std::uint16_t>(0x900u + (host_rng() & 0x3ffu));
-  plan.host_calls.quickjs = static_cast<std::uint16_t>(0xd00u + (host_rng() & 0x3ffu));
+  plan.host_calls.turbojs = static_cast<std::uint16_t>(0xd00u + (host_rng() & 0x3ffu));
 
   DiversificationRng dom_opcode_rng(plan, "dom-command-opcode-map");
   for (std::size_t i = 0; i < plan.dom_commands.logical_to_physical.size(); ++i) {

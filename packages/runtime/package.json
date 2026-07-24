@@ -1,7 +1,7 @@
 {
-  "name": "@venom-js/runtime",
-  "version": "2.0.0",
-  "description": "Stable browser SDK for Venom protected QuickJS/WASM applications.",
+  "name": "@venom/runtime",
+  "version": "3.0.0",
+  "description": "Stable browser SDK for Venom protected TurboJS/WASM applications.",
   "type": "module",
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
@@ -12,7 +12,15 @@
     }
   },
   "sideEffects": false,
-  "engines": { "node": ">=18" },
-  "keywords": ["venom", "quickjs", "wasm", "runtime", "typescript"],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "venom",
+    "turbojs",
+    "wasm",
+    "runtime",
+    "typescript"
+  ],
   "license": "MIT"
 }

@@ -1,4 +1,4 @@
-function createAsyncHostQueue(fetchPlan, queuePlan, timerPlan = null, quickJsPlan = null) {
+function createAsyncHostQueue(fetchPlan, queuePlan, timerPlan = null, turboJsPlan = null) {
   let nextId = 1;
   let nextTimerId = 1;
   const pending = new Map();
@@ -187,22 +187,22 @@ function createAsyncHostQueue(fetchPlan, queuePlan, timerPlan = null, quickJsPla
   function resetRoute(reason = 'route-reset') { clearRouteResources(reason, false); activeGeneration = (activeGeneration + 1) >>> 0; routeStartedAt = Date.now ? Date.now() : 0; hostCallsThisRoute = 0; fetchesThisRoute = 0; timersScheduledThisRoute = 0; return activeGeneration; }
   function dispose(reason = 'queue-disposed') { clearRouteResources(reason, true); }
 
-  function callQuickJs(entry, payload = {}) {
-    const request = enqueue(quickJsPlan && quickJsPlan.callHostCall ? quickJsPlan.callHostCall : 'quickjs.call', { entry: String(entry || ''), payload });
-    const mode = quickJsPlan && quickJsPlan.mode ? quickJsPlan.mode : 'planned-boundary';
+  function callTurboJs(entry, payload = {}) {
+    const request = enqueue(turboJsPlan && turboJsPlan.callHostCall ? turboJsPlan.callHostCall : 'turbojs.call', { entry: String(entry || ''), payload });
+    const mode = turboJsPlan && turboJsPlan.mode ? turboJsPlan.mode : 'planned-boundary';
     return Object.freeze({
       id: request.id,
       state: request.state,
       mode,
-      scriptIsolation: quickJsPlan && quickJsPlan.scriptIsolation ? quickJsPlan.scriptIsolation : 'route-scoped',
-      bytecodeInput: quickJsPlan && quickJsPlan.bytecodeInput ? quickJsPlan.bytecodeInput : 'planned',
-      chunkMetadata: quickJsPlan && quickJsPlan.chunkMetadata ? quickJsPlan.chunkMetadata : '',
-      engineMetadata: quickJsPlan && quickJsPlan.engineMetadata ? quickJsPlan.engineMetadata : '',
-      fallbackPolicy: quickJsPlan && quickJsPlan.fallbackPolicy ? quickJsPlan.fallbackPolicy : 'host-js-isolated-wrapper',
+      scriptIsolation: turboJsPlan && turboJsPlan.scriptIsolation ? turboJsPlan.scriptIsolation : 'route-scoped',
+      bytecodeInput: turboJsPlan && turboJsPlan.bytecodeInput ? turboJsPlan.bytecodeInput : 'planned',
+      chunkMetadata: turboJsPlan && turboJsPlan.chunkMetadata ? turboJsPlan.chunkMetadata : '',
+      engineMetadata: turboJsPlan && turboJsPlan.engineMetadata ? turboJsPlan.engineMetadata : '',
+      fallbackPolicy: turboJsPlan && turboJsPlan.fallbackPolicy ? turboJsPlan.fallbackPolicy : 'host-js-isolated-wrapper',
     });
   }
 
-  return Object.freeze({ enqueue, settle, snapshot, requestFetch, scheduleTimer, cancelTimer, callQuickJs, setRouteGeneration, resetRoute, dispose });
+  return Object.freeze({ enqueue, settle, snapshot, requestFetch, scheduleTimer, cancelTimer, callTurboJs, setRouteGeneration, resetRoute, dispose });
 }
 
 function createEventQueue(eventPlan) {
@@ -258,7 +258,7 @@ function bindInlineEventAttribute(target, attrName, source, hostBridgePlan = nul
         bridge.dispatchEventBinding({ event, element: target, eventName, source, attrName, routeGeneration: boundGeneration });
       }
       // Protected runtime never evaluates inline event source in the host runtime.
-      // The source is treated as metadata and must be dispatched through QuickJS.
+      // The source is treated as metadata and must be dispatched through TurboJS.
       return undefined;
     });
   }

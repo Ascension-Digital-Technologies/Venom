@@ -5,7 +5,7 @@ Venom 1.5.0 release packages are deterministic and self-describing. Every stable
 - `RELEASE_MANIFEST.txt`: SHA-256 and size for every shipped file.
 - `RELEASE_MANIFEST.sig`: optional Ed25519 signature over the manifest.
 - `SBOM.cdx.json`: CycloneDX 1.5 inventory with deterministic hashes for all vendored dependency trees.
-- `PROVENANCE.intoto.json`: in-toto/SLSA provenance covering the compiler, QuickJS/WASM runtime, product contracts, and toolchain lock.
+- `PROVENANCE.intoto.json`: in-toto/SLSA provenance covering the compiler, TurboJS/WASM runtime, product contracts, and toolchain lock.
 - `RELEASE_POLICY.json`: machine-readable target, ABI, security, release-channel, anti-rollback sequence, and source-revision policy.
 - `CONTRACTS.json`: stable public product contract manifest.
 

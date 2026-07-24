@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bootstrap or inspect the Emscripten SDK used for Venom's QuickJS WASM build."""
+"""Bootstrap or inspect the Emscripten SDK used for Venom's TurboJS WASM build."""
 from __future__ import annotations
 
 import argparse

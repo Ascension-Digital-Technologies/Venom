@@ -1,9 +1,9 @@
-#include "venom/base/error.hpp"
-#include "venom/pipeline/security.hpp"
-#include "venom/internal/pipeline/security_analysis.hpp"
-#include "venom/core/console.hpp"
+#include "base/error.hpp"
+#include "pipeline/security.hpp"
+#include "pipeline/security_analysis.hpp"
+#include "core/console.hpp"
 
-#include "venom/package/crypto.hpp"
+#include "package/crypto.hpp"
 
 #include <array>
 #include <filesystem>
@@ -35,14 +35,14 @@ std::string hex64(std::uint64_t value) {
 
 void print_release_report(const ReleaseCheckReport& report, const ReleaseCheckOptions& options) {
   const bool ok = report.failures.empty();
-  const std::string operation = options.runtime_verification ? "QuickJS runtime verification" : "Package integrity verification";
+  const std::string operation = options.runtime_verification ? "TurboJS runtime verification" : "Package integrity verification";
   if (options.format == OutputFormat::Json) {
     std::cout << "{\"ok\":" << (ok ? "true" : "false")
               << ",\"operation\":\"" << operation << "\""
               << ",\"package\":\"" << report.package_path.generic_string() << "\""
               << ",\"sections\":" << report.section_count
               << ",\"protectedSections\":" << report.encrypted_sections
-              << ",\"runtimeAbi\":" << report.quickjs_runtime_abi
+              << ",\"runtimeAbi\":" << report.turbojs_runtime_abi
               << ",\"failures\":[";
     for (std::size_t i = 0; i < report.failures.size(); ++i) {
       if (i) std::cout << ',';
@@ -62,8 +62,8 @@ void print_release_report(const ReleaseCheckReport& report, const ReleaseCheckOp
                 << " / " << report.section_count << " sections / "
                 << report.encrypted_sections << " protected\n";
       if (options.runtime_verification) {
-        std::cout << "  Runtime: QuickJS/WASM ABI " << report.quickjs_runtime_abi
-                  << " / real engine " << (report.quickjs_runtime_real_engine_candidate ? "confirmed" : "unconfirmed") << "\n";
+        std::cout << "  Runtime: TurboJS/WASM ABI " << report.turbojs_runtime_abi
+                  << " / real engine " << (report.turbojs_runtime_real_engine_candidate ? "confirmed" : "unconfirmed") << "\n";
       }
     } else {
       print_status("FAIL", operation + " failed");
@@ -82,55 +82,55 @@ void print_release_report(const ReleaseCheckReport& report, const ReleaseCheckOp
             << "  provider_runtime_sections: " << report.v_runtime_sections << "\n"
             << "  provider_libsodium_sections: " << report.v_sodium_sections << "\n"
             << "  provider_legacy_sections: " << report.v_legacy_sections << "\n"
-            << "  quickjs_bytecode_records: " << report.quickjs_bytecode_records << "\n"
+            << "  turbojs_bytecode_records: " << report.turbojs_bytecode_records << "\n"
             << "  protection_closure_present: " << (report.protection_closure_present ? "yes" : "no") << "\n"
             << "  protection_intents_requested: " << report.protection_intents_requested << "\n"
             << "  protection_intents_resolved: " << report.protection_intents_resolved << "\n"
-            << "  protection_expected_quickjs_records: " << report.protection_expected_quickjs_records << "\n"
-            << "  quickjs_wasm_execution: " << (report.quickjs_wasm_execution ? "yes" : "no") << "\n"
-            << "  quickjs_execution_backend: " << (report.quickjs_execution_backend.empty() ? "none" : report.quickjs_execution_backend) << "\n"
-            << "  quickjs_host_js_fallback_allowed: " << (report.quickjs_host_js_fallback_allowed ? "yes" : "no") << "\n"
-            << "  quickjs_release_fail_closed: " << (report.quickjs_release_fail_closed ? "yes" : "no") << "\n"
-            << "  quickjs_wasm_chunks: " << report.quickjs_wasm_chunks << "\n"
-            << "  quickjs_bytecode_boundary: " << (report.quickjs_opaque_bytecode_transfer ? "wasm-owned" : "legacy-or-none") << "\n"
-            << "  quickjs_source_transfer: " << (report.quickjs_source_transfer_mode.empty() ? "none" : report.quickjs_source_transfer_mode) << "\n"
-            << "  quickjs_oversized_record_threshold: " << report.quickjs_oversized_record_threshold << "\n"
-            << "  quickjs_oversized_record_path: " << (report.quickjs_oversized_record_path.empty() ? "none" : report.quickjs_oversized_record_path) << "\n"
-            << "  quickjs_wasm_runtime_mode: " << (report.quickjs_wasm_runtime_mode.empty() ? "none" : report.quickjs_wasm_runtime_mode) << "\n"
-            << "  quickjs_runtime_implementation: " << (report.quickjs_runtime_implementation.empty() ? "unknown" : report.quickjs_runtime_implementation) << "\n"
-            << "  quickjs_runtime_claim: " << (report.quickjs_runtime_claim.empty() ? "unknown" : report.quickjs_runtime_claim) << "\n"
-            << "  quickjs_runtime_contract_only: " << (report.quickjs_runtime_contract_only ? "yes" : "no") << "\n"
-            << "  quickjs_runtime_scaffold: " << (report.quickjs_runtime_scaffold ? "yes" : "no") << "\n"
-            << "  quickjs_runtime_real_engine_candidate: " << (report.quickjs_runtime_real_engine_candidate ? "yes" : "no") << "\n"
-            << "  quickjs_runtime_full_upstream_quickjs: " << (report.quickjs_runtime_full_upstream_quickjs ? "yes" : "no") << "\n"
-            << "  quickjs_runtime_fallback_required: " << (report.quickjs_runtime_fallback_required ? "yes" : "no") << "\n"
-            << "  quickjs_runtime_finish_blocker: " << (report.quickjs_runtime_finish_blocker.empty() ? "none" : report.quickjs_runtime_finish_blocker) << "\n"
-            << "  quickjs_runtime_artifact_kind: " << (report.quickjs_runtime_artifact_kind.empty() ? "unknown" : report.quickjs_runtime_artifact_kind) << "\n"
-            << "  quickjs_runtime_wasm_sha256: " << (report.quickjs_runtime_wasm_sha256.empty() ? "unknown" : report.quickjs_runtime_wasm_sha256) << "\n"
-            << "  quickjs_runtime_required_exports_satisfied: " << (report.quickjs_runtime_required_exports_satisfied ? "yes" : "no") << "\n"
-            << "  quickjs_runtime_missing_export_count: " << report.quickjs_runtime_missing_export_count << "\n"
-            << "  quickjs_execute_bytecode_export: " << (report.quickjs_execute_bytecode_export ? "yes" : "no") << "\n"
-            << "  quickjs_runtime_abi: " << report.quickjs_runtime_abi << "\n"
-            << "  quickjs_runtime_package_version: " << report.quickjs_runtime_package_version << "\n"
-            << "  quickjs_abi_contract: " << (report.quickjs_abi_contract.empty() ? "none" : report.quickjs_abi_contract) << "\n"
-            << "  quickjs_abi12_runtime: " << (report.quickjs_abi12_runtime ? "yes" : "no") << "\n"
-            << "  quickjs_status_exports: " << (report.quickjs_status_exports ? "yes" : "no") << "\n"
-            << "  quickjs_limit_exports: " << (report.quickjs_limit_exports ? "yes" : "no") << "\n"
-            << "  quickjs_bytecode_validate_export: " << (report.quickjs_bytecode_validate_export ? "yes" : "no") << "\n"
-            << "  quickjs_backend_contract_export: " << (report.quickjs_backend_contract_export ? "yes" : "no") << "\n"
-            << "  quickjs_interpreter_dispatch: " << (report.quickjs_interpreter_dispatch ? "yes" : "no") << "\n"
-            << "  quickjs_interpreter_exports: " << (report.quickjs_interpreter_exports ? "yes" : "no") << "\n"
-            << "  quickjs_interpreter_contract_export: " << (report.quickjs_interpreter_contract_export ? "yes" : "no") << "\n"
-            << "  quickjs_semantic_runtime: " << (report.quickjs_semantic_runtime ? "yes" : "no") << "\n"
-            << "  quickjs_semantic_runtime_exports: " << (report.quickjs_semantic_runtime_exports ? "yes" : "no") << "\n"
-            << "  quickjs_upstream_parity: " << (report.quickjs_upstream_parity ? "yes" : "no") << "\n"
-            << "  quickjs_upstream_core: " << (report.quickjs_upstream_core.empty() ? "none" : report.quickjs_upstream_core) << "\n"
-            << "  quickjs_upstream_exports: " << (report.quickjs_upstream_exports ? "yes" : "no") << "\n"
-            << "  quickjs_upstream_runtime_exports: " << (report.quickjs_upstream_runtime_exports ? "yes" : "no") << "\n"
-            << "  quickjs_upstream_bytecode_semantics: " << (report.quickjs_upstream_bytecode_semantics ? "yes" : "no") << "\n"
-            << "  quickjs_upstream_bytecode_semantics_exports: " << (report.quickjs_upstream_bytecode_semantics_exports ? "yes" : "no") << "\n"
-            << "  quickjs_upstream_intrinsic_semantics: " << (report.quickjs_upstream_intrinsic_semantics ? "yes" : "no") << "\n"
-            << "  quickjs_upstream_intrinsic_semantics_exports: " << (report.quickjs_upstream_intrinsic_semantics_exports ? "yes" : "no") << "\n"
+            << "  protection_expected_turbojs_records: " << report.protection_expected_turbojs_records << "\n"
+            << "  turbojs_wasm_execution: " << (report.turbojs_wasm_execution ? "yes" : "no") << "\n"
+            << "  turbojs_execution_backend: " << (report.turbojs_execution_backend.empty() ? "none" : report.turbojs_execution_backend) << "\n"
+            << "  turbojs_host_js_fallback_allowed: " << (report.turbojs_host_js_fallback_allowed ? "yes" : "no") << "\n"
+            << "  turbojs_release_fail_closed: " << (report.turbojs_release_fail_closed ? "yes" : "no") << "\n"
+            << "  turbojs_wasm_chunks: " << report.turbojs_wasm_chunks << "\n"
+            << "  turbojs_bytecode_boundary: " << (report.turbojs_opaque_bytecode_transfer ? "wasm-owned" : "legacy-or-none") << "\n"
+            << "  turbojs_source_transfer: " << (report.turbojs_source_transfer_mode.empty() ? "none" : report.turbojs_source_transfer_mode) << "\n"
+            << "  turbojs_oversized_record_threshold: " << report.turbojs_oversized_record_threshold << "\n"
+            << "  turbojs_oversized_record_path: " << (report.turbojs_oversized_record_path.empty() ? "none" : report.turbojs_oversized_record_path) << "\n"
+            << "  turbojs_wasm_runtime_mode: " << (report.turbojs_wasm_runtime_mode.empty() ? "none" : report.turbojs_wasm_runtime_mode) << "\n"
+            << "  turbojs_runtime_implementation: " << (report.turbojs_runtime_implementation.empty() ? "unknown" : report.turbojs_runtime_implementation) << "\n"
+            << "  turbojs_runtime_claim: " << (report.turbojs_runtime_claim.empty() ? "unknown" : report.turbojs_runtime_claim) << "\n"
+            << "  turbojs_runtime_contract_only: " << (report.turbojs_runtime_contract_only ? "yes" : "no") << "\n"
+            << "  turbojs_runtime_scaffold: " << (report.turbojs_runtime_scaffold ? "yes" : "no") << "\n"
+            << "  turbojs_runtime_real_engine_candidate: " << (report.turbojs_runtime_real_engine_candidate ? "yes" : "no") << "\n"
+            << "  turbojs_runtime_full_upstream_turbojs: " << (report.turbojs_runtime_full_upstream_turbojs ? "yes" : "no") << "\n"
+            << "  turbojs_runtime_fallback_required: " << (report.turbojs_runtime_fallback_required ? "yes" : "no") << "\n"
+            << "  turbojs_runtime_finish_blocker: " << (report.turbojs_runtime_finish_blocker.empty() ? "none" : report.turbojs_runtime_finish_blocker) << "\n"
+            << "  turbojs_runtime_artifact_kind: " << (report.turbojs_runtime_artifact_kind.empty() ? "unknown" : report.turbojs_runtime_artifact_kind) << "\n"
+            << "  turbojs_runtime_wasm_sha256: " << (report.turbojs_runtime_wasm_sha256.empty() ? "unknown" : report.turbojs_runtime_wasm_sha256) << "\n"
+            << "  turbojs_runtime_required_exports_satisfied: " << (report.turbojs_runtime_required_exports_satisfied ? "yes" : "no") << "\n"
+            << "  turbojs_runtime_missing_export_count: " << report.turbojs_runtime_missing_export_count << "\n"
+            << "  turbojs_execute_bytecode_export: " << (report.turbojs_execute_bytecode_export ? "yes" : "no") << "\n"
+            << "  turbojs_runtime_abi: " << report.turbojs_runtime_abi << "\n"
+            << "  turbojs_runtime_package_version: " << report.turbojs_runtime_package_version << "\n"
+            << "  turbojs_abi_contract: " << (report.turbojs_abi_contract.empty() ? "none" : report.turbojs_abi_contract) << "\n"
+            << "  turbojs_abi12_runtime: " << (report.turbojs_abi12_runtime ? "yes" : "no") << "\n"
+            << "  turbojs_status_exports: " << (report.turbojs_status_exports ? "yes" : "no") << "\n"
+            << "  turbojs_limit_exports: " << (report.turbojs_limit_exports ? "yes" : "no") << "\n"
+            << "  turbojs_bytecode_validate_export: " << (report.turbojs_bytecode_validate_export ? "yes" : "no") << "\n"
+            << "  turbojs_backend_contract_export: " << (report.turbojs_backend_contract_export ? "yes" : "no") << "\n"
+            << "  turbojs_interpreter_dispatch: " << (report.turbojs_interpreter_dispatch ? "yes" : "no") << "\n"
+            << "  turbojs_interpreter_exports: " << (report.turbojs_interpreter_exports ? "yes" : "no") << "\n"
+            << "  turbojs_interpreter_contract_export: " << (report.turbojs_interpreter_contract_export ? "yes" : "no") << "\n"
+            << "  turbojs_semantic_runtime: " << (report.turbojs_semantic_runtime ? "yes" : "no") << "\n"
+            << "  turbojs_semantic_runtime_exports: " << (report.turbojs_semantic_runtime_exports ? "yes" : "no") << "\n"
+            << "  turbojs_upstream_parity: " << (report.turbojs_upstream_parity ? "yes" : "no") << "\n"
+            << "  turbojs_upstream_core: " << (report.turbojs_upstream_core.empty() ? "none" : report.turbojs_upstream_core) << "\n"
+            << "  turbojs_upstream_exports: " << (report.turbojs_upstream_exports ? "yes" : "no") << "\n"
+            << "  turbojs_upstream_runtime_exports: " << (report.turbojs_upstream_runtime_exports ? "yes" : "no") << "\n"
+            << "  turbojs_upstream_bytecode_semantics: " << (report.turbojs_upstream_bytecode_semantics ? "yes" : "no") << "\n"
+            << "  turbojs_upstream_bytecode_semantics_exports: " << (report.turbojs_upstream_bytecode_semantics_exports ? "yes" : "no") << "\n"
+            << "  turbojs_upstream_intrinsic_semantics: " << (report.turbojs_upstream_intrinsic_semantics ? "yes" : "no") << "\n"
+            << "  turbojs_upstream_intrinsic_semantics_exports: " << (report.turbojs_upstream_intrinsic_semantics_exports ? "yes" : "no") << "\n"
             << "  package_binding: " << (report.package_binding ? "yes" : "no") << "\n"
             << "  loader_binding: " << (report.loader_binding ? "yes" : "no") << "\n"
             << "  loader_sri: " << (report.loader_sri ? "yes" : "no") << "\n"

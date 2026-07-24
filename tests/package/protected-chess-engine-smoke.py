@@ -25,7 +25,7 @@ if venom:
     with tempfile.TemporaryDirectory(prefix='venom-chess-engine-') as temp:
         out=Path(temp)/'dist'
         built=subprocess.run([str(venom),'build',str(root/'examples/protected-chess'),'--out',str(out),'--profile','prod','--hashed'],check=True,text=True,capture_output=True)
-        assert 'quickjs_bytecode_records: 1' in built.stdout, built.stdout
+        assert 'turbojs_bytecode_records: 1' in built.stdout, built.stdout
         assert 'release_status: PASS' in built.stdout, built.stdout
         assert not (out/'build/reports').exists(), 'hardened dist must not ship internal reports'
         shipped=''.join(p.read_text(encoding='utf-8',errors='ignore') for p in (out/'assets').rglob('*.js'))

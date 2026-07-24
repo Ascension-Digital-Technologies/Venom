@@ -17,19 +17,19 @@ if 'release_status: PASS' not in verify.stdout:
     raise SystemExit(verify.stdout)
 wasm_files = list((dist/'assets'/'runtime').glob('runtime.*.wasm'))
 if len(wasm_files) != 1:
-    raise SystemExit(f'expected one QuickJS runtime, got {wasm_files}')
+    raise SystemExit(f'expected one TurboJS runtime, got {wasm_files}')
 wasm = wasm_files[0]
 actual = hashlib.sha256(wasm.read_bytes()).hexdigest()
 loaders = list((dist/'assets'/'loader').glob('loader.*.js'))
 if len(loaders) != 1:
     raise SystemExit('expected exactly one loader')
 loader = loaders[0].read_text(encoding='utf-8')
-m = re.search(r"expectedQuickJsWasmSha256:\s*'([0-9a-f]{64})'", loader)
+m = re.search(r"expectedTurboJsWasmSha256:\s*'([0-9a-f]{64})'", loader)
 if not m or m.group(1) != actual:
     raise SystemExit(f'loader digest mismatch: expected={m.group(1) if m else None} actual={actual}')
 # Verify the checked-in embedded blob digest is the same digest emitted to dist.
-header = (root/'include/venom/generated/runtime/quickjs_runtime_wasm_blob.hpp').read_text(encoding='utf-8')
-h = re.search(r'kQuickJsRuntimeWasmBlobSha256\s*=\s*"([0-9a-f]{64})"', header)
+header = (root/'src/generated/runtime/turbojs_runtime_wasm_blob.hpp').read_text(encoding='utf-8')
+h = re.search(r'kTurboJsRuntimeWasmBlobSha256\s*=\s*"([0-9a-f]{64})"', header)
 if not h or h.group(1) != actual:
     raise SystemExit(f'embedded/runtime digest mismatch: embedded={h.group(1) if h else None} emitted={actual}')
 print('phase12 runtime artifact consistency: PASS')

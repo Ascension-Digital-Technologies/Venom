@@ -1,7 +1,7 @@
 from pathlib import Path
 root=Path(__file__).resolve().parents[2]
 cli=(root/'src/cli/cli.cpp').read_text()
-header=(root/'include/venom/cli/cli.hpp').read_text()
+header=(root/'src/cli/cli.hpp').read_text()
 planner=(root/'src/pipeline/planner.cpp').read_text()
 build=(root/'src/pipeline/build.cpp').read_text()
 config=(root/'src/core/config.cpp').read_text()

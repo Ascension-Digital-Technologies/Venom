@@ -3,7 +3,7 @@
 
 ![Venom Sentinel overview](../../docs/assets/examples/bot-detection/overview.png)
 
-Venom Sentinel is a browser-fingerprint and behavioral-analysis example whose scoring policy executes inside Venom's protected QuickJS/WASM runtime.
+Venom Sentinel is a browser-fingerprint and behavioral-analysis example whose scoring policy executes inside Venom's protected TurboJS/WASM runtime.
 
 The page inventories browser-exposed client information, observes aggregate trusted interaction, and produces a live **human-likelihood score from 1 to 100**. The user interface and signal collection remain browser-native; the weighting, anomaly classification, score composition, and response recommendation are protected.
 
@@ -18,7 +18,7 @@ The page inventories browser-exposed client information, observes aggregate trus
 - WebDriver, headless-user-agent, automation-global, API-surface, permission, and environment-consistency checks;
 - human-likelihood, automation-risk, confidence, category, finding, and policy outputs;
 - no required third-party library or external network lookup;
-- production fail-closed QuickJS/WASM execution.
+- production fail-closed TurboJS/WASM execution.
 
 ## Protection boundary
 
@@ -37,7 +37,7 @@ flowchart LR
 
     subgraph Venom protected runtime
       W[Dedicated worker]
-      Q[QuickJS inside WASM]
+      Q[TurboJS inside WASM]
       E[Bot scoring engine]
       API --> W
       W --> Q
@@ -128,7 +128,7 @@ const decision = await venom.call("assessClient", {
 });
 ```
 
-The compiler removes the protected implementation from readable browser source and registers `assessClient` inside the QuickJS/WASM runtime. Calling the bridge directly also avoids browser-relative module resolution from Venom's packaged `blob:` execution URLs.
+The compiler removes the protected implementation from readable browser source and registers `assessClient` inside the TurboJS/WASM runtime. Calling the bridge directly also avoids browser-relative module resolution from Venom's packaged `blob:` execution URLs.
 
 ## Result shape
 
@@ -222,14 +222,14 @@ scripts\windows\bot-detection.bat
 ```powershell
 .\scripts\windows\build-site.ps1 `
   -Site examples\bot-detection `
-  -Dist dist-bot-detection-prod `
+  -Dist examples/bot-detection/dist-venom `
   -Profile prod
 ```
 
 ### Serve an existing build
 
 ```powershell
-.\scripts\windows\serve-site.ps1 -Dist dist-bot-detection-prod -Port 8082
+.\scripts\windows\serve-site.ps1 -Dist examples/bot-detection/dist-venom -Port 8082
 ```
 
 Open `http://127.0.0.1:8082/`.
@@ -237,9 +237,9 @@ Open `http://127.0.0.1:8082/`.
 ## Validation
 
 ```powershell
-python .\scripts\check-production-leaks.py dist-bot-detection-prod
-build\Release\venom.exe verify-runtime dist-bot-detection-prod --require-real-engine
-build\Release\venom.exe verify dist-bot-detection-prod
+python .\scripts\check-production-leaks.py examples/bot-detection/dist-venom
+build\Release\venom.exe verify-runtime examples/bot-detection/dist-venom --require-real-engine
+build\Release\venom.exe verify examples/bot-detection/dist-venom
 ```
 
 The browser qualification contract verifies that:
@@ -272,4 +272,4 @@ Sentinel keeps the collected report in page memory and does not transmit it by d
 
 ## Protected telemetry protocol
 
-The example uses a versioned telemetry envelope (`schemaVersion: 2`). Before assessment, the browser requests a short-lived protected session. Every assessment is bound to the returned session ID and challenge nonce, carries a strictly increasing sequence number, and is rejected when stale, replayed, out of order, or structurally invalid. Raw compact interaction samples are collected in the browser, while timing variance, pointer-velocity analysis, scoring, thresholds, and findings remain inside protected QuickJS bytecode.
+The example uses a versioned telemetry envelope (`schemaVersion: 2`). Before assessment, the browser requests a short-lived protected session. Every assessment is bound to the returned session ID and challenge nonce, carries a strictly increasing sequence number, and is rejected when stale, replayed, out of order, or structurally invalid. Raw compact interaction samples are collected in the browser, while timing variance, pointer-velocity analysis, scoring, thresholds, and findings remain inside protected TurboJS bytecode.

@@ -24,4 +24,4 @@ Unresolved and external boundaries remain explicit graph edges and are handled b
 
 ## Runtime identity
 
-Development output retains readable source labels. Protected production output uses graph-owned `s_<digest>` aliases. The same alias is used by browser module maps, route bundles, QuickJS module records, and diagnostics.
+Development output retains readable source labels. Protected production output uses graph-owned `s_<digest>` aliases. The same alias is used by browser module maps, route bundles, TurboJS module records, and diagnostics.

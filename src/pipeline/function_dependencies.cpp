@@ -1,6 +1,6 @@
-#include "venom/internal/pipeline/function_dependencies.hpp"
+#include "pipeline/function_dependencies.hpp"
 
-#include "venom/frontends/javascript/frontend.hpp"
+#include "frontends/javascript/frontend.hpp"
 
 #include <algorithm>
 #include <cctype>

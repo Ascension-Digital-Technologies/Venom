@@ -1,5 +1,7 @@
-#include "venom/base/error.hpp"
-#include "venom/internal/pipeline/capability_analysis.hpp"
+#include "base/error.hpp"
+#include "pipeline/capability_analysis.hpp"
+#include "core/site.hpp"
+#include "graph/module_types.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -332,6 +334,34 @@ CapabilityGraph analyze_capabilities(const std::filesystem::path& input) {
   if (std::filesystem::is_regular_file(input)) scan(input);
   else {
     for (const auto& entry : std::filesystem::recursive_directory_iterator(input)) if (entry.is_regular_file()) scan(entry.path());
+  }
+  return graph;
+}
+
+CapabilityGraph analyze_capabilities(const SiteGraph& site,
+                                     const std::vector<JsChunk>& planned_scripts) {
+  CapabilityGraph graph;
+  for (const auto& file : site.files) {
+    if (file.extension != ".html" && file.extension != ".htm") continue;
+    ++graph.files_scanned;
+    ++graph.html_files;
+    const std::string source(reinterpret_cast<const char*>(file.bytes.data()), file.bytes.size());
+    std::size_t pos = 0;
+    while ((pos = source.find("modulepreload", pos)) != std::string::npos) {
+      std::size_t line = 1, column = 1;
+      for (std::size_t i = 0; i < pos; ++i) {
+        if (source[i] == '\n') { ++line; column = 1; }
+        else ++column;
+      }
+      ++graph.module_features["modulepreload"];
+      graph.occurrences.push_back({file.relative, line, column, "module", "modulepreload", {}});
+      pos += 13;
+    }
+  }
+  for (const auto& chunk : planned_scripts) {
+    ++graph.files_scanned;
+    ++graph.javascript_files;
+    analyze_tokens(graph, chunk.source, lex_javascript(chunk.code));
   }
   return graph;
 }

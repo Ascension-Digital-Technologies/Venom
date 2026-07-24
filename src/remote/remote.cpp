@@ -1,9 +1,9 @@
-#include "venom/base/error.hpp"
-#include "venom/remote/remote.hpp"
-#include "venom/core/version.hpp"
+#include "base/error.hpp"
+#include "remote/remote.hpp"
+#include "core/version.hpp"
 
-#include "venom/core/process.hpp"
-#include "venom/package/hash.hpp"
+#include "core/process.hpp"
+#include "package/hash.hpp"
 
 #include <algorithm>
 #include <atomic>

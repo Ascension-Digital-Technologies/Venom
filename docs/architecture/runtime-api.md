@@ -1,8 +1,8 @@
 # Stable runtime API
 
-Venom 2.0.0 publishes `@venom-js/runtime` as the supported browser integration surface. Application code should not depend on `globalThis.__venomRuntime`, candidate IDs, worker opcodes, package internals, or QuickJS/WASM export names.
+Venom 2.0.0 publishes `@venom/runtime` as the supported browser integration surface. Application code should not depend on `globalThis.__venomRuntime`, candidate IDs, worker opcodes, package internals, or TurboJS/WASM export names.
 
-The contract is governed by `contracts/runtime-api.json`. The JavaScript SDK is SemVer-stable within a major release; QuickJS/WASM ABI and bytecode formats require exact compatibility; package schemas remain backward-compatible within a major release; generated clients must match the compiler/runtime version.
+The contract is governed by `contracts/runtime-api.json`. The JavaScript SDK is SemVer-stable within a major release; TurboJS/WASM ABI and bytecode formats require exact compatibility; package schemas remain backward-compatible within a major release; generated clients must match the compiler/runtime version.
 
 ## Lifecycle
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Canonical Emscripten controller for Venom's verified QuickJS/WASM runtime."""
+"""Canonical Emscripten controller for Venom's verified TurboJS/WASM runtime."""
 from __future__ import annotations
 import argparse, json, os, shutil, subprocess, sys
 from pathlib import Path
@@ -21,9 +21,9 @@ def shell_build_command(repo: Path, emsdk_dir: Path, out_dir: Path, emcc: str) -
     if is_windows():
         powershell = shutil.which('powershell.exe') or shutil.which('pwsh.exe') or 'powershell.exe'
         return [powershell, '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
-                str(repo / 'tools' / 'windows-scripts' / 'build-quickjs-wasm.ps1'),
+                str(repo / 'tools' / 'windows-scripts' / 'build-turbojs-wasm.ps1'),
                 '-ControllerBuild', '-OutDir', str(out_dir), '-Emcc', emcc, '-Force']
-    return ['bash', str(repo / 'tools' / 'linux-scripts' / 'build-quickjs-wasm.sh'),
+    return ['bash', str(repo / 'tools' / 'linux-scripts' / 'build-turbojs-wasm.sh'),
             '--controller-build', '--out-dir', str(out_dir), '--emcc', emcc, '--force']
 
 
@@ -70,7 +70,7 @@ def verify_native_runtime_binding(repo: Path, build_dir: Path) -> int:
     if not example.is_dir():
         print('[venom] protected runtime smoke fixture is unavailable; skipping distribution smoke')
         return 0
-    dist = build_dir / 'quickjs-runtime-smoke-dist'
+    dist = build_dir / 'turbojs-runtime-smoke-dist'
     built = run([str(venom), 'build', str(example), '--out', str(dist), '--profile', 'prod'], timeout=900)
     print(built.stdout, end='')
     if built.returncode: return built.returncode
@@ -114,12 +114,12 @@ def main() -> int:
     emcc = str(setup_info.get('emcc_path') or args.emcc or '')
 
     preflight_out = out / 'preflight'
-    preflight_cmd = [sys.executable, str(repo / 'tools' / 'quickjs_wasm_cutover.py'),
+    preflight_cmd = [sys.executable, str(repo / 'tools' / 'turbojs_wasm_cutover.py'),
                      '--repo-root', str(repo), '--out-dir', str(preflight_out), '--preflight-only']
     if emcc: preflight_cmd += ['--emcc', emcc]
     if args.allow_missing: preflight_cmd += ['--allow-missing-emcc']
     preflight = run(preflight_cmd, timeout=90); print(preflight.stdout, end='')
-    pf = load_json(preflight_out / 'quickjs-wasm-preflight.json')
+    pf = load_json(preflight_out / 'turbojs-wasm-preflight.json')
 
     status = 'preflight-ok' if setup.returncode == 0 and preflight.returncode == 0 else 'preflight-failed'
     info = {
@@ -137,8 +137,8 @@ def main() -> int:
         print('[venom] emcc is required for a full runtime build', file=sys.stderr); return 3
 
     # Accept either a controller workspace or the runtime output directory itself.
-    # This also prevents accidental recursive `quickjs-wasm/quickjs-wasm/...` growth.
-    wasm_out = out if out.name.lower() == 'quickjs-wasm' else out / 'quickjs-wasm'
+    # This also prevents accidental recursive `turbojs-wasm/turbojs-wasm/...` growth.
+    wasm_out = out if out.name.lower() == 'turbojs-wasm' else out / 'turbojs-wasm'
     build = run(shell_build_command(repo, emsdk, wasm_out, emcc), timeout=3600); print(build.stdout, end='')
     if build.returncode: return build.returncode
     info['runtime_built'] = True

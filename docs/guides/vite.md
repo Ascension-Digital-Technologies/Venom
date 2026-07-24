@@ -5,14 +5,14 @@ Venom integrates after Vite's framework transformation stage. React, Vue, Svelte
 ## Install
 
 ```bash
-npm install --save-dev @venom-js/vite
+npm install --save-dev @venom/vite
 ```
 
 ## Configuration
 
 ```js
 import { defineConfig } from "vite";
-import venom from "@venom-js/vite";
+import venom from "@venom/vite";
 
 export default defineConfig({
   plugins: [venom({

@@ -1,5 +1,5 @@
-#include "venom/base/error.hpp"
-#include "venom/core/config.hpp"
+#include "base/error.hpp"
+#include "core/config.hpp"
 #include <algorithm>
 #include <cctype>
 #include <fstream>
@@ -89,6 +89,7 @@ void apply_project_config(const std::filesystem::path& path, BuildOptions& optio
     else if (full=="build.vendor_lock") options.vendor_lock=unquote(value);
     else if (full=="build.offline") options.vendor_offline=parse_bool(value,full);
     else if (full=="build.refresh_vendors") options.refresh_vendors=parse_bool(value,full);
+    else if (full=="build.harden_public_javascript" || full=="protection.harden_public_javascript") options.harden_public_javascript=parse_bool(value,full);
     else if (full=="protection.level") options.protection_level=unquote(value);
     else if (full=="planner.mode") options.planner_mode=unquote(value);
     else if (full=="planner.minimum_confidence") { options.planner_minimum_confidence=std::stoi(unquote(value)); if(options.planner_minimum_confidence<0||options.planner_minimum_confidence>100) raise_error("VENOM-E1100", "venom.toml: planner.minimum_confidence must be from 0 to 100"); }
@@ -110,7 +111,11 @@ void apply_project_config(const std::filesystem::path& path, BuildOptions& optio
       else raise_error("VENOM-E1100", "venom.toml:"+std::to_string(line_no)+": unknown capability: "+key);
     }
     else if (full=="security.deny_host_js_fallback" && !parse_bool(value,full)) raise_error("VENOM-E1100", "Venom production policy requires security.deny_host_js_fallback=true");
-    else if (full=="runtime.engine" && unquote(value)!="quickjs-wasm") raise_error("VENOM-E1100", "Venom production policy requires runtime.engine=\"quickjs-wasm\"");
+    else if (full=="runtime.engine") {
+      const auto engine = unquote(value);
+      if (engine != "turbojs-wasm" && engine != "turbojs-wasm")
+        raise_error("VENOM-E1100", "Venom production policy requires runtime.engine=\"turbojs-wasm\"");
+    }
     else if (full=="runtime.fail_closed" && !parse_bool(value,full)) raise_error("VENOM-E1100", "Venom production policy requires runtime.fail_closed=true");
     else if (section=="project" || section=="build" || section=="runtime" || section=="security" || section=="compatibility" || section=="protection" || section=="planner" || section=="capabilities" || section=="runtime.lazy_loading") {
       // Forward-compatible: recognized sections may contain fields consumed by newer runtimes.
@@ -152,7 +157,8 @@ void print_project_config(const std::filesystem::path& path, OutputFormat format
       << "\",\"output\":\"" << options.output.generic_string()
       << "\",\"profile\":\"" << options.profile
       << "\",\"target\":\"" << options.project_target
-      << "\",\"runtime\":\"quickjs-wasm\",\"fail_closed\":true"
+      << "\",\"runtime\":\"turbojs-wasm\",\"fail_closed\":true"
+      << ",\"harden_public_javascript\":" << (options.harden_public_javascript ? "true" : "false")
       << ",\"capabilities\":{\"fetch\":\"" << options.capability_fetch
       << "\",\"timers\":\"" << options.capability_timers
       << "\",\"storage\":\"" << options.capability_storage
@@ -164,7 +170,8 @@ void print_project_config(const std::filesystem::path& path, OutputFormat format
       << "  output: " << options.output.string() << "\n"
       << "  profile: " << options.profile << "\n"
       << "  target: " << options.project_target << "\n"
-      << "  runtime: quickjs-wasm\n"
+      << "  runtime: turbojs-wasm\n"
+      << "  harden public JavaScript: " << (options.harden_public_javascript ? "enabled" : "disabled") << "\n"
       << "  host fallback: denied\n"
       << "  capabilities: fetch=" << options.capability_fetch
       << ", timers=" << options.capability_timers

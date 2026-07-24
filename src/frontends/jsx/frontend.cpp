@@ -1,5 +1,5 @@
-#include "venom/internal/frontends/jsx/frontend.hpp"
-#include "venom/core/diagnostic.hpp"
+#include "frontends/jsx/frontend.hpp"
+#include "core/diagnostic.hpp"
 
 #include <algorithm>
 #include <cctype>

@@ -35,10 +35,10 @@ def main() -> int:
         'src/generated/runtime/worker_runtime_js.cpp': 500,
         'src/generated/runtime/runtime_js.cpp': 4200,
         'src/generated/runtime/wasm_runtime_js.cpp': 700,
-        'src/generated/runtime/quickjs_engine_module.cpp': 1400,
+        'src/generated/runtime/turbojs_engine_module.cpp': 1400,
     }
 
-    expected_src_roots = {'base', 'cli', 'core', 'frontends', 'generated', 'graph', 'package', 'pipeline', 'quickjs', 'remote', 'runtime', 'templates', 'vm'}
+    expected_src_roots = {'base', 'cli', 'core', 'frontends', 'generated', 'graph', 'package', 'pipeline', 'turbojs', 'remote', 'runtime', 'templates', 'vm'}
     actual_src_roots = {p.name for p in (root / 'src').iterdir() if p.is_dir()}
     if actual_src_roots != expected_src_roots:
         failures.append(f'src top-level ownership mismatch: expected {sorted(expected_src_roots)}, got {sorted(actual_src_roots)}')
@@ -83,9 +83,9 @@ def main() -> int:
         if path.is_file() and path.suffix.lower() not in {'.js'}:
             failures.append(f'authored template domain contains unexpected file type: {path.relative_to(root)}')
 
-    quickjs_text = '\n'.join(
+    turbojs_text = '\n'.join(
         path.read_text(encoding='utf-8')
-        for path in sorted((root / 'src/quickjs').glob('*'))
+        for path in sorted((root / 'src/turbojs').glob('*'))
         if path.suffix in NATIVE_SUFFIXES
     )
     package_text = '\n'.join(
@@ -100,7 +100,7 @@ def main() -> int:
         'using CryptoProvider =',
         'using NoCryptoProvider =',
     ):
-        search_text = package_text if symbol.startswith('using ') else quickjs_text
+        search_text = package_text if symbol.startswith('using ') else turbojs_text
         if symbol in search_text:
             failures.append(f'legacy placeholder API must not return: {symbol}')
 
@@ -115,39 +115,22 @@ def main() -> int:
         'src/frontends/typescript',
         'src/pipeline/planning',
         'src/generated/compiler',
-        'include/venom',
-        'include/venom/generated',
-        'include/venom/generated/contracts',
-        'include/venom/internal',
-        'include/venom/internal/cli',
-        'include/venom/internal/core',
-        'include/venom/internal/frontends',
-        'include/venom/internal/package',
-        'include/venom/internal/pipeline',
+        'src/generated/contracts',
         'src/generated/runtime',
-        'include/venom/base',
-        'include/venom/cli',
-        'include/venom/core',
-        'include/venom/frontends',
-        'include/venom/graph',
-        'include/venom/package',
-        'include/venom/pipeline',
-        'include/venom/quickjs',
-        'include/venom/remote',
-        'include/venom/runtime',
-        'include/venom/vm',
+        'src/base',
+        'src/core',
+        'src/frontends',
+        'src/graph',
+        'src/package',
+        'src/pipeline',
+        'src/turbojs',
+        'src/remote',
+        'src/runtime',
+        'src/vm',
     )
     for rel in required_ownership_directories:
         if not (root / rel).is_dir():
             failures.append(f'missing source ownership directory: {rel}')
-
-    for include_dir in sorted((root / 'src').glob('*/include')):
-        if include_dir.is_dir():
-            failures.append(f'domain-local include directory must be centralized: {include_dir.relative_to(root)}')
-
-    for path in sorted((root / 'src').rglob('*')):
-        if path.is_file() and path.suffix.lower() in {'.h', '.hh', '.hpp', '.hxx'}:
-            failures.append(f'first-party header must live in the central include tree: {path.relative_to(root)}')
 
     for rel, maximum in expected_limits.items():
         path = root / rel
@@ -160,17 +143,17 @@ def main() -> int:
 
     cmake = '\n'.join(path.read_text(encoding='utf-8') for path in [root / 'CMakeLists.txt', *sorted((root / 'cmake').glob('*.cmake'))])
     for rel in expected_limits:
-        if rel == 'src/generated/runtime/quickjs_engine_module.cpp':
-            if 'VENOM_QUICKJS_ENGINE_CPP' not in cmake or 'tools/generators/runtime/generate_quickjs_engine_module.py' not in cmake:
-                failures.append('CMake does not generate the QuickJS engine module from authored templates')
+        if rel == 'src/generated/runtime/turbojs_engine_module.cpp':
+            if 'VENOM_TURBOJS_ENGINE_CPP' not in cmake or 'tools/generators/runtime/generate_turbojs_engine_module.py' not in cmake:
+                failures.append('CMake does not generate the TurboJS engine module from authored templates')
             continue
         if rel not in cmake:
             failures.append(f'CMakeLists.txt does not include {rel}')
 
     required_cmake_markers = (
-        'src/templates/browser/*.js',
-        'src/templates/quickjs-engine/*.js',
-        'src/quickjs/bytecode.cpp',
+        'src/templates/browser/00-contracts.js',
+        'src/templates/turbojs-engine/00-module-contract.js',
+        'src/turbojs/bytecode.cpp',
         'src/vm/encoder.cpp',
         'src/runtime/package_runtime.c',
         'tests/fuzz/targets/package_parser_fuzz.cpp',

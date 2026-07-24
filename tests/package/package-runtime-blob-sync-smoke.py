@@ -6,7 +6,7 @@ import tempfile
 root = Path(__file__).resolve().parents[2]
 source = (root / 'src/runtime/wasm_runtime.c').read_text(encoding='utf-8')
 bridge = (root / 'src/generated/runtime/wasm_runtime_js.cpp').read_text(encoding='utf-8')
-header = (root / 'include/venom/generated/runtime/wasm_runtime_blob.hpp').read_text(encoding='utf-8')
+header = (root / 'src/generated/runtime/wasm_runtime_blob.hpp').read_text(encoding='utf-8')
 
 assert 'VENOM_RUNTIME_FEATURE_STREAMED_PACKAGE_UPLOAD 0x00000001u' in source
 assert 'case 12u: return VENOM_RUNTIME_FEATURE_STREAMED_PACKAGE_UPLOAD;' in source

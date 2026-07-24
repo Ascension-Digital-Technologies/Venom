@@ -328,25 +328,25 @@ class HarnessWorker {
         const packageResponse = await globalThis.fetch(message.packageUrl);
         const packageBytes = await packageResponse.arrayBuffer();
         if (message.maxPackageBytes && packageBytes.byteLength > message.maxPackageBytes) throw new Error('package exceeds worker limit');
-        const wasmResponse = await globalThis.fetch(message.quickJsWasmUrl);
+        const wasmResponse = await globalThis.fetch(message.turboJsWasmUrl);
         const wasmBytes = await wasmResponse.arrayBuffer();
-        if (message.maxWasmBytes && wasmBytes.byteLength > message.maxWasmBytes) throw new Error('QuickJS WASM exceeds worker limit');
+        if (message.maxWasmBytes && wasmBytes.byteLength > message.maxWasmBytes) throw new Error('TurboJS WASM exceeds worker limit');
         const actualPackageSha256 = await sha256Hex(packageBytes);
         if (actualPackageSha256 !== String(message.expectedPackageSha256 || '').toLowerCase()) throw new Error('package SHA-256 attestation mismatch');
         const actualPackageHash = fnvPackageHash(packageBytes);
         if (actualPackageHash !== String(message.expectedPackageHash || '').toLowerCase()) throw new Error('package hash attestation mismatch');
-        const actualQuickJsWasmSha256 = await sha256Hex(wasmBytes);
-        if (actualQuickJsWasmSha256 !== String(message.expectedQuickJsWasmSha256 || '').toLowerCase()) throw new Error('QuickJS WASM digest attestation mismatch');
-        const quickJsModule = await WebAssembly.compile(wasmBytes);
+        const actualTurboJsWasmSha256 = await sha256Hex(wasmBytes);
+        if (actualTurboJsWasmSha256 !== String(message.expectedTurboJsWasmSha256 || '').toLowerCase()) throw new Error('TurboJS WASM digest attestation mismatch');
+        const turboJsModule = await WebAssembly.compile(wasmBytes);
         globalThis.__venomLoaderWorkerPrepared = {
           packageBytes: packageBytes.byteLength,
-          quickJsWasmBytes: wasmBytes.byteLength,
+          turboJsWasmBytes: wasmBytes.byteLength,
           packageUrl: String(message.packageUrl || ''),
-          quickJsWasmUrl: String(message.quickJsWasmUrl || ''),
+          turboJsWasmUrl: String(message.turboJsWasmUrl || ''),
           workerUrl: this.url,
         };
         if (typeof this.onmessage === 'function') {
-          this.onmessage({ data: { protocol: 1, type: 'ready', nonce, packageHash: actualPackageHash, packageSha256: actualPackageSha256, quickJsWasmSha256: actualQuickJsWasmSha256, quickJsRuntimeReady: true, packageBytes, quickJsModule } });
+          this.onmessage({ data: { protocol: 1, type: 'ready', nonce, packageHash: actualPackageHash, packageSha256: actualPackageSha256, turboJsWasmSha256: actualTurboJsWasmSha256, turboJsRuntimeReady: true, packageBytes, turboJsModule } });
         }
       } catch (error) {
         const messageText = String(error && error.message ? error.message : error);
@@ -428,8 +428,8 @@ const assetFiles = await listAssetFiles();
 const loaderFile = assetFiles.find((name) => /(?:^|\/)loader(?:\.[a-f0-9]+)?\.js$/.test(name));
 const runtimeFile = assetFiles.find((name) => /(?:^|\/)runtime(?:\.[a-f0-9]+)?\.js$/.test(name) || /(?:^|\/)r(?:\.[a-f0-9]+)?\.js$/.test(name));
 const packageFile = assetFiles.find((name) => /(?:^|\/)app(?:\.[a-f0-9]+)?\.vbc$/.test(name));
-const quickJsEngineFile = assetFiles.find((name) => /(?:^|\/)(?:quickjs-engine|engine)(?:\.[a-f0-9]+)?\.js$/.test(name));
-if (!loaderFile || !runtimeFile || !packageFile || !quickJsEngineFile) throw new Error(`missing loader/runtime/package/QuickJS engine assets: ${assetFiles.join(', ')}`);
+const turboJsEngineFile = assetFiles.find((name) => /(?:^|\/)(?:turbojs-engine|engine)(?:\.[a-f0-9]+)?\.js$/.test(name));
+if (!loaderFile || !runtimeFile || !packageFile || !turboJsEngineFile) throw new Error(`missing loader/runtime/package/TurboJS engine assets: ${assetFiles.join(', ')}`);
 
 const runtimePath = join(distDir, 'assets', ...runtimeFile.split('/'));
 runtimeAssetDirectory = dirname(runtimePath);
@@ -437,7 +437,7 @@ const packageRelative = relative(dirname(runtimeFile), packageFile).replace(/\\/
 const packageUrl = packageRelative.startsWith('.') ? packageRelative : './' + packageRelative;
 const loaderText = await readFile(join(distDir, 'assets', ...loaderFile.split('/')), 'utf8');
 const bindingToken = (loaderText.match(/bindingToken:\s*'([^']+)'/) || [])[1] || '';
-const enginePath = join(distDir, 'assets', ...quickJsEngineFile.split('/'));
+const enginePath = join(distDir, 'assets', ...turboJsEngineFile.split('/'));
 let bootErrors = [];
 const originalConsoleError = console.error.bind(console);
 console.error = (...args) => {
@@ -453,21 +453,21 @@ if (viaLoader) {
     await new Promise((resolveTimer) => setTimeout(resolveTimer, 10));
     const failure = root.querySelector('[data-venom-failure]');
     if (failure) throw new Error(failure.textContent || 'loader rendered failure panel');
-    if (globalThis.__venomRuntime && typeof globalThis.__venomRuntime.quickJsExecutionSnapshot === 'function') {
-      const snapshot = globalThis.__venomRuntime.quickJsExecutionSnapshot();
+    if (globalThis.__venomRuntime && typeof globalThis.__venomRuntime.turboJsExecutionSnapshot === 'function') {
+      const snapshot = globalThis.__venomRuntime.turboJsExecutionSnapshot();
       if (snapshot && snapshot.count >= 1) break;
     }
   }
   if (bootErrors.length) throw new Error('loader boot failed: ' + bootErrors.join(' | '));
-  if (!globalThis.__venomRuntime || typeof globalThis.__venomRuntime.quickJsExecutionSnapshot !== 'function') throw new Error('loader did not install Venom runtime bridge');
+  if (!globalThis.__venomRuntime || typeof globalThis.__venomRuntime.turboJsExecutionSnapshot !== 'function') throw new Error('loader did not install Venom runtime bridge');
   if (!globalThis.__venomLoaderWorkerPrepared || !String(globalThis.__venomLoaderWorkerPrepared.packageUrl || '').includes('/assets/app/app.')) throw new Error('loader did not prepare grouped app package through worker');
-  if (!String(globalThis.__venomLoaderWorkerPrepared.quickJsWasmUrl || '').includes('/assets/runtime/runtime.')) throw new Error('loader did not prepare grouped QuickJS WASM through worker');
+  if (!String(globalThis.__venomLoaderWorkerPrepared.turboJsWasmUrl || '').includes('/assets/runtime/runtime.')) throw new Error('loader did not prepare grouped TurboJS WASM through worker');
   if (!String(globalThis.__venomLoaderWorkerPrepared.workerUrl || '').includes('/assets/workers/worker.')) throw new Error('loader did not resolve grouped worker URL');
   result = { route: '/' };
 } else {
   const runtime = await import(pathToFileURL(runtimePath));
   const assetBaseUrl = pathToFileURL(join(distDir, 'assets') + '/').href;
-  result = await runtime.bootVenom({ root, packageUrl, assetBaseUrl, quickJsEngineUrl: pathToFileURL(enginePath).href, bindingToken, hardened: true });
+  result = await runtime.bootVenom({ root, packageUrl, assetBaseUrl, turboJsEngineUrl: pathToFileURL(enginePath).href, bindingToken, hardened: true });
 }
 await Promise.resolve();
 async function waitForCompatibilityWork(timeoutMs = 1500) {
@@ -483,7 +483,7 @@ await waitForCompatibilityWork();
 await Promise.resolve();
 
 if (result.route !== '/') throw new Error(`expected root route, got ${result.route}`);
-if (!globalThis.__venomRuntime || globalThis.__venomRuntime.quickJsRuntimeAbi < 12) throw new Error('Venom runtime bridge was not installed');
+if (!globalThis.__venomRuntime || globalThis.__venomRuntime.turboJsRuntimeAbi < 12) throw new Error('Venom runtime bridge was not installed');
 
 if (mode === 'compat' || mode === 'host-bridge' || mode === 'capability-denied') {
   const output = root.getElementById('compat-output');
@@ -534,25 +534,25 @@ if (mode === 'capability-denied') {
 
 if (mode === 'strict-no-eval' || mode === 'real-engine-strict') {
   if (globalThis.__venomCompatFunctionBlocked !== 0) throw new Error('protected runtime attempted to use Function constructor fallback');
-  const snapshot = globalThis.__venomRuntime.quickJsExecutionSnapshot();
-  if (!snapshot || snapshot.count < 1) throw new Error('protected runtime did not record QuickJS execution');
+  const snapshot = globalThis.__venomRuntime.turboJsExecutionSnapshot();
+  if (!snapshot || snapshot.count < 1) throw new Error('protected runtime did not record TurboJS execution');
   const records = Array.isArray(snapshot.records) ? snapshot.records : [];
   if (!records.length) throw new Error('protected runtime did not expose execution records');
-  if (!records.some((entry) => entry && entry.kind === 'quickjs.executionRecord' && entry.wasmAccepted === true)) throw new Error('protected runtime did not accept the WASM execution boundary');
-  const fallback = globalThis.__venomRuntime.quickJsFallbackPolicy();
+  if (!records.some((entry) => entry && entry.kind === 'turbojs.executionRecord' && entry.wasmAccepted === true)) throw new Error('protected runtime did not accept the WASM execution boundary');
+  const fallback = globalThis.__venomRuntime.turboJsFallbackPolicy();
   if (!fallback || fallback.mode !== 'explicit-policy-gated') throw new Error('protected fallback policy is not explicit-policy-gated');
   if (mode === 'real-engine-strict') {
-    if (globalThis.__venomRuntime.quickJsRuntimeAbi !== 12) throw new Error(`expected QuickJS runtime ABI 12, got ${globalThis.__venomRuntime.quickJsRuntimeAbi}`);
-    if (globalThis.__venomRuntime.quickJsWasmRuntimeMode !== 'quickjs-wasm-abi12-upstream-global-host-api-shims') throw new Error(`expected quickjs-wasm-abi12-upstream-global-host-api-shims mode, got ${globalThis.__venomRuntime.quickJsWasmRuntimeMode}`);
-    if (!globalThis.__venomRuntime.quickJsWasmUrl || !/(?:quickjs-runtime|runtime(?:\.[a-f0-9]+)?\.wasm)/.test(globalThis.__venomRuntime.quickJsWasmUrl)) throw new Error('real-engine runtime did not expose QuickJS WASM URL');
+    if (globalThis.__venomRuntime.turboJsRuntimeAbi !== 12) throw new Error(`expected TurboJS runtime ABI 12, got ${globalThis.__venomRuntime.turboJsRuntimeAbi}`);
+    if (globalThis.__venomRuntime.turboJsWasmRuntimeMode !== 'turbojs-wasm-abi12-upstream-global-host-api-shims') throw new Error(`expected turbojs-wasm-abi12-upstream-global-host-api-shims mode, got ${globalThis.__venomRuntime.turboJsWasmRuntimeMode}`);
+    if (!globalThis.__venomRuntime.turboJsWasmUrl || !/(?:turbojs-runtime|runtime(?:\.[a-f0-9]+)?\.wasm)/.test(globalThis.__venomRuntime.turboJsWasmUrl)) throw new Error('real-engine runtime did not expose TurboJS WASM URL');
     if (fallback.mode !== 'explicit-policy-gated') throw new Error('real-engine fallback policy is not explicit-policy-gated');
-    if (!records.some((entry) => entry && entry.engine === 'quickjs-wasm-backend-candidate' && entry.wasmAccepted === true)) throw new Error('protected execution records did not identify the accepted QuickJS WASM backend');
-    const bridgeRecords = records.filter((entry) => entry && entry.hostBridgeTelemetry && entry.hostBridgeTelemetry.boundary === 'upstream-quickjs-wasm-host-call-bridge');
+    if (!records.some((entry) => entry && entry.engine === 'turbojs-wasm-backend-candidate' && entry.wasmAccepted === true)) throw new Error('protected execution records did not identify the accepted TurboJS WASM backend');
+    const bridgeRecords = records.filter((entry) => entry && entry.hostBridgeTelemetry && entry.hostBridgeTelemetry.boundary === 'upstream-turbojs-wasm-host-call-bridge');
     if (!bridgeRecords.length) throw new Error('real-engine protected execution did not expose host bridge telemetry');
     if (!bridgeRecords.every((entry) => entry.hostBridgeTelemetry.wasmAccepted === true && entry.hostBridgeTelemetry.upstreamReady === true && entry.hostBridgeTelemetry.fallbackRequired === false)) throw new Error('host bridge telemetry did not prove accepted upstream WASM execution');
-    if (!bridgeRecords.some((entry) => entry.hostBridgeTelemetry.sourceKind === 'opaque-vqjsbc03-native-object')) throw new Error('host bridge telemetry did not preserve the native VQJSBC03 opacity boundary');
+    if (!bridgeRecords.some((entry) => entry.hostBridgeTelemetry.sourceKind === 'opaque-vtjsbc03-native-object')) throw new Error('host bridge telemetry did not preserve the native VTJSBC03 opacity boundary');
     const ops = new Set(bridgeRecords.flatMap((entry) => Array.isArray(entry.hostBridgeTelemetry.operations) ? entry.hostBridgeTelemetry.operations : []));
-    const opaqueRecords = bridgeRecords.filter((entry) => entry.hostBridgeTelemetry.sourceKind === 'opaque-vqjsbc03-native-object');
+    const opaqueRecords = bridgeRecords.filter((entry) => entry.hostBridgeTelemetry.sourceKind === 'opaque-vtjsbc03-native-object');
     if (!opaqueRecords.every((entry) => entry.hostBridgeTelemetry.operationInference === 'disabled-for-opaque-bytecode')) throw new Error('opaque protected chunks attempted source-derived operation inference');
     if (opaqueRecords.some((entry) => Array.isArray(entry.hostBridgeTelemetry.operations) && entry.hostBridgeTelemetry.operations.length !== 0)) throw new Error(`opaque protected chunks leaked source-derived operation categories: ${Array.from(ops).sort().join(',')}`);
     if (!bridgeRecords.some((entry) => (entry.hostBridgeTelemetry.hostCallCount || 0) > 0)) throw new Error('host bridge telemetry did not observe WASM host calls');

@@ -1,27 +1,36 @@
-#include "venom/base/error.hpp"
-#include "venom/core/error_reporting.hpp"
-#include "venom/pipeline/build.hpp"
-#include "venom/cli/cli.hpp"
-#include "venom/internal/cli/inspect.hpp"
-#include "venom/internal/cli/doctor.hpp"
-#include "venom/internal/cli/dev.hpp"
-#include "venom/pipeline/compatibility.hpp"
-#include "venom/core/diagnostic.hpp"
-#include "venom/internal/cli/dist_analyzer.hpp"
-#include "venom/pipeline/security.hpp"
-#include "venom/core/project.hpp"
-#include "venom/runtime/manager.hpp"
-#include "venom/internal/cli/update_manager.hpp"
-#include "venom/core/config.hpp"
-#include "venom/pipeline/planner.hpp"
-#include "venom/core/console.hpp"
-#include "venom/internal/cli/compile_snippet.hpp"
+#include "base/error.hpp"
+#include "core/error_reporting.hpp"
+#include "pipeline/build.hpp"
+#include "cli/cli.hpp"
+#include "cli/inspect.hpp"
+#include "cli/doctor.hpp"
+#include "cli/dev.hpp"
+#include "pipeline/compatibility.hpp"
+#include "core/diagnostic.hpp"
+#include "cli/dist_analyzer.hpp"
+#include "pipeline/security.hpp"
+#include "core/project.hpp"
+#include "runtime/manager.hpp"
+#include "cli/update_manager.hpp"
+#include "core/config.hpp"
+#include "pipeline/planner.hpp"
+#include "core/console.hpp"
+#include "cli/compile_snippet.hpp"
+#include "pipeline/native_js_hardener.hpp"
 
 #include <exception>
+#include <filesystem>
 #include <iostream>
 
 int main(int argc, char** argv) {
   try {
+    const auto executable = std::filesystem::absolute(argv[0]);
+#ifdef _WIN32
+    const auto hardener_worker = executable.parent_path() / "venom_hardener_worker.exe";
+#else
+    const auto hardener_worker = executable.parent_path() / "venom_hardener_worker";
+#endif
+    venom::compiler::native_js_hardener::configure_worker_executable(hardener_worker.string());
     const auto command = venom::compiler::parse_command(argc, argv);
     switch (command.kind) {
       case venom::compiler::CommandKind::Help:

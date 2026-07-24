@@ -5,51 +5,59 @@
 </p>
 
 <p align="center">
-  Venom compiles selected JavaScript and TypeScript into QuickJS bytecode, packages it in build-specific protected records, and executes it inside a dedicated worker-hosted WebAssembly runtime.
+  Venom compiles selected JavaScript and TypeScript into TurboJS bytecode, packages it in build-specific protected records, and executes it inside a dedicated worker-hosted WebAssembly runtime.
 </p>
 
 <p align="center">
-  <code>QuickJS bytecode</code> · <code>Typed runtime SDK</code> · <code>Polymorphic builds</code> · <code>WebAssembly isolation</code> · <code>Fail-closed releases</code>
+  <code>TurboJS bytecode</code> · <code>Typed runtime SDK</code> · <code>Polymorphic builds</code> · <code>WebAssembly isolation</code> · <code>Fail-closed releases</code>
 </p>
 
 <p align="center">
-  <strong>Version 2.0.0</strong> · <strong>Static-host compatible</strong>
+  <strong>Version 3.0.0</strong> · <strong>Static-host compatible</strong>
 </p>
 
 ---
 
-### Added in v2
+## Venom 3.0
 
-- **Stable `@venom-js/runtime` SDK** with idempotent initialization, typed protected calls, batching, preloading, cancellation, timeouts, lifecycle status, and explicit disposal.
-- **Generated application clients** through `venom-client.js` and `venom-client.d.ts`, derived from the protected export contract.
-- **Structural TypeScript and TSX frontend** with extensionless module resolution and deterministic JSX lowering.
-- **First-party Vite integration** for modern React, Vue, Svelte, and TypeScript projects.
-- **Content-addressed incremental compilation** for TypeScript lowering, QuickJS bytecode, and production JavaScript hardening.
-- **Contract-backed diagnostics**, module graph explanations, Graphviz output, command-line graph queries, and a dependency-free language-server foundation.
-- **Versioned release certification** spanning Windows, Linux, macOS, Chromium, Firefox, WebKit, package verification, runtime verification, and protected-source leak scans.
-- **Expanded release engineering** with CycloneDX SBOMs, SLSA provenance, release policy metadata, deterministic archives, and Ed25519 signing support.
+Venom 3.0 expands the protected web compiler into a broader application toolchain while keeping the same static-host-friendly, fail-closed deployment model.
 
-### Fixed and hardened in v2
+- **TurboJS integration:** protected JavaScript and TypeScript compile into TurboJS bytecode and execute through the embedded TurboJS/WebAssembly runtime, with synchronized ABI contracts, runtime verification, protected package fingerprints, and optimized Map/Set execution.
+- **React compatibility:** React and TSX projects are supported through production Vite-output ingestion, the `@venom/react` hooks package, protected export calls, runtime readiness handling, and a tested React + Vite showcase.
+- **Zero-config integration:** `@venom/venom` detects common project types, runs existing framework builds, discovers their output, and creates a protected distribution with the single `venom` command.
+- **Modern framework support:** first-party workflows cover React, Vite, Vue, Svelte, TypeScript, static websites, and Manifest V3 Chrome extensions without requiring an application rewrite.
+- **Chrome extension protection:** extension pages retain the normal Venom protected-site layout while generated Chrome adapters bridge DOM and `chrome.*` APIs to protected TurboJS exports.
+- **Developer workflow:** guided initialization, project-local compiler setup, toolchain locking, diagnostics, binary discovery, and `venom dev` provide reproducible local and continuous protected builds.
+- **Production hardening:** process-isolated JavaScript hardening, race-safe integrity-checked caches, polymorphic VBC packaging, protected-source leak scanning, package verification, and fail-closed runtime enforcement remain integrated into release builds.
 
-- Browser modules can import generated protected-module facades through relative paths such as `../protected/pricing`, including route-aliased dependency chunks. Production lazy-route sections carry the required dependency closure, and each browser module now embeds a normalized authored-path identity so the runtime can bind the final opaque package key back to the correct facade even when packaging changes that key.
-- QuickJS/WASM release verification now accepts the known Emscripten lifecycle exports `_initialize` and `__cxa_increment_exception_refcount` while continuing to reject unknown exports and wrong export kinds.
-- TypeScript runtime directives are captured before lowering, preventing browser modules from being incorrectly classified or omitted.
-- C++17 portability issues were removed from the structural TypeScript frontend and planner code.
-- Runtime terminology, public error handling, package integrity checks, and fail-closed behavior were made consistent across the compiler, SDK, diagnostics, examples, and documentation.
+## React and Vite
+
+Venom supports React applications through `@venom/vite`. Vite remains responsible for JSX/TSX, React transforms, package resolution, CSS, and chunk generation. During a production build, the Venom plugin detects React and protects Vite's completed `dist` output instead of attempting to compile raw TSX.
+
+```js
+import react from "@vitejs/plugin-react";
+import venom from "@venom/vite";
+
+export default {
+  plugins: [react(), venom({ outDir: "dist-venom" })]
+};
+```
+
+See `examples/react-vite-showcase`.
 
 ## Overview
 
 Venom is a hybrid web-protection compiler and runtime for applications that must ship to the browser but should not expose valuable implementation logic as ordinary JavaScript.
 
-It preserves the parts of the web platform that belong in the browser—HTML, CSS, rendering, routing, assets, and compatibility-sensitive frontend code—while moving selected logic into a dedicated QuickJS/WebAssembly execution environment.
+It preserves the parts of the web platform that belong in the browser—HTML, CSS, rendering, routing, assets, and compatibility-sensitive frontend code—while moving selected logic into a dedicated TurboJS/WebAssembly execution environment.
 
 Protected code is:
 
 1. analyzed and separated from browser-native code;
-2. compiled into QuickJS bytecode;
+2. compiled into TurboJS bytecode;
 3. wrapped in build-specific bytecode envelopes and packaged in a polymorphic `.vbc` container;
 4. decoded through WebAssembly-owned boundaries; and
-5. executed inside a dedicated worker-hosted QuickJS/WASM runtime.
+5. executed inside a dedicated worker-hosted TurboJS/WASM runtime.
 
 Browser code interacts with protected functionality through a narrow asynchronous export API rather than receiving direct access to the original implementation.
 
@@ -67,20 +75,20 @@ A production Venom distribution is not merely minified JavaScript. It changes th
 
 | Layer | What Venom does | Why it matters |
 |---|---|---|
-| **Original-source removal** | Protected JavaScript is compiled into QuickJS bytecode. Production output excludes protected source text, source maps, extraction reports, and internal engineering metadata. | Ordinary source inspection and source-oriented deobfuscation do not begin with the original implementation. |
+| **Original-source removal** | Protected JavaScript is compiled into TurboJS bytecode. Production output excludes protected source text, source maps, extraction reports, and internal engineering metadata. | Ordinary source inspection and source-oriented deobfuscation do not begin with the original implementation. |
 | **Heavily hardened distribution JavaScript** | Generated loader, runtime, engine, and worker assets are minified and mangled with Terser, then role-specifically obfuscated with encoded string arrays, hexadecimal identifiers, string splitting, control-flow transformation, dead-code injection, and self-defending output where compatible. | The remaining browser-visible glue is substantially harder to read, patch, and reuse than a normal production bundle. |
 | **Polymorphic builds** | Production builds vary package layout, padding, section ordering, identifiers, aliases, string and route ordering, host-call classes, DOM command identifiers, Route VM instruction-field layout, XOR masks, and physical opcode mappings. | Two builds of the same application can have different binary structure while preserving behavior, reducing the value of fixed offsets and one-build tooling. |
 | **Polymorphic Route VM opcodes** | Logical route instructions are translated to build-specific physical opcodes, masks, operand ordering, and DOM command layouts. | Static Route VM decoders must recover the mapping for the exact build instead of relying on one universal opcode table. |
-| **Build-specific QuickJS envelopes** | Canonical QuickJS records are stored inside `VQJSE006` envelopes with build/route/source/order binding, a per-build 16-lane byte permutation, stream transformation, ABI fingerprinting, and inner-record integrity validation. | Raw canonical QuickJS bytecode signatures are not directly present in package script sections, and a decoder from one build does not automatically work on another. |
+| **Build-specific TurboJS envelopes** | Canonical TurboJS records are stored inside `VTJSE006` envelopes with build/route/source/order binding, a per-build 16-lane byte permutation, stream transformation, ABI fingerprinting, and inner-record integrity validation. | Raw canonical TurboJS bytecode signatures are not directly present in package script sections, and a decoder from one build does not automatically work on another. |
 | **WASM-owned streamed decoding** | The package is uploaded to resident WebAssembly storage in validated chunks, JavaScript's fetched package copy is cleared, sections are materialized lazily, and temporary decoded buffers are erased at the earliest safe point. | Full-package and plaintext interception windows are narrower and decoding logic stays behind the WASM runtime boundary. |
 | **Bounds-checked memory handling** | Bridge and bytecode memory access uses centralized pointer/length validation, overflow checks, short-lived views, explicit zeroization, and allocation retirement. | This reduces accidental plaintext retention and makes unsafe memory ranges fail closed. WebAssembly memory remains inspectable to a browser owner. |
 | **Private binary capability bridge** | Protected calls travel over a private `MessagePort` as transferable binary frames with opaque capabilities, generation binding, monotonic counters, integrity tags, rotated session opcodes, and single-use capability leases. | Protected function names are not sent over the transport; stale, replayed, malformed, cross-session, or unknown-capability frames are rejected. |
-| **Worker isolation and split trust domains** | Package decoding and QuickJS execution have separate responsibilities, and decoded records carry route/source/order/content-bound handoff records that the execution domain independently validates. | Substituting or redirecting decoded code requires preserving both the bytes and their exact execution context. |
+| **Worker isolation and split trust domains** | Package decoding and TurboJS execution have separate responsibilities, and decoded records carry route/source/order/content-bound handoff records that the execution domain independently validates. | Substituting or redirecting decoded code requires preserving both the bytes and their exact execution context. |
 | **Runtime integrity seals** | The worker seals capability tables, registry bytecode, and bridge opcodes; the browser runtime seals release policy, ABI identity, and route mapping state and rechecks them at execution boundaries. | Casual table mutation or protocol patching does not continue silently. |
 | **Asset binding and fail-closed verification** | Loader, package, worker, runtime JavaScript, stylesheets, and WASM artifacts are hash-bound and checked by release tooling. Missing, stale, mismatched, or tampered production components stop execution. | A production build does not silently downgrade to readable host-JavaScript execution. |
 | **Release leakage and provenance gates** | Production qualification scans for source/debug markers, readable internal names, raw runtime records, source maps, stale ABI metadata, missing hardener output, and runtime provenance mismatches. | Security properties are enforced as build and release contracts instead of relying only on developer discipline. |
 
-Venom uses **polymorphic** as the product-level term because multiple physical representations are generated for equivalent behavior. Internally, some components and APIs retain the word *diversification* for the deterministic generation process. Venom does not claim to renumber upstream QuickJS interpreter opcodes; it polymorphically transforms the stored QuickJS record and uses truly polymorphic physical opcodes for its own Route VM.
+Venom uses **polymorphic** as the product-level term because multiple physical representations are generated for equivalent behavior. Internally, some components and APIs retain the word *diversification* for the deterministic generation process. Venom does not claim to renumber upstream TurboJS interpreter opcodes; it polymorphically transforms the stored TurboJS record and uses truly polymorphic physical opcodes for its own Route VM.
 
 For the implementation-level review, see [Protection strengths and evidence](docs/security/protection-strengths.md).
 
@@ -140,7 +148,7 @@ Venom does not replace server-side authority. Credentials, private signing keys,
 |---|:---:|:---:|:---:|:---:|
 | Identifier and syntax reduction | Yes | Yes | N/A | **Yes** |
 | Protected logic removed from ordinary browser JavaScript | No | No | Yes | **Yes** |
-| QuickJS bytecode execution | No | No | No | **Built in** |
+| TurboJS bytecode execution | No | No | No | **Built in** |
 | Dedicated worker isolation | No | No | Optional | **Built in** |
 | WebAssembly-owned package decoding | No | No | Manual | **Built in** |
 | Selective browser/protected execution | No | Limited | Manual | **First-class** |
@@ -159,16 +167,16 @@ Venom combines multiple independent layers. No single layer is treated as suffic
    AST minification, identifier mangling, string encoding, and selective control-flow hardening reduce readable structure in generated browser-side assets.
 
 2. **Representation change**  
-   Protected JavaScript is compiled into QuickJS bytecode instead of being shipped as ordinary source text.
+   Protected JavaScript is compiled into TurboJS bytecode instead of being shipped as ordinary source text.
 
 3. **Runtime isolation**  
-   Protected execution occurs inside QuickJS/WASM hosted by a dedicated worker, separating it from the page's primary JavaScript runtime.
+   Protected execution occurs inside TurboJS/WASM hosted by a dedicated worker, separating it from the page's primary JavaScript runtime.
 
 4. **Constrained bridge**  
    Browser code communicates with protected exports through validated, JSON-safe arguments and results rather than unrestricted object access.
 
 5. **Polymorphic builds**  
-   Package layout, physical Route VM opcodes, instruction fields, masks, identifiers, aliases, padding, generated assets, and stored QuickJS record representation can vary between builds.
+   Package layout, physical Route VM opcodes, instruction fields, masks, identifiers, aliases, padding, generated assets, and stored TurboJS record representation can vary between builds.
 
 6. **Integrity binding**  
    Loader, runtime, package, stylesheet, worker, and WebAssembly assets are bound to expected hashes.
@@ -185,14 +193,14 @@ flowchart LR
     A[HTML, CSS, JavaScript, and assets] --> B[Site and route graph]
     B --> C[Browser compatibility analysis]
     B --> D[Protected runtime planning]
-    D --> E[QuickJS bytecode compiler]
+    D --> E[TurboJS bytecode compiler]
     E --> F[Polymorphic VBC package]
     C --> G[Browser chunks and static assets]
     F --> H[WASM-owned decoder]
     G --> I[Verified loader]
     H --> J[Dedicated worker]
     I --> J
-    J --> K[QuickJS/WASM runtime]
+    J --> K[TurboJS/WASM runtime]
     K --> L[Protected exports]
 ```
 
@@ -203,7 +211,7 @@ sequenceDiagram
     participant Browser as Browser application
     participant API as Venom API
     participant Worker as Dedicated worker
-    participant Runtime as QuickJS/WASM runtime
+    participant Runtime as TurboJS/WASM runtime
 
     Browser->>API: Call protected export
     API->>API: Validate arguments and limits
@@ -267,7 +275,7 @@ venom build . --profile prod --out dist --quiet
 - `--verbose` (`-v`) adds planner, module-graph, polymorphism, runtime, and package details.
 - `--quiet` (`-q`) emits only errors and the final output location.
 - `--format json` remains machine-readable and never mixes human progress lines into JSON output.
-- Production builds use a content-addressed compiler cache for embedded JavaScript hardening and native QuickJS bytecode by default. Use `--no-cache` for a clean diagnostic build or `--cache-dir <path>` to relocate it.
+- Production builds use a content-addressed compiler cache for embedded JavaScript hardening and native TurboJS bytecode by default. Use `--no-cache` for a clean diagnostic build or `--cache-dir <path>` to relocate it.
 
 ## Hybrid execution
 
@@ -316,10 +324,10 @@ Venom exposes two intentional build profiles.
 
 | Profile | Intended use | Protected runtime | Generated output |
 |---|---|---|---|
-| `dev` | Local development and diagnostics | Real QuickJS/WASM | Readable generated runtime, stable names, and detailed diagnostics |
-| `prod` | Deployment and release qualification | Verified, fail-closed QuickJS/WASM | Hashed, hardened, polymorphic, and stripped assets |
+| `dev` | Local development and diagnostics | Real TurboJS/WASM | Readable generated runtime, stable names, and detailed diagnostics |
+| `prod` | Deployment and release qualification | Verified, fail-closed TurboJS/WASM | Hashed, hardened, polymorphic, and stripped assets |
 
-Both profiles execute protected code through the real QuickJS/WASM path. Production builds do not silently fall back to host JavaScript.
+Both profiles execute protected code through the real TurboJS/WASM path. Production builds do not silently fall back to host JavaScript.
 
 ## Production output
 
@@ -330,23 +338,20 @@ dist/
 ├── index.html
 └── assets/
     ├── app/
-    │   ├── app.<hash>.vbc
-    │   └── build.json
+    │   ├── <hash>.vbc
+    │   └── <hash>.css
     ├── images/
-    ├── loader/
-    │   └── loader.<hash>.js
-    ├── runtime/
-    │   ├── engine.<hash>.js
-    │   ├── r.<hash>.js
-    │   ├── runtime.<hash>.wasm
-    │   └── rw.<hash>.wasm
-    ├── style/
-    │   └── s.<hash>.css
-    └── workers/
-        └── worker.<hash>.js
+    ├── javascript/
+    │   └── <hash>.js
+    └── wasm/
+        └── <hash>.wasm
 ```
 
-Production output excludes source maps, human-readable extraction reports, browser-test manifests, and internal engineering files.
+Production output excludes source maps, human-readable extraction reports,
+browser-test manifests, internal engineering files, and every unreferenced input
+file. Public assets are selected from the reachable HTML, CSS, and planned
+JavaScript graph; the compiler rejects a distribution whose final file set differs
+from that plan.
 
 See the [production output layout](docs/reference/output-layout.md) for the complete contract.
 
@@ -361,7 +366,7 @@ Venom includes a one-command release-closure pipeline:
 The pipeline verifies:
 
 - repository state and required project metadata;
-- QuickJS/WASM runtime provenance;
+- TurboJS/WASM runtime provenance;
 - JavaScript hardener availability;
 - a clean Release build;
 - the complete CTest suite;
@@ -412,7 +417,7 @@ A complete chess application with browser-native rendering and protected engine/
 
 ![NOVA TRADE terminal](docs/assets/examples/nova-trade/terminal.png)
 
-A full trading-terminal demonstration with charts, paper trading, simulated feeds, order workflows, and proprietary risk and signal logic executed through protected QuickJS/WASM exports.
+A full trading-terminal demonstration with charts, paper trading, simulated feeds, order workflows, and proprietary risk and signal logic executed through protected TurboJS/WASM exports.
 
 [Explore NOVA TRADE](examples/nova-trade/README.md)
 
@@ -420,17 +425,17 @@ A full trading-terminal demonstration with charts, paper trading, simulated feed
 
 ![Venom Sentinel overview](docs/assets/examples/bot-detection/overview.png)
 
-A browser-intelligence dashboard that collects browser-exposed fingerprint, capability, timing, network, and behavior signals, then submits a JSON-safe assessment payload through Venom's binary capability bridge to a protected QuickJS/WASM scoring engine.
+A browser-intelligence dashboard that collects browser-exposed fingerprint, capability, timing, network, and behavior signals, then submits a JSON-safe assessment payload through Venom's binary capability bridge to a protected TurboJS/WASM scoring engine.
 
 [Explore Venom Sentinel](examples/bot-detection/README.md)
 
 ### TypeScript AST Showcase
 
 ![TypeScript AST showcase](examples/typescript-showcase/screenshot.png)
-- `examples/tsx-showcase` — typed TSX UI calling protected TypeScript through QuickJS/WASM.
-- `examples/javascript-playground` — development-mode JavaScript compiler and execution playground powered directly by QuickJS/WASM.
+- `examples/tsx-showcase` — typed TSX UI calling protected TypeScript through TurboJS/WASM.
+- `examples/javascript-playground` — development-mode JavaScript compiler and execution playground powered directly by TurboJS/WASM.
 
-A complete typed application demonstrating AST-backed runtime planning, TypeScript erasure, symbol-level module closure, protected QuickJS/WASM execution, browser-module linking, and non-JavaScript `<script>` data handling.
+A complete typed application demonstrating AST-backed runtime planning, TypeScript erasure, symbol-level module closure, protected TurboJS/WASM execution, browser-module linking, and non-JavaScript `<script>` data handling.
 
 [Explore the TypeScript AST Showcase](examples/typescript-showcase/README.md)
 
@@ -468,7 +473,7 @@ bash scripts/linux/build.sh --config Release
 ./build/venom --version
 ```
 
-Normal production builds use the embedded verified runtime and do not require Emscripten. The pinned Emscripten toolchain is needed only when rebuilding the bundled QuickJS/WASM artifact.
+Normal production builds use the embedded verified runtime and do not require Emscripten. The pinned Emscripten toolchain is needed only when rebuilding the bundled TurboJS/WASM artifact.
 
 Detailed setup documentation:
 
@@ -532,11 +537,11 @@ Venom follows [Semantic Versioning](docs/operations/versioning.md). The current 
 
 See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md) for licensing terms and third-party notices.
 
-> **Verified WASM toolchain:** Venom pins Emscripten 4.0.10 for reproducible release builds. The minimal QuickJS/WASM target excludes QuickJS POSIX libc helpers, allowing newer Emscripten releases to compile the web/worker runtime without `environ` or `sighandler_t` compatibility failures.
+> **Verified WASM toolchain:** Venom pins Emscripten 4.0.10 for reproducible release builds. The minimal TurboJS/WASM target excludes TurboJS POSIX libc helpers, allowing newer Emscripten releases to compile the web/worker runtime without `environ` or `sighandler_t` compatibility failures.
 
 ### Aegis Operations enterprise stress test
 
-A 40-file TypeScript/TSX operations dashboard with five protected QuickJS/WASM analytics services, deep browser module linking, interactive views, and production verification. Run `./scripts/linux/build-and-launch-aegis-operations.sh` or `.\scripts\windows\build-and-launch-aegis-operations.bat`.
+A 40-file TypeScript/TSX operations dashboard with five protected TurboJS/WASM analytics services, deep browser module linking, interactive views, and production verification. Run `./scripts/linux/build-and-launch-aegis-operations.sh` or `.\scripts\windows\build-and-launch-aegis-operations.bat`.
 
 
 ## Aegis Operations Screenshot
@@ -545,8 +550,22 @@ A 40-file TypeScript/TSX operations dashboard with five protected QuickJS/WASM a
 
 ## Runtime ABI qualification
 
-Venom's embedded QuickJS/WASM runtime is governed by `contracts/quickjs-wasm-abi.json`. Native builds parse the actual embedded WebAssembly export section before packaging. The generated browser engine consumes the same required-export and toolchain-export sets. Playwright qualification covers the JavaScript Playground and Aegis Operations in Chromium on normal CI runs and Chromium, Firefox, and WebKit during nightly qualification.
+Venom's embedded TurboJS/WASM runtime is governed by `contracts/turbojs-wasm-abi.json`. Native builds parse the actual embedded WebAssembly export section before packaging. The generated browser engine consumes the same required-export and toolchain-export sets. Playwright qualification covers the JavaScript Playground and Aegis Operations in Chromium on normal CI runs and Chromium, Firefox, and WebKit during nightly qualification.
 
 ### Chrome Manifest V3
 
-Venom can emit load-unpacked Chrome extensions with protected extension-page routes and a QuickJS/WASM-compatible extension CSP. See `examples/chrome-extension`, `docs/guides/chrome-extensions.md`, and `scripts/windows/build-and-launch-chrome-extension.bat`.
+Venom can emit load-unpacked Chrome extensions with protected extension-page routes and a TurboJS/WASM-compatible extension CSP. See `examples/chrome-extension`, `docs/guides/chrome-extensions.md`, and `scripts/windows/build-and-launch-chrome-extension.bat`.
+
+## Zero-config project integration
+
+Existing projects can add Venom without restructuring their application:
+
+```bash
+npm install --save-dev @venom/venom
+npx venom
+npx venom dev
+```
+
+Venom detects static websites, Chrome extensions, Vite, React, Vue, and Svelte projects. Framework projects run their existing production build first, and Venom protects the compiled browser output. Framework-specific packages remain optional for applications that need direct protected calls or build-status APIs.
+
+See `docs/guides/zero-config-integration.md` for overrides and deployment details. Venom can be project-local; use `npx venom bin` to inspect the compiler selected by automatic discovery.

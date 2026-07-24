@@ -6,7 +6,7 @@ root = Path(__file__).resolve().parents[2]
 def project_version(text):
     match = re.search(r'project\(venom\s+VERSION\s+(\d+)\.(\d+)\.(\d+)', text, re.S)
     return tuple(map(int, match.groups())) if match else (0, 0, 0)
-build = (root / 'src/pipeline/build.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_package_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_runtime_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_runtime_audit_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_runtime_module_metadata.cpp').read_text(encoding='utf-8')
+build = (root / 'src/pipeline/build.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_package_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_runtime_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_runtime_audit_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_runtime_module_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/planning/section_plan.cpp').read_text(encoding='utf-8')
 crypto = (root/'src/package/crypto.cpp').read_text(encoding='utf-8')
 analyzer = (root/'tools/analyze_dist.py').read_text(encoding='utf-8')
 cmake = (root/'CMakeLists.txt').read_text(encoding='utf-8')

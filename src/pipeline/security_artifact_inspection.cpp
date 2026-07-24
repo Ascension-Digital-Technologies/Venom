@@ -1,7 +1,7 @@
-#include "venom/base/error.hpp"
-#include "venom/internal/pipeline/security_artifact_inspection.hpp"
+#include "base/error.hpp"
+#include "pipeline/security_artifact_inspection.hpp"
 
-#include "venom/package/hash.hpp"
+#include "package/hash.hpp"
 
 #include <algorithm>
 #include <fstream>
@@ -84,9 +84,9 @@ bool section_has_canonical_leak(venom::package::SectionType type, const std::str
     "runtime-policy.vhrd",
     "package-features.vfeat",
     "integrity-auth.vsig",
-    "quickjs-release-gate.vqrg",
-    "quickjs-bytecode-manifest.vqbm",
-    "quickjs-wasm-execution.vqwe",
+    "turbojs-release-gate.vqrg",
+    "turbojs-bytecode-manifest.vqbm",
+    "turbojs-wasm-execution.vqwe",
     "release-profile.vrpf",
     "vm-polymorph.vpol",
     "remote-vendors.vrvd",
@@ -148,11 +148,40 @@ std::vector<BoundAssetRecord> parse_bound_assets(const std::string& text) {
 }
 
 std::filesystem::path verification_html_path(const std::filesystem::path& dist_root) {
-  for (const auto* name : {"index.html", "engine.html", "extension/engine.html", "assets/extension/engine.html"}) {
+  // Prefer the conventional protected-site entry points first. Chrome extension
+  // pages intentionally keep the stable manifest path (for example popup.html),
+  // so include those root routes rather than assuming every protected build uses
+  // index.html or the former extension/engine.html layout.
+  for (const auto* name : {"index.html", "popup.html", "engine.html", "extension/engine.html", "assets/extension/engine.html"}) {
     const auto candidate = dist_root / name;
     if (std::filesystem::is_regular_file(candidate)) return candidate;
   }
-  return {};
+
+  // Route names are user-controlled. Discover any remaining protected bootstrap
+  // by its integrity-bound module and stylesheet references instead of relying on
+  // a fixed filename. This also supports options pages, side panels, and future
+  // Manifest V3 extension routes while ignoring ordinary unprotected HTML files.
+  std::filesystem::path discovered;
+  for (const auto& entry : std::filesystem::recursive_directory_iterator(dist_root)) {
+    if (!entry.is_regular_file() || entry.path().extension() != ".html") continue;
+    const auto text = read_text_file(entry.path());
+    const bool has_module = text.find("type=\"module\"") != std::string::npos ||
+                            text.find("type='module'") != std::string::npos;
+    const bool has_integrity = text.find("integrity=\"sha256-") != std::string::npos ||
+                               text.find("integrity='sha256-") != std::string::npos;
+    const bool has_runtime_asset = text.find("assets/javascript/") != std::string::npos ||
+                                   text.find("assets\\javascript\\") != std::string::npos ||
+                                   text.find("../javascript/") != std::string::npos;
+    if (!has_module || !has_integrity || !has_runtime_asset) continue;
+    if (!discovered.empty()) {
+      // Multiple protected routes are valid. The first deterministic path is
+      // enough for the package-level SRI gate, so retain lexical ordering.
+      if (entry.path().generic_string() < discovered.generic_string()) discovered = entry.path();
+    } else {
+      discovered = entry.path();
+    }
+  }
+  return discovered;
 }
 
 std::filesystem::path find_html_asset_reference(const std::filesystem::path& dist_root,

@@ -1,0 +1,24 @@
+{
+  "schema":"venom-project-ir",
+  "version":12,
+  "root":"/mnt/data/venom_examples_fix/venom-3.0.0/examples/turbojs-benchmark",
+  "project_fingerprint":"2f9a83bd605e2b03292559d44584de7233322fea6a2849e699004afe1469c637",
+  "files":[{"path":"browser/app.js","extension":".js","size":7439,"sha256":"2ecea4960f8159a5ce721e815e76d9e60acddf197648e2264d28828a29e123db"},{"path":"index.html","extension":".html","size":3069,"sha256":"6f73957b0695d8ce1ddf1a9a2a6b5d3f96dac495de5667bdb23c66d0a4c28b22"},{"path":"protected/benchmark.js","extension":".js","size":6857,"sha256":"df834b57ab07e318925025c43a61a16ebeb74f4aa7f5c58866b60bfa2e8a4c8c"},{"path":"protected/index.js","extension":".js","size":70,"sha256":"903d3ea84e34c37cb751d8a8dfbafaeeda1b12d573d1184d6e9ce2ed6d8b7f59"},{"path":"styles/main.css","extension":".css","size":4915,"sha256":"6225e4ebec7e493d222b81c8b0d5fdc625770640c25338e6b2d30459a2995ae7"},{"path":"venom.toml","extension":".toml","size":159,"sha256":"0e398337fdff230cc293d22aab4ba5812bf914dbb3ca8d90b75b1d450956fae9"}],
+  "routes":["/"],
+  "scripts":["browser/app.js","protected/benchmark.js","protected/index.js"],
+  "styles":["styles/main.css"],
+  "assets":["venom.toml"],
+  "protected_modules":[{"route":"/","source":"browser/app.js","order":0,"flags":2066,"source_bytes":7618,"ast_nodes":1043,"ast_functions":14,"ast_declarations":46,"ast_imports":1,"ast_exports":0,"ast_top_level_declarations":25,"ast_lexical_scopes":15,"ast_global_references":13,"typescript_transpiled":false,"typescript_erased_declarations":0,"typescript_erased_annotations":0,"typescript_erased_assertions":0},{"route":"/","source":"protected/benchmark.js","order":1,"flags":6418,"source_bytes":383,"ast_nodes":1303,"ast_functions":19,"ast_declarations":83,"ast_imports":0,"ast_exports":2,"ast_top_level_declarations":18,"ast_lexical_scopes":20,"ast_global_references":10,"typescript_transpiled":false,"typescript_erased_declarations":0,"typescript_erased_annotations":0,"typescript_erased_assertions":0}],
+  "module_edge_count":0,
+  "protected_export_count":2,
+  "protected_contracts":{
+  "schema":"venom-protected-contracts",
+  "version":1,
+  "exports":[
+    {"name":"runBenchmarkCase","source":"protected/benchmark.js","candidate":"xed2fe966b37c9892715b85d7c34c2c10","input":[{"name":"name","type":"string","optional":false},{"name":"iterations","type":"integer","optional":false},{"name":"seed","type":"integer","optional":true}],"output":[{"name":"name","type":"string","optional":false},{"name":"iterations","type":"integer","optional":false},{"name":"checksum","type":"number","optional":false},{"name":"operations","type":"number","optional":false},{"name":"engine","type":"string","optional":false}]},
+    {"name":"benchmarkIdentity","source":"protected/benchmark.js","candidate":"x33f67d53cc99a1c3ccdc1e15fd53a925","input":[],"output":[]}
+  ]
+}
+,
+  "plan_fingerprint":"cf69c67c0d32d850b6df98d7d65cdd3caaad6cd7f6f1d7928204d57bbd578ede"
+}

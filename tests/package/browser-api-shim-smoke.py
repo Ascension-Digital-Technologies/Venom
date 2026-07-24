@@ -81,9 +81,9 @@ const assetFiles = await listAssetFiles();
 const loaderFile = assetFiles.find((name) => /(?:^|\/)loader(?:\.[a-f0-9]+)?\.js$/.test(name));
 const runtimeFile = assetFiles.find((name) => /(?:^|\/)r(?:\.[a-f0-9]+)?\.js$/.test(name));
 const packageFile = assetFiles.find((name) => /(?:^|\/)app(?:\.[a-f0-9]+)?\.vbc$/.test(name));
-const quickJsEngineFile = assetFiles.find((name) => /(?:^|\/)engine(?:\.[a-f0-9]+)?\.js$/.test(name));
-const quickJsWasmFile = assetFiles.find((name) => /(?:^|\/)runtime(?:\.[a-f0-9]+)?\.wasm$/.test(name));
-if (!loaderFile || !runtimeFile || !packageFile || !quickJsEngineFile || !quickJsWasmFile) throw new Error(`missing production assets: ${assetFiles.join(', ')}`);
+const turboJsEngineFile = assetFiles.find((name) => /(?:^|\/)engine(?:\.[a-f0-9]+)?\.js$/.test(name));
+const turboJsWasmFile = assetFiles.find((name) => /(?:^|\/)runtime(?:\.[a-f0-9]+)?\.wasm$/.test(name));
+if (!loaderFile || !runtimeFile || !packageFile || !turboJsEngineFile || !turboJsWasmFile) throw new Error(`missing production assets: ${assetFiles.join(', ')}`);
 const loaderText = await readFile(join(distDir, 'assets', ...loaderFile.split('/')), 'utf8');
 const bindingToken = (loaderText.match(/bindingToken:\s*'([^']+)'/) || [])[1] || '';
 const runtimeAssetDirectory = join(distDir, 'assets', dirname(runtimeFile));
@@ -104,18 +104,18 @@ const result = await runtime.bootVenom({
   root,
   packageUrl: '../' + packageFile,
   assetBaseUrl,
-  quickJsEngineUrl: pathToFileURL(join(distDir, 'assets', ...quickJsEngineFile.split('/'))).href,
-  quickJsWasmUrl: pathToFileURL(join(distDir, 'assets', ...quickJsWasmFile.split('/'))).href,
+  turboJsEngineUrl: pathToFileURL(join(distDir, 'assets', ...turboJsEngineFile.split('/'))).href,
+  turboJsWasmUrl: pathToFileURL(join(distDir, 'assets', ...turboJsWasmFile.split('/'))).href,
   hardened: false,
   bindingToken,
 });
 
 if (result.route !== '/') throw new Error(`expected root route, got ${result.route}`);
-// Production execution must boot through the QuickJS/WASM boundary without host source-eval fallback.
+// Production execution must boot through the TurboJS/WASM boundary without host source-eval fallback.
 // Browser API effect replay is covered by the browser-compat fixture; this smoke keeps the media/beacon fixture in the production package gate.
 if (!globalThis.__venomRuntime || globalThis.__venomRuntime.packageVersion !== 40) throw new Error('Venom host bridge missing after browser API shim smoke');
-const execution = globalThis.__venomRuntime.quickJsExecutionSnapshot();
-if (!execution) throw new Error('QuickJS execution snapshot missing after browser API shim smoke');
+const execution = globalThis.__venomRuntime.turboJsExecutionSnapshot();
+if (!execution) throw new Error('TurboJS execution snapshot missing after browser API shim smoke');
 '''
 subprocess.run([node, "--input-type=module", "-e", script, str(dev_dist)], check=True)
 

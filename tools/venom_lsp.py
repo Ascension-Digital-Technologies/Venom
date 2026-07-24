@@ -77,7 +77,7 @@ def main() -> int:
         if msg is None: break
         method, ident, params = msg.get("method"), msg.get("id"), msg.get("params", {})
         if method == "initialize":
-            send({"jsonrpc":"2.0","id":ident,"result":{"capabilities":{"textDocumentSync":1,"hoverProvider":True,"codeActionProvider":True},"serverInfo":{"name":"venom-lsp","version":"2.0.0"}}})
+            send({"jsonrpc":"2.0","id":ident,"result":{"capabilities":{"textDocumentSync":1,"hoverProvider":True,"codeActionProvider":True},"serverInfo":{"name":"venom-lsp","version":"3.0.0"}}})
         elif method == "initialized": pass
         elif method == "shutdown": shutdown = True; send({"jsonrpc":"2.0","id":ident,"result":None})
         elif method == "exit": return 0 if shutdown else 1

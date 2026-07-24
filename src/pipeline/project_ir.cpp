@@ -1,6 +1,6 @@
-#include "venom/base/error.hpp"
-#include "venom/internal/pipeline/project_ir.hpp"
-#include "venom/package/hash.hpp"
+#include "base/error.hpp"
+#include "pipeline/project_ir.hpp"
+#include "package/hash.hpp"
 
 #include <fstream>
 #include <sstream>

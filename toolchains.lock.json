@@ -21,8 +21,8 @@
     "minimum": "3.0",
     "purpose": "Ed25519 release signing and verification"
   },
-  "quickjs": {
-    "source": "third_party/quickjs",
+  "turbojs": {
+    "source": "third_party/turbojs",
     "vendored": true
   },
   "policy": {

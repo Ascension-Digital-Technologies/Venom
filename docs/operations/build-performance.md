@@ -2,7 +2,7 @@
 
 > **Audience:** contributors, CI maintainers, and release engineers  
 > **Applies to:** Venom 1.1.0
-Venom keeps the production runtime fully optimized while avoiding unnecessary local rebuild cost. The build system supports precompiled standard-library headers, MSVC multi-process compilation, compiler launchers, and independent QuickJS IPO control.
+Venom keeps the production runtime fully optimized while avoiding unnecessary local rebuild cost. The build system supports precompiled standard-library headers, MSVC multi-process compilation, compiler launchers, and independent TurboJS IPO control.
 
 ## Recommended Windows build
 
@@ -21,9 +21,9 @@ cmake --build build --config Release --parallel
 | `VENOM_ENABLE_PCH` | `ON` | Precompile stable C++ standard-library headers for `venom_core` |
 | `VENOM_ENABLE_MSVC_MP` | `ON` | Enable `/MP` for Visual Studio targets |
 | `VENOM_ENABLE_IPO` | `ON` | Enable release IPO/LTO for Venom targets |
-| `VENOM_ENABLE_QUICKJS_IPO` | `OFF` | Opt the large vendored QuickJS library into IPO explicitly |
+| `VENOM_ENABLE_TURBOJS_IPO` | `OFF` | Opt the large vendored TurboJS library into IPO explicitly |
 
-QuickJS IPO is intentionally independent. Turning it off improves clean-link and local iteration time while retaining ordinary release optimization. Enable it only after measuring a workload-specific runtime benefit.
+TurboJS IPO is intentionally independent. Turning it off improves clean-link and local iteration time while retaining ordinary release optimization. Enable it only after measuring a workload-specific runtime benefit.
 
 ## Reproducible measurement
 
@@ -37,4 +37,4 @@ For comparable measurements, use a clean checkout, close unrelated build process
 
 ## Measuring cold and warm builds
 
-Use `venom build <site> --profile prod --no-cache` for a cold compiler measurement. Run the normal command twice to measure warm-cache performance. `--verbose` prints native-hardener and QuickJS bytecode cache hits and misses.
+Use `venom build <site> --profile prod --no-cache` for a cold compiler measurement. Run the normal command twice to measure warm-cache performance. `--verbose` prints native-hardener and TurboJS bytecode cache hits and misses.

@@ -25,7 +25,7 @@ The planner returns:
 The planner owns four logical groups:
 
 - release, integrity, and binding metadata;
-- QuickJS/WASM runtime contracts and host policies;
+- TurboJS/WASM runtime contracts and host policies;
 - application routes, browser modules, protected registries, CSS, and assets;
 - layout, lazy-loading, feature, and integrity seals.
 

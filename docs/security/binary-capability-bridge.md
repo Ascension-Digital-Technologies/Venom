@@ -25,7 +25,7 @@ This design raises interception and automation cost and provides replay/tamper d
 
 ## Public bridge resource limits
 
-Production bridge calls are bounded before they reach QuickJS and are validated again inside the worker trust domain.
+Production bridge calls are bounded before they reach TurboJS and are validated again inside the worker trust domain.
 
 - At most 32 public calls may be pending in the browser bridge.
 - The worker executes at most 8 protected calls concurrently.

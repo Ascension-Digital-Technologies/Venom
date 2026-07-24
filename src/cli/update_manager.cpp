@@ -1,6 +1,6 @@
-#include "venom/base/error.hpp"
-#include "venom/internal/cli/update_manager.hpp"
-#include "venom/core/process.hpp"
+#include "base/error.hpp"
+#include "cli/update_manager.hpp"
+#include "core/process.hpp"
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>

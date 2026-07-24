@@ -4,10 +4,10 @@
   "package_runtime_abi": 1,
   "route_vm_contract": "VPOL0010-v2-fixed16",
   "dom_command_contract": "VDOP0020",
-  "quickjs_runtime_abi": 12,
+  "turbojs_runtime_abi": 12,
   "host_bridge_abi": 3,
   "configuration_schema": 1,
   "lockfile_schema": 1,
-  "quickjs_module_bundle_contract": "VQJSMB04",
+  "turbojs_module_bundle_contract": "VTJSMB04",
   "config_schema": 1
 }

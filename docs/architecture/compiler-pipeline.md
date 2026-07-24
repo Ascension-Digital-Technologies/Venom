@@ -2,7 +2,7 @@
 
 > **Applies to:** Venom 1.1.0
 
-Venom transforms a normal web project into a static production distribution while separating browser-native responsibilities from protected QuickJS/WASM execution.
+Venom transforms a normal web project into a static production distribution while separating browser-native responsibilities from protected TurboJS/WASM execution.
 
 ## 1. Site discovery
 
@@ -18,11 +18,11 @@ Unannotated JavaScript is protected by default. Function and module plans determ
 
 ## 4. JavaScript rewriting
 
-Browser chunks are rewritten to call protected exports. Protected modules are transformed into QuickJS-compatible records. Generated bridge registries use opaque build-specific capability identities instead of source-level function names on the transport.
+Browser chunks are rewritten to call protected exports. Protected modules are transformed into TurboJS-compatible records. Generated bridge registries use opaque build-specific capability identities instead of source-level function names on the transport.
 
 ## 5. Bytecode compilation
 
-Protected scripts and modules are compiled with the pinned QuickJS engine. Canonical records are validated against the expected QuickJS ABI, wrapped in build-specific `VQJSE006` envelopes, and bound to route, source, and execution order.
+Protected scripts and modules are compiled with the pinned TurboJS engine. Canonical records are validated against the expected TurboJS ABI, wrapped in build-specific `VTJSE006` envelopes, and bound to route, source, and execution order.
 
 ## 6. Package construction
 
@@ -30,7 +30,7 @@ The compiler writes the VBC package with polymorphic section ordering, padding, 
 
 ## 7. Runtime generation
 
-Venom emits the loader, worker, runtime JavaScript, QuickJS engine bridge, package/route WASM assets, stylesheets, and browser chunks. Production JavaScript is minified, mangled, role-specifically obfuscated, and stripped of source-only diagnostics.
+Venom emits the loader, worker, runtime JavaScript, TurboJS engine bridge, package/route WASM assets, stylesheets, and browser chunks. Production JavaScript is minified, mangled, role-specifically obfuscated, and stripped of source-only diagnostics.
 
 ## 8. Asset binding
 
@@ -48,7 +48,7 @@ Venom parses every discovered JavaScript source with the pinned Terser 5.49.0 pa
 
 The frontend also performs lexical-scope analysis for protected function extraction. Dependency lifting now uses parser-owned symbol definitions rather than identifier text scanning, so parameters, destructuring, nested functions, local bindings, imports, mutable captures, and browser globals are classified according to actual scope semantics.
 
-Protected-function lowering is AST-owned as well. Named declarations, async functions, variable-bound arrows, and function expressions are normalized into protected units with parser-derived source ranges, parameters, callable expressions, export state, and source locations. Browser stubs and QuickJS registry entries are generated from those units rather than regex or balanced-brace source slicing. Generator functions fail closed with `VENOM-E2303`.
+Protected-function lowering is AST-owned as well. Named declarations, async functions, variable-bound arrows, and function expressions are normalized into protected units with parser-derived source ranges, parameters, callable expressions, export state, and source locations. Browser stubs and TurboJS registry entries are generated from those units rather than regex or balanced-brace source slicing. Generator functions fail closed with `VENOM-E2303`.
 
 ## Versioned project IR
 
@@ -56,7 +56,7 @@ TypeScript sources are first erased in memory with line-preserving transformatio
 
 ## Content-addressed incremental cache
 
-Generated runtime assets are cached only after their complete hardener identity is known. The key includes the embedded Terser and javascript-obfuscator versions, asset role, deterministic seed, and full input bytes. Native QuickJS bytecode records are cached separately using the QuickJS bytecode ABI, source identity, module mode, metadata policy, complete source bytes, and the complete module-source graph. Cache hits reuse byte-identical compiler outputs; project discovery, protection planning, package diversification, integrity binding, encryption, and final verification still run on every build. `--no-cache` disables reuse and `--cache-dir` selects an isolated cache root.
+Generated runtime assets are cached only after their complete hardener identity is known. The key includes the embedded Terser and javascript-obfuscator versions, asset role, deterministic seed, and full input bytes. Native TurboJS bytecode records are cached separately using the TurboJS bytecode ABI, source identity, module mode, metadata policy, complete source bytes, and the complete module-source graph. Cache hits reuse byte-identical compiler outputs; project discovery, protection planning, package diversification, integrity binding, encryption, and final verification still run on every build. `--no-cache` disables reuse and `--cache-dir` selects an isolated cache root.
 
 ### Source-aware diagnostics
 

@@ -43,7 +43,8 @@ jobs:
             --private-key release-private.pem --public-key release-public.pem
           python tools/verify_release_set.py release-set --require-signature --public-key release-public.pem
           test -f release-set/RELEASE_SET.sig
-      - uses: actions/upload-artifact@v4
+      - name: publish-release-artifacts
+        uses: actions/upload-artifact@v4
         with:
           name: venom-release-${{ runner.os }}
           path: release-set/

@@ -14,11 +14,11 @@ namespace venom::generated::typescript {
 const std::uint8_t* bridge_bytecode_data() noexcept;
 std::size_t bridge_bytecode_size() noexcept;
 std::string_view bridge_bytecode_sha256() noexcept;
-std::string_view bridge_bytecode_quickjs_version() noexcept;
+std::string_view bridge_bytecode_turbojs_version() noexcept;
 std::uint32_t bridge_bytecode_abi() noexcept;
 } // namespace venom::generated::typescript
 ''')
-    args.output_cpp.write_text(f'''#include "venom/generated/compiler/typescript_bridge_bytecode.hpp"
+    args.output_cpp.write_text(f'''#include "generated/compiler/typescript_bridge_bytecode.hpp"
 #include <array>
 namespace venom::generated::typescript {{ namespace {{
 static constexpr std::array<std::uint8_t, {len(data)}> kData = {{{values}}};
@@ -26,7 +26,7 @@ static constexpr std::string_view kSha = "{digest}";
 }} const std::uint8_t* bridge_bytecode_data() noexcept {{ return kData.data(); }}
 std::size_t bridge_bytecode_size() noexcept {{ return kData.size(); }}
 std::string_view bridge_bytecode_sha256() noexcept {{ return kSha; }}
-std::string_view bridge_bytecode_quickjs_version() noexcept {{ return "0.15.1"; }}
+std::string_view bridge_bytecode_turbojs_version() noexcept {{ return "0.15.1"; }}
 std::uint32_t bridge_bytecode_abi() noexcept {{ return 27u; }}
 }} // namespace venom::generated::typescript
 ''')

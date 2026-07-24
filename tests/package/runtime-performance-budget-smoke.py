@@ -9,8 +9,8 @@ if cp.returncode:
 r=json.loads(out.read_text())
 assert r['schema']=='venom.runtime-performance.v1'
 assert r['passed'] is True
-assert r['quickjs_wasm']['raw_bytes']>100000
-assert r['quickjs_wasm']['gzip_bytes']<r['quickjs_wasm']['raw_bytes']
-assert r['quickjs_wasm']['brotli_bytes']<r['quickjs_wasm']['gzip_bytes']
-assert r['quickjs_wasm']['release_abi_exports']==23
+assert r['turbojs_wasm']['raw_bytes']>100000
+assert r['turbojs_wasm']['gzip_bytes']<r['turbojs_wasm']['raw_bytes']
+assert r['turbojs_wasm']['brotli_bytes']<r['turbojs_wasm']['gzip_bytes']
+assert r['turbojs_wasm']['release_abi_exports']==23
 print('runtime performance budget smoke passed')

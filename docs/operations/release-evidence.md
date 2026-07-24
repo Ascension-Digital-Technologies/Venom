@@ -13,7 +13,7 @@ Venom 1.0.1 records the first public stable source-package verification after th
 - 127-test native CTest closure
 - Source-package CMake module and source-list completeness
 - Documentation and changelog consistency
-- QuickJS/WASM provenance and embedded-runtime synchronization
+- TurboJS/WASM provenance and embedded-runtime synchronization
 - Signed stable-release policy and release-entrypoint enforcement
 - Production artifact verification and leak-scanning contracts
 

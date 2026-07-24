@@ -1,6 +1,6 @@
-#include "venom/base/error.hpp"
-#include "venom/internal/pipeline/chrome_extension.hpp"
-#include "venom/internal/pipeline/build_support.hpp"
+#include "base/error.hpp"
+#include "pipeline/chrome_extension.hpp"
+#include "pipeline/build_support.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -424,13 +424,37 @@ void replace_all(std::string& value, const std::string& from, const std::string&
   }
 }
 
+std::string primary_extension_page(const ManifestAnalysis& analysis) {
+  for (const auto& resource : analysis.resources) {
+    if (resource.context == ExecutionContext::ExtensionPage &&
+        std::filesystem::path(resource.path).extension() == ".html" &&
+        resource.path != "engine.html") {
+      return resource.path;
+    }
+  }
+  return "index.html";
+}
+
+std::string emitted_extension_path(const std::string& path,
+                                   const ManifestAnalysis& analysis) {
+  if (path == primary_extension_page(analysis)) return path;
+  const bool stable_chrome_adapter = std::any_of(
+      analysis.resources.begin(), analysis.resources.end(), [&](const ResourceReference& resource) {
+        if (resource.path != path) return false;
+        return resource.context == ExecutionContext::ContentScriptIsolated ||
+               resource.context == ExecutionContext::ContentScriptMain;
+      });
+  if (stable_chrome_adapter) return path;
+  return shell_path(path);
+}
+
 std::string relocate_manifest_paths(std::string manifest, const ManifestAnalysis& analysis) {
   std::set<std::string> paths;
   for (const auto& resource : analysis.resources) {
     if (!resource.path.empty() && resource.path != "manifest.json") paths.insert(resource.path);
   }
   for (const auto& path : paths) {
-    replace_all(manifest, "\"" + path + "\"", "\"" + shell_path(path) + "\"");
+    replace_all(manifest, "\"" + path + "\"", "\"" + emitted_extension_path(path, analysis) + "\"");
   }
   return manifest;
 }
@@ -452,8 +476,12 @@ std::string relocate_chrome_api_literals(std::string source, const ManifestAnaly
   }
   paths.insert("engine.html");
   for (const auto& path : paths) {
-    replace_all(source, "'" + path + "'", "'" + shell_path(path) + "'");
-    replace_all(source, "\"" + path + "\"", "\"" + shell_path(path) + "\"");
+    const std::string shell_prefix = std::string(k_extension_shell_dir) + "/";
+    const std::string emitted = path.rfind(shell_prefix, 0) == 0
+        ? path
+        : emitted_extension_path(path, analysis);
+    replace_all(source, "'" + path + "'", "'" + emitted + "'");
+    replace_all(source, "\"" + path + "\"", "\"" + emitted + "\"");
   }
   return source;
 }
@@ -466,11 +494,29 @@ std::string relocate_engine_asset_urls(std::string html) {
   return html;
 }
 
+bool has_protected_file_directive(const SiteFile& file);
+
 bool passthrough(const SiteFile& file, const ManifestAnalysis& analysis) {
-  if (file.relative == "manifest.json" || file.relative == "index.html" || file.relative == "protected/velocity-engine.js") return false;
+  if (file.relative == "manifest.json" || file.relative == "index.html" ||
+      file.relative == primary_extension_page(analysis) ||
+      file.relative == "protected/velocity-engine.js") return false;
+  if (has_protected_file_directive(file)) return false;
   static const std::set<std::string> standard_shell = {"engine-host.js", "engine.html"};
   if (standard_shell.count(file.relative)) return true;
-  return std::any_of(analysis.resources.begin(), analysis.resources.end(), [&](const ResourceReference& resource) { return resource.path == file.relative; });
+  const auto extension = std::filesystem::path(file.relative).extension().string();
+  if (extension == ".js" || extension == ".mjs" || extension == ".cjs") {
+    if (file.relative == analysis.background_service_worker) return true;
+    return std::any_of(analysis.resources.begin(), analysis.resources.end(), [&](const ResourceReference& resource) {
+      if (resource.path != file.relative) return false;
+      return resource.context == ExecutionContext::ExtensionPage ||
+             resource.context == ExecutionContext::ServiceWorker ||
+             resource.context == ExecutionContext::ContentScriptIsolated ||
+             resource.context == ExecutionContext::ContentScriptMain;
+    });
+  }
+  return std::any_of(analysis.resources.begin(), analysis.resources.end(), [&](const ResourceReference& resource) {
+    return resource.path == file.relative && resource.context == ExecutionContext::StaticResource;
+  });
 }
 
 std::string rpc_client_js(const RpcPolicy& policy) {
@@ -485,7 +531,8 @@ std::string rpc_client_js(const RpcPolicy& policy) {
       << "const requestId=(Date.now().toString(36)+'-'+(nextId++).toString(36));"
       << "const response=await chrome.runtime.sendMessage({protocol:PROTOCOL,type:'CALL',requestId,exportName:name,payload,timeout});"
       << "if(!response||response.ok!==true)throw new Error(response&&response.error?response.error:'Protected runtime returned no result');return response.result;}"
-      << "globalThis.VenomExtensionRPC=Object.freeze({protocol:PROTOCOL,call});})();\n";
+      << "async function ready(){const response=await chrome.runtime.sendMessage({protocol:PROTOCOL,type:'READY'});if(!response||response.ok!==true)throw new Error(response&&response.error?response.error:'Protected runtime host is unavailable');return true;}"
+      << "globalThis.VenomExtensionRPC=Object.freeze({protocol:PROTOCOL,ready,call});})();\n";
   return out.str();
 }
 
@@ -494,10 +541,11 @@ std::string rpc_host_js(const RpcPolicy& policy) {
   out << "// Generated by Venom. Do not edit.\n"
       << "'use strict';const PROTOCOL='" << policy.protocol << "';const MAX_INFLIGHT=" << policy.max_inflight << ";const MAX_PAYLOAD=" << policy.max_payload_bytes << ";let inflight=0;"
       << "function err(e){return e instanceof Error?e.message:String(e||'Protected runtime failure');}"
+      << "function waitForVenom(){return new Promise((resolve,reject)=>{const current=globalThis.venom;if(current&&typeof current.ready==='function')return resolve(current);let settled=false;const finish=(fn,value)=>{if(settled)return;settled=true;clearInterval(timer);clearTimeout(timeout);globalThis.removeEventListener('venom:ready',onReady);globalThis.removeEventListener('venom:boot-error',onError);fn(value);};const inspect=()=>{const api=globalThis.venom;if(api&&typeof api.ready==='function')finish(resolve,api);else{const status=globalThis.__venomBootStatus;if(status&&status.state==='error')finish(reject,new Error(status.detail&&status.detail.message?status.detail.message:'Venom protected runtime failed to initialize'));}};const onReady=()=>inspect();const onError=(event)=>finish(reject,event&&event.detail instanceof Error?event.detail:new Error('Venom protected runtime failed to initialize'));globalThis.addEventListener('venom:ready',onReady,{once:true});globalThis.addEventListener('venom:boot-error',onError,{once:true});const timer=setInterval(inspect,25);const timeout=setTimeout(()=>finish(reject,new Error('Venom protected runtime initialization timed out')),30000);inspect();});}"
       << "chrome.runtime.onMessage.addListener((m,_s,send)=>{if(!m||m.protocol!==PROTOCOL)return false;if(m.type==='PING'){send({ok:true,protocol:PROTOCOL});return false;}if(m.type!=='HOST_CALL')return false;"
       << "(async()=>{if(inflight>=MAX_INFLIGHT)throw new Error('Protected runtime is busy');if(typeof m.exportName!=='string'||!/^[A-Za-z_$][A-Za-z0-9_$]{0,127}$/.test(m.exportName))throw new Error('Invalid protected export name');"
       << "let encoded='';try{encoded=JSON.stringify(m.payload===undefined?null:m.payload);}catch(e){throw new Error('RPC payload is not serializable');}if(encoded.length>MAX_PAYLOAD)throw new Error('RPC payload is too large');"
-      << "inflight++;try{const api=globalThis.venom;if(!api||typeof api.ready!=='function'||!api.exports)throw new Error('Venom protected runtime is unavailable');await api.ready();const fn=api.exports[m.exportName];if(typeof fn!=='function')throw new Error('Protected export is unavailable: '+m.exportName);return await fn(m.payload,{timeout:m.timeout});}finally{inflight--;}})().then(r=>send({ok:true,result:r,requestId:m.requestId}),e=>send({ok:false,error:err(e),requestId:m.requestId}));return true;});\n";
+      << "inflight++;try{const api=await waitForVenom();await api.ready();if(!api.exports)throw new Error('Venom protected runtime export surface is unavailable');const fn=api.exports[m.exportName];if(typeof fn!=='function')throw new Error('Protected export is unavailable: '+m.exportName);return await fn(m.payload,{timeout:m.timeout});}finally{inflight--;}})().then(r=>send({ok:true,result:r,requestId:m.requestId}),e=>send({ok:false,error:err(e),requestId:m.requestId}));return true;});\n";
   return out.str();
 }
 
@@ -507,10 +555,10 @@ std::string rpc_broker_js(const RpcPolicy& policy) {
       << "'use strict';const PROTOCOL='" << policy.protocol << "';const HOST_URL='assets/extension/engine.html';let creating=null;let generation=0;"
       << "async function contexts(){if(typeof chrome.runtime.getContexts!=='function')return [];return chrome.runtime.getContexts({contextTypes:['OFFSCREEN_DOCUMENT'],documentUrls:[chrome.runtime.getURL(HOST_URL)]});}"
       << "async function ping(){const r=await chrome.runtime.sendMessage({protocol:PROTOCOL,type:'PING'});return !!(r&&r.ok&&r.protocol===PROTOCOL);}"
-      << "async function ensure(){if((await contexts()).length===0){if(!creating){creating=chrome.offscreen.createDocument({url:HOST_URL,reasons:['WORKERS'],justification:'Host the local Venom protected QuickJS/WASM runtime.'}).catch(e=>{const t=e instanceof Error?e.message:String(e);if(!/already exists|single offscreen/i.test(t))throw e;}).finally(()=>{creating=null;});}await creating;}"
+      << "async function ensure(){if((await contexts()).length===0){if(!creating){creating=chrome.offscreen.createDocument({url:HOST_URL,reasons:['WORKERS'],justification:'Host the local Venom protected TurboJS/WASM runtime.'}).catch(e=>{const t=e instanceof Error?e.message:String(e);if(!/already exists|single offscreen/i.test(t))throw e;}).finally(()=>{creating=null;});}await creating;}"
       << "let last;for(let i=0;i<40;i++){try{if(await ping())return;}catch(e){last=e;}await new Promise(r=>setTimeout(r,50));}throw new Error('Protected runtime host did not initialize'+(last?': '+(last.message||last):''));}"
       << "async function forward(m){await ensure();let r;try{r=await chrome.runtime.sendMessage({protocol:PROTOCOL,type:'HOST_CALL',requestId:m.requestId,exportName:m.exportName,payload:m.payload,timeout:m.timeout,generation});}catch(e){generation++;await ensure();r=await chrome.runtime.sendMessage({protocol:PROTOCOL,type:'HOST_CALL',requestId:m.requestId,exportName:m.exportName,payload:m.payload,timeout:m.timeout,generation});}if(!r||r.ok!==true)throw new Error(r&&r.error?r.error:'Protected runtime host returned no result');return r;}"
-      << "chrome.runtime.onMessage.addListener((m,_s,send)=>{if(!m||m.protocol!==PROTOCOL||m.type!=='CALL')return false;forward(m).then(r=>send(r),e=>send({ok:false,error:e instanceof Error?e.message:String(e),requestId:m.requestId}));return true;});\n";
+      << "chrome.runtime.onMessage.addListener((m,_s,send)=>{if(!m||m.protocol!==PROTOCOL)return false;if(m.type==='READY'){ensure().then(()=>send({ok:true,protocol:PROTOCOL}),e=>send({ok:false,error:e instanceof Error?e.message:String(e)}));return true;}if(m.type!=='CALL')return false;forward(m).then(r=>send(r),e=>send({ok:false,error:e instanceof Error?e.message:String(e),requestId:m.requestId}));return true;});\n";
   return out.str();
 }
 
@@ -519,7 +567,7 @@ std::string background_wrapper_js(const ManifestAnalysis& analysis) {
   std::ostringstream out;
   out << "// Generated by Venom. Do not edit.\n";
   if (analysis.background_is_module) {
-    out << "import './" << analysis.background_service_worker << "';\nimport './venom-extension-broker.js';\n";
+    out << "import './venom-extension-rpc.js';\nimport './" << analysis.background_service_worker << "';\nimport './venom-extension-broker.js';\n";
   } else {
     out << "importScripts('" << analysis.background_service_worker << "','venom-extension-broker.js');\n";
   }
@@ -569,16 +617,82 @@ void write_text_file(const std::filesystem::path& path, const std::string& value
   if (!out) raise_error("VENOM-E5000", "failed to finish generated Chrome extension adapter: " + path.string());
 }
 
-std::string engine_host_html(std::string html) {
+bool has_protected_file_directive(const SiteFile& file) {
+  if (!is_text_extension_file(file.relative)) return false;
+  const auto limit = std::min<std::size_t>(file.bytes.size(), 1024);
+  std::string prefix(reinterpret_cast<const char*>(file.bytes.data()), limit);
+  std::transform(prefix.begin(), prefix.end(), prefix.begin(), [](unsigned char ch) {
+    return static_cast<char>(std::tolower(ch));
+  });
+  return prefix.find("@venom: protected") != std::string::npos;
+}
+
+struct ExtensionPageScript {
+  std::string path;
+  bool module = false;
+};
+
+std::vector<ExtensionPageScript> extension_page_scripts(const SiteGraph& graph,
+                                                        const std::string& route_path) {
+  const auto* route = find(graph, route_path);
+  if (!route || !is_text_extension_file(route->relative)) return {};
+  const std::string source(reinterpret_cast<const char*>(route->bytes.data()), route->bytes.size());
+  static const std::regex script_tag(
+      R"(<script\b([^>]*?)\bsrc\s*=\s*([\"'])([^\"']+)\2([^>]*)>\s*</script>)",
+      std::regex::icase);
+  std::vector<ExtensionPageScript> scripts;
+  std::set<std::string> seen;
+  for (auto it = std::sregex_iterator(source.begin(), source.end(), script_tag);
+       it != std::sregex_iterator(); ++it) {
+    const auto authored = normalize_resource_path((*it)[3].str());
+    if (authored.empty() || authored.rfind("http://", 0) == 0 || authored.rfind("https://", 0) == 0) continue;
+    if (!seen.insert(authored).second) continue;
+    const auto attrs = (*it)[1].str() + (*it)[4].str();
+    const bool module = std::regex_search(attrs, std::regex(R"(\btype\s*=\s*[\"']module[\"'])", std::regex::icase));
+    scripts.push_back({authored, module});
+  }
+  return scripts;
+}
+
+std::string extension_page_adapter_js(const std::vector<ExtensionPageScript>& scripts,
+                                      const ManifestAnalysis& analysis) {
+  std::ostringstream out;
+  out << "// Generated by Venom. Do not edit.\n'use strict';\n"
+      << "const waitForVenom=()=>new Promise((resolve,reject)=>{const current=globalThis.venom;if(current&&typeof current.ready==='function')return resolve(current);const started=Date.now();let settled=false;const finish=(fn,value)=>{if(settled)return;settled=true;clearInterval(timer);clearTimeout(timeout);globalThis.removeEventListener('venom:ready',onReady);globalThis.removeEventListener('venom:boot-error',onError);fn(value);};const inspect=()=>{const api=globalThis.venom;if(api&&typeof api.ready==='function')finish(resolve,api);else{const status=globalThis.__venomBootStatus;if(status&&status.state==='error')finish(reject,new Error(status.detail&&status.detail.message?status.detail.message:'Venom protected runtime failed to initialize'));}};const onReady=()=>inspect();const onError=(event)=>finish(reject,event&&event.detail instanceof Error?event.detail:new Error('Venom protected runtime failed to initialize'));globalThis.addEventListener('venom:ready',onReady,{once:true});globalThis.addEventListener('venom:boot-error',onError,{once:true});const timer=setInterval(inspect,25);const timeout=setTimeout(()=>finish(reject,new Error('Venom protected runtime initialization timed out after '+(Date.now()-started)+' ms')),30000);inspect();});\n"
+      << "const waitForApplication=()=>new Promise((resolve,reject)=>{const inspect=()=>{const status=globalThis.__venomBootStatus;if(status&&status.state==='ready')return resolve(status);if(status&&status.state==='error')return reject(new Error(status.detail&&status.detail.message?status.detail.message:'Venom protected application failed to initialize'));return null;};if(inspect())return;let settled=false;const finish=(fn,value)=>{if(settled)return;settled=true;clearInterval(timer);clearTimeout(timeout);globalThis.removeEventListener('venom:boot-ready',onReady);globalThis.removeEventListener('venom:boot-error',onError);fn(value);};const onReady=(event)=>finish(resolve,event&&event.detail?event.detail:globalThis.__venomBootStatus);const onError=(event)=>finish(reject,new Error(event&&event.detail&&event.detail.detail&&event.detail.detail.message?event.detail.detail.message:'Venom protected application failed to initialize'));globalThis.addEventListener('venom:boot-ready',onReady,{once:true});globalThis.addEventListener('venom:boot-error',onError,{once:true});const timer=setInterval(()=>{const status=globalThis.__venomBootStatus;if(status&&status.state==='ready')finish(resolve,status);else if(status&&status.state==='error')finish(reject,new Error(status.detail&&status.detail.message?status.detail.message:'Venom protected application failed to initialize'));},25);const timeout=setTimeout(()=>finish(reject,new Error('Venom protected route hydration timed out')),30000);});\n"
+      << "const api=await waitForVenom();await api.ready();await waitForApplication();\n"
+      << "const loadClassic=(url)=>new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=url;s.async=false;s.onload=()=>{s.remove();resolve();};s.onerror=()=>{s.remove();reject(new Error('Chrome adapter failed to load: '+url));};(document.head||document.documentElement).appendChild(s);});\n";
+  for (const auto& script : scripts) {
+    const auto emitted = emitted_extension_path(script.path, analysis);
+    if (script.module) out << "await import(chrome.runtime.getURL('" << emitted << "'));\n";
+    else out << "await loadClassic(chrome.runtime.getURL('" << emitted << "'));\n";
+  }
+  out << "globalThis.__VENOM_EXTENSION_PAGE_ADAPTER_READY__=true;\n";
+  return out.str();
+}
+
+std::string inject_extension_page_adapter(std::string html, const std::string& adapter_path) {
+  if (adapter_path.empty()) return html;
+  const auto body = html.rfind("</body>");
+  if (body == std::string::npos) raise_error("VENOM-E5000", "generated Chrome extension route has no closing body tag");
+  html.insert(body, "  <script type=\"module\" src=\"" + adapter_path + "\"></script>\n");
+  return html;
+}
+
+std::string engine_host_html(std::string html,
+                             RuntimeHost runtime_host,
+                             bool include_custom_host) {
   constexpr std::string_view generic = "  <script src=\"venom-extension-host.js\"></script>\n";
   constexpr std::string_view custom = "  <script type=\"module\" src=\"engine-host.js\"></script>\n";
-  if (html.find("venom-extension-host.js") == std::string::npos) {
+  if (runtime_host == RuntimeHost::OffscreenDocument &&
+      html.find("venom-extension-host.js") == std::string::npos) {
     const auto body = html.rfind("</body>");
     if (body == std::string::npos) raise_error("VENOM-E5000", "generated Chrome extension engine page has no closing body tag");
     html.insert(body, generic);
   }
-  if (html.find("engine-host.js") == std::string::npos) {
+  if (include_custom_host && html.find("engine-host.js") == std::string::npos) {
     const auto body = html.rfind("</body>");
+    if (body == std::string::npos) raise_error("VENOM-E5000", "generated Chrome extension engine page has no closing body tag");
     html.insert(body, custom);
   }
   return html;
@@ -664,7 +778,7 @@ void validate_project(const SiteGraph& graph) {
     if (!find(graph, resource.path)) raise_error("VENOM-E5000", "Chrome extension resource is missing: " + resource.path + " (referenced by " + resource.source + ", context=" + execution_context_name(resource.context) + ")");
   }
   if (analysis.runtime_host == RuntimeHost::None) {
-    raise_error("VENOM-E5000", "Chrome extension has no compatible host for the protected QuickJS/WASM runtime; add an extension page, a service worker, or the offscreen permission");
+    raise_error("VENOM-E5000", "Chrome extension has no compatible host for the protected TurboJS/WASM runtime; add an extension page, a service worker, or the offscreen permission");
   }
   if (analysis.runtime_host == RuntimeHost::OffscreenDocument) {
     if (analysis.minimum_chrome_version.empty()) {
@@ -686,7 +800,7 @@ void validate_project(const SiteGraph& graph) {
   }
 }
 
-void emit_extension_files(const SiteGraph& graph, const std::filesystem::path& output) {
+void emit_extension_files(const SiteGraph& graph, const std::filesystem::path& output, bool harden_public_javascript) {
   const auto analysis = analyze_project(graph);
   const auto* manifest_file = find(graph, "manifest.json");
   if (!manifest_file) raise_error("VENOM-E5000", "Chrome extension manifest disappeared during build");
@@ -699,49 +813,80 @@ void emit_extension_files(const SiteGraph& graph, const std::filesystem::path& o
   if (!manifest_out) raise_error("VENOM-E5000", "failed to write Chrome extension manifest");
   manifest_out << patched;
   if (!manifest_out) raise_error("VENOM-E5000", "failed to finish Chrome extension manifest");
+  manifest_out.close();
+  if (patched.find("'wasm-unsafe-eval'") == std::string::npos) {
+    raise_error("VENOM-E5000",
+                "Chrome extension manifest CSP is missing 'wasm-unsafe-eval'; "
+                "TurboJS/WASM cannot initialize under Manifest V3 without it");
+  }
 
   for (const auto& file : graph.files) {
     if (!passthrough(file, analysis)) continue;
-    const auto destination = output / std::filesystem::path(shell_path(file.relative));
+    const auto destination = output / std::filesystem::path(emitted_extension_path(file.relative, analysis));
     if (is_text_extension_file(file.relative) && (std::filesystem::path(file.relative).extension() == ".js" || std::filesystem::path(file.relative).extension() == ".mjs" || std::filesystem::path(file.relative).extension() == ".cjs")) {
       const std::string source(reinterpret_cast<const char*>(file.bytes.data()), file.bytes.size());
       auto relocated = relocate_chrome_api_literals(source, analysis);
-      write_text_file(destination, harden_extension_js(file.relative, std::move(relocated), analysis, extension_build_salt));
+      write_text_file(destination, harden_public_javascript
+          ? harden_extension_js(file.relative, std::move(relocated), analysis, extension_build_salt)
+          : std::move(relocated));
     } else {
       write_bytes(destination, file.bytes);
     }
   }
 
   if (analysis.runtime_host == RuntimeHost::OffscreenDocument) {
-    write_text_file(output / std::filesystem::path(shell_path("venom-extension-rpc.js")), harden_extension_js("venom-extension-rpc.js", rpc_client_js(analysis.rpc_policy), analysis, extension_build_salt));
-    write_text_file(output / std::filesystem::path(shell_path("venom-extension-host.js")), harden_extension_js("venom-extension-host.js", rpc_host_js(analysis.rpc_policy), analysis, extension_build_salt));
-    write_text_file(output / std::filesystem::path(shell_path("venom-extension-broker.js")), harden_extension_js("venom-extension-broker.js", rpc_broker_js(analysis.rpc_policy), analysis, extension_build_salt));
-    write_text_file(output / std::filesystem::path(shell_path("venom-background.js")), harden_extension_js("venom-background.js", background_wrapper_js(analysis), analysis, extension_build_salt));
+    write_text_file(output / std::filesystem::path(shell_path("venom-extension-rpc.js")), harden_public_javascript ? harden_extension_js("venom-extension-rpc.js", rpc_client_js(analysis.rpc_policy), analysis, extension_build_salt) : rpc_client_js(analysis.rpc_policy));
+    write_text_file(output / std::filesystem::path(shell_path("venom-extension-host.js")), harden_public_javascript ? harden_extension_js("venom-extension-host.js", rpc_host_js(analysis.rpc_policy), analysis, extension_build_salt) : rpc_host_js(analysis.rpc_policy));
+    write_text_file(output / std::filesystem::path(shell_path("venom-extension-broker.js")), harden_public_javascript ? harden_extension_js("venom-extension-broker.js", rpc_broker_js(analysis.rpc_policy), analysis, extension_build_salt) : rpc_broker_js(analysis.rpc_policy));
+    write_text_file(output / std::filesystem::path(shell_path("venom-background.js")), harden_public_javascript ? harden_extension_js("venom-background.js", background_wrapper_js(analysis), analysis, extension_build_salt) : background_wrapper_js(analysis));
   }
 
   const auto generated_index = output / "index.html";
   std::string html;
   {
     std::ifstream input(generated_index, std::ios::binary);
-    if (!input) raise_error("VENOM-E5000", "Chrome extension build did not emit the protected engine route");
+    if (!input) raise_error("VENOM-E5000", "Chrome extension build did not emit the protected route shell");
     html.assign(std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>());
-    if (!input.eof() && input.fail()) raise_error("VENOM-E5000", "failed to read Chrome extension protected engine route");
-  } // Close the input before deleting index.html; Windows denies removal of open files.
-
-  const auto host = engine_host_html(relocate_engine_asset_urls(std::move(html)));
-  {
-    std::filesystem::create_directories((output / std::filesystem::path(shell_path("engine.html"))).parent_path());
-    std::ofstream engine_out(output / std::filesystem::path(shell_path("engine.html")), std::ios::binary | std::ios::trunc);
-    if (!engine_out) raise_error("VENOM-E5000", "failed to write Chrome extension offscreen engine page");
-    engine_out.write(host.data(), static_cast<std::streamsize>(host.size()));
-    if (!engine_out) raise_error("VENOM-E5000", "failed to finish Chrome extension offscreen engine page");
+    if (!input.eof() && input.fail()) raise_error("VENOM-E5000", "failed to read Chrome extension protected route shell");
   }
 
-  std::error_code remove_error;
-  const bool removed = std::filesystem::remove(generated_index, remove_error);
-  if (remove_error || !removed) {
-    raise_error("VENOM-E5000", "failed to remove generated Chrome extension index.html: " +
-                             (remove_error ? remove_error.message() : std::string{"file was not removed"}));
+  const auto protected_shell_html = html;
+  const auto route_path = primary_extension_page(analysis);
+  const auto page_scripts = extension_page_scripts(graph, route_path);
+  const auto page_adapter_relative = std::string{"venom-extension-page.js"};
+  if (!page_scripts.empty()) {
+    const auto page_adapter_source = extension_page_adapter_js(page_scripts, analysis);
+    write_text_file(output / std::filesystem::path(shell_path(page_adapter_relative)),
+                    harden_public_javascript
+                        ? harden_extension_js(page_adapter_relative, page_adapter_source, analysis, extension_build_salt)
+                        : page_adapter_source);
+    html = inject_extension_page_adapter(std::move(html), shell_path(page_adapter_relative));
+  }
+  const auto route_output = output / std::filesystem::path(route_path);
+  std::filesystem::create_directories(route_output.parent_path());
+  {
+    std::ofstream route_out(route_output, std::ios::binary | std::ios::trunc);
+    if (!route_out) raise_error("VENOM-E5000", "failed to write protected Chrome extension route: " + route_path);
+    route_out.write(html.data(), static_cast<std::streamsize>(html.size()));
+    if (!route_out) raise_error("VENOM-E5000", "failed to finish protected Chrome extension route: " + route_path);
+  }
+
+  if (route_output != generated_index) {
+    std::error_code remove_error;
+    const bool removed = std::filesystem::remove(generated_index, remove_error);
+    if (remove_error || !removed) {
+      raise_error("VENOM-E5000", "failed to remove temporary Chrome extension index.html: " +
+                               (remove_error ? remove_error.message() : std::string{"file was not removed"}));
+    }
+  }
+
+  if (analysis.runtime_host == RuntimeHost::OffscreenDocument) {
+    // The authored engine-host module is used only as a compile-time graph
+    // facade so its protected import is discoverable. The generated RPC host
+    // owns runtime dispatch; loading the facade in Chrome would attempt to
+    // import protected source that intentionally is not shipped publicly.
+    const auto host = engine_host_html(relocate_engine_asset_urls(protected_shell_html), analysis.runtime_host, false);
+    write_text_file(output / std::filesystem::path(shell_path("engine.html")), host);
   }
 }
 

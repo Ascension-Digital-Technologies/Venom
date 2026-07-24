@@ -2,7 +2,7 @@
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
-module = (root / 'src/generated/runtime/quickjs_engine_module.cpp').read_text(encoding='utf-8')
+module = (root / 'src/generated/runtime/turbojs_engine_module.cpp').read_text(encoding='utf-8')
 harness = (root / 'tests/runtime/browser-compat-harness.mjs').read_text(encoding='utf-8')
 fixture = (root / 'tests/fixtures/sites/browser-compat-site/assets/compat.js').read_text(encoding='utf-8')
 doc = (root / 'docs/host-api-expansion.md').read_text(encoding='utf-8')
@@ -49,7 +49,7 @@ for needle in [
     if needle not in harness:
         raise SystemExit(f'missing v0.83 harness assertion: {needle}')
 
-for needle in ['v0.88.0', 'dataset', 'querySelectorAll', 'history.pushState', 'venom_qjs_engine_version=83']:
+for needle in ['v0.88.0', 'dataset', 'querySelectorAll', 'history.pushState', 'venom_tjs_engine_version=83']:
     if needle not in doc:
         raise SystemExit(f'missing v0.83 docs marker: {needle}')
 

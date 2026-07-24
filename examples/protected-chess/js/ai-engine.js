@@ -1158,7 +1158,7 @@ function runChessEngine(request) {
     const key = '__venomVelocityChessSearch050';
     const cached = root[key];
     if (cached && cached.version === VELOCITY_ENGINE_VERSION && cached.search) return cached.search;
-    // 17 bits keeps a persistent typed-array TT inside Venom's default 8 MiB QuickJS heap.
+    // 17 bits keeps a persistent typed-array TT inside Venom's default 8 MiB TurboJS heap.
     const search = new Search(17);
     root[key] = { version: VELOCITY_ENGINE_VERSION, search: search };
     return search;
@@ -1227,7 +1227,7 @@ function runChessEngine(request) {
       name: 'Velocity Chess',
       version: VELOCITY_ENGINE_VERSION,
       bridgeVersion: VELOCITY_BRIDGE_VERSION,
-      runtime: 'QuickJS / WASM',
+      runtime: 'TurboJS / WASM',
       isolation: 'worker',
       bridge: 'json-value-v1',
       protected: true,

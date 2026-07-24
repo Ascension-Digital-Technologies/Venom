@@ -273,6 +273,13 @@ def main() -> int:
     release_binary = bin_dir / ('venom.exe' if venom.suffix.lower() == '.exe' or os.name == 'nt' else 'venom')
     shutil.copy2(venom, release_binary)
     make_executable(release_binary)
+    helper_name = 'venom_hardener_worker.exe' if release_binary.suffix.lower() == '.exe' else 'venom_hardener_worker'
+    helper_source = venom.parent / helper_name
+    if not helper_source.is_file():
+        raise SystemExit(f'hardener worker executable not found beside Venom: {helper_source}')
+    helper_binary = bin_dir / helper_name
+    shutil.copy2(helper_source, helper_binary)
+    make_executable(helper_binary)
     version_text = verify_release_binary(release_binary)
 
     copy_tree(repo_root / 'docs', out_dir / 'docs')
@@ -283,7 +290,7 @@ def main() -> int:
     release_script_format = copy_platform_scripts(repo_root / 'scripts', out_dir / 'scripts', target_triplet)
     tools_out = out_dir / 'tools'
     tools_out.mkdir(parents=True, exist_ok=True)
-    for tool_name in ('verify_release.py', 'release_crypto.py', 'sign_release.py', 'quickjs_wasm_preflight.py', 'quickjs_wasm_cutover.py', 'quickjs_runtime_lifecycle.py', 'setup_emscripten.py', 'build_emscripten.py', 'analyze_dist.py', 'wasm_exports.py', 'embed_wasm.py', 'generate_release_metadata.py', 'verify_release_set.py', 'install_release.py', 'public_release_gate.py', 'generate_contract_manifest.py', 'check_contract_upgrade.py', 'generate_release_metadata.py'):
+    for tool_name in ('verify_release.py', 'release_crypto.py', 'sign_release.py', 'turbojs_wasm_preflight.py', 'turbojs_wasm_cutover.py', 'turbojs_runtime_lifecycle.py', 'setup_emscripten.py', 'build_emscripten.py', 'analyze_dist.py', 'wasm_exports.py', 'embed_wasm.py', 'generate_release_metadata.py', 'verify_release_set.py', 'install_release.py', 'public_release_gate.py', 'generate_contract_manifest.py', 'check_contract_upgrade.py', 'generate_release_metadata.py'):
         tool_src = repo_root / 'tools' / tool_name
         if tool_src.exists():
             shutil.copy2(tool_src, tools_out / tool_name)
@@ -291,9 +298,9 @@ def main() -> int:
 
     licenses = out_dir / 'licenses'
     licenses.mkdir(parents=True, exist_ok=True)
-    quickjs_license = repo_root / 'third_party' / 'quickjs' / 'LICENSE'
-    if quickjs_license.exists():
-        shutil.copy2(quickjs_license, licenses / 'QUICKJS-LICENSE')
+    turbojs_license = repo_root / 'third_party' / 'turbojs' / 'LICENSE'
+    if turbojs_license.exists():
+        shutil.copy2(turbojs_license, licenses / 'TURBOJS-LICENSE')
     root_license = repo_root / 'LICENSE'
     if root_license.exists():
         shutil.copy2(root_license, licenses / 'VENOM-LICENSE')
@@ -308,9 +315,9 @@ def main() -> int:
     )
     runtime_dir = out_dir / 'runtime'
     runtime_dir.mkdir(parents=True, exist_ok=True)
-    embedded_runtime = repo_root / 'build' / 'quickjs-wasm' / 'quickjs-runtime.wasm'
+    embedded_runtime = repo_root / 'build' / 'turbojs-wasm' / 'turbojs-runtime.wasm'
     if embedded_runtime.is_file():
-        shutil.copy2(embedded_runtime, runtime_dir / 'quickjs-runtime.wasm')
+        shutil.copy2(embedded_runtime, runtime_dir / 'turbojs-runtime.wasm')
     contract_tool = repo_root / 'tools' / 'generate_contract_manifest.py'
     subprocess.run([sys.executable, str(contract_tool), '--header', str(repo_root / 'src' / 'contracts' / 'product_contracts.hpp'), '--version', version, '--out', str(out_dir / 'CONTRACTS.json')], check=True)
     for src_name, dst_name in (('release_install.ps1','install.ps1'),('release_install.sh','install.sh')):

@@ -12,10 +12,10 @@ scripts/linux/verify-release.sh
 
 When called without a release archive, the command builds the native compiler and runs the core release closure. The closure verifies:
 
-- the package, runtime, QuickJS/WASM, host bridge, and bytecode ABI lock;
+- the package, runtime, TurboJS/WASM, host bridge, and bytecode ABI lock;
 - generated contract bindings;
 - the embedded Node-free TypeScript frontend boundary;
-- the QuickJS/WASM export and generated-engine contracts;
+- the TurboJS/WASM export and generated-engine contracts;
 - build-bound and pre-bytecode hardening boundaries;
 - production package metadata and release gates;
 - release entrypoint policy.

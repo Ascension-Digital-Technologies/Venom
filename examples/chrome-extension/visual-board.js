@@ -1,6 +1,7 @@
+// @venom: browser
 (() => {
   'use strict';
-  if (globalThis.VelocityVisualBoardV045) return;
+  if (globalThis.VelocityVisualBoardV090) return;
 
   const FILES = 'abcdefgh';
   const START_PLACEMENT = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
@@ -483,13 +484,31 @@
     return snapshot;
   }
 
-  function scan(doc = document) {
+  function scan(doc = document, preferredRoot = null) {
     const roots = findBoardRoots(doc);
     if (!roots.length) throw new Error('No visible chessboard was found');
     let bestError = null;
-    for (const root of roots.slice(0, 12)) {
+    let bestSnapshot = null;
+    let bestSnapshotScore = -Infinity;
+    for (const root of roots.slice(0, 16)) {
       try {
-        return scanRoot(root);
+        const snapshot = scanRoot(root);
+        const rect = snapshot.rootRect;
+        const viewportArea = Math.max(1, Number(globalThis.innerWidth || 1) * Number(globalThis.innerHeight || 1));
+        const areaRatio = rect ? Math.min(1, (rect.width * rect.height) / viewportArea) : 0;
+        const rootAffinity = root === preferredRoot ? 34 : 0;
+        const connectedBonus = root?.isConnected === false ? -100 : 8;
+        const centerX = rect ? rect.left + rect.width / 2 : -1;
+        const centerY = rect ? rect.top + rect.height / 2 : -1;
+        const inViewport = rect && centerX >= 0 && centerY >= 0 && centerX <= Number(globalThis.innerWidth || 0) && centerY <= Number(globalThis.innerHeight || 0);
+        const viewportBonus = inViewport ? 18 : -12;
+        const snapshotScore = rootAffinity + connectedBonus + viewportBonus
+          + snapshot.confidence * 45 + snapshot.explicitSquares * 0.65
+          + snapshot.pieceCount * 0.8 + areaRatio * 28;
+        if (snapshotScore > bestSnapshotScore) {
+          bestSnapshot = snapshot;
+          bestSnapshotScore = snapshotScore;
+        }
       } catch (error) {
         if (!bestError) bestError = error;
         const current = error?.scanDetails;
@@ -499,6 +518,7 @@
         if (currentScore > previousScore) bestError = error;
       }
     }
+    if (bestSnapshot) return bestSnapshot;
     throw bestError || new Error('The visual chessboard could not be reconstructed');
   }
 
@@ -928,7 +948,7 @@
     };
   }
 
-  globalThis.VelocityVisualBoardV045 = Object.freeze({
+  globalThis.VelocityVisualBoardV090 = Object.freeze({
     START_PLACEMENT,
     colorOf,
     pieceFromRaw,

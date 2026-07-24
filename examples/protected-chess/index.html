@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Venom Protected Chess Lab demonstrates browser-native UI with a protected QuickJS chess engine.">
+  <meta name="description" content="Venom Protected Chess Lab demonstrates browser-native UI with a protected TurboJS chess engine.">
   <title>Venom Protected Chess Lab</title>
   <link rel="stylesheet" href="vendor/bootstrap/css/bootstrap.min.css">
   <link rel="stylesheet" href="vendor/chessboardjs/css/chessboard.min.css">
@@ -21,7 +21,7 @@
         <div>
           <div class="eyebrow"><span class="status-dot"></span> VENOM RUNTIME SHOWCASE</div>
           <h1>Protected Chess Lab</h1>
-          <p class="hero-copy">A browser-native chess interface powered by Velocity Chess search logic extracted into protected QuickJS bytecode and executed inside a worker-isolated WASM runtime.</p>
+          <p class="hero-copy">A browser-native chess interface powered by Velocity Chess search logic extracted into protected TurboJS bytecode and executed inside a worker-isolated WASM runtime.</p>
         </div>
         <div class="runtime-pill" aria-label="Runtime state">
           <span class="runtime-pill-label">Protection state</span>
@@ -90,7 +90,7 @@
           <div class="protection-row"><span>Move selection</span><strong class="runtime protected-runtime">Protected</strong></div>
         </div>
         <div class="integrity-box">
-          <div><span>Runtime</span><strong id="runtime-name">QuickJS / WASM</strong></div>
+          <div><span>Runtime</span><strong id="runtime-name">TurboJS / WASM</strong></div>
           <div><span>Isolation</span><strong>Worker</strong></div>
           <div><span>Bridge</span><strong>JSON value v1</strong></div>
           <div><span>Engine source in browser JS</span><strong class="success-text">No</strong></div>
@@ -137,11 +137,11 @@
         <div class="panel-heading compact-heading">
           <div>
             <span class="section-kicker">PERFORMANCE LAB</span>
-            <h2>QuickJS chess benchmark</h2>
+            <h2>TurboJS chess benchmark</h2>
           </div>
           <span class="engine-busy" id="benchmark-state">Ready</span>
         </div>
-        <p class="benchmark-copy">Run protected move generation, tactical search, middlegame search, and endgame search with one click. Every workload executes inside QuickJS/WASM.</p>
+        <p class="benchmark-copy">Run protected move generation, tactical search, middlegame search, and endgame search with one click. Every workload executes inside TurboJS/WASM.</p>
         <div class="benchmark-actions">
           <label>Benchmark preset
             <select id="benchmark-preset"><option value="quick">Quick</option><option value="standard" selected>Standard</option><option value="endurance">Endurance</option></select>

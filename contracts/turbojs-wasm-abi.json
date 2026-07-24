@@ -1,0 +1,47 @@
+{
+  "schema": "venom.turbojs-wasm-abi.v1",
+  "runtimeAbi": 12,
+  "bridgeAbi": 1,
+  "bytecodeFormat": "VTJSBC03",
+  "requiredExports": [
+    "memory",
+    "venom_tjs_context_alloc",
+    "venom_tjs_context_free",
+    "venom_tjs_context_set_limits",
+    "venom_tjs_context_set_execution_limits",
+    "venom_tjs_script_buffer_alloc",
+    "venom_tjs_script_buffer_capacity",
+    "venom_tjs_script_buffer_set_expected_hash",
+    "venom_tjs_script_buffer_free",
+    "venom_tjs_bytecode_validate",
+    "venom_tjs_execute_bytecode",
+    "venom_tjs_compact_result_ptr",
+    "venom_tjs_diversification_install",
+    "venom_tjs_exception_message_ptr",
+    "venom_tjs_exception_message_size",
+    "venom_tjs_exception_clear",
+    "venom_tjs_upstream_turbojs_ready",
+    "venom_tjs_bridge_abi",
+    "venom_tjs_bridge_input_alloc",
+    "venom_tjs_bridge_input_capacity",
+    "venom_tjs_bridge_invoke",
+    "venom_tjs_bridge_result_ptr",
+    "venom_tjs_bridge_result_size",
+    "venom_tjs_bridge_release"
+  ],
+  "optionalExports": [
+    "venom_tjs_result_ptr",
+    "venom_tjs_result_size"
+  ],
+  "allowedToolchainExports": [
+    "__indirect_function_table",
+    "_emscripten_stack_restore",
+    "emscripten_stack_get_current",
+    "_initialize",
+    "__cxa_increment_exception_refcount"
+  ],
+  "trustDomains": {
+    "development": ["development-turbojs-compiler"],
+    "release": ["package-decoder-wasm"]
+  }
+}

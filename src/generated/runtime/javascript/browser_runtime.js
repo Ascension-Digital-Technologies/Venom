@@ -15,23 +15,23 @@ const PACKAGE_FLAG = Object.freeze({
   ASYNC_HOST_QUEUE: 4096,
   TIMER_BRIDGE: 8192,
   EVENT_QUEUE: 16384,
-  QUICKJS_BRIDGE: 32768,
+  TURBOJS_BRIDGE: 32768,
   SCRIPT_ISOLATION: 65536,
   SCRIPT_POLICY: 131072,
-  QUICKJS_CHUNKS: 262144,
-  QUICKJS_ENGINE: 524288,
+  TURBOJS_CHUNKS: 262144,
+  TURBOJS_ENGINE: 524288,
   SCRIPT_ENGINE_FALLBACK: 1048576,
-  QUICKJS_ENGINE_MODULE: 2097152,
-  QUICKJS_CONTEXT_LIFECYCLE: 4194304,
+  TURBOJS_ENGINE_MODULE: 2097152,
+  TURBOJS_CONTEXT_LIFECYCLE: 4194304,
   HOST_CAPABILITIES: 8388608,
-  QUICKJS_ADAPTER_DIAGNOSTICS: 16777216,
-  QUICKJS_WASM_RUNTIME: 33554432,
-  QUICKJS_SOURCE_TRANSFER: 67108864,
-  QUICKJS_CONSOLE_BRIDGE: 134217728,
-  QUICKJS_EXECUTION_RECORDS: 268435456,
-  QUICKJS_RESULT_BRIDGE: 536870912,
-  QUICKJS_FALLBACK_POLICY: 1073741824,
-  QUICKJS_ENGINE_BACKEND: 2147483648,
+  TURBOJS_ADAPTER_DIAGNOSTICS: 16777216,
+  TURBOJS_WASM_RUNTIME: 33554432,
+  TURBOJS_SOURCE_TRANSFER: 67108864,
+  TURBOJS_CONSOLE_BRIDGE: 134217728,
+  TURBOJS_EXECUTION_RECORDS: 268435456,
+  TURBOJS_RESULT_BRIDGE: 536870912,
+  TURBOJS_FALLBACK_POLICY: 1073741824,
+  TURBOJS_ENGINE_BACKEND: 2147483648,
 });
 
 const SECTION_FLAG = Object.freeze({
@@ -45,7 +45,7 @@ const SECTION = Object.freeze({
   DOM_TEMPLATES: 3,
   CSS: 4,
   JAVASCRIPT: 5,
-  QUICKJS: 6,
+  TURBOJS: 6,
   VM_BYTECODE: 7,
   ASSET: 8,
   INTEGRITY: 9,
@@ -56,77 +56,77 @@ const SECTION = Object.freeze({
   ASYNC_HOST_QUEUE: 14,
   TIMER_BRIDGE: 15,
   EVENT_QUEUE: 16,
-  QUICKJS_BRIDGE: 17,
+  TURBOJS_BRIDGE: 17,
   SCRIPT_ISOLATION: 18,
   SCRIPT_POLICY: 19,
-  QUICKJS_CHUNKS: 20,
-  QUICKJS_ENGINE: 21,
+  TURBOJS_CHUNKS: 20,
+  TURBOJS_ENGINE: 21,
   SCRIPT_ENGINE_POLICY: 22,
-  QUICKJS_ENGINE_MODULE: 23,
-  QUICKJS_CONTEXT_LIFECYCLE: 24,
+  TURBOJS_ENGINE_MODULE: 23,
+  TURBOJS_CONTEXT_LIFECYCLE: 24,
   HOST_CAPABILITIES: 25,
-  QUICKJS_ADAPTER_DIAGNOSTICS: 26,
-  QUICKJS_WASM_RUNTIME: 27,
-  QUICKJS_SOURCE_TRANSFER: 28,
-  QUICKJS_CONSOLE_BRIDGE: 29,
-  QUICKJS_EXECUTION_RECORDS: 30,
-  QUICKJS_RESULT_BRIDGE: 31,
-  QUICKJS_FALLBACK_POLICY: 32,
-  QUICKJS_ENGINE_BACKEND: 33,
-  QUICKJS_NATIVE_PARITY: 34,
-  QUICKJS_EXECUTION_MODE: 35,
-  QUICKJS_RUNTIME_ABI: 36,
-  QUICKJS_HOST_IMPORTS: 37,
-  QUICKJS_HEAP_LIMITS: 38,
-  QUICKJS_SCRIPT_BUFFER: 39,
-  QUICKJS_CONSOLE_ABI: 40,
-  QUICKJS_PARITY_PROBE: 41,
-  QUICKJS_RELEASE_FALLBACK: 42,
-  QUICKJS_BYTECODE_MANIFEST: 43,
-  QUICKJS_MODULE_RESOLVER: 44,
-  QUICKJS_EXCEPTION_ABI: 45,
-  QUICKJS_HOST_TRAP_POLICY: 46,
-  QUICKJS_EXECUTION_LIFECYCLE: 47,
-  QUICKJS_SCRIPT_BUFFER_POLICY: 48,
-  QUICKJS_CONTEXT_LIMIT_POLICY: 49,
-  QUICKJS_HOST_CALL_DISPATCH: 50,
-  QUICKJS_PARITY_CONTRACT: 51,
-  QUICKJS_RELEASE_FAILCLOSED: 52,
-  QUICKJS_MODULE_GRAPH: 53,
-  QUICKJS_MODULE_EXECUTION: 54,
-  QUICKJS_MODULE_CACHE: 55,
-  QUICKJS_RESOLVER_AUDIT: 56,
-  QUICKJS_INTEROP_FALLBACK: 57,
-  QUICKJS_EXECUTION_PIPELINE: 58,
-  QUICKJS_SCRIPT_RECORDS: 59,
-  QUICKJS_EVAL_RESULTS: 60,
-  QUICKJS_CONSOLE_CAPTURE: 61,
-  QUICKJS_FAILURE_REPORTS: 62,
-  QUICKJS_EXECUTION_JOURNAL: 63,
-  QUICKJS_CHECKPOINT_POLICY: 64,
-  QUICKJS_REPLAY_CURSOR: 65,
-  QUICKJS_RESUME_STATE: 66,
-  QUICKJS_DETERMINISM_AUDIT: 67,
-  QUICKJS_SNAPSHOT_POLICY: 68,
-  QUICKJS_SNAPSHOT_RECORDS: 69,
-  QUICKJS_REPLAY_VALIDATION: 70,
-  QUICKJS_DETERMINISM_LEDGER: 71,
-  QUICKJS_AUDIT_SEAL: 72,
-  QUICKJS_EXECUTION_COMMIT: 73,
-  QUICKJS_ROLLBACK_POLICY: 74,
-  QUICKJS_HOST_CALL_RECEIPTS: 75,
-  QUICKJS_RELEASE_ACCEPTANCE: 76,
-  QUICKJS_COMMIT_AUDIT: 77,
-  QUICKJS_CAPABILITY_POLICY: 78,
-  QUICKJS_HOST_IO_POLICY: 79,
-  QUICKJS_PERMISSION_SEAL: 80,
-  QUICKJS_POLICY_RECEIPTS: 81,
-  QUICKJS_RELEASE_GATE: 82,
-  QUICKJS_HOST_IO_DECISION: 83,
-  QUICKJS_HOST_IO_DENY_TRACE: 84,
-  QUICKJS_CAPABILITY_LEDGER: 85,
-  QUICKJS_POLICY_SEAL_AUDIT: 86,
-  QUICKJS_RUNTIME_DENYLIST: 87,
+  TURBOJS_ADAPTER_DIAGNOSTICS: 26,
+  TURBOJS_WASM_RUNTIME: 27,
+  TURBOJS_SOURCE_TRANSFER: 28,
+  TURBOJS_CONSOLE_BRIDGE: 29,
+  TURBOJS_EXECUTION_RECORDS: 30,
+  TURBOJS_RESULT_BRIDGE: 31,
+  TURBOJS_FALLBACK_POLICY: 32,
+  TURBOJS_ENGINE_BACKEND: 33,
+  TURBOJS_NATIVE_PARITY: 34,
+  TURBOJS_EXECUTION_MODE: 35,
+  TURBOJS_RUNTIME_ABI: 36,
+  TURBOJS_HOST_IMPORTS: 37,
+  TURBOJS_HEAP_LIMITS: 38,
+  TURBOJS_SCRIPT_BUFFER: 39,
+  TURBOJS_CONSOLE_ABI: 40,
+  TURBOJS_PARITY_PROBE: 41,
+  TURBOJS_RELEASE_FALLBACK: 42,
+  TURBOJS_BYTECODE_MANIFEST: 43,
+  TURBOJS_MODULE_RESOLVER: 44,
+  TURBOJS_EXCEPTION_ABI: 45,
+  TURBOJS_HOST_TRAP_POLICY: 46,
+  TURBOJS_EXECUTION_LIFECYCLE: 47,
+  TURBOJS_SCRIPT_BUFFER_POLICY: 48,
+  TURBOJS_CONTEXT_LIMIT_POLICY: 49,
+  TURBOJS_HOST_CALL_DISPATCH: 50,
+  TURBOJS_PARITY_CONTRACT: 51,
+  TURBOJS_RELEASE_FAILCLOSED: 52,
+  TURBOJS_MODULE_GRAPH: 53,
+  TURBOJS_MODULE_EXECUTION: 54,
+  TURBOJS_MODULE_CACHE: 55,
+  TURBOJS_RESOLVER_AUDIT: 56,
+  TURBOJS_INTEROP_FALLBACK: 57,
+  TURBOJS_EXECUTION_PIPELINE: 58,
+  TURBOJS_SCRIPT_RECORDS: 59,
+  TURBOJS_EVAL_RESULTS: 60,
+  TURBOJS_CONSOLE_CAPTURE: 61,
+  TURBOJS_FAILURE_REPORTS: 62,
+  TURBOJS_EXECUTION_JOURNAL: 63,
+  TURBOJS_CHECKPOINT_POLICY: 64,
+  TURBOJS_REPLAY_CURSOR: 65,
+  TURBOJS_RESUME_STATE: 66,
+  TURBOJS_DETERMINISM_AUDIT: 67,
+  TURBOJS_SNAPSHOT_POLICY: 68,
+  TURBOJS_SNAPSHOT_RECORDS: 69,
+  TURBOJS_REPLAY_VALIDATION: 70,
+  TURBOJS_DETERMINISM_LEDGER: 71,
+  TURBOJS_AUDIT_SEAL: 72,
+  TURBOJS_EXECUTION_COMMIT: 73,
+  TURBOJS_ROLLBACK_POLICY: 74,
+  TURBOJS_HOST_CALL_RECEIPTS: 75,
+  TURBOJS_RELEASE_ACCEPTANCE: 76,
+  TURBOJS_COMMIT_AUDIT: 77,
+  TURBOJS_CAPABILITY_POLICY: 78,
+  TURBOJS_HOST_IO_POLICY: 79,
+  TURBOJS_PERMISSION_SEAL: 80,
+  TURBOJS_POLICY_RECEIPTS: 81,
+  TURBOJS_RELEASE_GATE: 82,
+  TURBOJS_HOST_IO_DECISION: 83,
+  TURBOJS_HOST_IO_DENY_TRACE: 84,
+  TURBOJS_CAPABILITY_LEDGER: 85,
+  TURBOJS_POLICY_SEAL_AUDIT: 86,
+  TURBOJS_RUNTIME_DENYLIST: 87,
   PACKAGE_FEATURES: 88,
 });
 
@@ -139,7 +139,7 @@ const LOGICAL = Object.freeze({
   APPEND_CHILD: 5,
   ENTER_ELEMENT: 6,
   LEAVE_ELEMENT: 7,
-  CALL_QUICKJS: 8,
+  CALL_TURBOJS: 8,
   HALT: 9,
 });
 
@@ -706,7 +706,7 @@ async function loadPackage(url, expectedPackageHash = null, suppliedBytes = null
 
   if (pkg.version !== 40) throw new Error('unsupported VBC package version: ' + pkg.version);
   if (pkg.runtimeAbi !== 1) throw new Error('unsupported VBC runtime ABI: ' + pkg.runtimeAbi);
-  const knownPackageFlags = PACKAGE_FLAG.PROTECT | PACKAGE_FLAG.RELEASE | PACKAGE_FLAG.POLYMORPHIC | PACKAGE_FLAG.COMPRESSED_SECTIONS | PACKAGE_FLAG.CRYPTO_PROVIDER_READY | PACKAGE_FLAG.INTEGRITY_METADATA | PACKAGE_FLAG.AEAD_PROVIDER_READY | PACKAGE_FLAG.RUNTIME_HARDENED | PACKAGE_FLAG.WASM_RUNTIME | PACKAGE_FLAG.HOST_BRIDGE | PACKAGE_FLAG.BINARY_DOM_OPS | PACKAGE_FLAG.FETCH_BRIDGE | PACKAGE_FLAG.ASYNC_HOST_QUEUE | PACKAGE_FLAG.TIMER_BRIDGE | PACKAGE_FLAG.EVENT_QUEUE | PACKAGE_FLAG.QUICKJS_BRIDGE | PACKAGE_FLAG.SCRIPT_ISOLATION | PACKAGE_FLAG.SCRIPT_POLICY | PACKAGE_FLAG.QUICKJS_CHUNKS | PACKAGE_FLAG.QUICKJS_ENGINE | PACKAGE_FLAG.SCRIPT_ENGINE_FALLBACK | PACKAGE_FLAG.QUICKJS_ENGINE_MODULE | PACKAGE_FLAG.QUICKJS_CONTEXT_LIFECYCLE | PACKAGE_FLAG.HOST_CAPABILITIES | PACKAGE_FLAG.QUICKJS_ADAPTER_DIAGNOSTICS | PACKAGE_FLAG.QUICKJS_WASM_RUNTIME | PACKAGE_FLAG.QUICKJS_SOURCE_TRANSFER | PACKAGE_FLAG.QUICKJS_CONSOLE_BRIDGE | PACKAGE_FLAG.QUICKJS_EXECUTION_RECORDS | PACKAGE_FLAG.QUICKJS_RESULT_BRIDGE | PACKAGE_FLAG.QUICKJS_FALLBACK_POLICY | PACKAGE_FLAG.QUICKJS_ENGINE_BACKEND;
+  const knownPackageFlags = PACKAGE_FLAG.PROTECT | PACKAGE_FLAG.RELEASE | PACKAGE_FLAG.POLYMORPHIC | PACKAGE_FLAG.COMPRESSED_SECTIONS | PACKAGE_FLAG.CRYPTO_PROVIDER_READY | PACKAGE_FLAG.INTEGRITY_METADATA | PACKAGE_FLAG.AEAD_PROVIDER_READY | PACKAGE_FLAG.RUNTIME_HARDENED | PACKAGE_FLAG.WASM_RUNTIME | PACKAGE_FLAG.HOST_BRIDGE | PACKAGE_FLAG.BINARY_DOM_OPS | PACKAGE_FLAG.FETCH_BRIDGE | PACKAGE_FLAG.ASYNC_HOST_QUEUE | PACKAGE_FLAG.TIMER_BRIDGE | PACKAGE_FLAG.EVENT_QUEUE | PACKAGE_FLAG.TURBOJS_BRIDGE | PACKAGE_FLAG.SCRIPT_ISOLATION | PACKAGE_FLAG.SCRIPT_POLICY | PACKAGE_FLAG.TURBOJS_CHUNKS | PACKAGE_FLAG.TURBOJS_ENGINE | PACKAGE_FLAG.SCRIPT_ENGINE_FALLBACK | PACKAGE_FLAG.TURBOJS_ENGINE_MODULE | PACKAGE_FLAG.TURBOJS_CONTEXT_LIFECYCLE | PACKAGE_FLAG.HOST_CAPABILITIES | PACKAGE_FLAG.TURBOJS_ADAPTER_DIAGNOSTICS | PACKAGE_FLAG.TURBOJS_WASM_RUNTIME | PACKAGE_FLAG.TURBOJS_SOURCE_TRANSFER | PACKAGE_FLAG.TURBOJS_CONSOLE_BRIDGE | PACKAGE_FLAG.TURBOJS_EXECUTION_RECORDS | PACKAGE_FLAG.TURBOJS_RESULT_BRIDGE | PACKAGE_FLAG.TURBOJS_FALLBACK_POLICY | PACKAGE_FLAG.TURBOJS_ENGINE_BACKEND;
   if ((pkg.flags & ~knownPackageFlags) !== 0) throw new Error('unknown package flags: ' + (pkg.flags & ~knownPackageFlags));
   if ((pkg.flags & PACKAGE_FLAG.RELEASE) !== 0) {
     if ((pkg.flags & PACKAGE_FLAG.POLYMORPHIC) === 0) throw new Error('release package is missing polymorphic metadata');
@@ -763,7 +763,7 @@ async function loadPackage(url, expectedPackageHash = null, suppliedBytes = null
 
 
 let activeReleaseDiversification = null;
-let activeQuickJsAbiFingerprint = null;
+let activeTurboJsAbiFingerprint = null;
 let activeRuntimeIntegritySeal = 0;
 let activeRuntimeOpcodeMap = null;
 function runtimeIntegrityText(value) {
@@ -774,23 +774,23 @@ function runtimeIntegrityText(value) {
   return String(value);
 }
 function computeRuntimeIntegritySeal(opcodeMap = null) {
-  const text = runtimeIntegrityText(activeReleaseDiversification) + '\n' + runtimeIntegrityText(activeQuickJsAbiFingerprint) + '\n' + runtimeIntegrityText(opcodeMap);
+  const text = runtimeIntegrityText(activeReleaseDiversification) + '\n' + runtimeIntegrityText(activeTurboJsAbiFingerprint) + '\n' + runtimeIntegrityText(opcodeMap);
   return fnv1a32(textEncoder.encode(text)) >>> 0;
 }
 function assertRuntimeIntegrity(opcodeMap = null) {
   if (!activeRuntimeIntegritySeal || computeRuntimeIntegritySeal(opcodeMap) !== activeRuntimeIntegritySeal) throw new Error('runtime integrity seal mismatch');
 }
 
-function parseQuickJsAbiFingerprint(section, required) {
+function parseTurboJsAbiFingerprint(section, required) {
   if (!section) {
-    if (required) throw new Error('missing QuickJS ABI fingerprint');
+    if (required) throw new Error('missing TurboJS ABI fingerprint');
     return null;
   }
   const data = section.data;
-  if (data.byteLength !== 24 || textDecoder.decode(data.subarray(0, 8)) !== 'VQAF0001') throw new Error('invalid QuickJS ABI fingerprint');
+  if (data.byteLength !== 24 || textDecoder.decode(data.subarray(0, 8)) !== 'VQAF0001') throw new Error('invalid TurboJS ABI fingerprint');
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
-  if (readU32(view, 8) !== 1 || readU32(view, 16) !== 12 || readU32(view, 20) !== 16) throw new Error('unsupported QuickJS ABI fingerprint');
-  return Object.freeze({ hash: readU32(view, 12) >>> 0, runtimeAbi: 12, functionExports: 16 });
+  if (readU32(view, 8) !== 1 || readU32(view, 16) !== 12 || readU32(view, 20) !== 24) throw new Error('unsupported TurboJS ABI fingerprint');
+  return Object.freeze({ hash: readU32(view, 12) >>> 0, runtimeAbi: 12, functionExports: 24 });
 }
 
 
@@ -988,7 +988,7 @@ const SCRIPT_FLAG = Object.freeze({
   BROWSER: 2048,
 });
 
-function quickJsEnvelopeLaneMap(seed) {
+function turboJsEnvelopeLaneMap(seed) {
   const map = new Uint8Array(16);
   for (let i = 0; i < map.length; ++i) map[i] = i;
   let state = (seed ^ 0xC6EF3720) >>> 0;
@@ -1003,15 +1003,15 @@ function quickJsEnvelopeLaneMap(seed) {
   return map;
 }
 
-function quickJsEnvelopeLaneFingerprint(map) {
+function turboJsEnvelopeLaneFingerprint(map) {
   let h = 2166136261 >>> 0;
   for (const value of map) { h ^= value; h = Math.imul(h, 16777619) >>> 0; }
   return h >>> 0;
 }
 
-function decodeQuickJsEnvelope(bytes, sourceName) {
-  if (!bytes || bytes.length < 48) throw new Error('QuickJS bytecode envelope is truncated for ' + (sourceName || '<script>'));
-  if (asciiOf(bytes.slice(0, 8)) !== 'VQJSE006') return bytes;
+function decodeTurboJsEnvelope(bytes, sourceName) {
+  if (!bytes || bytes.length < 48) throw new Error('TurboJS bytecode envelope is truncated for ' + (sourceName || '<script>'));
+  if (asciiOf(bytes.slice(0, 8)) !== 'VTJSE006') return bytes;
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const version = readU32(view, 8);
   const payloadSize = readU32(view, 12);
@@ -1022,11 +1022,11 @@ function decodeQuickJsEnvelope(bytes, sourceName) {
   const laneWidth = readU32(view, 40);
   const expectedLaneFingerprint = readU32(view, 44);
   if (version !== 2 || bytecodeAbi !== 0x01000300 || payloadOffset !== 48 || laneWidth !== 16 || payloadOffset + payloadSize !== bytes.length) {
-    throw new Error('QuickJS bytecode envelope contract mismatch for ' + (sourceName || '<script>'));
+    throw new Error('TurboJS bytecode envelope contract mismatch for ' + (sourceName || '<script>'));
   }
-  const laneMap = quickJsEnvelopeLaneMap(seed);
-  if (quickJsEnvelopeLaneFingerprint(laneMap) !== expectedLaneFingerprint) {
-    throw new Error('QuickJS bytecode envelope lane map mismatch for ' + (sourceName || '<script>'));
+  const laneMap = turboJsEnvelopeLaneMap(seed);
+  if (turboJsEnvelopeLaneFingerprint(laneMap) !== expectedLaneFingerprint) {
+    throw new Error('TurboJS bytecode envelope lane map mismatch for ' + (sourceName || '<script>'));
   }
   const decoded = new Uint8Array(payloadSize);
   let stream = (seed ^ 0x9E3779B9) >>> 0;
@@ -1047,22 +1047,22 @@ function decodeQuickJsEnvelope(bytes, sourceName) {
   laneMap.fill(0);
   if (fnv1a64(decoded) !== expectedHash) {
     decoded.fill(0);
-    throw new Error('QuickJS bytecode envelope integrity mismatch for ' + (sourceName || '<script>'));
+    throw new Error('TurboJS bytecode envelope integrity mismatch for ' + (sourceName || '<script>'));
   }
   return decoded;
 }
 
-function validateQuickJsBytecodeRecord(bytes, sourceName) {
-  if (!bytes || bytes.length < 48) throw new Error('QuickJS bytecode record is truncated for ' + (sourceName || '<script>'));
+function validateTurboJsBytecodeRecord(bytes, sourceName) {
+  if (!bytes || bytes.length < 48) throw new Error('TurboJS bytecode record is truncated for ' + (sourceName || '<script>'));
   const magic = asciiOf(bytes.slice(0, 8));
-  if (magic === 'VQJSBC01' || magic === 'VQJSBC02') throw new Error('source-preserving QuickJS bytecode record rejected for ' + (sourceName || '<script>'));
-  if (magic !== 'VQJSBC03') throw new Error('unknown QuickJS bytecode record for ' + (sourceName || '<script>'));
+  if (magic === 'VTJSBC01' || magic === 'VTJSBC02') throw new Error('source-preserving TurboJS bytecode record rejected for ' + (sourceName || '<script>'));
+  if (magic !== 'VTJSBC03') throw new Error('unknown TurboJS bytecode record for ' + (sourceName || '<script>'));
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const version = readU32(view, 8);
   const bytecodeSize = readU32(view, 16);
   const payloadOffset = readU32(view, 44);
   if (version !== 3 || payloadOffset !== 48 || payloadOffset + bytecodeSize !== bytes.length) {
-    throw new Error('QuickJS native bytecode record ranges are invalid for ' + (sourceName || '<script>'));
+    throw new Error('TurboJS native bytecode record ranges are invalid for ' + (sourceName || '<script>'));
   }
   return true;
 }
@@ -1107,17 +1107,17 @@ function parseJsBundle(section) {
     const source = textDecoder.decode(data.slice(textBase + sourceOffset, sourceEnd));
     const storedCodeBytes = data.slice(codeBase + codeOffset, codeEnd);
     const storedMagic = asciiOf(storedCodeBytes.slice(0, 8));
-    const bytecodeEncoded = (flags & SCRIPT_FLAG.BYTECODE_ENCODED) !== 0 || storedMagic === 'VQJSE006' || storedMagic === 'VQJSBC03' || storedMagic === 'VQJSMB04';
-    const codeBytes = bytecodeEncoded ? decodeQuickJsEnvelope(storedCodeBytes, source) : storedCodeBytes;
-    if (storedMagic === 'VQJSE006') storedCodeBytes.fill(0);
+    const bytecodeEncoded = (flags & SCRIPT_FLAG.BYTECODE_ENCODED) !== 0 || storedMagic === 'VTJSE006' || storedMagic === 'VTJSBC03' || storedMagic === 'VTJSMB04';
+    const codeBytes = bytecodeEncoded ? decodeTurboJsEnvelope(storedCodeBytes, source) : storedCodeBytes;
+    if (storedMagic === 'VTJSE006') storedCodeBytes.fill(0);
     const bytecodeMagic = asciiOf(codeBytes.slice(0, 8));
     const browserSide = (flags & SCRIPT_FLAG.BROWSER) !== 0;
     if (browserSide && bytecodeEncoded) {
-      throw new Error('browser script chunk cannot contain QuickJS bytecode: ' + (source || '<script>'));
+      throw new Error('browser script chunk cannot contain TurboJS bytecode: ' + (source || '<script>'));
     }
     if (bytecodeEncoded) {
-      if (bytecodeMagic === 'VQJSBC03') validateQuickJsBytecodeRecord(codeBytes, source);
-      else if (bytecodeMagic !== 'VQJSMB04') throw new Error('unknown protected QuickJS payload for ' + (source || '<script>'));
+      if (bytecodeMagic === 'VTJSBC03') validateTurboJsBytecodeRecord(codeBytes, source);
+      else if (bytecodeMagic !== 'VTJSMB04') throw new Error('unknown protected TurboJS payload for ' + (source || '<script>'));
     }
     const bytecodeTrustHandoff = bytecodeEncoded ? (() => {
       const byteHash = fnv1a32(codeBytes) >>> 0;
@@ -1125,7 +1125,7 @@ function parseJsBundle(section) {
       return Object.freeze({
         version: 1,
         producer: 'package-decoder-wasm',
-        consumer: 'quickjs-execution-wasm',
+        consumer: 'turbojs-execution-wasm',
         byteLength: codeBytes.length >>> 0,
         byteHash,
         bindingHash: fnv1a32(textEncoder.encode(bindingText)) >>> 0,
@@ -1309,7 +1309,7 @@ function parseHostBridgeMetadata(section) {
     else if (key === 'async_host_queue') plan.asyncHostQueue = value || 'planned';
     else if (key === 'timer_bridge') plan.timerBridge = value || 'planned';
     else if (key === 'event_queue') plan.eventQueue = value || 'planned';
-    else if (key === 'quickjs_bridge') plan.quickJsBridge = value || 'planned';
+    else if (key === 'turbojs_bridge') plan.turboJsBridge = value || 'planned';
     else plan.diagnostics.set(key, value);
   }
   return Object.freeze({
@@ -1322,7 +1322,7 @@ function parseHostBridgeMetadata(section) {
     asyncHostQueue: plan.asyncHostQueue || 'planned',
     timerBridge: plan.timerBridge || 'planned',
     eventQueue: plan.eventQueue || 'planned',
-    quickJsBridge: plan.quickJsBridge || 'planned',
+    turboJsBridge: plan.turboJsBridge || 'planned',
     diagnostics: plan.diagnostics,
     capabilitiesById: plan.capabilitiesById,
     capabilitiesByName: plan.capabilitiesByName,
@@ -1499,7 +1499,7 @@ function parseTimerBridgeMetadata(section) {
     maxScheduledPerRoute: Number.parseInt(plan.values.get('max_scheduled_per_route') || '512', 10) >>> 0,
     minimumDelayMs: Number.parseInt(plan.values.get('minimum_delay_ms') || '0', 10) >>> 0,
     wasmResponseBoundary: plan.values.get('wasm_response_boundary') || 'planned',
-    quickjsTimerBoundary: plan.values.get('quickjs_timer_boundary') || 'planned',
+    turbojsTimerBoundary: plan.values.get('turbojs_timer_boundary') || 'planned',
   });
 }
 
@@ -1515,18 +1515,18 @@ function parseEventQueueMetadata(section) {
     maxDispatchesPerRoute: Number.parseInt(plan.values.get('max_dispatches_per_route') || '1024', 10) >>> 0,
     recordPayload: plan.values.get('record_payload') || 'eventName|attrName|route|targetTag',
     wasmEventBoundary: plan.values.get('wasm_event_boundary') || 'planned',
-    quickjsEventBoundary: plan.values.get('quickjs_event_boundary') || 'planned',
+    turbojsEventBoundary: plan.values.get('turbojs_event_boundary') || 'planned',
   });
 }
 
-function parseQuickJsBridgeMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_BRIDGE_V9', 'VENOM_QUICKJS_BRIDGE_V8', 'VENOM_QUICKJS_BRIDGE_V7', 'VENOM_QUICKJS_BRIDGE_V6', 'VENOM_QUICKJS_BRIDGE_V5', 'VENOM_QUICKJS_BRIDGE_V4', 'VENOM_QUICKJS_BRIDGE_V3', 'VENOM_QUICKJS_BRIDGE_V2', 'VENOM_QUICKJS_BRIDGE_V1']);
+function parseTurboJsBridgeMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_BRIDGE_V9', 'VENOM_TURBOJS_BRIDGE_V8', 'VENOM_TURBOJS_BRIDGE_V7', 'VENOM_TURBOJS_BRIDGE_V6', 'VENOM_TURBOJS_BRIDGE_V5', 'VENOM_TURBOJS_BRIDGE_V4', 'VENOM_TURBOJS_BRIDGE_V3', 'VENOM_TURBOJS_BRIDGE_V2', 'VENOM_TURBOJS_BRIDGE_V1']);
   return Object.freeze({
     version: plan.version,
     enabled: plan.enabled,
     mode: plan.values.get('mode') || 'planned-boundary',
-    callHostCall: plan.values.get('call_host_call') || 'quickjs.call',
-    resultHostCall: plan.values.get('result_host_call') || 'quickjs.result',
+    callHostCall: plan.values.get('call_host_call') || 'turbojs.call',
+    resultHostCall: plan.values.get('result_host_call') || 'turbojs.result',
     queue: plan.values.get('queue') || 'async-host-queue.vahq',
     scriptIsolation: plan.values.get('script_isolation') || 'route-scoped',
     bytecodeInput: plan.values.get('bytecode_input') || 'planned',
@@ -1534,8 +1534,8 @@ function parseQuickJsBridgeMetadata(section) {
     nativeEngine: plan.values.get('native_engine') || 'compile-time-probe',
     chunkMetadata: plan.values.get('chunk_metadata') || '',
     capabilityPolicy: plan.values.get('capability_policy') || '',
-    requestRecord: plan.values.get('request_record') || 'quickjs.call',
-    resultRecord: plan.values.get('result_record') || 'quickjs.result',
+    requestRecord: plan.values.get('request_record') || 'turbojs.call',
+    resultRecord: plan.values.get('result_record') || 'turbojs.result',
     engineMetadata: plan.values.get('engine_metadata') || '',
     scriptEnginePolicy: plan.values.get('script_engine_policy') || '',
     fallbackPolicy: plan.values.get('fallback_policy') || 'host-js-isolated-wrapper',
@@ -1554,7 +1554,7 @@ function parseScriptIsolationMetadata(section) {
     globalPolicy: plan.values.get('global_policy') || 'shared-browser-global-with-route-wrapper',
     documentAccess: plan.values.get('document_access') || 'bridge-parameter',
     windowAccess: plan.values.get('window_access') || 'bridge-parameter',
-    quickJsBoundary: plan.values.get('quickjs_boundary') || 'planned',
+    turboJsBoundary: plan.values.get('turbojs_boundary') || 'planned',
     engineContext: plan.values.get('engine_context') || 'planned',
     engineFallback: plan.values.get('engine_fallback') || 'none',
     chunkCount: Number.parseInt(plan.values.get('chunk_count') || '0', 10) >>> 0,
@@ -1567,7 +1567,7 @@ function parseScriptPolicyMetadata(section) {
     version: plan.version,
     defaultCapabilities: plan.values.get('default_capabilities') || '',
     remoteScripts: plan.values.get('remote_scripts') || 'metadata-only',
-    moduleScripts: plan.values.get('module_scripts') || 'blob-loader-until-quickjs-wasm',
+    moduleScripts: plan.values.get('module_scripts') || 'blob-loader-until-turbojs-wasm',
     inlineScripts: plan.values.get('inline_scripts') || 'route-wrapper',
     policyCheckHostCall: plan.values.get('policy_check_host_call') || 'script.policyCheck',
     chunkStartHostCall: plan.values.get('chunk_start_host_call') || 'script.chunkStart',
@@ -1577,24 +1577,24 @@ function parseScriptPolicyMetadata(section) {
   });
 }
 
-function parseQuickJsChunkMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_CHUNKS_V7', 'VENOM_QUICKJS_CHUNKS_V6', 'VENOM_QUICKJS_CHUNKS_V5', 'VENOM_QUICKJS_CHUNKS_V4', 'VENOM_QUICKJS_CHUNKS_V3', 'VENOM_QUICKJS_CHUNKS_V2', 'VENOM_QUICKJS_CHUNKS_V1']);
+function parseTurboJsChunkMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_CHUNKS_V7', 'VENOM_TURBOJS_CHUNKS_V6', 'VENOM_TURBOJS_CHUNKS_V5', 'VENOM_TURBOJS_CHUNKS_V4', 'VENOM_TURBOJS_CHUNKS_V3', 'VENOM_TURBOJS_CHUNKS_V2', 'VENOM_TURBOJS_CHUNKS_V1']);
   return Object.freeze({
     version: plan.version,
     mode: plan.values.get('mode') || 'none',
     bytecodeProvider: plan.values.get('bytecode_provider') || 'planned',
     sourceChunkSection: plan.values.get('source_chunk_section') || 'scripts.vjsb',
-    requestHostCall: plan.values.get('request_host_call') || 'quickjs.chunk',
-    bytecodeBoundaryHostCall: plan.values.get('bytecode_boundary_host_call') || 'quickjs.bytecodeBoundary',
-    engineExecuteHostCall: plan.values.get('engine_execute_host_call') || 'quickjs.executeChunk',
+    requestHostCall: plan.values.get('request_host_call') || 'turbojs.chunk',
+    bytecodeBoundaryHostCall: plan.values.get('bytecode_boundary_host_call') || 'turbojs.bytecodeBoundary',
+    engineExecuteHostCall: plan.values.get('engine_execute_host_call') || 'turbojs.executeChunk',
     engineFallback: plan.values.get('engine_fallback') || 'none',
     chunkCount: Number.parseInt(plan.values.get('chunk_count') || '0', 10) >>> 0,
   });
 }
 
 
-function parseQuickJsEngineMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_ENGINE_V7', 'VENOM_QUICKJS_ENGINE_V6', 'VENOM_QUICKJS_ENGINE_V5', 'VENOM_QUICKJS_ENGINE_V4', 'VENOM_QUICKJS_ENGINE_V3', 'VENOM_QUICKJS_ENGINE_V2', 'VENOM_QUICKJS_ENGINE_V1']);
+function parseTurboJsEngineMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_ENGINE_V7', 'VENOM_TURBOJS_ENGINE_V6', 'VENOM_TURBOJS_ENGINE_V5', 'VENOM_TURBOJS_ENGINE_V4', 'VENOM_TURBOJS_ENGINE_V3', 'VENOM_TURBOJS_ENGINE_V2', 'VENOM_TURBOJS_ENGINE_V1']);
   return Object.freeze({
     version: plan.version,
     enabled: plan.enabled,
@@ -1605,9 +1605,9 @@ function parseQuickJsEngineMetadata(section) {
     contextModel: plan.values.get('context_model') || 'none',
     sourceChunks: plan.values.get('source_chunks') || '',
     capabilityPolicy: plan.values.get('capability_policy') || '',
-    contextCreateHostCall: plan.values.get('context_create_host_call') || 'quickjs.contextCreate',
-    executeHostCall: plan.values.get('execute_host_call') || 'quickjs.executeChunk',
-    resultHostCall: plan.values.get('result_host_call') || 'quickjs.executionResult',
+    contextCreateHostCall: plan.values.get('context_create_host_call') || 'turbojs.contextCreate',
+    executeHostCall: plan.values.get('execute_host_call') || 'turbojs.executeChunk',
+    resultHostCall: plan.values.get('result_host_call') || 'turbojs.executionResult',
     fallbackHostCall: plan.values.get('fallback_host_call') || 'script.engineFallback',
     wasmRuntimeAsset: plan.values.get('wasm_runtime_asset') || '',
     sourceTransfer: plan.values.get('source_transfer') || '',
@@ -1636,15 +1636,15 @@ function parseScriptEnginePolicyMetadata(section) {
   });
 }
 
-function parseQuickJsEngineModuleMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_ENGINE_MODULE_V7', 'VENOM_QUICKJS_ENGINE_MODULE_V6', 'VENOM_QUICKJS_ENGINE_MODULE_V5', 'VENOM_QUICKJS_ENGINE_MODULE_V4', 'VENOM_QUICKJS_ENGINE_MODULE_V3', 'VENOM_QUICKJS_ENGINE_MODULE_V2', 'VENOM_QUICKJS_ENGINE_MODULE_V1']);
+function parseTurboJsEngineModuleMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_ENGINE_MODULE_V7', 'VENOM_TURBOJS_ENGINE_MODULE_V6', 'VENOM_TURBOJS_ENGINE_MODULE_V5', 'VENOM_TURBOJS_ENGINE_MODULE_V4', 'VENOM_TURBOJS_ENGINE_MODULE_V3', 'VENOM_TURBOJS_ENGINE_MODULE_V2', 'VENOM_TURBOJS_ENGINE_MODULE_V1']);
   return Object.freeze({
     version: plan.version,
     enabled: plan.enabled,
     assetName: plan.values.get('asset_name') || '',
     moduleFormat: plan.values.get('module_format') || 'esm',
     loader: plan.values.get('loader') || 'dynamic-import',
-    exportName: plan.values.get('export') || 'createVenomQuickJsEngineModule',
+    exportName: plan.values.get('export') || 'createVenomTurboJsEngineModule',
     executionMode: plan.values.get('execution_mode') || 'route-scoped-module',
     fallback: plan.values.get('fallback') || 'host-js-isolated-wrapper',
     contextModel: plan.values.get('context_model') || 'route-scoped',
@@ -1658,18 +1658,18 @@ function parseQuickJsEngineModuleMetadata(section) {
   });
 }
 
-function parseQuickJsContextLifecycleMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_CONTEXT_LIFECYCLE_V3', 'VENOM_QUICKJS_CONTEXT_LIFECYCLE_V2', 'VENOM_QUICKJS_CONTEXT_LIFECYCLE_V1']);
+function parseTurboJsContextLifecycleMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_CONTEXT_LIFECYCLE_V3', 'VENOM_TURBOJS_CONTEXT_LIFECYCLE_V2', 'VENOM_TURBOJS_CONTEXT_LIFECYCLE_V1']);
   return Object.freeze({
     version: plan.version,
     enabled: plan.enabled,
     model: plan.values.get('model') || 'route-scoped-reusable',
     key: plan.values.get('key') || 'route|source|order',
-    createHostCall: plan.values.get('create_host_call') || 'quickjs.contextCreate',
-    reuseHostCall: plan.values.get('reuse_host_call') || 'quickjs.contextReuse',
-    destroyHostCall: plan.values.get('destroy_host_call') || 'quickjs.contextDestroy',
-    moduleCreateHostCall: plan.values.get('module_create_host_call') || 'quickjs.moduleContextCreate',
-    moduleDestroyHostCall: plan.values.get('module_destroy_host_call') || 'quickjs.moduleContextDestroy',
+    createHostCall: plan.values.get('create_host_call') || 'turbojs.contextCreate',
+    reuseHostCall: plan.values.get('reuse_host_call') || 'turbojs.contextReuse',
+    destroyHostCall: plan.values.get('destroy_host_call') || 'turbojs.contextDestroy',
+    moduleCreateHostCall: plan.values.get('module_create_host_call') || 'turbojs.moduleContextCreate',
+    moduleDestroyHostCall: plan.values.get('module_destroy_host_call') || 'turbojs.moduleContextDestroy',
     snapshot: plan.values.get('snapshot') !== 'false',
     maxContexts: Number.parseInt(plan.values.get('max_contexts') || '4096', 10) >>> 0,
     chunkCount: Number.parseInt(plan.values.get('chunk_count') || '0', 10) >>> 0,
@@ -1703,7 +1703,7 @@ function parseHostCapabilitiesMetadata(section) {
     enabled: plan.enabled,
     policy: plan.values.get('policy') || 'legacy-global',
     undeclaredCapability: plan.values.get('undeclared_capability') || 'allow',
-    injectHostCall: plan.values.get('inject_host_call') || 'quickjs.hostCapabilityInject',
+    injectHostCall: plan.values.get('inject_host_call') || 'turbojs.hostCapabilityInject',
     defaultCapabilityCount: Number.parseInt(plan.values.get('default_capability_count') || String(capabilities.length), 10) >>> 0,
     defaultCapabilities: Object.freeze((plan.values.get('default_capabilities') || '').split(',').filter(Boolean)),
     chunkCount: Number.parseInt(plan.values.get('chunk_count') || '0', 10) >>> 0,
@@ -1712,8 +1712,8 @@ function parseHostCapabilitiesMetadata(section) {
   });
 }
 
-function parseQuickJsAdapterDiagnosticsMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_ADAPTER_DIAGNOSTICS_V3', 'VENOM_QUICKJS_ADAPTER_DIAGNOSTICS_V2', 'VENOM_QUICKJS_ADAPTER_DIAGNOSTICS_V1']);
+function parseTurboJsAdapterDiagnosticsMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_ADAPTER_DIAGNOSTICS_V3', 'VENOM_TURBOJS_ADAPTER_DIAGNOSTICS_V2', 'VENOM_TURBOJS_ADAPTER_DIAGNOSTICS_V1']);
   return Object.freeze({
     version: plan.version,
     enabled: plan.enabled,
@@ -1725,8 +1725,8 @@ function parseQuickJsAdapterDiagnosticsMetadata(section) {
   });
 }
 
-function parseQuickJsWasmRuntimeMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_WASM_RUNTIME_V10', 'VENOM_QUICKJS_WASM_RUNTIME_V9', 'VENOM_QUICKJS_WASM_RUNTIME_V8', 'VENOM_QUICKJS_WASM_RUNTIME_V7', 'VENOM_QUICKJS_WASM_RUNTIME_V6', 'VENOM_QUICKJS_WASM_RUNTIME_V5', 'VENOM_QUICKJS_WASM_RUNTIME_V4', 'VENOM_QUICKJS_WASM_RUNTIME_V3', 'VENOM_QUICKJS_WASM_RUNTIME_V2', 'VENOM_QUICKJS_WASM_RUNTIME_V1']);
+function parseTurboJsWasmRuntimeMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_WASM_RUNTIME_V10', 'VENOM_TURBOJS_WASM_RUNTIME_V9', 'VENOM_TURBOJS_WASM_RUNTIME_V8', 'VENOM_TURBOJS_WASM_RUNTIME_V7', 'VENOM_TURBOJS_WASM_RUNTIME_V6', 'VENOM_TURBOJS_WASM_RUNTIME_V5', 'VENOM_TURBOJS_WASM_RUNTIME_V4', 'VENOM_TURBOJS_WASM_RUNTIME_V3', 'VENOM_TURBOJS_WASM_RUNTIME_V2', 'VENOM_TURBOJS_WASM_RUNTIME_V1']);
   return Object.freeze({
     version: plan.version,
     enabled: plan.enabled,
@@ -1734,7 +1734,7 @@ function parseQuickJsWasmRuntimeMetadata(section) {
     abi: Number.parseInt(plan.values.get('abi') || '12', 10) >>> 0,
     packageVersion: Number.parseInt(plan.values.get('package_version') || '50', 10) >>> 0,
     exports: plan.values.get('exports') || '',
-    executionMode: plan.values.get('execution_mode') || 'quickjs-wasm-abi12-upstream-global-host-api-shims',
+    executionMode: plan.values.get('execution_mode') || 'turbojs-wasm-abi12-upstream-global-host-api-shims',
     abiContract: plan.values.get('abi_contract') || '',
     statusExports: plan.values.get('status_exports') || '',
     limitExports: plan.values.get('limit_exports') || '',
@@ -1742,71 +1742,71 @@ function parseQuickJsWasmRuntimeMetadata(section) {
   });
 }
 
-function parseQuickJsSourceTransferMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_SOURCE_TRANSFER_V7', 'VENOM_QUICKJS_SOURCE_TRANSFER_V6', 'VENOM_QUICKJS_SOURCE_TRANSFER_V5', 'VENOM_QUICKJS_SOURCE_TRANSFER_V4', 'VENOM_QUICKJS_SOURCE_TRANSFER_V3', 'VENOM_QUICKJS_SOURCE_TRANSFER_V2', 'VENOM_QUICKJS_SOURCE_TRANSFER_V1']);
+function parseTurboJsSourceTransferMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_SOURCE_TRANSFER_V7', 'VENOM_TURBOJS_SOURCE_TRANSFER_V6', 'VENOM_TURBOJS_SOURCE_TRANSFER_V5', 'VENOM_TURBOJS_SOURCE_TRANSFER_V4', 'VENOM_TURBOJS_SOURCE_TRANSFER_V3', 'VENOM_TURBOJS_SOURCE_TRANSFER_V2', 'VENOM_TURBOJS_SOURCE_TRANSFER_V1']);
   return Object.freeze({
     version: plan.version,
     enabled: plan.enabled,
-    sourcePtr: plan.values.get('source_ptr') || 'venom_qjs_source_ptr',
-    sourceCapacity: plan.values.get('source_capacity') || 'venom_qjs_source_capacity',
-    executeSource: plan.values.get('execute_source') || 'venom_qjs_execute_source',
-    executeBytecode: plan.values.get('execute_bytecode') || 'venom_qjs_execute_bytecode',
-    validateBytecode: plan.values.get('validate_bytecode') || 'venom_qjs_bytecode_validate',
-    bytecodeStatus: plan.values.get('bytecode_status') || 'venom_qjs_status_code',
-    bytecodeRecordHash: plan.values.get('bytecode_record_hash') || 'venom_qjs_bytecode_record_hash32',
-    bytecodePayloadSize: plan.values.get('bytecode_payload_size') || 'venom_qjs_bytecode_payload_size',
+    sourcePtr: plan.values.get('source_ptr') || 'venom_tjs_source_ptr',
+    sourceCapacity: plan.values.get('source_capacity') || 'venom_tjs_source_capacity',
+    executeSource: plan.values.get('execute_source') || 'venom_tjs_execute_source',
+    executeBytecode: plan.values.get('execute_bytecode') || 'venom_tjs_execute_bytecode',
+    validateBytecode: plan.values.get('validate_bytecode') || 'venom_tjs_bytecode_validate',
+    bytecodeStatus: plan.values.get('bytecode_status') || 'venom_tjs_status_code',
+    bytecodeRecordHash: plan.values.get('bytecode_record_hash') || 'venom_tjs_bytecode_record_hash32',
+    bytecodePayloadSize: plan.values.get('bytecode_payload_size') || 'venom_tjs_bytecode_payload_size',
     transferMode: plan.values.get('transfer_mode') || 'utf8-source',
-    resultPtr: plan.values.get('result_ptr') || 'venom_qjs_result_ptr',
-    resultSize: plan.values.get('result_size') || 'venom_qjs_result_size',
+    resultPtr: plan.values.get('result_ptr') || 'venom_tjs_result_ptr',
+    resultSize: plan.values.get('result_size') || 'venom_tjs_result_size',
   });
 }
 
-function parseQuickJsConsoleBridgeMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_CONSOLE_BRIDGE_V4', 'VENOM_QUICKJS_CONSOLE_BRIDGE_V3', 'VENOM_QUICKJS_CONSOLE_BRIDGE_V2', 'VENOM_QUICKJS_CONSOLE_BRIDGE_V1']);
+function parseTurboJsConsoleBridgeMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_CONSOLE_BRIDGE_V4', 'VENOM_TURBOJS_CONSOLE_BRIDGE_V3', 'VENOM_TURBOJS_CONSOLE_BRIDGE_V2', 'VENOM_TURBOJS_CONSOLE_BRIDGE_V1']);
   return Object.freeze({
     version: plan.version,
     enabled: plan.enabled,
     mode: plan.values.get('mode') || 'host-console-forward',
-    hostCall: plan.values.get('host_call') || 'quickjs.console',
+    hostCall: plan.values.get('host_call') || 'turbojs.console',
   });
 }
 
 
-function parseQuickJsExecutionRecordsMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_EXECUTION_RECORDS_V3', 'VENOM_QUICKJS_EXECUTION_RECORDS_V2', 'VENOM_QUICKJS_EXECUTION_RECORDS_V1']);
+function parseTurboJsExecutionRecordsMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_EXECUTION_RECORDS_V3', 'VENOM_TURBOJS_EXECUTION_RECORDS_V2', 'VENOM_TURBOJS_EXECUTION_RECORDS_V1']);
   return Object.freeze({
     version: plan.version,
     enabled: plan.enabled,
-    recordHostCall: plan.values.get('record_host_call') || 'quickjs.executionRecord',
-    snapshotHostCall: plan.values.get('snapshot_host_call') || 'quickjs.executionSnapshot',
+    recordHostCall: plan.values.get('record_host_call') || 'turbojs.executionRecord',
+    snapshotHostCall: plan.values.get('snapshot_host_call') || 'turbojs.executionSnapshot',
     recordFields: plan.values.get('record_fields') || '',
     retention: plan.values.get('retention') || 'runtime-session',
     chunkCount: Number.parseInt(plan.values.get('chunk_count') || '0', 10) >>> 0,
   });
 }
 
-function parseQuickJsResultBridgeMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_RESULT_BRIDGE_V3', 'VENOM_QUICKJS_RESULT_BRIDGE_V2', 'VENOM_QUICKJS_RESULT_BRIDGE_V1']);
+function parseTurboJsResultBridgeMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_RESULT_BRIDGE_V3', 'VENOM_TURBOJS_RESULT_BRIDGE_V2', 'VENOM_TURBOJS_RESULT_BRIDGE_V1']);
   return Object.freeze({
     version: plan.version,
     enabled: plan.enabled,
-    resultHostCall: plan.values.get('result_host_call') || 'quickjs.resultBridge',
-    wasmDecodeHostCall: plan.values.get('wasm_decode_host_call') || 'quickjs.wasmResultDecode',
-    consoleEventHostCall: plan.values.get('console_event_host_call') || 'quickjs.consoleEvent',
-    consoleFlushHostCall: plan.values.get('console_flush_host_call') || 'quickjs.consoleFlush',
+    resultHostCall: plan.values.get('result_host_call') || 'turbojs.resultBridge',
+    wasmDecodeHostCall: plan.values.get('wasm_decode_host_call') || 'turbojs.wasmResultDecode',
+    consoleEventHostCall: plan.values.get('console_event_host_call') || 'turbojs.consoleEvent',
+    consoleFlushHostCall: plan.values.get('console_flush_host_call') || 'turbojs.consoleFlush',
     format: plan.values.get('format') || 'json-record-v1',
     fields: plan.values.get('fields') || '',
   });
 }
 
-function parseQuickJsFallbackPolicyMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QUICKJS_FALLBACK_POLICY_V3', 'VENOM_QUICKJS_FALLBACK_POLICY_V2', 'VENOM_QUICKJS_FALLBACK_POLICY_V1']);
+function parseTurboJsFallbackPolicyMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TURBOJS_FALLBACK_POLICY_V3', 'VENOM_TURBOJS_FALLBACK_POLICY_V2', 'VENOM_TURBOJS_FALLBACK_POLICY_V1']);
   return Object.freeze({
     version: plan.version,
     enabled: plan.enabled,
     mode: plan.values.get('mode') || 'explicit-policy-gated',
     decisionHostCall: plan.values.get('decision_host_call') || 'script.fallbackDecision',
-    policyCheckHostCall: plan.values.get('policy_check_host_call') || 'quickjs.fallbackPolicyCheck',
+    policyCheckHostCall: plan.values.get('policy_check_host_call') || 'turbojs.fallbackPolicyCheck',
     allowWhen: plan.values.get('allow_when') || '',
     denyWhen: plan.values.get('deny_when') || '',
     currentReleasePolicy: plan.values.get('current_release_policy') || 'allow-compatible-fallback-with-record',
@@ -1815,80 +1815,80 @@ function parseQuickJsFallbackPolicyMetadata(section) {
   });
 }
 
-function parseQuickJsRuntimeAbiMetadata(section) {
-  const plan = parseKeyValueMetadata(section, [['VENOM','QJS','RUNTIME','ABI','V12'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V11'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V10'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V7'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V5'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V4'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V3'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V2'].join('_'), ['VENOM','QJS','RUNTIME','ABI','V1'].join('_')]);
+function parseTurboJsRuntimeAbiMetadata(section) {
+  const plan = parseKeyValueMetadata(section, [['VENOM','TJS','RUNTIME','ABI','V12'].join('_'), ['VENOM','TJS','RUNTIME','ABI','V11'].join('_'), ['VENOM','TJS','RUNTIME','ABI','V10'].join('_'), ['VENOM','TJS','RUNTIME','ABI','V7'].join('_'), ['VENOM','TJS','RUNTIME','ABI','V5'].join('_'), ['VENOM','TJS','RUNTIME','ABI','V4'].join('_'), ['VENOM','TJS','RUNTIME','ABI','V3'].join('_'), ['VENOM','TJS','RUNTIME','ABI','V2'].join('_'), ['VENOM','TJS','RUNTIME','ABI','V1'].join('_')]);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, abi: Number.parseInt(plan.values.get('abi') || '12', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, entryCount: Number.parseInt(plan.values.get('entry_count') || '0', 10) >>> 0, tableHash: plan.values.get('table_hash') || plan.values.get('abi_hash') || '', table: plan.values.get('table') || '', exports: plan.values.get('exports') || '' });
 }
 
-function parseQuickJsHostImportsMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_HOST_IMPORT_TABLE_V10', 'VENOM_QJS_HOST_IMPORT_TABLE_V9', 'VENOM_QJS_HOST_IMPORT_TABLE_V8', 'VENOM_QJS_HOST_IMPORT_TABLE_V5', 'VENOM_QJS_HOST_IMPORT_TABLE_V4', 'VENOM_QJS_HOST_IMPORT_TABLE_V3', 'VENOM_QJS_HOST_IMPORT_TABLE_V2', 'VENOM_QJS_HOST_IMPORT_TABLE_V1', 'VENOM_QUICKJS_HOST_IMPORTS_V1']);
+function parseTurboJsHostImportsMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_HOST_IMPORT_TABLE_V10', 'VENOM_TJS_HOST_IMPORT_TABLE_V9', 'VENOM_TJS_HOST_IMPORT_TABLE_V8', 'VENOM_TJS_HOST_IMPORT_TABLE_V5', 'VENOM_TJS_HOST_IMPORT_TABLE_V4', 'VENOM_TJS_HOST_IMPORT_TABLE_V3', 'VENOM_TJS_HOST_IMPORT_TABLE_V2', 'VENOM_TJS_HOST_IMPORT_TABLE_V1', 'VENOM_TURBOJS_HOST_IMPORTS_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, importCount: Number.parseInt(plan.values.get('import_count') || plan.values.get('entry_count') || '0', 10) >>> 0, tableHash: plan.values.get('table_hash') || plan.values.get('abi_hash') || '', table: plan.values.get('table') || '', design: plan.values.get('design') || 'host-call-import-table' });
 }
 
-function parseQuickJsHeapLimitsMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_CONTEXT_LIMITS_V1', 'VENOM_QUICKJS_HEAP_LIMITS_V1']);
-  return Object.freeze({ version: plan.version, enabled: plan.enabled, heapLimit: Number.parseInt(plan.values.get('default_heap_limit') || '8388608', 10) >>> 0, stackLimit: Number.parseInt(plan.values.get('default_stack_limit') || '262144', 10) >>> 0, maxContexts: Number.parseInt(plan.values.get('max_contexts') || '64', 10) >>> 0, accountingHostCall: plan.values.get('accounting_host_call') || 'quickjs.contextHeapAccounting' });
+function parseTurboJsHeapLimitsMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_CONTEXT_LIMITS_V1', 'VENOM_TURBOJS_HEAP_LIMITS_V1']);
+  return Object.freeze({ version: plan.version, enabled: plan.enabled, heapLimit: Number.parseInt(plan.values.get('default_heap_limit') || '8388608', 10) >>> 0, stackLimit: Number.parseInt(plan.values.get('default_stack_limit') || '262144', 10) >>> 0, maxContexts: Number.parseInt(plan.values.get('max_contexts') || '64', 10) >>> 0, accountingHostCall: plan.values.get('accounting_host_call') || 'turbojs.contextHeapAccounting' });
 }
 
-function parseQuickJsScriptBufferMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_SCRIPT_BUFFER_V1', 'VENOM_QUICKJS_SCRIPT_BUFFER_V1']);
-  return Object.freeze({ version: plan.version, enabled: plan.enabled, capacity: Number.parseInt(plan.values.get('max_script_bytes') || plan.values.get('max_script_buffer') || '786432', 10) >>> 0, allocExport: plan.values.get('alloc_export') || 'venom_qjs_script_buffer_alloc', ptrExport: plan.values.get('ptr_export') || 'venom_qjs_script_buffer_ptr', freeExport: plan.values.get('free_export') || 'venom_qjs_script_buffer_free' });
+function parseTurboJsScriptBufferMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_SCRIPT_BUFFER_V1', 'VENOM_TURBOJS_SCRIPT_BUFFER_V1']);
+  return Object.freeze({ version: plan.version, enabled: plan.enabled, capacity: Number.parseInt(plan.values.get('max_script_bytes') || plan.values.get('max_script_buffer') || '786432', 10) >>> 0, allocExport: plan.values.get('alloc_export') || 'venom_tjs_script_buffer_alloc', ptrExport: plan.values.get('ptr_export') || 'venom_tjs_script_buffer_ptr', freeExport: plan.values.get('free_export') || 'venom_tjs_script_buffer_free' });
 }
 
-function parseQuickJsConsoleAbiMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_CONSOLE_CALLBACK_ABI_V1', 'VENOM_QUICKJS_CONSOLE_ABI_V1']);
-  return Object.freeze({ version: plan.version, enabled: plan.enabled, abi: Number.parseInt(plan.values.get('abi') || '1', 10) >>> 0, eventFormat: plan.values.get('event_format') || 'json-console-event-v1', eventExport: plan.values.get('event_export') || 'venom_qjs_console_event_ptr' });
+function parseTurboJsConsoleAbiMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_CONSOLE_CALLBACK_ABI_V1', 'VENOM_TURBOJS_CONSOLE_ABI_V1']);
+  return Object.freeze({ version: plan.version, enabled: plan.enabled, abi: Number.parseInt(plan.values.get('abi') || '1', 10) >>> 0, eventFormat: plan.values.get('event_format') || 'json-console-event-v1', eventExport: plan.values.get('event_export') || 'venom_tjs_console_event_ptr' });
 }
 
-function parseQuickJsParityProbeMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_PARITY_PROBE_V7', 'VENOM_QJS_PARITY_PROBE_V6', 'VENOM_QJS_PARITY_PROBE_V5', 'VENOM_QJS_PARITY_PROBE_V4', 'VENOM_QJS_PARITY_PROBE_V3', 'VENOM_QJS_PARITY_PROBE_V2', 'VENOM_QJS_PARITY_PROBE_V1', 'VENOM_QUICKJS_PARITY_PROBE_V1']);
-  return Object.freeze({ version: plan.version, enabled: plan.enabled, expected: plan.values.get('expected') || 'quickjs:3', native: plan.values.get('native') || '', wasm: plan.values.get('wasm') || '', hostCall: plan.values.get('host_call') || 'quickjs.wasmParityProbe' });
+function parseTurboJsParityProbeMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_PARITY_PROBE_V7', 'VENOM_TJS_PARITY_PROBE_V6', 'VENOM_TJS_PARITY_PROBE_V5', 'VENOM_TJS_PARITY_PROBE_V4', 'VENOM_TJS_PARITY_PROBE_V3', 'VENOM_TJS_PARITY_PROBE_V2', 'VENOM_TJS_PARITY_PROBE_V1', 'VENOM_TURBOJS_PARITY_PROBE_V1']);
+  return Object.freeze({ version: plan.version, enabled: plan.enabled, expected: plan.values.get('expected') || 'turbojs:3', native: plan.values.get('native') || '', wasm: plan.values.get('wasm') || '', hostCall: plan.values.get('host_call') || 'turbojs.wasmParityProbe' });
 }
 
-function parseQuickJsReleaseFallbackMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_RELEASE_FALLBACK_V1', 'VENOM_QUICKJS_RELEASE_FALLBACK_V1']);
+function parseTurboJsReleaseFallbackMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_RELEASE_FALLBACK_V1', 'VENOM_TURBOJS_RELEASE_FALLBACK_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, policy: plan.values.get('policy') || 'deny-host-fallback-unless-real-engine-ready', denyHostFallback: plan.values.get('deny_host_fallback') !== 'false', allowWhen: plan.values.get('allow_when') || 'real-engine-ready', denyWhen: plan.values.get('deny_when') || 'engine-module-unavailable-or-compatible-fallback|wasm-interpreter-unavailable' });
 }
 
-function parseQuickJsBytecodeManifestMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_BYTECODE_MANIFEST_V3', 'VENOM_QJS_BYTECODE_MANIFEST_V2', 'VENOM_QJS_BYTECODE_MANIFEST_V1', 'VENOM_QUICKJS_BYTECODE_MANIFEST_V1']);
-  return Object.freeze({ version: plan.version, enabled: plan.enabled, format: plan.values.get('format') || 'native-quickjs-object-bytecode-v3', magic: plan.values.get('magic') || 'VQJSBC03', chunkCount: Number.parseInt(plan.values.get('chunk_count') || '0', 10) >>> 0, execClaim: plan.values.get('exec_claim') || 'runtime-hands-opaque-records-to-quickjs-wasm-boundary' });
+function parseTurboJsBytecodeManifestMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_BYTECODE_MANIFEST_V3', 'VENOM_TJS_BYTECODE_MANIFEST_V2', 'VENOM_TJS_BYTECODE_MANIFEST_V1', 'VENOM_TURBOJS_BYTECODE_MANIFEST_V1']);
+  return Object.freeze({ version: plan.version, enabled: plan.enabled, format: plan.values.get('format') || 'native-turbojs-object-bytecode-v3', magic: plan.values.get('magic') || 'VTJSBC03', chunkCount: Number.parseInt(plan.values.get('chunk_count') || '0', 10) >>> 0, execClaim: plan.values.get('exec_claim') || 'runtime-hands-opaque-records-to-turbojs-wasm-boundary' });
 }
 
-function parseQuickJsModuleResolverMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_MODULE_RESOLVER_V1', 'VENOM_QUICKJS_MODULE_RESOLVER_V1']);
+function parseTurboJsModuleResolverMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_MODULE_RESOLVER_V1', 'VENOM_TURBOJS_MODULE_RESOLVER_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, abi: Number.parseInt(plan.values.get('resolver_abi') || '1', 10) >>> 0, mode: plan.values.get('mode') || 'package-relative-module-map', denyRemoteModules: plan.values.get('deny_remote_modules') !== 'false', denyDynamicImport: plan.values.get('deny_dynamic_import_until_real_engine') !== 'false' });
 }
 
-function parseQuickJsExceptionAbiMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_EXCEPTION_ABI_V1', 'VENOM_QUICKJS_EXCEPTION_ABI_V1']);
+function parseTurboJsExceptionAbiMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_EXCEPTION_ABI_V1', 'VENOM_TURBOJS_EXCEPTION_ABI_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, abi: Number.parseInt(plan.values.get('exception_abi') || '1', 10) >>> 0, schema: plan.values.get('schema') || 'ok|abi|context|code|kind|message|sourceBytes|sourceHash' });
 }
 
-function parseQuickJsHostTrapPolicyMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_HOST_TRAP_POLICY_V1', 'VENOM_QUICKJS_HOST_TRAP_POLICY_V1']);
+function parseTurboJsHostTrapPolicyMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_HOST_TRAP_POLICY_V1', 'VENOM_TURBOJS_HOST_TRAP_POLICY_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, policy: plan.values.get('policy') || 'record-unknown-host-imports', unknownImport: plan.values.get('unknown_import') || 'deny' });
 }
 
 
-function parseQuickJsExecutionLifecycleMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_EXECUTION_LIFECYCLE_V1', 'VENOM_QUICKJS_EXECUTION_LIFECYCLE_V1']);
+function parseTurboJsExecutionLifecycleMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_EXECUTION_LIFECYCLE_V1', 'VENOM_TURBOJS_EXECUTION_LIFECYCLE_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, states: plan.values.get('states') || 'created|configured|loaded|executing|trapped|disposed', initial: plan.values.get('initial') || 'created', trapState: plan.values.get('trap_state') || 'trapped', strictRelease: plan.values.get('strict_release') === 'true' });
 }
 
-function parseQuickJsScriptBufferPolicyMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_SCRIPT_BUFFER_POLICY_V1', 'VENOM_QUICKJS_SCRIPT_BUFFER_POLICY_V1']);
+function parseTurboJsScriptBufferPolicyMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_SCRIPT_BUFFER_POLICY_V1', 'VENOM_TURBOJS_SCRIPT_BUFFER_POLICY_V1']);
   const bool = (key, fallback) => plan.values.has(key) ? plan.values.get(key) === 'true' : fallback;
   return Object.freeze({ version: plan.version, enabled: plan.enabled, rejectZeroSize: bool('reject_zero_size', true), rejectOversized: bool('reject_oversized', true), validateHashBeforeExecute: bool('validate_hash_before_execute', true), trackAllocCounter: bool('track_alloc_counter', true), trackFreeCounter: bool('track_free_counter', true), maxScriptBytes: Number.parseInt(plan.values.get('max_script_bytes') || '786432', 10) >>> 0 });
 }
 
-function parseQuickJsContextLimitPolicyMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_CONTEXT_LIMIT_POLICY_V1', 'VENOM_QUICKJS_CONTEXT_LIMIT_POLICY_V1']);
+function parseTurboJsContextLimitPolicyMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_CONTEXT_LIMIT_POLICY_V1', 'VENOM_TURBOJS_CONTEXT_LIMIT_POLICY_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, maxHeapBytes: Number.parseInt(plan.values.get('max_heap_bytes') || '8388608', 10) >>> 0, maxStackBytes: Number.parseInt(plan.values.get('max_stack_bytes') || '262144', 10) >>> 0, maxScriptBytes: Number.parseInt(plan.values.get('max_script_bytes') || '786432', 10) >>> 0, maxContexts: Number.parseInt(plan.values.get('max_contexts') || '64', 10) >>> 0, maxHostCalls: Number.parseInt(plan.values.get('max_host_calls') || '4096', 10) >>> 0, maxConsoleEvents: Number.parseInt(plan.values.get('max_console_events') || '1024', 10) >>> 0, maxModuleRecords: Number.parseInt(plan.values.get('max_module_records') || '512', 10) >>> 0 });
 }
 
-function parseQuickJsHostCallDispatchMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_HOST_CALL_DISPATCH_V3', 'VENOM_QJS_HOST_CALL_DISPATCH_V2', 'VENOM_QUICKJS_HOST_CALL_DISPATCH_V2', 'VENOM_QJS_HOST_CALL_DISPATCH_V1', 'VENOM_QUICKJS_HOST_CALL_DISPATCH_V1']);
+function parseTurboJsHostCallDispatchMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_HOST_CALL_DISPATCH_V3', 'VENOM_TJS_HOST_CALL_DISPATCH_V2', 'VENOM_TURBOJS_HOST_CALL_DISPATCH_V2', 'VENOM_TJS_HOST_CALL_DISPATCH_V1', 'VENOM_TURBOJS_HOST_CALL_DISPATCH_V1']);
   const calls = [];
   if (section) {
     for (const line of textDecoder.decode(section.data).split(/\r?\n/)) {
@@ -1901,18 +1901,18 @@ function parseQuickJsHostCallDispatchMetadata(section) {
   return Object.freeze({ version: plan.version, enabled: plan.enabled, strictRelease: plan.values.get('strict_release') === 'true', unknownHostCall: plan.values.get('unknown_host_call') || 'deny', dispatchHash: plan.values.get('dispatch_hash') || '', entryCount: Number.parseInt(plan.values.get('entry_count') || String(calls.length), 10) >>> 0, calls: Object.freeze(calls) });
 }
 
-function parseQuickJsParityContractMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_PARITY_CONTRACT_V1', 'VENOM_QUICKJS_PARITY_CONTRACT_V1']);
+function parseTurboJsParityContractMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_PARITY_CONTRACT_V1', 'VENOM_TURBOJS_PARITY_CONTRACT_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '5', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, compare: plan.values.get('compare') || '', abiHash: plan.values.get('abi_hash') || '', hostImportHash: plan.values.get('host_import_hash') || '', hostDispatchHash: plan.values.get('host_dispatch_hash') || '', releaseOnMismatch: plan.values.get('release_on_mismatch') || 'fail-closed' });
 }
 
-function parseQuickJsReleaseFailClosedMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_RELEASE_FAILCLOSED_V1', 'VENOM_QUICKJS_RELEASE_FAILCLOSED_V1']);
+function parseTurboJsReleaseFailClosedMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_RELEASE_FAILCLOSED_V1', 'VENOM_TURBOJS_RELEASE_FAILCLOSED_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, strictRelease: plan.values.get('strict_release') === 'true', debugPolicy: plan.values.get('debug_policy') || 'warn-and-record', releasePolicy: plan.values.get('release_policy') || 'fail-closed', failOn: plan.values.get('fail_on') || '' });
 }
 
-function parseQuickJsModuleGraphMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_MODULE_GRAPH_V1', 'VENOM_QUICKJS_MODULE_GRAPH_V1']);
+function parseTurboJsModuleGraphMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_MODULE_GRAPH_V1', 'VENOM_TURBOJS_MODULE_GRAPH_V1']);
   const modules = [];
   if (section) {
     for (const line of textDecoder.decode(section.data).split(/\r?\n/)) {
@@ -1925,174 +1925,174 @@ function parseQuickJsModuleGraphMetadata(section) {
   return Object.freeze({ version: plan.version, enabled: plan.enabled, graphFormat: plan.values.get('graph_format') || 'route-scoped-module-graph-v1', resolver: plan.values.get('resolver') || 'package-relative-static-imports', dynamicImport: plan.values.get('dynamic_import') || 'literal-package-graph-candidate', chunkCount: Number.parseInt(plan.values.get('chunk_count') || '0', 10) >>> 0, moduleCount: Number.parseInt(plan.values.get('module_count') || String(modules.length), 10) >>> 0, modules: Object.freeze(modules) });
 }
 
-function parseQuickJsModuleExecutionMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_MODULE_EXECUTION_V1', 'VENOM_QUICKJS_MODULE_EXECUTION_V1']);
+function parseTurboJsModuleExecutionMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_MODULE_EXECUTION_V1', 'VENOM_TURBOJS_MODULE_EXECUTION_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '5', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, mode: plan.values.get('mode') || 'route-scoped-esm-prototype', moduleCount: Number.parseInt(plan.values.get('module_count') || '0', 10) >>> 0, staticImports: plan.values.get('static_imports') || 'package-relative', dynamicImport: plan.values.get('dynamic_import') || 'literal-package-graph-candidate', hostFallback: plan.values.get('host_fallback') || 'esm-transform-prototype' });
 }
 
-function parseQuickJsModuleCacheMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_MODULE_CACHE_V1', 'VENOM_QUICKJS_MODULE_CACHE_V1']);
+function parseTurboJsModuleCacheMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_MODULE_CACHE_V1', 'VENOM_TURBOJS_MODULE_CACHE_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '5', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, moduleCount: Number.parseInt(plan.values.get('module_count') || '0', 10) >>> 0, cacheKey: plan.values.get('cache_key') || 'normalized-specifier|route|source-hash', namespaceModel: plan.values.get('namespace_model') || 'frozen-export-record', instantiateOnce: plan.values.get('instantiate_once') !== 'false', evaluateOnce: plan.values.get('evaluate_once') !== 'false' });
 }
 
-function parseQuickJsResolverAuditMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_RESOLVER_AUDIT_V1', 'VENOM_QUICKJS_RESOLVER_AUDIT_V1']);
+function parseTurboJsResolverAuditMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_RESOLVER_AUDIT_V1', 'VENOM_TURBOJS_RESOLVER_AUDIT_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '5', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, moduleCount: Number.parseInt(plan.values.get('module_count') || '0', 10) >>> 0, record: plan.values.get('record') || 'specifier|referrer|normalized|status|host-call-id', unknownSpecifier: plan.values.get('unknown_specifier') || 'record-and-empty-namespace', dynamicImport: plan.values.get('dynamic_import') || 'literal-package-graph-candidate' });
 }
 
-function parseQuickJsInteropFallbackMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_INTEROP_FALLBACK_V1', 'VENOM_QUICKJS_INTEROP_FALLBACK_V1']);
+function parseTurboJsInteropFallbackMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_INTEROP_FALLBACK_V1', 'VENOM_TURBOJS_INTEROP_FALLBACK_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '5', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, fallbackKind: plan.values.get('fallback_kind') || 'host-esm-transform-prototype', allowedSyntax: plan.values.get('allowed_syntax') || '', deniedSyntax: plan.values.get('denied_syntax') || '', releaseBehavior: plan.values.get('release_behavior') || 'fail-closed-if-required-contract-missing' });
 }
 
-function parseQuickJsExecutionPipelineMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_EXECUTION_PIPELINE_V1']);
+function parseTurboJsExecutionPipelineMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_EXECUTION_PIPELINE_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, stages: plan.values.get('stages') || '', chunkCount: Number.parseInt(plan.values.get('chunk_count') || '0', 10) >>> 0, releaseRequires: plan.values.get('release_requires') || '' });
 }
 
-function parseQuickJsScriptRecordsMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_SCRIPT_RECORDS_V1']);
+function parseTurboJsScriptRecordsMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_SCRIPT_RECORDS_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, chunkCount: Number.parseInt(plan.values.get('chunk_count') || '0', 10) >>> 0, recordFields: plan.values.get('record_fields') || '', rejectUnpreparedEval: plan.values.get('reject_unprepared_eval') !== 'false' });
 }
 
-function parseQuickJsEvalResultsMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_EVAL_RESULTS_V1']);
+function parseTurboJsEvalResultsMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_EVAL_RESULTS_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, resultFields: plan.values.get('result_fields') || '', resultHash: plan.values.get('result_hash') || 'fnv1a32-json-record' });
 }
 
-function parseQuickJsConsoleCaptureMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_CONSOLE_CAPTURE_V1']);
+function parseTurboJsConsoleCaptureMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_CONSOLE_CAPTURE_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, levels: plan.values.get('levels') || 'debug|log|info|warn|error', schema: plan.values.get('capture_schema') || '', flushHostCall: plan.values.get('flush_host_call') || 'console.capture.flush' });
 }
 
-function parseQuickJsFailureReportsMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_FAILURE_REPORTS_V1']);
+function parseTurboJsFailureReportsMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_FAILURE_REPORTS_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, schema: plan.values.get('schema') || '', releaseBehavior: plan.values.get('release_behavior') || 'fail-closed-with-report' });
 }
 
-function parseQuickJsExecutionJournalMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_EXECUTION_JOURNAL_V1']);
+function parseTurboJsExecutionJournalMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_EXECUTION_JOURNAL_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, recordFields: plan.values.get('record_fields') || '', checkpointLink: plan.values.get('checkpoint_link') || '', maxRecords: Number.parseInt(plan.values.get('max_records') || '64', 10) >>> 0 });
 }
 
-function parseQuickJsCheckpointPolicyMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_CHECKPOINT_POLICY_V1']);
+function parseTurboJsCheckpointPolicyMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_CHECKPOINT_POLICY_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, maxCheckpoints: Number.parseInt(plan.values.get('max_checkpoints') || '64', 10) >>> 0, capture: plan.values.get('capture') || 'context|script|eval|console|exception|lifecycle', restorePolicy: plan.values.get('restore_policy') || 'same-context-only' });
 }
 
-function parseQuickJsReplayCursorMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_REPLAY_CURSOR_V1']);
+function parseTurboJsReplayCursorMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_REPLAY_CURSOR_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, cursorFields: plan.values.get('cursor_fields') || '', deterministicInput: plan.values.get('deterministic_input') || 'script_hash|host_call_index|module_cache_index' });
 }
 
-function parseQuickJsResumeStateMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_RESUME_STATE_V1']);
+function parseTurboJsResumeStateMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_RESUME_STATE_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, stateFields: plan.values.get('state_fields') || '', failureBehavior: plan.values.get('failure_behavior') || 'trap-and-report' });
 }
 
-function parseQuickJsDeterminismAuditMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_DETERMINISM_AUDIT_V1']);
+function parseTurboJsDeterminismAuditMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_DETERMINISM_AUDIT_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, auditFields: plan.values.get('audit_fields') || '', releaseRequires: plan.values.get('release_requires') || 'hash-match|host-call-order|checkpoint-sequence' });
 }
 
-function parseQuickJsSnapshotPolicyMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_SNAPSHOT_POLICY_V1']);
+function parseTurboJsSnapshotPolicyMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_SNAPSHOT_POLICY_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, capture: plan.values.get('capture') || 'post-checkpoint', validate: plan.values.get('validate') || 'hash-match', releaseOnMismatch: plan.values.get('release_on_mismatch') || 'trap' });
 }
 
-function parseQuickJsSnapshotRecordsMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_SNAPSHOT_RECORDS_V1']);
+function parseTurboJsSnapshotRecordsMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_SNAPSHOT_RECORDS_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, chunkCount: Number.parseInt(plan.values.get('chunk_count') || '0', 10) >>> 0, recordFields: plan.values.get('record_fields') || '' });
 }
 
-function parseQuickJsReplayValidationMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_REPLAY_VALIDATION_V1']);
+function parseTurboJsReplayValidationMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_REPLAY_VALIDATION_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, checks: plan.values.get('checks') || '', onMismatch: plan.values.get('on_mismatch') || 'trap' });
 }
 
-function parseQuickJsDeterminismLedgerMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_DETERMINISM_LEDGER_V1']);
+function parseTurboJsDeterminismLedgerMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_DETERMINISM_LEDGER_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, chainHash: plan.values.get('chain_hash') || 'fnv1a64-linked' });
 }
 
-function parseQuickJsAuditSealMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_AUDIT_SEAL_V1']);
+function parseTurboJsAuditSealMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_AUDIT_SEAL_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '8', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, releaseRequires: plan.values.get('release_requires') || 'snapshot-valid|ledger-linked|abi-match' });
 }
 
-function parseQuickJsExecutionCommitMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_EXECUTION_COMMIT_V1']);
+function parseTurboJsExecutionCommitMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_EXECUTION_COMMIT_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, commitHostCall: plan.values.get('commit_host_call') || 'execution.commit', releaseRequires: plan.values.get('release_requires') || 'commit-record-present-and-linked' });
 }
 
-function parseQuickJsRollbackPolicyMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_ROLLBACK_POLICY_V1']);
+function parseTurboJsRollbackPolicyMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_ROLLBACK_POLICY_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, rollbackHostCall: plan.values.get('rollback_host_call') || 'execution.rollback', releaseBehavior: plan.values.get('release_behavior') || 'fail-closed-on-unmatched-rollback' });
 }
 
-function parseQuickJsHostCallReceiptsMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_HOST_CALL_RECEIPTS_V1']);
+function parseTurboJsHostCallReceiptsMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_HOST_CALL_RECEIPTS_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, receiptHostCall: plan.values.get('receipt_host_call') || 'host.receipt', releaseRequires: plan.values.get('release_requires') || 'all-host-calls-receipted' });
 }
 
-function parseQuickJsReleaseAcceptanceMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_RELEASE_ACCEPTANCE_V1']);
+function parseTurboJsReleaseAcceptanceMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_RELEASE_ACCEPTANCE_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, checks: plan.values.get('acceptance_checks') || '', releaseOnFailure: plan.values.get('release_on_failure') || 'trap' });
 }
 
-function parseQuickJsCommitAuditMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_COMMIT_AUDIT_V1']);
+function parseTurboJsCommitAuditMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_COMMIT_AUDIT_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, auditFields: plan.values.get('audit_fields') || '', releaseRequires: plan.values.get('release_requires') || 'commit-audit-present' });
 }
 
 
-function parseQuickJsCapabilityPolicyMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_CAPABILITY_POLICY_V1']);
+function parseTurboJsCapabilityPolicyMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_CAPABILITY_POLICY_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, mode: plan.values.get('mode') || 'deny-by-default-host-io', capabilities: plan.values.get('capabilities') || '', releaseRequires: plan.values.get('release_requires') || 'capability-policy-present' });
 }
 
-function parseQuickJsHostIoPolicyMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_HOST_IO_POLICY_V1']);
+function parseTurboJsHostIoPolicyMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_HOST_IO_POLICY_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, network: plan.values.get('network') || 'blocked-unless-capability', filesystem: plan.values.get('filesystem') || 'blocked', releaseBehavior: plan.values.get('release_behavior') || 'fail-closed-on-unsealed-io' });
 }
 
-function parseQuickJsPermissionSealMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_PERMISSION_SEAL_V1']);
+function parseTurboJsPermissionSealMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_PERMISSION_SEAL_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, algorithm: plan.values.get('algorithm') || 'fnv1a-policy-chain', releaseRequires: plan.values.get('release_requires') || 'permission-seal-present' });
 }
 
-function parseQuickJsPolicyReceiptsMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_POLICY_RECEIPTS_V1']);
+function parseTurboJsPolicyReceiptsMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_POLICY_RECEIPTS_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, hostCall: plan.values.get('host_call') || 'host.receipt', releaseRequires: plan.values.get('release_requires') || 'policy-receipts-linked' });
 }
 
-function parseQuickJsReleaseGateMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_RELEASE_GATE_V1']);
+function parseTurboJsReleaseGateMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_RELEASE_GATE_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, gate: plan.values.get('gate') || 'abi+policy+seal+receipts', failOn: plan.values.get('fail_on') || 'missing-policy|missing-seal|unreceipted-host-call' });
 }
 
-function parseQuickJsHostIoDecisionMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_HOST_IO_DECISION_V1']);
+function parseTurboJsHostIoDecisionMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_HOST_IO_DECISION_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, fields: plan.values.get('fields') || 'context|io_class|capability|decision|payload_hash', releaseRequires: plan.values.get('release_requires') || 'decision-record-linked' });
 }
 
-function parseQuickJsHostIoDenyTraceMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_HOST_IO_DENY_TRACE_V1']);
+function parseTurboJsHostIoDenyTraceMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_HOST_IO_DENY_TRACE_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, fields: plan.values.get('fields') || 'context|io_class|capability|reason|payload_hash', releaseBehavior: plan.values.get('release_behavior') || 'fail-closed-on-any-denial' });
 }
 
-function parseQuickJsCapabilityLedgerMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_CAPABILITY_LEDGER_V1']);
+function parseTurboJsCapabilityLedgerMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_CAPABILITY_LEDGER_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, fields: plan.values.get('fields') || 'capability|decision|receipt_hash|host_call_id', releaseRequires: plan.values.get('release_requires') || 'ledger-linked-to-seal' });
 }
 
-function parseQuickJsPolicySealAuditMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_POLICY_SEAL_AUDIT_V1']);
+function parseTurboJsPolicySealAuditMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_POLICY_SEAL_AUDIT_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, fields: plan.values.get('fields') || 'seal_hash|decision_hash|ledger_hash|deny_trace_hash', releaseRequires: plan.values.get('release_requires') || 'policy-seal-audit-present' });
 }
 
-function parseQuickJsRuntimeDenylistMetadata(section) {
-  const plan = parseKeyValueMetadata(section, ['VENOM_QJS_RUNTIME_DENYLIST_V1']);
+function parseTurboJsRuntimeDenylistMetadata(section) {
+  const plan = parseKeyValueMetadata(section, ['VENOM_TJS_RUNTIME_DENYLIST_V1']);
   return Object.freeze({ version: plan.version, enabled: plan.enabled, runtimeAbi: Number.parseInt(plan.values.get('runtime_abi') || '11', 10) >>> 0, packageVersion: Number.parseInt(plan.values.get('package_version') || '40', 10) >>> 0, denylist: plan.values.get('denylist') || plan.values.get('deny') || 'fetch|unlisted-host-call|unknown-capability', releaseBehavior: plan.values.get('release_behavior') || 'fail-closed-on-deny-trace' });
 }
 
@@ -2114,11 +2114,11 @@ function parseAsyncHostQueueMetadata(section) {
     maxRouteLifetimeMs: Number.parseInt(plan.values.get('max_route_lifetime_ms') || '86400000', 10) >>> 0,
     teardown: plan.values.get('teardown') || 'cancel-timers|abort-fetches|reject-pending|destroy-contexts',
     wasmRequestBoundary: plan.values.get('wasm_request_boundary') || 'planned',
-    quickjsRequestBoundary: plan.values.get('quickjs_request_boundary') || 'planned',
+    turbojsRequestBoundary: plan.values.get('turbojs_request_boundary') || 'planned',
   });
 }
 
-function createAsyncHostQueue(fetchPlan, queuePlan, timerPlan = null, quickJsPlan = null) {
+function createAsyncHostQueue(fetchPlan, queuePlan, timerPlan = null, turboJsPlan = null) {
   let nextId = 1;
   let nextTimerId = 1;
   const pending = new Map();
@@ -2307,22 +2307,22 @@ function createAsyncHostQueue(fetchPlan, queuePlan, timerPlan = null, quickJsPla
   function resetRoute(reason = 'route-reset') { clearRouteResources(reason, false); activeGeneration = (activeGeneration + 1) >>> 0; routeStartedAt = Date.now ? Date.now() : 0; hostCallsThisRoute = 0; fetchesThisRoute = 0; timersScheduledThisRoute = 0; return activeGeneration; }
   function dispose(reason = 'queue-disposed') { clearRouteResources(reason, true); }
 
-  function callQuickJs(entry, payload = {}) {
-    const request = enqueue(quickJsPlan && quickJsPlan.callHostCall ? quickJsPlan.callHostCall : 'quickjs.call', { entry: String(entry || ''), payload });
-    const mode = quickJsPlan && quickJsPlan.mode ? quickJsPlan.mode : 'planned-boundary';
+  function callTurboJs(entry, payload = {}) {
+    const request = enqueue(turboJsPlan && turboJsPlan.callHostCall ? turboJsPlan.callHostCall : 'turbojs.call', { entry: String(entry || ''), payload });
+    const mode = turboJsPlan && turboJsPlan.mode ? turboJsPlan.mode : 'planned-boundary';
     return Object.freeze({
       id: request.id,
       state: request.state,
       mode,
-      scriptIsolation: quickJsPlan && quickJsPlan.scriptIsolation ? quickJsPlan.scriptIsolation : 'route-scoped',
-      bytecodeInput: quickJsPlan && quickJsPlan.bytecodeInput ? quickJsPlan.bytecodeInput : 'planned',
-      chunkMetadata: quickJsPlan && quickJsPlan.chunkMetadata ? quickJsPlan.chunkMetadata : '',
-      engineMetadata: quickJsPlan && quickJsPlan.engineMetadata ? quickJsPlan.engineMetadata : '',
-      fallbackPolicy: quickJsPlan && quickJsPlan.fallbackPolicy ? quickJsPlan.fallbackPolicy : 'host-js-isolated-wrapper',
+      scriptIsolation: turboJsPlan && turboJsPlan.scriptIsolation ? turboJsPlan.scriptIsolation : 'route-scoped',
+      bytecodeInput: turboJsPlan && turboJsPlan.bytecodeInput ? turboJsPlan.bytecodeInput : 'planned',
+      chunkMetadata: turboJsPlan && turboJsPlan.chunkMetadata ? turboJsPlan.chunkMetadata : '',
+      engineMetadata: turboJsPlan && turboJsPlan.engineMetadata ? turboJsPlan.engineMetadata : '',
+      fallbackPolicy: turboJsPlan && turboJsPlan.fallbackPolicy ? turboJsPlan.fallbackPolicy : 'host-js-isolated-wrapper',
     });
   }
 
-  return Object.freeze({ enqueue, settle, snapshot, requestFetch, scheduleTimer, cancelTimer, callQuickJs, setRouteGeneration, resetRoute, dispose });
+  return Object.freeze({ enqueue, settle, snapshot, requestFetch, scheduleTimer, cancelTimer, callTurboJs, setRouteGeneration, resetRoute, dispose });
 }
 
 function createEventQueue(eventPlan) {
@@ -2378,7 +2378,7 @@ function bindInlineEventAttribute(target, attrName, source, hostBridgePlan = nul
         bridge.dispatchEventBinding({ event, element: target, eventName, source, attrName, routeGeneration: boundGeneration });
       }
       // Protected runtime never evaluates inline event source in the host runtime.
-      // The source is treated as metadata and must be dispatched through QuickJS.
+      // The source is treated as metadata and must be dispatched through TurboJS.
       return undefined;
     });
   }
@@ -2386,10 +2386,10 @@ function bindInlineEventAttribute(target, attrName, source, hostBridgePlan = nul
 }
 
 
-function createQuickJsEngine(asyncQueue, quickJsEnginePlan, scriptEnginePolicyPlan, quickJsBridgePlan, quickJsEngineModulePlan = null, quickJsEngineModuleUrl = null, quickJsContextLifecyclePlan = null, hostCapabilitiesPlan = null, quickJsAdapterDiagnosticsPlan = null, quickJsWasmRuntimePlan = null, quickJsWasmUrl = null, quickJsSourceTransferPlan = null, quickJsConsoleBridgePlan = null, quickJsExecutionRecordsPlan = null, quickJsResultBridgePlan = null, quickJsFallbackPolicyPlan = null, quickJsRuntimeAbiPlan = null, quickJsHostImportsPlan = null, quickJsHeapLimitsPlan = null, quickJsScriptBufferPlan = null, quickJsConsoleAbiPlan = null, quickJsParityProbePlan = null, quickJsReleaseFallbackPlan = null, quickJsBytecodeManifestPlan = null, quickJsModuleResolverPlan = null, quickJsExceptionAbiPlan = null, quickJsHostTrapPolicyPlan = null, quickJsExecutionLifecyclePlan = null, quickJsScriptBufferPolicyPlan = null, quickJsContextLimitPolicyPlan = null, quickJsHostCallDispatchPlan = null, quickJsParityContractPlan = null, quickJsReleaseFailClosedPlan = null, quickJsModuleGraphPlan = null, quickJsModuleExecutionPlan = null, quickJsModuleCachePlan = null, quickJsResolverAuditPlan = null, quickJsInteropFallbackPlan = null, quickJsExecutionJournalPlan = null, quickJsCheckpointPolicyPlan = null, quickJsReplayCursorPlan = null, quickJsResumeStatePlan = null, quickJsDeterminismAuditPlan = null, quickJsSnapshotPolicyPlan = null, quickJsSnapshotRecordsPlan = null, quickJsReplayValidationPlan = null, quickJsDeterminismLedgerPlan = null, quickJsAuditSealPlan = null, quickJsExecutionCommitPlan = null, quickJsRollbackPolicyPlan = null, quickJsHostCallReceiptsPlan = null, quickJsReleaseAcceptancePlan = null, quickJsCommitAuditPlan = null, quickJsCapabilityPolicyPlan = null, quickJsHostIoPolicyPlan = null, quickJsPermissionSealPlan = null, quickJsPolicyReceiptsPlan = null, quickJsReleaseGatePlan = null, quickJsHostIoDecisionPlan = null, quickJsHostIoDenyTracePlan = null, quickJsCapabilityLedgerPlan = null, quickJsPolicySealAuditPlan = null, quickJsRuntimeDenylistPlan = null) {
+function createTurboJsEngine(asyncQueue, turboJsEnginePlan, scriptEnginePolicyPlan, turboJsBridgePlan, turboJsEngineModulePlan = null, turboJsEngineModuleUrl = null, turboJsContextLifecyclePlan = null, hostCapabilitiesPlan = null, turboJsAdapterDiagnosticsPlan = null, turboJsWasmRuntimePlan = null, turboJsWasmUrl = null, turboJsSourceTransferPlan = null, turboJsConsoleBridgePlan = null, turboJsExecutionRecordsPlan = null, turboJsResultBridgePlan = null, turboJsFallbackPolicyPlan = null, turboJsRuntimeAbiPlan = null, turboJsHostImportsPlan = null, turboJsHeapLimitsPlan = null, turboJsScriptBufferPlan = null, turboJsConsoleAbiPlan = null, turboJsParityProbePlan = null, turboJsReleaseFallbackPlan = null, turboJsBytecodeManifestPlan = null, turboJsModuleResolverPlan = null, turboJsExceptionAbiPlan = null, turboJsHostTrapPolicyPlan = null, turboJsExecutionLifecyclePlan = null, turboJsScriptBufferPolicyPlan = null, turboJsContextLimitPolicyPlan = null, turboJsHostCallDispatchPlan = null, turboJsParityContractPlan = null, turboJsReleaseFailClosedPlan = null, turboJsModuleGraphPlan = null, turboJsModuleExecutionPlan = null, turboJsModuleCachePlan = null, turboJsResolverAuditPlan = null, turboJsInteropFallbackPlan = null, turboJsExecutionJournalPlan = null, turboJsCheckpointPolicyPlan = null, turboJsReplayCursorPlan = null, turboJsResumeStatePlan = null, turboJsDeterminismAuditPlan = null, turboJsSnapshotPolicyPlan = null, turboJsSnapshotRecordsPlan = null, turboJsReplayValidationPlan = null, turboJsDeterminismLedgerPlan = null, turboJsAuditSealPlan = null, turboJsExecutionCommitPlan = null, turboJsRollbackPolicyPlan = null, turboJsHostCallReceiptsPlan = null, turboJsReleaseAcceptancePlan = null, turboJsCommitAuditPlan = null, turboJsCapabilityPolicyPlan = null, turboJsHostIoPolicyPlan = null, turboJsPermissionSealPlan = null, turboJsPolicyReceiptsPlan = null, turboJsReleaseGatePlan = null, turboJsHostIoDecisionPlan = null, turboJsHostIoDenyTracePlan = null, turboJsCapabilityLedgerPlan = null, turboJsPolicySealAuditPlan = null, turboJsRuntimeDenylistPlan = null) {
   const contexts = new Map();
-  const enabled = !!(quickJsEnginePlan && quickJsEnginePlan.enabled);
-  const mode = enabled ? (quickJsEnginePlan.mode || 'bootstrap') : 'disabled';
+  const enabled = !!(turboJsEnginePlan && turboJsEnginePlan.enabled);
+  const mode = enabled ? (turboJsEnginePlan.mode || 'bootstrap') : 'disabled';
   let engineModulePromise = null;
   let engineModule = null;
   let engineModuleError = null;
@@ -2401,21 +2401,21 @@ function createQuickJsEngine(asyncQueue, quickJsEnginePlan, scriptEnginePolicyPl
   const cachedDeterminismLedger = null;
   const cachedAuditSeal = null;
 
-  function recordQuickJsExecution(kind, payload = {}) {
-    const record = Object.freeze({ id: executionRecords.length + 1, kind: String(kind || 'quickjs.executionRecord'), at: Date.now ? Date.now() : 0, ...payload });
+  function recordTurboJsExecution(kind, payload = {}) {
+    const record = Object.freeze({ id: executionRecords.length + 1, kind: String(kind || 'turbojs.executionRecord'), at: Date.now ? Date.now() : 0, ...payload });
     executionRecords.push(record);
-    if (asyncQueue && quickJsExecutionRecordsPlan && quickJsExecutionRecordsPlan.enabled) {
-      const request = asyncQueue.enqueue(quickJsExecutionRecordsPlan.recordHostCall || 'quickjs.executionRecord', record);
+    if (asyncQueue && turboJsExecutionRecordsPlan && turboJsExecutionRecordsPlan.enabled) {
+      const request = asyncQueue.enqueue(turboJsExecutionRecordsPlan.recordHostCall || 'turbojs.executionRecord', record);
       asyncQueue.settle(request.id, 'fulfilled', { recorded: record.id, kind: record.kind });
     }
     return record;
   }
 
   function recordResultBridge(payload = {}) {
-    const record = Object.freeze({ id: executionRecords.length + 1, kind: 'quickjs.resultBridge', at: Date.now ? Date.now() : 0, ...payload });
+    const record = Object.freeze({ id: executionRecords.length + 1, kind: 'turbojs.resultBridge', at: Date.now ? Date.now() : 0, ...payload });
     executionRecords.push(record);
-    if (asyncQueue && quickJsResultBridgePlan && quickJsResultBridgePlan.enabled) {
-      const request = asyncQueue.enqueue(quickJsResultBridgePlan.resultHostCall || 'quickjs.resultBridge', record);
+    if (asyncQueue && turboJsResultBridgePlan && turboJsResultBridgePlan.enabled) {
+      const request = asyncQueue.enqueue(turboJsResultBridgePlan.resultHostCall || 'turbojs.resultBridge', record);
       asyncQueue.settle(request.id, 'fulfilled', { bridged: record.id, ok: payload.ok !== false });
     }
     return record;
@@ -2430,8 +2430,8 @@ function createQuickJsEngine(asyncQueue, quickJsEnginePlan, scriptEnginePolicyPl
       out[level] = (...args) => {
         const event = Object.freeze({ id: consoleEvents.length + 1, level, route, source, order, args: args.map((arg) => { try { return String(arg); } catch (_) { return '[unprintable]'; } }) });
         consoleEvents.push(event);
-        if (asyncQueue && quickJsResultBridgePlan && quickJsResultBridgePlan.enabled) {
-          const request = asyncQueue.enqueue(quickJsResultBridgePlan.consoleEventHostCall || 'quickjs.consoleEvent', event);
+        if (asyncQueue && turboJsResultBridgePlan && turboJsResultBridgePlan.enabled) {
+          const request = asyncQueue.enqueue(turboJsResultBridgePlan.consoleEventHostCall || 'turbojs.consoleEvent', event);
           asyncQueue.settle(request.id, 'fulfilled', { consoleEvent: event.id });
         }
         if (baseConsole && typeof baseConsole[level] === 'function') baseConsole[level](...args);
@@ -2441,13 +2441,13 @@ function createQuickJsEngine(asyncQueue, quickJsEnginePlan, scriptEnginePolicyPl
   }
 
   function fallbackAllowed(reason) {
-    const mode = quickJsFallbackPolicyPlan && quickJsFallbackPolicyPlan.enabled ? quickJsFallbackPolicyPlan.mode : 'legacy';
-    const denyList = String((quickJsFallbackPolicyPlan && quickJsFallbackPolicyPlan.denyWhen) || '') + '|' + String((quickJsReleaseFallbackPlan && quickJsReleaseFallbackPlan.denyWhen) || '');
-    const strict = !!((quickJsFallbackPolicyPlan && quickJsFallbackPolicyPlan.strictRelease) || (quickJsReleaseFallbackPlan && quickJsReleaseFallbackPlan.enabled && quickJsReleaseFallbackPlan.denyHostFallback));
+    const mode = turboJsFallbackPolicyPlan && turboJsFallbackPolicyPlan.enabled ? turboJsFallbackPolicyPlan.mode : 'legacy';
+    const denyList = String((turboJsFallbackPolicyPlan && turboJsFallbackPolicyPlan.denyWhen) || '') + '|' + String((turboJsReleaseFallbackPlan && turboJsReleaseFallbackPlan.denyWhen) || '');
+    const strict = !!((turboJsFallbackPolicyPlan && turboJsFallbackPolicyPlan.strictRelease) || (turboJsReleaseFallbackPlan && turboJsReleaseFallbackPlan.enabled && turboJsReleaseFallbackPlan.denyHostFallback));
     const wasmOrModuleFallback = reason === 'engine-module-unavailable-or-compatible-fallback' || reason === 'wasm-interpreter-unavailable' || reason === 'release-strict-no-fallback';
     const allowed = !(strict && wasmOrModuleFallback) && !denyList.split('|').filter(Boolean).includes(reason);
-    if (asyncQueue && quickJsFallbackPolicyPlan && quickJsFallbackPolicyPlan.enabled) {
-      const request = asyncQueue.enqueue(quickJsFallbackPolicyPlan.policyCheckHostCall || 'quickjs.fallbackPolicyCheck', { reason, mode, strict, allowed });
+    if (asyncQueue && turboJsFallbackPolicyPlan && turboJsFallbackPolicyPlan.enabled) {
+      const request = asyncQueue.enqueue(turboJsFallbackPolicyPlan.policyCheckHostCall || 'turbojs.fallbackPolicyCheck', { reason, mode, strict, allowed });
       asyncQueue.settle(request.id, allowed ? 'fulfilled' : 'rejected', { allowed, reason, strict });
     }
     return allowed;
@@ -2461,12 +2461,12 @@ function createQuickJsEngine(asyncQueue, quickJsEnginePlan, scriptEnginePolicyPl
     const key = contextKey(route, source, order);
     let ctx = contexts.get(key);
     if (!ctx) {
-      const request = asyncQueue.enqueue(quickJsContextLifecyclePlan && quickJsContextLifecyclePlan.createHostCall ? quickJsContextLifecyclePlan.createHostCall : (quickJsEnginePlan && quickJsEnginePlan.contextCreateHostCall ? quickJsEnginePlan.contextCreateHostCall : 'quickjs.contextCreate'), { route: String(route || '/'), source: String(source || ''), order: order >>> 0 });
-      asyncQueue.settle(request.id, 'fulfilled', { context: key, mode, engineModule: !!quickJsEngineModuleUrl });
+      const request = asyncQueue.enqueue(turboJsContextLifecyclePlan && turboJsContextLifecyclePlan.createHostCall ? turboJsContextLifecyclePlan.createHostCall : (turboJsEnginePlan && turboJsEnginePlan.contextCreateHostCall ? turboJsEnginePlan.contextCreateHostCall : 'turbojs.contextCreate'), { route: String(route || '/'), source: String(source || ''), order: order >>> 0 });
+      asyncQueue.settle(request.id, 'fulfilled', { context: key, mode, engineModule: !!turboJsEngineModuleUrl });
       ctx = Object.freeze({ key, generation: asyncQueue.snapshot().generation >>> 0, route: String(route || '/'), source: String(source || ''), order: order >>> 0, mode, createdAt: Date.now ? Date.now() : 0, reuseCount: 0 });
       contexts.set(key, ctx);
-    } else if (quickJsContextLifecyclePlan && quickJsContextLifecyclePlan.enabled) {
-      const request = asyncQueue.enqueue(quickJsContextLifecyclePlan.reuseHostCall || 'quickjs.contextReuse', { context: key, route: String(route || '/'), source: String(source || ''), order: order >>> 0 });
+    } else if (turboJsContextLifecyclePlan && turboJsContextLifecyclePlan.enabled) {
+      const request = asyncQueue.enqueue(turboJsContextLifecyclePlan.reuseHostCall || 'turbojs.contextReuse', { context: key, route: String(route || '/'), source: String(source || ''), order: order >>> 0 });
       asyncQueue.settle(request.id, 'fulfilled', { context: key, reused: true });
     }
     return ctx;
@@ -2475,7 +2475,7 @@ function createQuickJsEngine(asyncQueue, quickJsEnginePlan, scriptEnginePolicyPl
   function destroyContext(route, source, order) {
     const key = contextKey(route, source, order);
     const existed = contexts.delete(key);
-    const request = asyncQueue.enqueue(quickJsContextLifecyclePlan && quickJsContextLifecyclePlan.destroyHostCall ? quickJsContextLifecyclePlan.destroyHostCall : 'quickjs.contextDestroy', { context: key, existed });
+    const request = asyncQueue.enqueue(turboJsContextLifecyclePlan && turboJsContextLifecyclePlan.destroyHostCall ? turboJsContextLifecyclePlan.destroyHostCall : 'turbojs.contextDestroy', { context: key, existed });
     asyncQueue.settle(request.id, 'fulfilled', { context: key, destroyed: existed });
     return Object.freeze({ context: key, destroyed: existed });
   }
@@ -2492,7 +2492,7 @@ function createQuickJsEngine(asyncQueue, quickJsEnginePlan, scriptEnginePolicyPl
   }
 
   function contextSnapshot() {
-    return Object.freeze({ count: contexts.size, keys: Object.freeze(Array.from(contexts.keys())), moduleLoaded: !!engineModule, moduleError: engineModuleError ? String(engineModuleError.message || engineModuleError) : '', wasmUrl: quickJsWasmUrl || '' });
+    return Object.freeze({ count: contexts.size, keys: Object.freeze(Array.from(contexts.keys())), moduleLoaded: !!engineModule, moduleError: engineModuleError ? String(engineModuleError.message || engineModuleError) : '', wasmUrl: turboJsWasmUrl || '' });
   }
 
   function recordBrowserApiShimCall(kind, chunk, detail) {
@@ -2503,8 +2503,8 @@ function createQuickJsEngine(asyncQueue, quickJsEnginePlan, scriptEnginePolicyPl
       order: chunk && chunk.order ? chunk.order >>> 0 : 0,
       ...(detail || {}),
     });
-    if (asyncQueue && quickJsResultBridgePlan && quickJsResultBridgePlan.enabled) {
-      const request = asyncQueue.enqueue('quickjs.browserApiShim', payload);
+    if (asyncQueue && turboJsResultBridgePlan && turboJsResultBridgePlan.enabled) {
+      const request = asyncQueue.enqueue('turbojs.browserApiShim', payload);
       asyncQueue.settle(request.id, 'fulfilled', payload);
     }
     return payload;
@@ -2833,7 +2833,7 @@ function createQuickJsEngine(asyncQueue, quickJsEnginePlan, scriptEnginePolicyPl
     if (permits('navigator')) bindings.navigator = navigatorShim;
     if (permits('document')) bindings.document = globalThis.document;
     if (permits('__venomRuntime')) bindings.__venomRuntime = makeScopedRuntimeBridge(bridge, allowed, chunk);
-    if (permits('console')) bindings.console = quickJsConsoleBridgePlan && quickJsConsoleBridgePlan.enabled ? makeConsoleBridgeConsole(globalThis.console, chunk) : globalThis.console;
+    if (permits('console')) bindings.console = turboJsConsoleBridgePlan && turboJsConsoleBridgePlan.enabled ? makeConsoleBridgeConsole(globalThis.console, chunk) : globalThis.console;
     if (permits('fetch')) bindings.fetch = bridge && typeof bridge.fetch === 'function' ? bridge.fetch.bind(bridge) : globalThis.fetch;
     if (permits('timers')) {
       bindings.setTimeout = (callback, delay) => bridge && typeof bridge.scheduleTimer === 'function' ? bridge.scheduleTimer(callback, delay, false).id : globalThis.setTimeout(callback, delay);
@@ -2853,7 +2853,7 @@ function createQuickJsEngine(asyncQueue, quickJsEnginePlan, scriptEnginePolicyPl
     if (hostCapabilitiesPlan && hostCapabilitiesPlan.enabled) {
       const capabilityNames = allowed ? Array.from(allowed) : (hostCapabilitiesPlan.capabilities && hostCapabilitiesPlan.capabilities.length ? hostCapabilitiesPlan.capabilities.map((item) => item.name) : Object.keys(bindings));
       if (bridge && typeof bridge.enqueueHostCall === 'function') {
-        const record = bridge.enqueueHostCall(hostCapabilitiesPlan.injectHostCall || 'quickjs.hostCapabilityInject', { route: chunk.route, source: chunk.source, order: chunk.order, capabilities: capabilityNames });
+        const record = bridge.enqueueHostCall(hostCapabilitiesPlan.injectHostCall || 'turbojs.hostCapabilityInject', { route: chunk.route, source: chunk.source, order: chunk.order, capabilities: capabilityNames });
         if (bridge && typeof bridge.settleHostCall === 'function') bridge.settleHostCall(record.id, 'fulfilled', { injected: capabilityNames.length });
       }
       bindings.__venomCapabilities = Object.freeze(capabilityNames.slice());
@@ -2862,71 +2862,71 @@ function createQuickJsEngine(asyncQueue, quickJsEnginePlan, scriptEnginePolicyPl
   }
 
   async function loadEngineModule() {
-    if (!quickJsEngineModulePlan || !quickJsEngineModulePlan.enabled || !quickJsEngineModuleUrl) return null;
+    if (!turboJsEngineModulePlan || !turboJsEngineModulePlan.enabled || !turboJsEngineModuleUrl) return null;
     if (engineModule) return engineModule;
     if (engineModuleError) return null;
     if (!engineModulePromise) {
-      engineModulePromise = import(quickJsEngineModuleUrl).then((mod) => {
-        const factoryName = quickJsEngineModulePlan.exportName || 'createVenomQuickJsEngineModule';
+      engineModulePromise = import(turboJsEngineModuleUrl).then((mod) => {
+        const factoryName = turboJsEngineModulePlan.exportName || 'createVenomTurboJsEngineModule';
         const factory = mod && mod[factoryName];
-        if (typeof factory !== 'function') throw new Error('QuickJS engine module missing export: ' + factoryName);
+        if (typeof factory !== 'function') throw new Error('TurboJS engine module missing export: ' + factoryName);
         engineModule = factory({
-          version: quickJsEngineModulePlan.version,
-          mode: quickJsEngineModulePlan.executionMode,
-          fallback: quickJsEngineModulePlan.fallback,
+          version: turboJsEngineModulePlan.version,
+          mode: turboJsEngineModulePlan.executionMode,
+          fallback: turboJsEngineModulePlan.fallback,
           policy: scriptEnginePolicyPlan,
-          bridge: quickJsBridgePlan,
-          contextLifecycle: quickJsContextLifecyclePlan,
+          bridge: turboJsBridgePlan,
+          contextLifecycle: turboJsContextLifecyclePlan,
           hostCapabilities: hostCapabilitiesPlan,
-          diagnostics: quickJsAdapterDiagnosticsPlan,
-          wasmRuntime: quickJsWasmRuntimePlan,
-          wasmUrl: quickJsWasmUrl,
+          diagnostics: turboJsAdapterDiagnosticsPlan,
+          wasmRuntime: turboJsWasmRuntimePlan,
+          wasmUrl: turboJsWasmUrl,
           diversification: activeReleaseDiversification,
-          abiFingerprint: activeQuickJsAbiFingerprint,
-          sourceTransfer: quickJsSourceTransferPlan,
-          consoleBridge: quickJsConsoleBridgePlan,
-          executionRecords: quickJsExecutionRecordsPlan,
-          resultBridge: quickJsResultBridgePlan,
-          fallbackPolicy: quickJsFallbackPolicyPlan,
-          runtimeAbi: quickJsRuntimeAbiPlan,
-          hostImports: quickJsHostImportsPlan,
-          heapLimits: quickJsHeapLimitsPlan,
-          scriptBuffer: quickJsScriptBufferPlan,
-          consoleAbi: quickJsConsoleAbiPlan,
-          parityProbe: quickJsParityProbePlan,
-          releaseFallback: quickJsReleaseFallbackPlan,
-          bytecodeManifest: quickJsBytecodeManifestPlan,
-          moduleResolver: quickJsModuleResolverPlan,
-          exceptionAbi: quickJsExceptionAbiPlan,
-          hostTrapPolicy: quickJsHostTrapPolicyPlan,
-          executionLifecycle: quickJsExecutionLifecyclePlan,
-          scriptBufferPolicy: quickJsScriptBufferPolicyPlan,
-          contextLimitPolicy: quickJsContextLimitPolicyPlan,
-          hostCallDispatch: quickJsHostCallDispatchPlan,
-          parityContract: quickJsParityContractPlan,
-          releaseFailClosed: quickJsReleaseFailClosedPlan,
-          moduleGraph: quickJsModuleGraphPlan,
-          moduleExecution: quickJsModuleExecutionPlan,
-          moduleCache: quickJsModuleCachePlan,
-          resolverAudit: quickJsResolverAuditPlan,
-          interopFallback: quickJsInteropFallbackPlan,
-          executionJournal: quickJsExecutionJournalPlan,
-          checkpointPolicy: quickJsCheckpointPolicyPlan,
-          replayCursor: quickJsReplayCursorPlan,
-          resumeState: quickJsResumeStatePlan,
-          determinismAudit: quickJsDeterminismAuditPlan,
-          snapshotPolicy: quickJsSnapshotPolicyPlan,
-          snapshotRecords: quickJsSnapshotRecordsPlan,
-          replayValidation: quickJsReplayValidationPlan,
-          determinismLedger: quickJsDeterminismLedgerPlan,
-          auditSeal: quickJsAuditSealPlan,
-          executionCommit: quickJsExecutionCommitPlan,
-          rollbackPolicy: quickJsRollbackPolicyPlan,
-          hostCallReceipts: quickJsHostCallReceiptsPlan,
-          releaseAcceptance: quickJsReleaseAcceptancePlan,
-          commitAudit: quickJsCommitAuditPlan,
+          abiFingerprint: activeTurboJsAbiFingerprint,
+          sourceTransfer: turboJsSourceTransferPlan,
+          consoleBridge: turboJsConsoleBridgePlan,
+          executionRecords: turboJsExecutionRecordsPlan,
+          resultBridge: turboJsResultBridgePlan,
+          fallbackPolicy: turboJsFallbackPolicyPlan,
+          runtimeAbi: turboJsRuntimeAbiPlan,
+          hostImports: turboJsHostImportsPlan,
+          heapLimits: turboJsHeapLimitsPlan,
+          scriptBuffer: turboJsScriptBufferPlan,
+          consoleAbi: turboJsConsoleAbiPlan,
+          parityProbe: turboJsParityProbePlan,
+          releaseFallback: turboJsReleaseFallbackPlan,
+          bytecodeManifest: turboJsBytecodeManifestPlan,
+          moduleResolver: turboJsModuleResolverPlan,
+          exceptionAbi: turboJsExceptionAbiPlan,
+          hostTrapPolicy: turboJsHostTrapPolicyPlan,
+          executionLifecycle: turboJsExecutionLifecyclePlan,
+          scriptBufferPolicy: turboJsScriptBufferPolicyPlan,
+          contextLimitPolicy: turboJsContextLimitPolicyPlan,
+          hostCallDispatch: turboJsHostCallDispatchPlan,
+          parityContract: turboJsParityContractPlan,
+          releaseFailClosed: turboJsReleaseFailClosedPlan,
+          moduleGraph: turboJsModuleGraphPlan,
+          moduleExecution: turboJsModuleExecutionPlan,
+          moduleCache: turboJsModuleCachePlan,
+          resolverAudit: turboJsResolverAuditPlan,
+          interopFallback: turboJsInteropFallbackPlan,
+          executionJournal: turboJsExecutionJournalPlan,
+          checkpointPolicy: turboJsCheckpointPolicyPlan,
+          replayCursor: turboJsReplayCursorPlan,
+          resumeState: turboJsResumeStatePlan,
+          determinismAudit: turboJsDeterminismAuditPlan,
+          snapshotPolicy: turboJsSnapshotPolicyPlan,
+          snapshotRecords: turboJsSnapshotRecordsPlan,
+          replayValidation: turboJsReplayValidationPlan,
+          determinismLedger: turboJsDeterminismLedgerPlan,
+          auditSeal: turboJsAuditSealPlan,
+          executionCommit: turboJsExecutionCommitPlan,
+          rollbackPolicy: turboJsRollbackPolicyPlan,
+          hostCallReceipts: turboJsHostCallReceiptsPlan,
+          releaseAcceptance: turboJsReleaseAcceptancePlan,
+          commitAudit: turboJsCommitAuditPlan,
         });
-        if (!engineModule || typeof engineModule.executeChunk !== 'function') throw new Error('QuickJS engine module did not return executeChunk');
+        if (!engineModule || typeof engineModule.executeChunk !== 'function') throw new Error('TurboJS engine module did not return executeChunk');
         return engineModule;
       }).catch((error) => {
         engineModuleError = error;
@@ -2940,27 +2940,27 @@ function createQuickJsEngine(asyncQueue, quickJsEnginePlan, scriptEnginePolicyPl
     const module = await loadEngineModule();
     if (!module) return null;
     if (module && typeof module.createContext === 'function') {
-      const ctxRecord = asyncQueue.enqueue(quickJsContextLifecyclePlan && quickJsContextLifecyclePlan.moduleCreateHostCall ? quickJsContextLifecyclePlan.moduleCreateHostCall : 'quickjs.moduleContextCreate', { context: context.key, route: chunk.route, source: chunk.source, order: chunk.order });
+      const ctxRecord = asyncQueue.enqueue(turboJsContextLifecyclePlan && turboJsContextLifecyclePlan.moduleCreateHostCall ? turboJsContextLifecyclePlan.moduleCreateHostCall : 'turbojs.moduleContextCreate', { context: context.key, route: chunk.route, source: chunk.source, order: chunk.order });
       const created = module.createContext(context);
       asyncQueue.settle(ctxRecord.id, 'fulfilled', { context: context.key, moduleContext: !!created });
     }
-    const moduleRequest = asyncQueue.enqueue('quickjs.moduleExecute', {
+    const moduleRequest = asyncQueue.enqueue('turbojs.moduleExecute', {
       route: chunk.route,
       source: chunk.source,
       order: chunk.order,
       bytes: chunk.bytecodeSize || (chunk.code ? chunk.code.length : 0),
-      moduleUrl: String(quickJsEngineModuleUrl || ''),
+      moduleUrl: String(turboJsEngineModuleUrl || ''),
     });
     try {
-      const result = await module.executeChunk({ chunk, route, context, bindings, wasmUrl: quickJsWasmUrl, wasmRuntime: quickJsWasmRuntimePlan, sourceTransfer: quickJsSourceTransferPlan, consoleBridge: quickJsConsoleBridgePlan, executionRecords: quickJsExecutionRecordsPlan, resultBridge: quickJsResultBridgePlan, fallbackPolicy: quickJsFallbackPolicyPlan });
-      recordQuickJsExecution('quickjs.executionRecord', { route: chunk.route, source: chunk.source, order: chunk.order, context: context.key, engine: result && result.quickJsWasm ? 'quickjs-wasm-backend-candidate' : 'host-js-fallback', fallbackUsed: !!(result && result.fallback), wasmAccepted: !!(result && result.quickJsWasm), hostBridgeTelemetry: result && result.hostBridgeTelemetry ? result.hostBridgeTelemetry : null, hostBridgeParity: result && result.hostBridgeParity ? result.hostBridgeParity : null });
+      const result = await module.executeChunk({ chunk, route, context, bindings, wasmUrl: turboJsWasmUrl, wasmRuntime: turboJsWasmRuntimePlan, sourceTransfer: turboJsSourceTransferPlan, consoleBridge: turboJsConsoleBridgePlan, executionRecords: turboJsExecutionRecordsPlan, resultBridge: turboJsResultBridgePlan, fallbackPolicy: turboJsFallbackPolicyPlan });
+      recordTurboJsExecution('turbojs.executionRecord', { route: chunk.route, source: chunk.source, order: chunk.order, context: context.key, engine: result && result.turboJsWasm ? 'turbojs-wasm-backend-candidate' : 'host-js-fallback', fallbackUsed: !!(result && result.fallback), wasmAccepted: !!(result && result.turboJsWasm), hostBridgeTelemetry: result && result.hostBridgeTelemetry ? result.hostBridgeTelemetry : null, hostBridgeParity: result && result.hostBridgeParity ? result.hostBridgeParity : null });
       recordResultBridge({ route: chunk.route, source: chunk.source, order: chunk.order, context: context.key, ok: !!(result && result.executed), wasmReport: result && result.wasmReport ? result.wasmReport : null, hostBridgeTelemetry: result && result.hostBridgeTelemetry ? result.hostBridgeTelemetry : null });
       asyncQueue.settle(moduleRequest.id, 'fulfilled', { executed: !!(result && result.executed), engineModule: true });
       return Object.freeze({
         ...chunk,
         ...(result || {}),
         executed: !!(result && result.executed),
-        engineMode: quickJsEngineModulePlan.executionMode || 'route-scoped-module',
+        engineMode: turboJsEngineModulePlan.executionMode || 'route-scoped-module',
         engineModule: true,
         context: context.key,
       });
@@ -2973,9 +2973,9 @@ function createQuickJsEngine(asyncQueue, quickJsEnginePlan, scriptEnginePolicyPl
   async function executeChunk(chunk, route, bridge) {
     const context = createContext(route && route.route ? route.route : chunk.route, chunk.source, chunk.order);
     const executionGeneration = context.generation >>> 0;
-    const request = asyncQueue.enqueue(quickJsEnginePlan && quickJsEnginePlan.executeHostCall ? quickJsEnginePlan.executeHostCall : 'quickjs.executeChunk', { route: chunk.route, source: chunk.source, order: chunk.order, bytes: chunk.bytecodeSize || (chunk.code ? chunk.code.length : 0), bytecode: !!chunk.bytecode, mode, engineModule: !!quickJsEngineModuleUrl });
+    const request = asyncQueue.enqueue(turboJsEnginePlan && turboJsEnginePlan.executeHostCall ? turboJsEnginePlan.executeHostCall : 'turbojs.executeChunk', { route: chunk.route, source: chunk.source, order: chunk.order, bytes: chunk.bytecodeSize || (chunk.code ? chunk.code.length : 0), bytecode: !!chunk.bytecode, mode, engineModule: !!turboJsEngineModuleUrl });
     try {
-      if (!enabled) throw new Error('QuickJS engine bootstrap is disabled');
+      if (!enabled) throw new Error('TurboJS engine bootstrap is disabled');
       if ((!chunk.code || !String(chunk.code).trim()) && !(chunk.bytecodeBytes && chunk.bytecodeBytes.length)) {
         asyncQueue.settle(request.id, 'fulfilled', { executed: false, empty: true, context: context.key });
         return Object.freeze({ ...chunk, executed: false, engineMode: mode, context: context.key });
@@ -2987,7 +2987,7 @@ function createQuickJsEngine(asyncQueue, quickJsEnginePlan, scriptEnginePolicyPl
       }
       const bindings = makeBindings(bridge, chunk);
       const moduleExecuted = await executeViaEngineModule(chunk, route, bridge, context, bindings);
-      if (executionGeneration !== (asyncQueue.snapshot().generation >>> 0)) throw new Error('stale route generation rejected for QuickJS execution');
+      if (executionGeneration !== (asyncQueue.snapshot().generation >>> 0)) throw new Error('stale route generation rejected for TurboJS execution');
       if (moduleExecuted) {
         asyncQueue.settle(request.id, 'fulfilled', { executed: true, context: context.key, engineModule: true });
         return moduleExecuted;
@@ -3003,8 +3003,8 @@ function createQuickJsEngine(asyncQueue, quickJsEnginePlan, scriptEnginePolicyPl
           URL.revokeObjectURL(url);
         }
       }
-      if (!fallbackAllowed('engine-module-unavailable-or-compatible-fallback')) throw new Error('QuickJS fallback policy denied host execution');
-      if (asyncQueue && quickJsFallbackPolicyPlan && quickJsFallbackPolicyPlan.enabled) { const decision = asyncQueue.enqueue(quickJsFallbackPolicyPlan.decisionHostCall || 'script.fallbackDecision', { route: chunk.route, source: chunk.source, order: chunk.order, allowed: true }); asyncQueue.settle(decision.id, 'fulfilled', { allowed: true }); }
+      if (!fallbackAllowed('engine-module-unavailable-or-compatible-fallback')) throw new Error('TurboJS fallback policy denied host execution');
+      if (asyncQueue && turboJsFallbackPolicyPlan && turboJsFallbackPolicyPlan.enabled) { const decision = asyncQueue.enqueue(turboJsFallbackPolicyPlan.decisionHostCall || 'script.fallbackDecision', { route: chunk.route, source: chunk.source, order: chunk.order, allowed: true }); asyncQueue.settle(decision.id, 'fulfilled', { allowed: true }); }
 __VENOM_RUNTIME_ENGINE_FALLBACK_BLOCK__
     } catch (error) {
       if (request && request.id && executionGeneration === (asyncQueue.snapshot().generation >>> 0)) asyncQueue.settle(request.id, 'rejected', { message: error && error.message ? error.message : String(error), context: context.key });
@@ -3014,212 +3014,212 @@ __VENOM_RUNTIME_ENGINE_FALLBACK_BLOCK__
 
   function abiTable() {
     if (engineModule && typeof engineModule.abiTable === 'function') return engineModule.abiTable();
-    return Object.freeze({ abi: quickJsRuntimeAbiPlan ? quickJsRuntimeAbiPlan.abi : 0, packageVersion: quickJsRuntimeAbiPlan ? quickJsRuntimeAbiPlan.packageVersion : 0, entryCount: quickJsRuntimeAbiPlan ? quickJsRuntimeAbiPlan.entryCount : 0, tableHash: quickJsRuntimeAbiPlan ? quickJsRuntimeAbiPlan.tableHash : '', table: quickJsRuntimeAbiPlan ? quickJsRuntimeAbiPlan.table : '' });
+    return Object.freeze({ abi: turboJsRuntimeAbiPlan ? turboJsRuntimeAbiPlan.abi : 0, packageVersion: turboJsRuntimeAbiPlan ? turboJsRuntimeAbiPlan.packageVersion : 0, entryCount: turboJsRuntimeAbiPlan ? turboJsRuntimeAbiPlan.entryCount : 0, tableHash: turboJsRuntimeAbiPlan ? turboJsRuntimeAbiPlan.tableHash : '', table: turboJsRuntimeAbiPlan ? turboJsRuntimeAbiPlan.table : '' });
   }
 
   function hostImportTable() {
     if (engineModule && typeof engineModule.hostImportTable === 'function') return engineModule.hostImportTable();
-    return Object.freeze({ importCount: quickJsHostImportsPlan ? quickJsHostImportsPlan.importCount : 0, tableHash: quickJsHostImportsPlan ? quickJsHostImportsPlan.tableHash : '', table: quickJsHostImportsPlan ? quickJsHostImportsPlan.table : '', design: quickJsHostImportsPlan ? quickJsHostImportsPlan.design : '' });
+    return Object.freeze({ importCount: turboJsHostImportsPlan ? turboJsHostImportsPlan.importCount : 0, tableHash: turboJsHostImportsPlan ? turboJsHostImportsPlan.tableHash : '', table: turboJsHostImportsPlan ? turboJsHostImportsPlan.table : '', design: turboJsHostImportsPlan ? turboJsHostImportsPlan.design : '' });
   }
 
   function parityProbe() {
     if (engineModule && typeof engineModule.parityProbe === 'function') return engineModule.parityProbe();
-    return Object.freeze({ expected: quickJsParityProbePlan ? quickJsParityProbePlan.expected : 'quickjs:5', native: quickJsParityProbePlan ? quickJsParityProbePlan.native : '', wasm: quickJsParityProbePlan ? quickJsParityProbePlan.wasm : '', matched: false, loaded: false });
+    return Object.freeze({ expected: turboJsParityProbePlan ? turboJsParityProbePlan.expected : 'turbojs:5', native: turboJsParityProbePlan ? turboJsParityProbePlan.native : '', wasm: turboJsParityProbePlan ? turboJsParityProbePlan.wasm : '', matched: false, loaded: false });
   }
 
   function bytecodeManifest() {
     if (engineModule && typeof engineModule.bytecodeManifest === 'function') return engineModule.bytecodeManifest();
-    return Object.freeze({ version: quickJsBytecodeManifestPlan ? quickJsBytecodeManifestPlan.version : 0, format: quickJsBytecodeManifestPlan ? quickJsBytecodeManifestPlan.format : '', chunkCount: quickJsBytecodeManifestPlan ? quickJsBytecodeManifestPlan.chunkCount : 0, records: quickJsBytecodeManifestPlan && quickJsBytecodeManifestPlan.records ? quickJsBytecodeManifestPlan.records : Object.freeze([]), loaded: false });
+    return Object.freeze({ version: turboJsBytecodeManifestPlan ? turboJsBytecodeManifestPlan.version : 0, format: turboJsBytecodeManifestPlan ? turboJsBytecodeManifestPlan.format : '', chunkCount: turboJsBytecodeManifestPlan ? turboJsBytecodeManifestPlan.chunkCount : 0, records: turboJsBytecodeManifestPlan && turboJsBytecodeManifestPlan.records ? turboJsBytecodeManifestPlan.records : Object.freeze([]), loaded: false });
   }
 
   function moduleResolver() {
     if (engineModule && typeof engineModule.moduleResolver === 'function') return engineModule.moduleResolver();
-    return Object.freeze({ version: quickJsModuleResolverPlan ? quickJsModuleResolverPlan.version : 0, abi: quickJsModuleResolverPlan ? quickJsModuleResolverPlan.abi : 0, mode: quickJsModuleResolverPlan ? quickJsModuleResolverPlan.mode : '', entries: quickJsModuleResolverPlan && quickJsModuleResolverPlan.entries ? quickJsModuleResolverPlan.entries : Object.freeze([]), loaded: false });
+    return Object.freeze({ version: turboJsModuleResolverPlan ? turboJsModuleResolverPlan.version : 0, abi: turboJsModuleResolverPlan ? turboJsModuleResolverPlan.abi : 0, mode: turboJsModuleResolverPlan ? turboJsModuleResolverPlan.mode : '', entries: turboJsModuleResolverPlan && turboJsModuleResolverPlan.entries ? turboJsModuleResolverPlan.entries : Object.freeze([]), loaded: false });
   }
 
   function exceptionAbi() {
     if (engineModule && typeof engineModule.exceptionAbi === 'function') return engineModule.exceptionAbi();
-    return Object.freeze({ version: quickJsExceptionAbiPlan ? quickJsExceptionAbiPlan.version : 0, abi: quickJsExceptionAbiPlan ? quickJsExceptionAbiPlan.abi : 0, schema: quickJsExceptionAbiPlan ? quickJsExceptionAbiPlan.schema : '', loaded: false });
+    return Object.freeze({ version: turboJsExceptionAbiPlan ? turboJsExceptionAbiPlan.version : 0, abi: turboJsExceptionAbiPlan ? turboJsExceptionAbiPlan.abi : 0, schema: turboJsExceptionAbiPlan ? turboJsExceptionAbiPlan.schema : '', loaded: false });
   }
 
   function hostTrapPolicy() {
     if (engineModule && typeof engineModule.hostTrapPolicy === 'function') return engineModule.hostTrapPolicy();
-    return Object.freeze({ version: quickJsHostTrapPolicyPlan ? quickJsHostTrapPolicyPlan.version : 0, policy: quickJsHostTrapPolicyPlan ? quickJsHostTrapPolicyPlan.policy : '', unknownImport: quickJsHostTrapPolicyPlan ? quickJsHostTrapPolicyPlan.unknownImport : '', loaded: false });
+    return Object.freeze({ version: turboJsHostTrapPolicyPlan ? turboJsHostTrapPolicyPlan.version : 0, policy: turboJsHostTrapPolicyPlan ? turboJsHostTrapPolicyPlan.policy : '', unknownImport: turboJsHostTrapPolicyPlan ? turboJsHostTrapPolicyPlan.unknownImport : '', loaded: false });
   }
 
   function executionLifecycle() {
     if (engineModule && typeof engineModule.executionLifecycle === 'function') return engineModule.executionLifecycle();
-    return Object.freeze({ version: quickJsExecutionLifecyclePlan ? quickJsExecutionLifecyclePlan.version : 0, states: quickJsExecutionLifecyclePlan ? quickJsExecutionLifecyclePlan.states : '', strictRelease: !!(quickJsExecutionLifecyclePlan && quickJsExecutionLifecyclePlan.strictRelease), loaded: false });
+    return Object.freeze({ version: turboJsExecutionLifecyclePlan ? turboJsExecutionLifecyclePlan.version : 0, states: turboJsExecutionLifecyclePlan ? turboJsExecutionLifecyclePlan.states : '', strictRelease: !!(turboJsExecutionLifecyclePlan && turboJsExecutionLifecyclePlan.strictRelease), loaded: false });
   }
 
   function scriptBufferPolicy() {
     if (engineModule && typeof engineModule.scriptBufferPolicy === 'function') return engineModule.scriptBufferPolicy();
-    return Object.freeze({ version: quickJsScriptBufferPolicyPlan ? quickJsScriptBufferPolicyPlan.version : 0, maxScriptBytes: quickJsScriptBufferPolicyPlan ? quickJsScriptBufferPolicyPlan.maxScriptBytes : 786432, validateHashBeforeExecute: !(quickJsScriptBufferPolicyPlan && quickJsScriptBufferPolicyPlan.validateHashBeforeExecute === false), loaded: false });
+    return Object.freeze({ version: turboJsScriptBufferPolicyPlan ? turboJsScriptBufferPolicyPlan.version : 0, maxScriptBytes: turboJsScriptBufferPolicyPlan ? turboJsScriptBufferPolicyPlan.maxScriptBytes : 786432, validateHashBeforeExecute: !(turboJsScriptBufferPolicyPlan && turboJsScriptBufferPolicyPlan.validateHashBeforeExecute === false), loaded: false });
   }
 
   function contextLimitPolicy() {
     if (engineModule && typeof engineModule.contextLimitPolicy === 'function') return engineModule.contextLimitPolicy();
-    return Object.freeze({ version: quickJsContextLimitPolicyPlan ? quickJsContextLimitPolicyPlan.version : 0, maxHeapBytes: quickJsContextLimitPolicyPlan ? quickJsContextLimitPolicyPlan.maxHeapBytes : 0, maxStackBytes: quickJsContextLimitPolicyPlan ? quickJsContextLimitPolicyPlan.maxStackBytes : 0, maxScriptBytes: quickJsContextLimitPolicyPlan ? quickJsContextLimitPolicyPlan.maxScriptBytes : 0, maxHostCalls: quickJsContextLimitPolicyPlan ? quickJsContextLimitPolicyPlan.maxHostCalls : 0, maxConsoleEvents: quickJsContextLimitPolicyPlan ? quickJsContextLimitPolicyPlan.maxConsoleEvents : 0, maxModuleRecords: quickJsContextLimitPolicyPlan ? quickJsContextLimitPolicyPlan.maxModuleRecords : 0, loaded: false });
+    return Object.freeze({ version: turboJsContextLimitPolicyPlan ? turboJsContextLimitPolicyPlan.version : 0, maxHeapBytes: turboJsContextLimitPolicyPlan ? turboJsContextLimitPolicyPlan.maxHeapBytes : 0, maxStackBytes: turboJsContextLimitPolicyPlan ? turboJsContextLimitPolicyPlan.maxStackBytes : 0, maxScriptBytes: turboJsContextLimitPolicyPlan ? turboJsContextLimitPolicyPlan.maxScriptBytes : 0, maxHostCalls: turboJsContextLimitPolicyPlan ? turboJsContextLimitPolicyPlan.maxHostCalls : 0, maxConsoleEvents: turboJsContextLimitPolicyPlan ? turboJsContextLimitPolicyPlan.maxConsoleEvents : 0, maxModuleRecords: turboJsContextLimitPolicyPlan ? turboJsContextLimitPolicyPlan.maxModuleRecords : 0, loaded: false });
   }
 
   function hostCallDispatch() {
     if (engineModule && typeof engineModule.hostCallDispatch === 'function') return engineModule.hostCallDispatch();
-    return Object.freeze({ version: quickJsHostCallDispatchPlan ? quickJsHostCallDispatchPlan.version : 0, entryCount: quickJsHostCallDispatchPlan ? quickJsHostCallDispatchPlan.entryCount : 0, unknownHostCall: quickJsHostCallDispatchPlan ? quickJsHostCallDispatchPlan.unknownHostCall : '', calls: quickJsHostCallDispatchPlan && quickJsHostCallDispatchPlan.calls ? quickJsHostCallDispatchPlan.calls : Object.freeze([]), loaded: false });
+    return Object.freeze({ version: turboJsHostCallDispatchPlan ? turboJsHostCallDispatchPlan.version : 0, entryCount: turboJsHostCallDispatchPlan ? turboJsHostCallDispatchPlan.entryCount : 0, unknownHostCall: turboJsHostCallDispatchPlan ? turboJsHostCallDispatchPlan.unknownHostCall : '', calls: turboJsHostCallDispatchPlan && turboJsHostCallDispatchPlan.calls ? turboJsHostCallDispatchPlan.calls : Object.freeze([]), loaded: false });
   }
 
   function parityContract() {
     if (engineModule && typeof engineModule.parityContract === 'function') return engineModule.parityContract();
-    return Object.freeze({ version: quickJsParityContractPlan ? quickJsParityContractPlan.version : 0, compare: quickJsParityContractPlan ? quickJsParityContractPlan.compare : '', releaseOnMismatch: quickJsParityContractPlan ? quickJsParityContractPlan.releaseOnMismatch : '', loaded: false });
+    return Object.freeze({ version: turboJsParityContractPlan ? turboJsParityContractPlan.version : 0, compare: turboJsParityContractPlan ? turboJsParityContractPlan.compare : '', releaseOnMismatch: turboJsParityContractPlan ? turboJsParityContractPlan.releaseOnMismatch : '', loaded: false });
   }
 
   function releaseFailClosed() {
     if (engineModule && typeof engineModule.releaseFailClosed === 'function') return engineModule.releaseFailClosed();
-    return Object.freeze({ version: quickJsReleaseFailClosedPlan ? quickJsReleaseFailClosedPlan.version : 0, releasePolicy: quickJsReleaseFailClosedPlan ? quickJsReleaseFailClosedPlan.releasePolicy : '', failOn: quickJsReleaseFailClosedPlan ? quickJsReleaseFailClosedPlan.failOn : '', loaded: false });
+    return Object.freeze({ version: turboJsReleaseFailClosedPlan ? turboJsReleaseFailClosedPlan.version : 0, releasePolicy: turboJsReleaseFailClosedPlan ? turboJsReleaseFailClosedPlan.releasePolicy : '', failOn: turboJsReleaseFailClosedPlan ? turboJsReleaseFailClosedPlan.failOn : '', loaded: false });
   }
 
   function moduleGraph() {
     if (engineModule && typeof engineModule.moduleGraph === 'function') return engineModule.moduleGraph();
-    return Object.freeze({ version: quickJsModuleGraphPlan ? quickJsModuleGraphPlan.version : 0, moduleCount: quickJsModuleGraphPlan ? quickJsModuleGraphPlan.moduleCount : 0, modules: quickJsModuleGraphPlan && quickJsModuleGraphPlan.modules ? quickJsModuleGraphPlan.modules : Object.freeze([]), cacheSize: 0, executions: 0, resolverAudits: 0, loaded: false });
+    return Object.freeze({ version: turboJsModuleGraphPlan ? turboJsModuleGraphPlan.version : 0, moduleCount: turboJsModuleGraphPlan ? turboJsModuleGraphPlan.moduleCount : 0, modules: turboJsModuleGraphPlan && turboJsModuleGraphPlan.modules ? turboJsModuleGraphPlan.modules : Object.freeze([]), cacheSize: 0, executions: 0, resolverAudits: 0, loaded: false });
   }
 
   function moduleCacheSnapshot() {
     if (engineModule && typeof engineModule.moduleCacheSnapshot === 'function') return engineModule.moduleCacheSnapshot();
-    return Object.freeze({ version: quickJsModuleCachePlan ? quickJsModuleCachePlan.version : 0, mode: quickJsModuleCachePlan ? quickJsModuleCachePlan.mode : '', size: 0, entries: Object.freeze([]), loaded: false });
+    return Object.freeze({ version: turboJsModuleCachePlan ? turboJsModuleCachePlan.version : 0, mode: turboJsModuleCachePlan ? turboJsModuleCachePlan.mode : '', size: 0, entries: Object.freeze([]), loaded: false });
   }
 
   function resolverAudit() {
     if (engineModule && typeof engineModule.resolverAudit === 'function') return engineModule.resolverAudit();
-    return Object.freeze({ version: quickJsResolverAuditPlan ? quickJsResolverAuditPlan.version : 0, mode: quickJsResolverAuditPlan ? quickJsResolverAuditPlan.mode : '', count: 0, records: Object.freeze([]), loaded: false });
+    return Object.freeze({ version: turboJsResolverAuditPlan ? turboJsResolverAuditPlan.version : 0, mode: turboJsResolverAuditPlan ? turboJsResolverAuditPlan.mode : '', count: 0, records: Object.freeze([]), loaded: false });
   }
 
   function interopFallback() {
     if (engineModule && typeof engineModule.interopFallback === 'function') return engineModule.interopFallback();
-    return Object.freeze({ version: quickJsInteropFallbackPlan ? quickJsInteropFallbackPlan.version : 0, kind: quickJsInteropFallbackPlan ? quickJsInteropFallbackPlan.fallbackKind : 'host-esm-transform-prototype', releaseBehavior: quickJsInteropFallbackPlan ? quickJsInteropFallbackPlan.releaseBehavior : 'fail-closed-if-required-contract-missing', loaded: false });
+    return Object.freeze({ version: turboJsInteropFallbackPlan ? turboJsInteropFallbackPlan.version : 0, kind: turboJsInteropFallbackPlan ? turboJsInteropFallbackPlan.fallbackKind : 'host-esm-transform-prototype', releaseBehavior: turboJsInteropFallbackPlan ? turboJsInteropFallbackPlan.releaseBehavior : 'fail-closed-if-required-contract-missing', loaded: false });
   }
 
   function executionJournal() {
     if (engineModule && typeof engineModule.executionJournal === 'function') return engineModule.executionJournal();
-    return Object.freeze({ version: quickJsExecutionJournalPlan ? quickJsExecutionJournalPlan.version : 0, maxRecords: quickJsExecutionJournalPlan ? quickJsExecutionJournalPlan.maxRecords : 0, records: Object.freeze(executionRecords.slice()), loaded: false });
+    return Object.freeze({ version: turboJsExecutionJournalPlan ? turboJsExecutionJournalPlan.version : 0, maxRecords: turboJsExecutionJournalPlan ? turboJsExecutionJournalPlan.maxRecords : 0, records: Object.freeze(executionRecords.slice()), loaded: false });
   }
 
   function checkpointPolicy() {
     if (engineModule && typeof engineModule.checkpointPolicy === 'function') return engineModule.checkpointPolicy();
-    return Object.freeze({ version: quickJsCheckpointPolicyPlan ? quickJsCheckpointPolicyPlan.version : 0, maxCheckpoints: quickJsCheckpointPolicyPlan ? quickJsCheckpointPolicyPlan.maxCheckpoints : 0, capture: quickJsCheckpointPolicyPlan ? quickJsCheckpointPolicyPlan.capture : '', restorePolicy: quickJsCheckpointPolicyPlan ? quickJsCheckpointPolicyPlan.restorePolicy : '', loaded: false });
+    return Object.freeze({ version: turboJsCheckpointPolicyPlan ? turboJsCheckpointPolicyPlan.version : 0, maxCheckpoints: turboJsCheckpointPolicyPlan ? turboJsCheckpointPolicyPlan.maxCheckpoints : 0, capture: turboJsCheckpointPolicyPlan ? turboJsCheckpointPolicyPlan.capture : '', restorePolicy: turboJsCheckpointPolicyPlan ? turboJsCheckpointPolicyPlan.restorePolicy : '', loaded: false });
   }
 
   function replayCursor() {
     if (engineModule && typeof engineModule.replayCursor === 'function') return engineModule.replayCursor();
-    return Object.freeze({ version: quickJsReplayCursorPlan ? quickJsReplayCursorPlan.version : 0, sequence: executionRecords.length, cursorFields: quickJsReplayCursorPlan ? quickJsReplayCursorPlan.cursorFields : '', loaded: false });
+    return Object.freeze({ version: turboJsReplayCursorPlan ? turboJsReplayCursorPlan.version : 0, sequence: executionRecords.length, cursorFields: turboJsReplayCursorPlan ? turboJsReplayCursorPlan.cursorFields : '', loaded: false });
   }
 
   function resumeState() {
     if (engineModule && typeof engineModule.resumeState === 'function') return engineModule.resumeState();
-    return Object.freeze({ version: quickJsResumeStatePlan ? quickJsResumeStatePlan.version : 0, contextCount: contexts.size, executionCount: executionRecords.length, consoleEvents: consoleEvents.length, loaded: false });
+    return Object.freeze({ version: turboJsResumeStatePlan ? turboJsResumeStatePlan.version : 0, contextCount: contexts.size, executionCount: executionRecords.length, consoleEvents: consoleEvents.length, loaded: false });
   }
 
   function determinismAudit() {
     if (engineModule && typeof engineModule.determinismAudit === 'function') return engineModule.determinismAudit();
-    return Object.freeze({ version: quickJsDeterminismAuditPlan ? quickJsDeterminismAuditPlan.version : 0, executionCount: executionRecords.length, hostImportCount: quickJsHostImportsPlan ? quickJsHostImportsPlan.importCount : 0, releaseRequires: quickJsDeterminismAuditPlan ? quickJsDeterminismAuditPlan.releaseRequires : '', loaded: false });
+    return Object.freeze({ version: turboJsDeterminismAuditPlan ? turboJsDeterminismAuditPlan.version : 0, executionCount: executionRecords.length, hostImportCount: turboJsHostImportsPlan ? turboJsHostImportsPlan.importCount : 0, releaseRequires: turboJsDeterminismAuditPlan ? turboJsDeterminismAuditPlan.releaseRequires : '', loaded: false });
   }
 
   function snapshotPolicy() {
     if (engineModule && typeof engineModule.snapshotPolicy === 'function') return engineModule.snapshotPolicy();
-    return Object.freeze({ version: quickJsSnapshotPolicyPlan ? quickJsSnapshotPolicyPlan.version : 0, capture: quickJsSnapshotPolicyPlan ? quickJsSnapshotPolicyPlan.capture : '', validate: quickJsSnapshotPolicyPlan ? quickJsSnapshotPolicyPlan.validate : '', loaded: false });
+    return Object.freeze({ version: turboJsSnapshotPolicyPlan ? turboJsSnapshotPolicyPlan.version : 0, capture: turboJsSnapshotPolicyPlan ? turboJsSnapshotPolicyPlan.capture : '', validate: turboJsSnapshotPolicyPlan ? turboJsSnapshotPolicyPlan.validate : '', loaded: false });
   }
 
   function snapshotRecord() {
     if (engineModule && typeof engineModule.snapshotRecord === 'function') return engineModule.snapshotRecord();
-    return Object.freeze({ version: quickJsSnapshotRecordsPlan ? quickJsSnapshotRecordsPlan.version : 0, count: executionRecords.length, loaded: false });
+    return Object.freeze({ version: turboJsSnapshotRecordsPlan ? turboJsSnapshotRecordsPlan.version : 0, count: executionRecords.length, loaded: false });
   }
 
   function replayValidation() {
     if (engineModule && typeof engineModule.replayValidation === 'function') return engineModule.replayValidation();
-    return Object.freeze({ version: quickJsReplayValidationPlan ? quickJsReplayValidationPlan.version : 0, checks: quickJsReplayValidationPlan ? quickJsReplayValidationPlan.checks : '', loaded: false });
+    return Object.freeze({ version: turboJsReplayValidationPlan ? turboJsReplayValidationPlan.version : 0, checks: turboJsReplayValidationPlan ? turboJsReplayValidationPlan.checks : '', loaded: false });
   }
 
   function determinismLedger() {
     if (engineModule && typeof engineModule.determinismLedger === 'function') return engineModule.determinismLedger();
-    return Object.freeze({ version: quickJsDeterminismLedgerPlan ? quickJsDeterminismLedgerPlan.version : 0, chainHash: quickJsDeterminismLedgerPlan ? quickJsDeterminismLedgerPlan.chainHash : '', entries: executionRecords.length, loaded: false });
+    return Object.freeze({ version: turboJsDeterminismLedgerPlan ? turboJsDeterminismLedgerPlan.version : 0, chainHash: turboJsDeterminismLedgerPlan ? turboJsDeterminismLedgerPlan.chainHash : '', entries: executionRecords.length, loaded: false });
   }
 
   function auditSeal() {
     if (engineModule && typeof engineModule.auditSeal === 'function') return engineModule.auditSeal();
-    return Object.freeze({ version: quickJsAuditSealPlan ? quickJsAuditSealPlan.version : 0, releaseRequires: quickJsAuditSealPlan ? quickJsAuditSealPlan.releaseRequires : '', loaded: false });
+    return Object.freeze({ version: turboJsAuditSealPlan ? turboJsAuditSealPlan.version : 0, releaseRequires: turboJsAuditSealPlan ? turboJsAuditSealPlan.releaseRequires : '', loaded: false });
   }
 
   function executionCommit() {
     if (engineModule && typeof engineModule.executionCommit === 'function') return engineModule.executionCommit();
-    return Object.freeze({ version: quickJsExecutionCommitPlan ? quickJsExecutionCommitPlan.version : 0, commitHostCall: quickJsExecutionCommitPlan ? quickJsExecutionCommitPlan.commitHostCall : 'execution.commit', committed: executionRecords.length, loaded: false });
+    return Object.freeze({ version: turboJsExecutionCommitPlan ? turboJsExecutionCommitPlan.version : 0, commitHostCall: turboJsExecutionCommitPlan ? turboJsExecutionCommitPlan.commitHostCall : 'execution.commit', committed: executionRecords.length, loaded: false });
   }
 
   function rollbackPolicy() {
     if (engineModule && typeof engineModule.rollbackPolicy === 'function') return engineModule.rollbackPolicy();
-    return Object.freeze({ version: quickJsRollbackPolicyPlan ? quickJsRollbackPolicyPlan.version : 0, rollbackHostCall: quickJsRollbackPolicyPlan ? quickJsRollbackPolicyPlan.rollbackHostCall : 'execution.rollback', loaded: false });
+    return Object.freeze({ version: turboJsRollbackPolicyPlan ? turboJsRollbackPolicyPlan.version : 0, rollbackHostCall: turboJsRollbackPolicyPlan ? turboJsRollbackPolicyPlan.rollbackHostCall : 'execution.rollback', loaded: false });
   }
 
   function hostCallReceipts() {
     if (engineModule && typeof engineModule.hostCallReceipts === 'function') return engineModule.hostCallReceipts();
-    return Object.freeze({ version: quickJsHostCallReceiptsPlan ? quickJsHostCallReceiptsPlan.version : 0, receiptHostCall: quickJsHostCallReceiptsPlan ? quickJsHostCallReceiptsPlan.receiptHostCall : 'host.receipt', count: executionRecords.length, loaded: false });
+    return Object.freeze({ version: turboJsHostCallReceiptsPlan ? turboJsHostCallReceiptsPlan.version : 0, receiptHostCall: turboJsHostCallReceiptsPlan ? turboJsHostCallReceiptsPlan.receiptHostCall : 'host.receipt', count: executionRecords.length, loaded: false });
   }
 
   function releaseAcceptance() {
     if (engineModule && typeof engineModule.releaseAcceptance === 'function') return engineModule.releaseAcceptance();
-    return Object.freeze({ version: quickJsReleaseAcceptancePlan ? quickJsReleaseAcceptancePlan.version : 0, checks: quickJsReleaseAcceptancePlan ? quickJsReleaseAcceptancePlan.checks : '', accepted: true, loaded: false });
+    return Object.freeze({ version: turboJsReleaseAcceptancePlan ? turboJsReleaseAcceptancePlan.version : 0, checks: turboJsReleaseAcceptancePlan ? turboJsReleaseAcceptancePlan.checks : '', accepted: true, loaded: false });
   }
 
   function commitAudit() {
     if (engineModule && typeof engineModule.commitAudit === 'function') return engineModule.commitAudit();
-    return Object.freeze({ version: quickJsCommitAuditPlan ? quickJsCommitAuditPlan.version : 0, auditFields: quickJsCommitAuditPlan ? quickJsCommitAuditPlan.auditFields : '', releaseRequires: quickJsCommitAuditPlan ? quickJsCommitAuditPlan.releaseRequires : '', loaded: false });
+    return Object.freeze({ version: turboJsCommitAuditPlan ? turboJsCommitAuditPlan.version : 0, auditFields: turboJsCommitAuditPlan ? turboJsCommitAuditPlan.auditFields : '', releaseRequires: turboJsCommitAuditPlan ? turboJsCommitAuditPlan.releaseRequires : '', loaded: false });
   }
 
   function capabilityPolicy() {
     if (engineModule && typeof engineModule.capabilityPolicy === 'function') return engineModule.capabilityPolicy();
-    return Object.freeze({ version: quickJsCapabilityPolicyPlan ? quickJsCapabilityPolicyPlan.version : 0, mode: quickJsCapabilityPolicyPlan ? quickJsCapabilityPolicyPlan.mode : '', capabilities: quickJsCapabilityPolicyPlan && quickJsCapabilityPolicyPlan.capabilities ? quickJsCapabilityPolicyPlan.capabilities : '', releaseRequires: quickJsCapabilityPolicyPlan ? quickJsCapabilityPolicyPlan.releaseRequires : '', loaded: false });
+    return Object.freeze({ version: turboJsCapabilityPolicyPlan ? turboJsCapabilityPolicyPlan.version : 0, mode: turboJsCapabilityPolicyPlan ? turboJsCapabilityPolicyPlan.mode : '', capabilities: turboJsCapabilityPolicyPlan && turboJsCapabilityPolicyPlan.capabilities ? turboJsCapabilityPolicyPlan.capabilities : '', releaseRequires: turboJsCapabilityPolicyPlan ? turboJsCapabilityPolicyPlan.releaseRequires : '', loaded: false });
   }
 
   function hostIoPolicy() {
     if (engineModule && typeof engineModule.hostIoPolicy === 'function') return engineModule.hostIoPolicy();
-    return Object.freeze({ version: quickJsHostIoPolicyPlan ? quickJsHostIoPolicyPlan.version : 0, network: quickJsHostIoPolicyPlan ? quickJsHostIoPolicyPlan.network : '', filesystem: quickJsHostIoPolicyPlan ? quickJsHostIoPolicyPlan.filesystem : '', releaseBehavior: quickJsHostIoPolicyPlan ? quickJsHostIoPolicyPlan.releaseBehavior : '', loaded: false });
+    return Object.freeze({ version: turboJsHostIoPolicyPlan ? turboJsHostIoPolicyPlan.version : 0, network: turboJsHostIoPolicyPlan ? turboJsHostIoPolicyPlan.network : '', filesystem: turboJsHostIoPolicyPlan ? turboJsHostIoPolicyPlan.filesystem : '', releaseBehavior: turboJsHostIoPolicyPlan ? turboJsHostIoPolicyPlan.releaseBehavior : '', loaded: false });
   }
 
   function permissionSeal() {
     if (engineModule && typeof engineModule.permissionSeal === 'function') return engineModule.permissionSeal();
-    return Object.freeze({ version: quickJsPermissionSealPlan ? quickJsPermissionSealPlan.version : 0, algorithm: quickJsPermissionSealPlan ? quickJsPermissionSealPlan.algorithm : '', releaseRequires: quickJsPermissionSealPlan ? quickJsPermissionSealPlan.releaseRequires : '', loaded: false });
+    return Object.freeze({ version: turboJsPermissionSealPlan ? turboJsPermissionSealPlan.version : 0, algorithm: turboJsPermissionSealPlan ? turboJsPermissionSealPlan.algorithm : '', releaseRequires: turboJsPermissionSealPlan ? turboJsPermissionSealPlan.releaseRequires : '', loaded: false });
   }
 
   function policyReceipts() {
     if (engineModule && typeof engineModule.policyReceipts === 'function') return engineModule.policyReceipts();
-    return Object.freeze({ version: quickJsPolicyReceiptsPlan ? quickJsPolicyReceiptsPlan.version : 0, hostCall: quickJsPolicyReceiptsPlan ? quickJsPolicyReceiptsPlan.hostCall : 'host.receipt', count: executionRecords.length, loaded: false });
+    return Object.freeze({ version: turboJsPolicyReceiptsPlan ? turboJsPolicyReceiptsPlan.version : 0, hostCall: turboJsPolicyReceiptsPlan ? turboJsPolicyReceiptsPlan.hostCall : 'host.receipt', count: executionRecords.length, loaded: false });
   }
 
   function releaseGate() {
     if (engineModule && typeof engineModule.releaseGate === 'function') return engineModule.releaseGate();
-    return Object.freeze({ version: quickJsReleaseGatePlan ? quickJsReleaseGatePlan.version : 0, gate: quickJsReleaseGatePlan ? quickJsReleaseGatePlan.gate : '', failOn: quickJsReleaseGatePlan ? quickJsReleaseGatePlan.failOn : '', loaded: false });
+    return Object.freeze({ version: turboJsReleaseGatePlan ? turboJsReleaseGatePlan.version : 0, gate: turboJsReleaseGatePlan ? turboJsReleaseGatePlan.gate : '', failOn: turboJsReleaseGatePlan ? turboJsReleaseGatePlan.failOn : '', loaded: false });
   }
 
   function hostIoDecision() {
     if (engineModule && typeof engineModule.hostIoDecision === 'function') return engineModule.hostIoDecision();
-    return Object.freeze({ version: quickJsHostIoDecisionPlan ? quickJsHostIoDecisionPlan.version : 0, fields: quickJsHostIoDecisionPlan ? quickJsHostIoDecisionPlan.fields : '', count: executionRecords.length, loaded: false });
+    return Object.freeze({ version: turboJsHostIoDecisionPlan ? turboJsHostIoDecisionPlan.version : 0, fields: turboJsHostIoDecisionPlan ? turboJsHostIoDecisionPlan.fields : '', count: executionRecords.length, loaded: false });
   }
 
   function hostIoDenyTrace() {
     if (engineModule && typeof engineModule.hostIoDenyTrace === 'function') return engineModule.hostIoDenyTrace();
-    return Object.freeze({ version: quickJsHostIoDenyTracePlan ? quickJsHostIoDenyTracePlan.version : 0, fields: quickJsHostIoDenyTracePlan ? quickJsHostIoDenyTracePlan.fields : '', count: 0, loaded: false });
+    return Object.freeze({ version: turboJsHostIoDenyTracePlan ? turboJsHostIoDenyTracePlan.version : 0, fields: turboJsHostIoDenyTracePlan ? turboJsHostIoDenyTracePlan.fields : '', count: 0, loaded: false });
   }
 
   function capabilityLedger() {
     if (engineModule && typeof engineModule.capabilityLedger === 'function') return engineModule.capabilityLedger();
-    return Object.freeze({ version: quickJsCapabilityLedgerPlan ? quickJsCapabilityLedgerPlan.version : 0, fields: quickJsCapabilityLedgerPlan ? quickJsCapabilityLedgerPlan.fields : '', entries: executionRecords.length, loaded: false });
+    return Object.freeze({ version: turboJsCapabilityLedgerPlan ? turboJsCapabilityLedgerPlan.version : 0, fields: turboJsCapabilityLedgerPlan ? turboJsCapabilityLedgerPlan.fields : '', entries: executionRecords.length, loaded: false });
   }
 
   function policySealAudit() {
     if (engineModule && typeof engineModule.policySealAudit === 'function') return engineModule.policySealAudit();
-    return Object.freeze({ version: quickJsPolicySealAuditPlan ? quickJsPolicySealAuditPlan.version : 0, fields: quickJsPolicySealAuditPlan ? quickJsPolicySealAuditPlan.fields : '', loaded: false });
+    return Object.freeze({ version: turboJsPolicySealAuditPlan ? turboJsPolicySealAuditPlan.version : 0, fields: turboJsPolicySealAuditPlan ? turboJsPolicySealAuditPlan.fields : '', loaded: false });
   }
 
   function runtimeDenylist() {
     if (engineModule && typeof engineModule.runtimeDenylist === 'function') return engineModule.runtimeDenylist();
-    return Object.freeze({ version: quickJsRuntimeDenylistPlan ? quickJsRuntimeDenylistPlan.version : 0, denylist: quickJsRuntimeDenylistPlan ? quickJsRuntimeDenylistPlan.denylist : '', loaded: false });
+    return Object.freeze({ version: turboJsRuntimeDenylistPlan ? turboJsRuntimeDenylistPlan.version : 0, denylist: turboJsRuntimeDenylistPlan ? turboJsRuntimeDenylistPlan.denylist : '', loaded: false });
   }
 
   return Object.freeze({
@@ -3231,14 +3231,14 @@ __VENOM_RUNTIME_ENGINE_FALLBACK_BLOCK__
     destroyRoute,
     contextSnapshot,
     executeChunk,
-    bridgeMode: quickJsBridgePlan ? quickJsBridgePlan.mode : 'none',
-    moduleEnabled: !!(quickJsEngineModulePlan && quickJsEngineModulePlan.enabled),
-    moduleUrl: quickJsEngineModuleUrl || '',
-    adapterDiagnostics: quickJsAdapterDiagnosticsPlan ? quickJsAdapterDiagnosticsPlan.records : '',
+    bridgeMode: turboJsBridgePlan ? turboJsBridgePlan.mode : 'none',
+    moduleEnabled: !!(turboJsEngineModulePlan && turboJsEngineModulePlan.enabled),
+    moduleUrl: turboJsEngineModuleUrl || '',
+    adapterDiagnostics: turboJsAdapterDiagnosticsPlan ? turboJsAdapterDiagnosticsPlan.records : '',
     executionSnapshot() { return Object.freeze({ count: executionRecords.length, records: Object.freeze(executionRecords.slice()) }); },
     consoleEvents() { return Object.freeze(consoleEvents.slice()); },
-    clearConsoleEvents() { const count = consoleEvents.length; consoleEvents.length = 0; if (asyncQueue && quickJsResultBridgePlan && quickJsResultBridgePlan.enabled) { const request = asyncQueue.enqueue(quickJsResultBridgePlan.consoleFlushHostCall || 'quickjs.consoleFlush', { count }); asyncQueue.settle(request.id, 'fulfilled', { flushed: count }); } return count; },
-    fallbackPolicy() { return Object.freeze({ enabled: !!(quickJsFallbackPolicyPlan && quickJsFallbackPolicyPlan.enabled), mode: quickJsFallbackPolicyPlan ? quickJsFallbackPolicyPlan.mode : 'legacy', allowWhen: quickJsFallbackPolicyPlan ? quickJsFallbackPolicyPlan.allowWhen : '', strictRelease: !!(quickJsFallbackPolicyPlan && quickJsFallbackPolicyPlan.strictRelease) }); },
+    clearConsoleEvents() { const count = consoleEvents.length; consoleEvents.length = 0; if (asyncQueue && turboJsResultBridgePlan && turboJsResultBridgePlan.enabled) { const request = asyncQueue.enqueue(turboJsResultBridgePlan.consoleFlushHostCall || 'turbojs.consoleFlush', { count }); asyncQueue.settle(request.id, 'fulfilled', { flushed: count }); } return count; },
+    fallbackPolicy() { return Object.freeze({ enabled: !!(turboJsFallbackPolicyPlan && turboJsFallbackPolicyPlan.enabled), mode: turboJsFallbackPolicyPlan ? turboJsFallbackPolicyPlan.mode : 'legacy', allowWhen: turboJsFallbackPolicyPlan ? turboJsFallbackPolicyPlan.allowWhen : '', strictRelease: !!(turboJsFallbackPolicyPlan && turboJsFallbackPolicyPlan.strictRelease) }); },
     abiTable,
     hostImportTable,
     parityProbe,
@@ -3281,17 +3281,17 @@ __VENOM_RUNTIME_ENGINE_FALLBACK_BLOCK__
     capabilityLedger,
     policySealAudit,
     runtimeDenylist,
-    moduleStatus() { return Object.freeze({ enabled, mode, moduleEnabled: !!(quickJsEngineModulePlan && quickJsEngineModulePlan.enabled), moduleLoaded: !!engineModule, moduleUrl: quickJsEngineModuleUrl || '', wasmUrl: quickJsWasmUrl || '', wasmRuntime: !!quickJsWasmRuntimePlan, moduleError: engineModuleError ? String(engineModuleError.message || engineModuleError) : '', contextCount: contexts.size }); },
+    moduleStatus() { return Object.freeze({ enabled, mode, moduleEnabled: !!(turboJsEngineModulePlan && turboJsEngineModulePlan.enabled), moduleLoaded: !!engineModule, moduleUrl: turboJsEngineModuleUrl || '', wasmUrl: turboJsWasmUrl || '', wasmRuntime: !!turboJsWasmRuntimePlan, moduleError: engineModuleError ? String(engineModuleError.message || engineModuleError) : '', contextCount: contexts.size }); },
     moduleError() { return engineModuleError ? String(engineModuleError.message || engineModuleError) : ''; },
   });
 }
 
-function installVenomHostBridge(root, pkg, routes, assetManifest, runtimePolicy, hostBridgePlan, fetchBridgePlan, asyncQueuePlan, timerBridgePlan, eventQueuePlan, quickJsBridgePlan, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan, quickJsEngineModulePlan = null, quickJsEngineModuleUrl = null, quickJsContextLifecyclePlan = null, hostCapabilitiesPlan = null, quickJsAdapterDiagnosticsPlan = null, quickJsWasmRuntimePlan = null, quickJsWasmUrl = null, quickJsSourceTransferPlan = null, quickJsConsoleBridgePlan = null, quickJsExecutionRecordsPlan = null, quickJsResultBridgePlan = null, quickJsFallbackPolicyPlan = null, quickJsRuntimeAbiPlan = null, quickJsHostImportsPlan = null, quickJsHeapLimitsPlan = null, quickJsScriptBufferPlan = null, quickJsConsoleAbiPlan = null, quickJsParityProbePlan = null, quickJsReleaseFallbackPlan = null, quickJsBytecodeManifestPlan = null, quickJsModuleResolverPlan = null, quickJsExceptionAbiPlan = null, quickJsHostTrapPolicyPlan = null, quickJsExecutionLifecyclePlan = null, quickJsScriptBufferPolicyPlan = null, quickJsContextLimitPolicyPlan = null, quickJsHostCallDispatchPlan = null, quickJsParityContractPlan = null, quickJsReleaseFailClosedPlan = null, quickJsModuleGraphPlan = null, quickJsModuleExecutionPlan = null, quickJsModuleCachePlan = null, quickJsResolverAuditPlan = null, quickJsInteropFallbackPlan = null, quickJsExecutionJournalPlan = null, quickJsCheckpointPolicyPlan = null, quickJsReplayCursorPlan = null, quickJsResumeStatePlan = null, quickJsDeterminismAuditPlan = null, quickJsSnapshotPolicyPlan = null, quickJsSnapshotRecordsPlan = null, quickJsReplayValidationPlan = null, quickJsDeterminismLedgerPlan = null, quickJsAuditSealPlan = null, quickJsExecutionCommitPlan = null, quickJsRollbackPolicyPlan = null, quickJsHostCallReceiptsPlan = null, quickJsReleaseAcceptancePlan = null, quickJsCommitAuditPlan = null, quickJsCapabilityPolicyPlan = null, quickJsHostIoPolicyPlan = null, quickJsPermissionSealPlan = null, quickJsPolicyReceiptsPlan = null, quickJsReleaseGatePlan = null, quickJsHostIoDecisionPlan = null, quickJsHostIoDenyTracePlan = null, quickJsCapabilityLedgerPlan = null, quickJsPolicySealAuditPlan = null, quickJsRuntimeDenylistPlan = null) {
-  const asyncQueue = createAsyncHostQueue(fetchBridgePlan, asyncQueuePlan, timerBridgePlan, quickJsBridgePlan);
+function installVenomHostBridge(root, pkg, routes, assetManifest, runtimePolicy, hostBridgePlan, fetchBridgePlan, asyncQueuePlan, timerBridgePlan, eventQueuePlan, turboJsBridgePlan, scriptIsolationPlan, scriptPolicyPlan, turboJsChunkPlan, turboJsEnginePlan, scriptEnginePolicyPlan, turboJsEngineModulePlan = null, turboJsEngineModuleUrl = null, turboJsContextLifecyclePlan = null, hostCapabilitiesPlan = null, turboJsAdapterDiagnosticsPlan = null, turboJsWasmRuntimePlan = null, turboJsWasmUrl = null, turboJsSourceTransferPlan = null, turboJsConsoleBridgePlan = null, turboJsExecutionRecordsPlan = null, turboJsResultBridgePlan = null, turboJsFallbackPolicyPlan = null, turboJsRuntimeAbiPlan = null, turboJsHostImportsPlan = null, turboJsHeapLimitsPlan = null, turboJsScriptBufferPlan = null, turboJsConsoleAbiPlan = null, turboJsParityProbePlan = null, turboJsReleaseFallbackPlan = null, turboJsBytecodeManifestPlan = null, turboJsModuleResolverPlan = null, turboJsExceptionAbiPlan = null, turboJsHostTrapPolicyPlan = null, turboJsExecutionLifecyclePlan = null, turboJsScriptBufferPolicyPlan = null, turboJsContextLimitPolicyPlan = null, turboJsHostCallDispatchPlan = null, turboJsParityContractPlan = null, turboJsReleaseFailClosedPlan = null, turboJsModuleGraphPlan = null, turboJsModuleExecutionPlan = null, turboJsModuleCachePlan = null, turboJsResolverAuditPlan = null, turboJsInteropFallbackPlan = null, turboJsExecutionJournalPlan = null, turboJsCheckpointPolicyPlan = null, turboJsReplayCursorPlan = null, turboJsResumeStatePlan = null, turboJsDeterminismAuditPlan = null, turboJsSnapshotPolicyPlan = null, turboJsSnapshotRecordsPlan = null, turboJsReplayValidationPlan = null, turboJsDeterminismLedgerPlan = null, turboJsAuditSealPlan = null, turboJsExecutionCommitPlan = null, turboJsRollbackPolicyPlan = null, turboJsHostCallReceiptsPlan = null, turboJsReleaseAcceptancePlan = null, turboJsCommitAuditPlan = null, turboJsCapabilityPolicyPlan = null, turboJsHostIoPolicyPlan = null, turboJsPermissionSealPlan = null, turboJsPolicyReceiptsPlan = null, turboJsReleaseGatePlan = null, turboJsHostIoDecisionPlan = null, turboJsHostIoDenyTracePlan = null, turboJsCapabilityLedgerPlan = null, turboJsPolicySealAuditPlan = null, turboJsRuntimeDenylistPlan = null) {
+  const asyncQueue = createAsyncHostQueue(fetchBridgePlan, asyncQueuePlan, timerBridgePlan, turboJsBridgePlan);
   const eventQueue = createEventQueue(eventQueuePlan);
   const domHandles = createDomHandleRegistry(root, asyncQueuePlan && asyncQueuePlan.maxDomHandles ? asyncQueuePlan.maxDomHandles : 4096);
   let bridgeRef = null;
-  const quickJsEngine = createQuickJsEngine(asyncQueue, quickJsEnginePlan, scriptEnginePolicyPlan, quickJsBridgePlan, quickJsEngineModulePlan, quickJsEngineModuleUrl, quickJsContextLifecyclePlan, hostCapabilitiesPlan, quickJsAdapterDiagnosticsPlan, quickJsWasmRuntimePlan, quickJsWasmUrl, quickJsSourceTransferPlan, quickJsConsoleBridgePlan, quickJsExecutionRecordsPlan, quickJsResultBridgePlan, quickJsFallbackPolicyPlan, quickJsRuntimeAbiPlan, quickJsHostImportsPlan, quickJsHeapLimitsPlan, quickJsScriptBufferPlan, quickJsConsoleAbiPlan, quickJsParityProbePlan, quickJsReleaseFallbackPlan, quickJsBytecodeManifestPlan, quickJsModuleResolverPlan, quickJsExceptionAbiPlan, quickJsHostTrapPolicyPlan, quickJsExecutionLifecyclePlan, quickJsScriptBufferPolicyPlan, quickJsContextLimitPolicyPlan, quickJsHostCallDispatchPlan, quickJsParityContractPlan, quickJsReleaseFailClosedPlan, quickJsModuleGraphPlan, quickJsModuleExecutionPlan, quickJsModuleCachePlan, quickJsResolverAuditPlan, quickJsInteropFallbackPlan, quickJsExecutionJournalPlan, quickJsCheckpointPolicyPlan, quickJsReplayCursorPlan, quickJsResumeStatePlan, quickJsDeterminismAuditPlan, quickJsSnapshotPolicyPlan, quickJsSnapshotRecordsPlan, quickJsReplayValidationPlan, quickJsDeterminismLedgerPlan, quickJsAuditSealPlan, quickJsExecutionCommitPlan, quickJsRollbackPolicyPlan, quickJsHostCallReceiptsPlan, quickJsReleaseAcceptancePlan, quickJsCommitAuditPlan, quickJsCapabilityPolicyPlan, quickJsHostIoPolicyPlan, quickJsPermissionSealPlan, quickJsPolicyReceiptsPlan, quickJsReleaseGatePlan, quickJsHostIoDecisionPlan, quickJsHostIoDenyTracePlan, quickJsCapabilityLedgerPlan, quickJsPolicySealAuditPlan, quickJsRuntimeDenylistPlan);
+  const turboJsEngine = createTurboJsEngine(asyncQueue, turboJsEnginePlan, scriptEnginePolicyPlan, turboJsBridgePlan, turboJsEngineModulePlan, turboJsEngineModuleUrl, turboJsContextLifecyclePlan, hostCapabilitiesPlan, turboJsAdapterDiagnosticsPlan, turboJsWasmRuntimePlan, turboJsWasmUrl, turboJsSourceTransferPlan, turboJsConsoleBridgePlan, turboJsExecutionRecordsPlan, turboJsResultBridgePlan, turboJsFallbackPolicyPlan, turboJsRuntimeAbiPlan, turboJsHostImportsPlan, turboJsHeapLimitsPlan, turboJsScriptBufferPlan, turboJsConsoleAbiPlan, turboJsParityProbePlan, turboJsReleaseFallbackPlan, turboJsBytecodeManifestPlan, turboJsModuleResolverPlan, turboJsExceptionAbiPlan, turboJsHostTrapPolicyPlan, turboJsExecutionLifecyclePlan, turboJsScriptBufferPolicyPlan, turboJsContextLimitPolicyPlan, turboJsHostCallDispatchPlan, turboJsParityContractPlan, turboJsReleaseFailClosedPlan, turboJsModuleGraphPlan, turboJsModuleExecutionPlan, turboJsModuleCachePlan, turboJsResolverAuditPlan, turboJsInteropFallbackPlan, turboJsExecutionJournalPlan, turboJsCheckpointPolicyPlan, turboJsReplayCursorPlan, turboJsResumeStatePlan, turboJsDeterminismAuditPlan, turboJsSnapshotPolicyPlan, turboJsSnapshotRecordsPlan, turboJsReplayValidationPlan, turboJsDeterminismLedgerPlan, turboJsAuditSealPlan, turboJsExecutionCommitPlan, turboJsRollbackPolicyPlan, turboJsHostCallReceiptsPlan, turboJsReleaseAcceptancePlan, turboJsCommitAuditPlan, turboJsCapabilityPolicyPlan, turboJsHostIoPolicyPlan, turboJsPermissionSealPlan, turboJsPolicyReceiptsPlan, turboJsReleaseGatePlan, turboJsHostIoDecisionPlan, turboJsHostIoDenyTracePlan, turboJsCapabilityLedgerPlan, turboJsPolicySealAuditPlan, turboJsRuntimeDenylistPlan);
   const bridge = Object.freeze({
     version: 1,
     packageVersion: pkg.version,
@@ -3313,125 +3313,125 @@ function installVenomHostBridge(root, pkg, routes, assetManifest, runtimePolicy,
     timerBridgeMode: timerBridgePlan && timerBridgePlan.enabled ? 'async-host-call' : 'none',
     eventQueueVersion: eventQueuePlan ? eventQueuePlan.version : 0,
     eventQueueMode: eventQueuePlan && eventQueuePlan.enabled ? 'enabled' : 'none',
-    quickJsBridgeVersion: quickJsBridgePlan ? quickJsBridgePlan.version : 0,
-    quickJsBridgeMode: quickJsBridgePlan ? quickJsBridgePlan.mode : 'none',
+    turboJsBridgeVersion: turboJsBridgePlan ? turboJsBridgePlan.version : 0,
+    turboJsBridgeMode: turboJsBridgePlan ? turboJsBridgePlan.mode : 'none',
     scriptIsolationVersion: scriptIsolationPlan ? scriptIsolationPlan.version : 0,
     scriptIsolationMode: scriptIsolationPlan ? scriptIsolationPlan.mode : 'none',
     scriptPolicyVersion: scriptPolicyPlan ? scriptPolicyPlan.version : 0,
     scriptPolicyMode: scriptPolicyPlan ? 'capability-metadata' : 'none',
-    quickJsChunkVersion: quickJsChunkPlan ? quickJsChunkPlan.version : 0,
-    quickJsChunkMode: quickJsChunkPlan ? quickJsChunkPlan.mode : 'none',
-    quickJsChunkCount: quickJsChunkPlan ? quickJsChunkPlan.chunkCount : 0,
-    quickJsEngineVersion: quickJsEnginePlan ? quickJsEnginePlan.version : 0,
-    quickJsEngineMode: quickJsEnginePlan ? quickJsEnginePlan.mode : 'none',
-    quickJsEngineEnabled: quickJsEnginePlan ? !!quickJsEnginePlan.enabled : false,
+    turboJsChunkVersion: turboJsChunkPlan ? turboJsChunkPlan.version : 0,
+    turboJsChunkMode: turboJsChunkPlan ? turboJsChunkPlan.mode : 'none',
+    turboJsChunkCount: turboJsChunkPlan ? turboJsChunkPlan.chunkCount : 0,
+    turboJsEngineVersion: turboJsEnginePlan ? turboJsEnginePlan.version : 0,
+    turboJsEngineMode: turboJsEnginePlan ? turboJsEnginePlan.mode : 'none',
+    turboJsEngineEnabled: turboJsEnginePlan ? !!turboJsEnginePlan.enabled : false,
     scriptEnginePolicyVersion: scriptEnginePolicyPlan ? scriptEnginePolicyPlan.version : 0,
     scriptEngineFallback: scriptEnginePolicyPlan ? scriptEnginePolicyPlan.fallback : 'none',
-    quickJsEngineModuleVersion: quickJsEngineModulePlan ? quickJsEngineModulePlan.version : 0,
-    quickJsEngineModuleMode: quickJsEngineModulePlan && quickJsEngineModulePlan.enabled ? quickJsEngineModulePlan.executionMode : 'none',
-    quickJsEngineModuleLoaded: !!quickJsEngineModuleUrl,
-    quickJsEngineModuleUrl: quickJsEngineModuleUrl || '',
-    quickJsContextLifecycleVersion: quickJsContextLifecyclePlan ? quickJsContextLifecyclePlan.version : 0,
-    quickJsContextLifecycleMode: quickJsContextLifecyclePlan && quickJsContextLifecyclePlan.enabled ? quickJsContextLifecyclePlan.model : 'none',
+    turboJsEngineModuleVersion: turboJsEngineModulePlan ? turboJsEngineModulePlan.version : 0,
+    turboJsEngineModuleMode: turboJsEngineModulePlan && turboJsEngineModulePlan.enabled ? turboJsEngineModulePlan.executionMode : 'none',
+    turboJsEngineModuleLoaded: !!turboJsEngineModuleUrl,
+    turboJsEngineModuleUrl: turboJsEngineModuleUrl || '',
+    turboJsContextLifecycleVersion: turboJsContextLifecyclePlan ? turboJsContextLifecyclePlan.version : 0,
+    turboJsContextLifecycleMode: turboJsContextLifecyclePlan && turboJsContextLifecyclePlan.enabled ? turboJsContextLifecyclePlan.model : 'none',
     hostCapabilitiesVersion: hostCapabilitiesPlan ? hostCapabilitiesPlan.version : 0,
     hostCapabilityCount: hostCapabilitiesPlan && hostCapabilitiesPlan.capabilities ? hostCapabilitiesPlan.capabilities.length : 0,
-    quickJsAdapterDiagnosticsVersion: quickJsAdapterDiagnosticsPlan ? quickJsAdapterDiagnosticsPlan.version : 0,
-    quickJsAdapterDiagnosticsMode: quickJsAdapterDiagnosticsPlan && quickJsAdapterDiagnosticsPlan.enabled ? 'enabled' : 'none',
-    quickJsWasmRuntimeVersion: quickJsWasmRuntimePlan ? quickJsWasmRuntimePlan.version : 0,
-    quickJsWasmRuntimeMode: quickJsWasmRuntimePlan && quickJsWasmRuntimePlan.enabled ? quickJsWasmRuntimePlan.executionMode : 'none',
-    quickJsWasmUrl: quickJsWasmUrl || '',
-    quickJsSourceTransferVersion: quickJsSourceTransferPlan ? quickJsSourceTransferPlan.version : 0,
-    quickJsSourceTransferMode: quickJsSourceTransferPlan && quickJsSourceTransferPlan.enabled ? 'enabled' : 'none',
-    quickJsConsoleBridgeVersion: quickJsConsoleBridgePlan ? quickJsConsoleBridgePlan.version : 0,
-    quickJsConsoleBridgeMode: quickJsConsoleBridgePlan && quickJsConsoleBridgePlan.enabled ? quickJsConsoleBridgePlan.mode : 'none',
-    quickJsExecutionRecordsVersion: quickJsExecutionRecordsPlan ? quickJsExecutionRecordsPlan.version : 0,
-    quickJsExecutionRecordsMode: quickJsExecutionRecordsPlan && quickJsExecutionRecordsPlan.enabled ? quickJsExecutionRecordsPlan.retention : 'none',
-    quickJsResultBridgeVersion: quickJsResultBridgePlan ? quickJsResultBridgePlan.version : 0,
-    quickJsResultBridgeMode: quickJsResultBridgePlan && quickJsResultBridgePlan.enabled ? quickJsResultBridgePlan.format : 'none',
-    quickJsFallbackPolicyVersion: quickJsFallbackPolicyPlan ? quickJsFallbackPolicyPlan.version : 0,
-    quickJsFallbackPolicyMode: quickJsFallbackPolicyPlan && quickJsFallbackPolicyPlan.enabled ? quickJsFallbackPolicyPlan.mode : 'none',
-    quickJsRuntimeAbi: quickJsRuntimeAbiPlan ? quickJsRuntimeAbiPlan.abi : 0,
-    quickJsRuntimeAbiHash: quickJsRuntimeAbiPlan ? quickJsRuntimeAbiPlan.tableHash : '',
-    quickJsHostImportCount: quickJsHostImportsPlan ? quickJsHostImportsPlan.importCount : 0,
-    quickJsHeapLimit: quickJsHeapLimitsPlan ? quickJsHeapLimitsPlan.heapLimit : 0,
-    quickJsScriptBufferCapacity: quickJsScriptBufferPlan ? quickJsScriptBufferPlan.capacity : 0,
-    quickJsConsoleAbi: quickJsConsoleAbiPlan ? quickJsConsoleAbiPlan.abi : 0,
-    quickJsParityProbeExpected: quickJsParityProbePlan ? quickJsParityProbePlan.expected : '',
-    quickJsReleaseFallbackPolicy: quickJsReleaseFallbackPlan ? quickJsReleaseFallbackPlan.policy : '',
-    quickJsBytecodeManifestVersion: quickJsBytecodeManifestPlan ? quickJsBytecodeManifestPlan.version : 0,
-    quickJsBytecodeManifestMode: quickJsBytecodeManifestPlan && quickJsBytecodeManifestPlan.enabled ? quickJsBytecodeManifestPlan.format : 'none',
-    quickJsBytecodeChunkCount: quickJsBytecodeManifestPlan ? quickJsBytecodeManifestPlan.chunkCount : 0,
-    quickJsModuleResolverVersion: quickJsModuleResolverPlan ? quickJsModuleResolverPlan.version : 0,
-    quickJsModuleResolverMode: quickJsModuleResolverPlan && quickJsModuleResolverPlan.enabled ? quickJsModuleResolverPlan.mode : 'none',
-    quickJsExceptionAbi: quickJsExceptionAbiPlan ? quickJsExceptionAbiPlan.abi : 0,
-    quickJsExceptionAbiVersion: quickJsExceptionAbiPlan ? quickJsExceptionAbiPlan.version : 0,
-    quickJsHostTrapPolicy: quickJsHostTrapPolicyPlan ? quickJsHostTrapPolicyPlan.policy : '',
-    quickJsHostTrapPolicyVersion: quickJsHostTrapPolicyPlan ? quickJsHostTrapPolicyPlan.version : 0,
-    quickJsExecutionLifecycleVersion: quickJsExecutionLifecyclePlan ? quickJsExecutionLifecyclePlan.version : 0,
-    quickJsExecutionLifecycleStates: quickJsExecutionLifecyclePlan ? quickJsExecutionLifecyclePlan.states : '',
-    quickJsScriptBufferPolicyVersion: quickJsScriptBufferPolicyPlan ? quickJsScriptBufferPolicyPlan.version : 0,
-    quickJsContextLimitPolicyVersion: quickJsContextLimitPolicyPlan ? quickJsContextLimitPolicyPlan.version : 0,
-    quickJsHostCallDispatchVersion: quickJsHostCallDispatchPlan ? quickJsHostCallDispatchPlan.version : 0,
-    quickJsHostCallDispatchCount: quickJsHostCallDispatchPlan ? quickJsHostCallDispatchPlan.entryCount : 0,
-    quickJsParityContractVersion: quickJsParityContractPlan ? quickJsParityContractPlan.version : 0,
-    quickJsReleaseFailClosedVersion: quickJsReleaseFailClosedPlan ? quickJsReleaseFailClosedPlan.version : 0,
-    quickJsModuleGraphVersion: quickJsModuleGraphPlan ? quickJsModuleGraphPlan.version : 0,
-    quickJsModuleGraphCount: quickJsModuleGraphPlan ? quickJsModuleGraphPlan.moduleCount : 0,
-    quickJsModuleExecutionVersion: quickJsModuleExecutionPlan ? quickJsModuleExecutionPlan.version : 0,
-    quickJsModuleExecutionMode: quickJsModuleExecutionPlan && quickJsModuleExecutionPlan.enabled ? quickJsModuleExecutionPlan.mode : 'none',
-    quickJsModuleCacheVersion: quickJsModuleCachePlan ? quickJsModuleCachePlan.version : 0,
-    quickJsResolverAuditVersion: quickJsResolverAuditPlan ? quickJsResolverAuditPlan.version : 0,
-    quickJsInteropFallbackVersion: quickJsInteropFallbackPlan ? quickJsInteropFallbackPlan.version : 0,
-    quickJsExecutionJournalVersion: quickJsExecutionJournalPlan ? quickJsExecutionJournalPlan.version : 0,
-    quickJsCheckpointPolicyVersion: quickJsCheckpointPolicyPlan ? quickJsCheckpointPolicyPlan.version : 0,
-    quickJsReplayCursorVersion: quickJsReplayCursorPlan ? quickJsReplayCursorPlan.version : 0,
-    quickJsResumeStateVersion: quickJsResumeStatePlan ? quickJsResumeStatePlan.version : 0,
-    quickJsDeterminismAuditVersion: quickJsDeterminismAuditPlan ? quickJsDeterminismAuditPlan.version : 0,
-    quickJsSnapshotPolicyVersion: quickJsSnapshotPolicyPlan ? quickJsSnapshotPolicyPlan.version : 0,
-    quickJsSnapshotRecordsVersion: quickJsSnapshotRecordsPlan ? quickJsSnapshotRecordsPlan.version : 0,
-    quickJsReplayValidationVersion: quickJsReplayValidationPlan ? quickJsReplayValidationPlan.version : 0,
-    quickJsDeterminismLedgerVersion: quickJsDeterminismLedgerPlan ? quickJsDeterminismLedgerPlan.version : 0,
-    quickJsAuditSealVersion: quickJsAuditSealPlan ? quickJsAuditSealPlan.version : 0,
-    quickJsExecutionCommitVersion: quickJsExecutionCommitPlan ? quickJsExecutionCommitPlan.version : 0,
-    quickJsRollbackPolicyVersion: quickJsRollbackPolicyPlan ? quickJsRollbackPolicyPlan.version : 0,
-    quickJsHostCallReceiptsVersion: quickJsHostCallReceiptsPlan ? quickJsHostCallReceiptsPlan.version : 0,
-    quickJsReleaseAcceptanceVersion: quickJsReleaseAcceptancePlan ? quickJsReleaseAcceptancePlan.version : 0,
-    quickJsCommitAuditVersion: quickJsCommitAuditPlan ? quickJsCommitAuditPlan.version : 0,
-    quickJsCapabilityPolicyVersion: quickJsCapabilityPolicyPlan ? quickJsCapabilityPolicyPlan.version : 0,
-    quickJsHostIoPolicyVersion: quickJsHostIoPolicyPlan ? quickJsHostIoPolicyPlan.version : 0,
-    quickJsPermissionSealVersion: quickJsPermissionSealPlan ? quickJsPermissionSealPlan.version : 0,
-    quickJsPolicyReceiptsVersion: quickJsPolicyReceiptsPlan ? quickJsPolicyReceiptsPlan.version : 0,
-    quickJsReleaseGateVersion: quickJsReleaseGatePlan ? quickJsReleaseGatePlan.version : 0,
-    quickJsHostIoDecisionVersion: quickJsHostIoDecisionPlan ? quickJsHostIoDecisionPlan.version : 0,
-    quickJsHostIoDenyTraceVersion: quickJsHostIoDenyTracePlan ? quickJsHostIoDenyTracePlan.version : 0,
-    quickJsCapabilityLedgerVersion: quickJsCapabilityLedgerPlan ? quickJsCapabilityLedgerPlan.version : 0,
-    quickJsPolicySealAuditVersion: quickJsPolicySealAuditPlan ? quickJsPolicySealAuditPlan.version : 0,
-    quickJsRuntimeDenylistVersion: quickJsRuntimeDenylistPlan ? quickJsRuntimeDenylistPlan.version : 0,
-    quickJsExecutionJournal() { return quickJsEngine.executionJournal ? quickJsEngine.executionJournal() : Object.freeze({ plan: quickJsExecutionJournalPlan || null, records: [] }); },
-    quickJsCheckpointPolicy() { return quickJsEngine.checkpointPolicy ? quickJsEngine.checkpointPolicy() : Object.freeze({ plan: quickJsCheckpointPolicyPlan || null }); },
-    quickJsReplayCursor() { return quickJsEngine.replayCursor ? quickJsEngine.replayCursor() : Object.freeze({ plan: quickJsReplayCursorPlan || null, sequence: 0 }); },
-    quickJsResumeState() { return quickJsEngine.resumeState ? quickJsEngine.resumeState() : Object.freeze({ plan: quickJsResumeStatePlan || null }); },
-    quickJsDeterminismAudit() { return quickJsEngine.determinismAudit ? quickJsEngine.determinismAudit() : Object.freeze({ plan: quickJsDeterminismAuditPlan || null }); },
-    quickJsSnapshotPolicy() { return quickJsEngine.snapshotPolicy ? quickJsEngine.snapshotPolicy() : Object.freeze({ plan: quickJsSnapshotPolicyPlan || null }); },
-    quickJsSnapshotRecord() { return quickJsEngine.snapshotRecord ? quickJsEngine.snapshotRecord() : Object.freeze({ plan: quickJsSnapshotRecordsPlan || null }); },
-    quickJsReplayValidation() { return quickJsEngine.replayValidation ? quickJsEngine.replayValidation() : Object.freeze({ plan: quickJsReplayValidationPlan || null }); },
-    quickJsDeterminismLedger() { return quickJsEngine.determinismLedger ? quickJsEngine.determinismLedger() : Object.freeze({ plan: quickJsDeterminismLedgerPlan || null }); },
-    quickJsAuditSeal() { return quickJsEngine.auditSeal ? quickJsEngine.auditSeal() : Object.freeze({ plan: quickJsAuditSealPlan || null }); },
-    quickJsExecutionCommit() { return quickJsEngine.executionCommit ? quickJsEngine.executionCommit() : Object.freeze({ plan: quickJsExecutionCommitPlan || null }); },
-    quickJsRollbackPolicy() { return quickJsEngine.rollbackPolicy ? quickJsEngine.rollbackPolicy() : Object.freeze({ plan: quickJsRollbackPolicyPlan || null }); },
-    quickJsHostCallReceipts() { return quickJsEngine.hostCallReceipts ? quickJsEngine.hostCallReceipts() : Object.freeze({ plan: quickJsHostCallReceiptsPlan || null }); },
-    quickJsReleaseAcceptance() { return quickJsEngine.releaseAcceptance ? quickJsEngine.releaseAcceptance() : Object.freeze({ plan: quickJsReleaseAcceptancePlan || null }); },
-    quickJsCommitAudit() { return quickJsEngine.commitAudit ? quickJsEngine.commitAudit() : Object.freeze({ plan: quickJsCommitAuditPlan || null }); },
-    quickJsCapabilityPolicy() { return quickJsEngine.capabilityPolicy ? quickJsEngine.capabilityPolicy() : Object.freeze({ plan: quickJsCapabilityPolicyPlan || null }); },
-    quickJsHostIoPolicy() { return quickJsEngine.hostIoPolicy ? quickJsEngine.hostIoPolicy() : Object.freeze({ plan: quickJsHostIoPolicyPlan || null }); },
-    quickJsPermissionSeal() { return quickJsEngine.permissionSeal ? quickJsEngine.permissionSeal() : Object.freeze({ plan: quickJsPermissionSealPlan || null }); },
-    quickJsPolicyReceipts() { return quickJsEngine.policyReceipts ? quickJsEngine.policyReceipts() : Object.freeze({ plan: quickJsPolicyReceiptsPlan || null }); },
-    quickJsReleaseGate() { return quickJsEngine.releaseGate ? quickJsEngine.releaseGate() : Object.freeze({ plan: quickJsReleaseGatePlan || null }); },
-    quickJsHostIoDecision() { return quickJsEngine.hostIoDecision ? quickJsEngine.hostIoDecision() : Object.freeze({ plan: quickJsHostIoDecisionPlan || null }); },
-    quickJsHostIoDenyTrace() { return quickJsEngine.hostIoDenyTrace ? quickJsEngine.hostIoDenyTrace() : Object.freeze({ plan: quickJsHostIoDenyTracePlan || null }); },
-    quickJsCapabilityLedger() { return quickJsEngine.capabilityLedger ? quickJsEngine.capabilityLedger() : Object.freeze({ plan: quickJsCapabilityLedgerPlan || null }); },
-    quickJsPolicySealAudit() { return quickJsEngine.policySealAudit ? quickJsEngine.policySealAudit() : Object.freeze({ plan: quickJsPolicySealAuditPlan || null }); },
-    quickJsRuntimeDenylist() { return quickJsEngine.runtimeDenylist ? quickJsEngine.runtimeDenylist() : Object.freeze({ plan: quickJsRuntimeDenylistPlan || null }); },
+    turboJsAdapterDiagnosticsVersion: turboJsAdapterDiagnosticsPlan ? turboJsAdapterDiagnosticsPlan.version : 0,
+    turboJsAdapterDiagnosticsMode: turboJsAdapterDiagnosticsPlan && turboJsAdapterDiagnosticsPlan.enabled ? 'enabled' : 'none',
+    turboJsWasmRuntimeVersion: turboJsWasmRuntimePlan ? turboJsWasmRuntimePlan.version : 0,
+    turboJsWasmRuntimeMode: turboJsWasmRuntimePlan && turboJsWasmRuntimePlan.enabled ? turboJsWasmRuntimePlan.executionMode : 'none',
+    turboJsWasmUrl: turboJsWasmUrl || '',
+    turboJsSourceTransferVersion: turboJsSourceTransferPlan ? turboJsSourceTransferPlan.version : 0,
+    turboJsSourceTransferMode: turboJsSourceTransferPlan && turboJsSourceTransferPlan.enabled ? 'enabled' : 'none',
+    turboJsConsoleBridgeVersion: turboJsConsoleBridgePlan ? turboJsConsoleBridgePlan.version : 0,
+    turboJsConsoleBridgeMode: turboJsConsoleBridgePlan && turboJsConsoleBridgePlan.enabled ? turboJsConsoleBridgePlan.mode : 'none',
+    turboJsExecutionRecordsVersion: turboJsExecutionRecordsPlan ? turboJsExecutionRecordsPlan.version : 0,
+    turboJsExecutionRecordsMode: turboJsExecutionRecordsPlan && turboJsExecutionRecordsPlan.enabled ? turboJsExecutionRecordsPlan.retention : 'none',
+    turboJsResultBridgeVersion: turboJsResultBridgePlan ? turboJsResultBridgePlan.version : 0,
+    turboJsResultBridgeMode: turboJsResultBridgePlan && turboJsResultBridgePlan.enabled ? turboJsResultBridgePlan.format : 'none',
+    turboJsFallbackPolicyVersion: turboJsFallbackPolicyPlan ? turboJsFallbackPolicyPlan.version : 0,
+    turboJsFallbackPolicyMode: turboJsFallbackPolicyPlan && turboJsFallbackPolicyPlan.enabled ? turboJsFallbackPolicyPlan.mode : 'none',
+    turboJsRuntimeAbi: turboJsRuntimeAbiPlan ? turboJsRuntimeAbiPlan.abi : 0,
+    turboJsRuntimeAbiHash: turboJsRuntimeAbiPlan ? turboJsRuntimeAbiPlan.tableHash : '',
+    turboJsHostImportCount: turboJsHostImportsPlan ? turboJsHostImportsPlan.importCount : 0,
+    turboJsHeapLimit: turboJsHeapLimitsPlan ? turboJsHeapLimitsPlan.heapLimit : 0,
+    turboJsScriptBufferCapacity: turboJsScriptBufferPlan ? turboJsScriptBufferPlan.capacity : 0,
+    turboJsConsoleAbi: turboJsConsoleAbiPlan ? turboJsConsoleAbiPlan.abi : 0,
+    turboJsParityProbeExpected: turboJsParityProbePlan ? turboJsParityProbePlan.expected : '',
+    turboJsReleaseFallbackPolicy: turboJsReleaseFallbackPlan ? turboJsReleaseFallbackPlan.policy : '',
+    turboJsBytecodeManifestVersion: turboJsBytecodeManifestPlan ? turboJsBytecodeManifestPlan.version : 0,
+    turboJsBytecodeManifestMode: turboJsBytecodeManifestPlan && turboJsBytecodeManifestPlan.enabled ? turboJsBytecodeManifestPlan.format : 'none',
+    turboJsBytecodeChunkCount: turboJsBytecodeManifestPlan ? turboJsBytecodeManifestPlan.chunkCount : 0,
+    turboJsModuleResolverVersion: turboJsModuleResolverPlan ? turboJsModuleResolverPlan.version : 0,
+    turboJsModuleResolverMode: turboJsModuleResolverPlan && turboJsModuleResolverPlan.enabled ? turboJsModuleResolverPlan.mode : 'none',
+    turboJsExceptionAbi: turboJsExceptionAbiPlan ? turboJsExceptionAbiPlan.abi : 0,
+    turboJsExceptionAbiVersion: turboJsExceptionAbiPlan ? turboJsExceptionAbiPlan.version : 0,
+    turboJsHostTrapPolicy: turboJsHostTrapPolicyPlan ? turboJsHostTrapPolicyPlan.policy : '',
+    turboJsHostTrapPolicyVersion: turboJsHostTrapPolicyPlan ? turboJsHostTrapPolicyPlan.version : 0,
+    turboJsExecutionLifecycleVersion: turboJsExecutionLifecyclePlan ? turboJsExecutionLifecyclePlan.version : 0,
+    turboJsExecutionLifecycleStates: turboJsExecutionLifecyclePlan ? turboJsExecutionLifecyclePlan.states : '',
+    turboJsScriptBufferPolicyVersion: turboJsScriptBufferPolicyPlan ? turboJsScriptBufferPolicyPlan.version : 0,
+    turboJsContextLimitPolicyVersion: turboJsContextLimitPolicyPlan ? turboJsContextLimitPolicyPlan.version : 0,
+    turboJsHostCallDispatchVersion: turboJsHostCallDispatchPlan ? turboJsHostCallDispatchPlan.version : 0,
+    turboJsHostCallDispatchCount: turboJsHostCallDispatchPlan ? turboJsHostCallDispatchPlan.entryCount : 0,
+    turboJsParityContractVersion: turboJsParityContractPlan ? turboJsParityContractPlan.version : 0,
+    turboJsReleaseFailClosedVersion: turboJsReleaseFailClosedPlan ? turboJsReleaseFailClosedPlan.version : 0,
+    turboJsModuleGraphVersion: turboJsModuleGraphPlan ? turboJsModuleGraphPlan.version : 0,
+    turboJsModuleGraphCount: turboJsModuleGraphPlan ? turboJsModuleGraphPlan.moduleCount : 0,
+    turboJsModuleExecutionVersion: turboJsModuleExecutionPlan ? turboJsModuleExecutionPlan.version : 0,
+    turboJsModuleExecutionMode: turboJsModuleExecutionPlan && turboJsModuleExecutionPlan.enabled ? turboJsModuleExecutionPlan.mode : 'none',
+    turboJsModuleCacheVersion: turboJsModuleCachePlan ? turboJsModuleCachePlan.version : 0,
+    turboJsResolverAuditVersion: turboJsResolverAuditPlan ? turboJsResolverAuditPlan.version : 0,
+    turboJsInteropFallbackVersion: turboJsInteropFallbackPlan ? turboJsInteropFallbackPlan.version : 0,
+    turboJsExecutionJournalVersion: turboJsExecutionJournalPlan ? turboJsExecutionJournalPlan.version : 0,
+    turboJsCheckpointPolicyVersion: turboJsCheckpointPolicyPlan ? turboJsCheckpointPolicyPlan.version : 0,
+    turboJsReplayCursorVersion: turboJsReplayCursorPlan ? turboJsReplayCursorPlan.version : 0,
+    turboJsResumeStateVersion: turboJsResumeStatePlan ? turboJsResumeStatePlan.version : 0,
+    turboJsDeterminismAuditVersion: turboJsDeterminismAuditPlan ? turboJsDeterminismAuditPlan.version : 0,
+    turboJsSnapshotPolicyVersion: turboJsSnapshotPolicyPlan ? turboJsSnapshotPolicyPlan.version : 0,
+    turboJsSnapshotRecordsVersion: turboJsSnapshotRecordsPlan ? turboJsSnapshotRecordsPlan.version : 0,
+    turboJsReplayValidationVersion: turboJsReplayValidationPlan ? turboJsReplayValidationPlan.version : 0,
+    turboJsDeterminismLedgerVersion: turboJsDeterminismLedgerPlan ? turboJsDeterminismLedgerPlan.version : 0,
+    turboJsAuditSealVersion: turboJsAuditSealPlan ? turboJsAuditSealPlan.version : 0,
+    turboJsExecutionCommitVersion: turboJsExecutionCommitPlan ? turboJsExecutionCommitPlan.version : 0,
+    turboJsRollbackPolicyVersion: turboJsRollbackPolicyPlan ? turboJsRollbackPolicyPlan.version : 0,
+    turboJsHostCallReceiptsVersion: turboJsHostCallReceiptsPlan ? turboJsHostCallReceiptsPlan.version : 0,
+    turboJsReleaseAcceptanceVersion: turboJsReleaseAcceptancePlan ? turboJsReleaseAcceptancePlan.version : 0,
+    turboJsCommitAuditVersion: turboJsCommitAuditPlan ? turboJsCommitAuditPlan.version : 0,
+    turboJsCapabilityPolicyVersion: turboJsCapabilityPolicyPlan ? turboJsCapabilityPolicyPlan.version : 0,
+    turboJsHostIoPolicyVersion: turboJsHostIoPolicyPlan ? turboJsHostIoPolicyPlan.version : 0,
+    turboJsPermissionSealVersion: turboJsPermissionSealPlan ? turboJsPermissionSealPlan.version : 0,
+    turboJsPolicyReceiptsVersion: turboJsPolicyReceiptsPlan ? turboJsPolicyReceiptsPlan.version : 0,
+    turboJsReleaseGateVersion: turboJsReleaseGatePlan ? turboJsReleaseGatePlan.version : 0,
+    turboJsHostIoDecisionVersion: turboJsHostIoDecisionPlan ? turboJsHostIoDecisionPlan.version : 0,
+    turboJsHostIoDenyTraceVersion: turboJsHostIoDenyTracePlan ? turboJsHostIoDenyTracePlan.version : 0,
+    turboJsCapabilityLedgerVersion: turboJsCapabilityLedgerPlan ? turboJsCapabilityLedgerPlan.version : 0,
+    turboJsPolicySealAuditVersion: turboJsPolicySealAuditPlan ? turboJsPolicySealAuditPlan.version : 0,
+    turboJsRuntimeDenylistVersion: turboJsRuntimeDenylistPlan ? turboJsRuntimeDenylistPlan.version : 0,
+    turboJsExecutionJournal() { return turboJsEngine.executionJournal ? turboJsEngine.executionJournal() : Object.freeze({ plan: turboJsExecutionJournalPlan || null, records: [] }); },
+    turboJsCheckpointPolicy() { return turboJsEngine.checkpointPolicy ? turboJsEngine.checkpointPolicy() : Object.freeze({ plan: turboJsCheckpointPolicyPlan || null }); },
+    turboJsReplayCursor() { return turboJsEngine.replayCursor ? turboJsEngine.replayCursor() : Object.freeze({ plan: turboJsReplayCursorPlan || null, sequence: 0 }); },
+    turboJsResumeState() { return turboJsEngine.resumeState ? turboJsEngine.resumeState() : Object.freeze({ plan: turboJsResumeStatePlan || null }); },
+    turboJsDeterminismAudit() { return turboJsEngine.determinismAudit ? turboJsEngine.determinismAudit() : Object.freeze({ plan: turboJsDeterminismAuditPlan || null }); },
+    turboJsSnapshotPolicy() { return turboJsEngine.snapshotPolicy ? turboJsEngine.snapshotPolicy() : Object.freeze({ plan: turboJsSnapshotPolicyPlan || null }); },
+    turboJsSnapshotRecord() { return turboJsEngine.snapshotRecord ? turboJsEngine.snapshotRecord() : Object.freeze({ plan: turboJsSnapshotRecordsPlan || null }); },
+    turboJsReplayValidation() { return turboJsEngine.replayValidation ? turboJsEngine.replayValidation() : Object.freeze({ plan: turboJsReplayValidationPlan || null }); },
+    turboJsDeterminismLedger() { return turboJsEngine.determinismLedger ? turboJsEngine.determinismLedger() : Object.freeze({ plan: turboJsDeterminismLedgerPlan || null }); },
+    turboJsAuditSeal() { return turboJsEngine.auditSeal ? turboJsEngine.auditSeal() : Object.freeze({ plan: turboJsAuditSealPlan || null }); },
+    turboJsExecutionCommit() { return turboJsEngine.executionCommit ? turboJsEngine.executionCommit() : Object.freeze({ plan: turboJsExecutionCommitPlan || null }); },
+    turboJsRollbackPolicy() { return turboJsEngine.rollbackPolicy ? turboJsEngine.rollbackPolicy() : Object.freeze({ plan: turboJsRollbackPolicyPlan || null }); },
+    turboJsHostCallReceipts() { return turboJsEngine.hostCallReceipts ? turboJsEngine.hostCallReceipts() : Object.freeze({ plan: turboJsHostCallReceiptsPlan || null }); },
+    turboJsReleaseAcceptance() { return turboJsEngine.releaseAcceptance ? turboJsEngine.releaseAcceptance() : Object.freeze({ plan: turboJsReleaseAcceptancePlan || null }); },
+    turboJsCommitAudit() { return turboJsEngine.commitAudit ? turboJsEngine.commitAudit() : Object.freeze({ plan: turboJsCommitAuditPlan || null }); },
+    turboJsCapabilityPolicy() { return turboJsEngine.capabilityPolicy ? turboJsEngine.capabilityPolicy() : Object.freeze({ plan: turboJsCapabilityPolicyPlan || null }); },
+    turboJsHostIoPolicy() { return turboJsEngine.hostIoPolicy ? turboJsEngine.hostIoPolicy() : Object.freeze({ plan: turboJsHostIoPolicyPlan || null }); },
+    turboJsPermissionSeal() { return turboJsEngine.permissionSeal ? turboJsEngine.permissionSeal() : Object.freeze({ plan: turboJsPermissionSealPlan || null }); },
+    turboJsPolicyReceipts() { return turboJsEngine.policyReceipts ? turboJsEngine.policyReceipts() : Object.freeze({ plan: turboJsPolicyReceiptsPlan || null }); },
+    turboJsReleaseGate() { return turboJsEngine.releaseGate ? turboJsEngine.releaseGate() : Object.freeze({ plan: turboJsReleaseGatePlan || null }); },
+    turboJsHostIoDecision() { return turboJsEngine.hostIoDecision ? turboJsEngine.hostIoDecision() : Object.freeze({ plan: turboJsHostIoDecisionPlan || null }); },
+    turboJsHostIoDenyTrace() { return turboJsEngine.hostIoDenyTrace ? turboJsEngine.hostIoDenyTrace() : Object.freeze({ plan: turboJsHostIoDenyTracePlan || null }); },
+    turboJsCapabilityLedger() { return turboJsEngine.capabilityLedger ? turboJsEngine.capabilityLedger() : Object.freeze({ plan: turboJsCapabilityLedgerPlan || null }); },
+    turboJsPolicySealAudit() { return turboJsEngine.policySealAudit ? turboJsEngine.policySealAudit() : Object.freeze({ plan: turboJsPolicySealAuditPlan || null }); },
+    turboJsRuntimeDenylist() { return turboJsEngine.runtimeDenylist ? turboJsEngine.runtimeDenylist() : Object.freeze({ plan: turboJsRuntimeDenylistPlan || null }); },
     asyncHostQueueSnapshot() {
       return asyncQueue.snapshot();
     },
@@ -3463,86 +3463,86 @@ function installVenomHostBridge(root, pkg, routes, assetManifest, runtimePolicy,
     eventQueueSnapshot() {
       return eventQueue.snapshot();
     },
-    callQuickJs(entry, payload) {
-      return asyncQueue.callQuickJs(entry, payload);
+    callTurboJs(entry, payload) {
+      return asyncQueue.callTurboJs(entry, payload);
     },
-    createQuickJsContext(route, source, order) {
-      return quickJsEngine.createContext(route, source, order);
+    createTurboJsContext(route, source, order) {
+      return turboJsEngine.createContext(route, source, order);
     },
-    executeQuickJsChunk(chunk, route) {
-      return quickJsEngine.executeChunk(chunk, route, bridgeRef || this);
+    executeTurboJsChunk(chunk, route) {
+      return turboJsEngine.executeChunk(chunk, route, bridgeRef || this);
     },
-    destroyQuickJsContext(route, source, order) {
-      return quickJsEngine.destroyContext(route, source, order);
+    destroyTurboJsContext(route, source, order) {
+      return turboJsEngine.destroyContext(route, source, order);
     },
-    quickJsContextSnapshot() {
-      return quickJsEngine.contextSnapshot();
+    turboJsContextSnapshot() {
+      return turboJsEngine.contextSnapshot();
     },
-    quickJsEngineModuleStatus() {
-      return quickJsEngine.moduleStatus();
+    turboJsEngineModuleStatus() {
+      return turboJsEngine.moduleStatus();
     },
-    quickJsExecutionSnapshot() {
-      return quickJsEngine.executionSnapshot();
+    turboJsExecutionSnapshot() {
+      return turboJsEngine.executionSnapshot();
     },
-    quickJsConsoleEvents() {
-      return quickJsEngine.consoleEvents();
+    turboJsConsoleEvents() {
+      return turboJsEngine.consoleEvents();
     },
-    clearQuickJsConsoleEvents() {
-      return quickJsEngine.clearConsoleEvents();
+    clearTurboJsConsoleEvents() {
+      return turboJsEngine.clearConsoleEvents();
     },
-    quickJsFallbackPolicy() {
-      return quickJsEngine.fallbackPolicy();
+    turboJsFallbackPolicy() {
+      return turboJsEngine.fallbackPolicy();
     },
-    quickJsAbiTable() {
-      return quickJsEngine.abiTable();
+    turboJsAbiTable() {
+      return turboJsEngine.abiTable();
     },
-    quickJsHostImportTable() {
-      return quickJsEngine.hostImportTable();
+    turboJsHostImportTable() {
+      return turboJsEngine.hostImportTable();
     },
-    quickJsParityProbe() {
-      return quickJsEngine.parityProbe();
+    turboJsParityProbe() {
+      return turboJsEngine.parityProbe();
     },
-    quickJsBytecodeManifest() {
-      return quickJsEngine.bytecodeManifest();
+    turboJsBytecodeManifest() {
+      return turboJsEngine.bytecodeManifest();
     },
-    quickJsModuleResolver() {
-      return quickJsEngine.moduleResolver();
+    turboJsModuleResolver() {
+      return turboJsEngine.moduleResolver();
     },
-    quickJsExceptionAbi() {
-      return quickJsEngine.exceptionAbi();
+    turboJsExceptionAbi() {
+      return turboJsEngine.exceptionAbi();
     },
-    quickJsHostTrapPolicy() {
-      return quickJsEngine.hostTrapPolicy();
+    turboJsHostTrapPolicy() {
+      return turboJsEngine.hostTrapPolicy();
     },
-    quickJsExecutionLifecycle() {
-      return quickJsEngine.executionLifecycle();
+    turboJsExecutionLifecycle() {
+      return turboJsEngine.executionLifecycle();
     },
-    quickJsScriptBufferPolicy() {
-      return quickJsEngine.scriptBufferPolicy();
+    turboJsScriptBufferPolicy() {
+      return turboJsEngine.scriptBufferPolicy();
     },
-    quickJsContextLimitPolicy() {
-      return quickJsEngine.contextLimitPolicy();
+    turboJsContextLimitPolicy() {
+      return turboJsEngine.contextLimitPolicy();
     },
-    quickJsHostCallDispatch() {
-      return quickJsEngine.hostCallDispatch();
+    turboJsHostCallDispatch() {
+      return turboJsEngine.hostCallDispatch();
     },
-    quickJsParityContract() {
-      return quickJsEngine.parityContract();
+    turboJsParityContract() {
+      return turboJsEngine.parityContract();
     },
-    quickJsReleaseFailClosed() {
-      return quickJsEngine.releaseFailClosed();
+    turboJsReleaseFailClosed() {
+      return turboJsEngine.releaseFailClosed();
     },
-    quickJsModuleGraph() {
-      return quickJsEngine.moduleGraph();
+    turboJsModuleGraph() {
+      return turboJsEngine.moduleGraph();
     },
-    quickJsModuleCacheSnapshot() {
-      return quickJsEngine.moduleCacheSnapshot();
+    turboJsModuleCacheSnapshot() {
+      return turboJsEngine.moduleCacheSnapshot();
     },
-    quickJsResolverAudit() {
-      return quickJsEngine.resolverAudit();
+    turboJsResolverAudit() {
+      return turboJsEngine.resolverAudit();
     },
-    quickJsInteropFallback() {
-      return quickJsEngine.interopFallback();
+    turboJsInteropFallback() {
+      return turboJsEngine.interopFallback();
     },
     createScriptScope(route, source, order) {
       const record = asyncQueue.enqueue('script.scopeCreate', { route: String(route || ''), source: String(source || ''), order: order >>> 0 });
@@ -3562,7 +3562,7 @@ function installVenomHostBridge(root, pkg, routes, assetManifest, runtimePolicy,
     advanceDomGeneration() { return domHandles.nextGeneration(); },
     teardownRoute(reason = 'route-teardown') {
       const route = globalThis.location && globalThis.location.pathname ? normalizeRoute(globalThis.location.pathname) : '/';
-      const contexts = quickJsEngine.destroyRoute(route);
+      const contexts = turboJsEngine.destroyRoute(route);
       const events = eventQueue.clear();
       asyncQueue.resetRoute(reason);
       return Object.freeze({ route, contexts: contexts.destroyed, events, reason: String(reason) });
@@ -3800,8 +3800,16 @@ function createBrowserModuleLinker(chunks, routeName) {
 }
 
 async function executeBrowserScriptChunk(chunk, moduleLinker = null) {
+  // Manifest V3 extension pages cannot execute blob-backed modules under their
+  // mandatory CSP. Chrome-facing browser adapters are emitted as hardened,
+  // physical extension resources and loaded by the generated route shell.
+  // Keep their packaged copies for graph/audit metadata, but never execute
+  // those copies through the website blob-module linker.
+  if (typeof location !== 'undefined' && location.protocol === 'chrome-extension:') {
+    return Object.freeze({ ...chunk, executed: false, external: true, browser: true, chromeExtension: true });
+  }
   if (chunk && chunk.bytecodeBytes && chunk.bytecodeBytes.length) {
-    throw new Error('browser script chunk was packaged as QuickJS bytecode: ' + (chunk.source || '<script>'));
+    throw new Error('browser script chunk was packaged as TurboJS bytecode: ' + (chunk.source || '<script>'));
   }
   if (!chunk || !chunk.code || !String(chunk.code).trim()) return Object.freeze({ ...chunk, executed: false, empty: true, browser: true });
   if (typeof document === 'undefined' || !document.createElement) throw new Error('browser script execution requires document.createElement');
@@ -3822,26 +3830,26 @@ async function executeBrowserScriptChunk(chunk, moduleLinker = null) {
   return Object.freeze({ ...chunk, executed: true, browser: true });
 }
 
-async function executeScriptChunk(chunk, route, scriptIsolationPlan = null, scriptPolicyPlan = null, quickJsChunkPlan = null, quickJsEnginePlan = null, scriptEnginePolicyPlan = null, browserModuleLinker = null) {
+async function executeScriptChunk(chunk, route, scriptIsolationPlan = null, scriptPolicyPlan = null, turboJsChunkPlan = null, turboJsEnginePlan = null, scriptEnginePolicyPlan = null, browserModuleLinker = null) {
   const bridge = globalThis.__venomRuntime || null;
   if (bridge && typeof bridge.checkScriptPolicy === 'function') bridge.checkScriptPolicy(chunk);
   if (bridge && typeof bridge.createScriptScope === 'function') bridge.createScriptScope(route && route.route ? route.route : chunk.route, chunk.source, chunk.order);
   const startRecord = bridge && typeof bridge.enqueueHostCall === 'function'
     ? bridge.enqueueHostCall(scriptPolicyPlan && scriptPolicyPlan.chunkStartHostCall ? scriptPolicyPlan.chunkStartHostCall : 'script.chunkStart', { route: chunk.route, source: chunk.source, order: chunk.order })
     : null;
-  if (bridge && typeof bridge.callQuickJs === 'function') {
-    const qjsBoundaryRecord = bridge.callQuickJs('chunk:' + chunk.order, { route: chunk.route, source: chunk.source, bytes: chunk.code ? chunk.code.length : 0, boundary: quickJsChunkPlan ? quickJsChunkPlan.mode : 'engine-input', engine: quickJsEnginePlan ? quickJsEnginePlan.mode : 'bootstrap' });
-    if (bridge && typeof bridge.settleHostCall === 'function' && qjsBoundaryRecord && qjsBoundaryRecord.id) {
-      bridge.settleHostCall(qjsBoundaryRecord.id, 'fulfilled', { boundary: quickJsChunkPlan ? quickJsChunkPlan.mode : 'engine-input', engine: quickJsEnginePlan ? quickJsEnginePlan.mode : 'bootstrap' });
+  if (bridge && typeof bridge.callTurboJs === 'function') {
+    const tjsBoundaryRecord = bridge.callTurboJs('chunk:' + chunk.order, { route: chunk.route, source: chunk.source, bytes: chunk.code ? chunk.code.length : 0, boundary: turboJsChunkPlan ? turboJsChunkPlan.mode : 'engine-input', engine: turboJsEnginePlan ? turboJsEnginePlan.mode : 'bootstrap' });
+    if (bridge && typeof bridge.settleHostCall === 'function' && tjsBoundaryRecord && tjsBoundaryRecord.id) {
+      bridge.settleHostCall(tjsBoundaryRecord.id, 'fulfilled', { boundary: turboJsChunkPlan ? turboJsChunkPlan.mode : 'engine-input', engine: turboJsEnginePlan ? turboJsEnginePlan.mode : 'bootstrap' });
     }
   }
   let executed;
   if ((chunk.flags & SCRIPT_FLAG.BROWSER) !== 0) executed = await executeBrowserScriptChunk(chunk, browserModuleLinker);
-  else if (bridge && typeof bridge.executeQuickJsChunk === 'function') {
-    executed = await bridge.executeQuickJsChunk(chunk, route);
+  else if (bridge && typeof bridge.executeTurboJsChunk === 'function') {
+    executed = await bridge.executeTurboJsChunk(chunk, route);
   } else {
     const denyHostFallback = !!(scriptEnginePolicyPlan && String(scriptEnginePolicyPlan.fallback || '').includes('deny-host-js'));
-    if (denyHostFallback) throw new Error('QuickJS/WASM backend unavailable; protected host JS fallback denied');
+    if (denyHostFallback) throw new Error('TurboJS/WASM backend unavailable; protected host JS fallback denied');
     const fallbackRecord = bridge && typeof bridge.enqueueHostCall === 'function'
       ? bridge.enqueueHostCall(scriptEnginePolicyPlan && scriptEnginePolicyPlan.fallback ? 'script.engineFallback' : 'script.engineFallback', { route: chunk.route, source: chunk.source, order: chunk.order })
       : null;
@@ -3854,11 +3862,11 @@ __VENOM_RUNTIME_LEGACY_FALLBACK_BLOCK__
     }
     if (bridge && fallbackRecord) bridge.settleHostCall(fallbackRecord.id, 'fulfilled', { executed: !!executed.executed });
   }
-  if (bridge && startRecord) bridge.settleHostCall(startRecord.id, 'fulfilled', { executed: !!(executed && executed.executed), isolated: !!scriptIsolationPlan, engine: quickJsEnginePlan ? quickJsEnginePlan.mode : 'none' });
-  return Object.freeze({ ...executed, isolated: !!scriptIsolationPlan, isolationMode: scriptIsolationPlan ? scriptIsolationPlan.mode : 'none', quickJsBoundary: quickJsChunkPlan ? quickJsChunkPlan.mode : 'none', quickJsEngine: quickJsEnginePlan ? quickJsEnginePlan.mode : 'none' });
+  if (bridge && startRecord) bridge.settleHostCall(startRecord.id, 'fulfilled', { executed: !!(executed && executed.executed), isolated: !!scriptIsolationPlan, engine: turboJsEnginePlan ? turboJsEnginePlan.mode : 'none' });
+  return Object.freeze({ ...executed, isolated: !!scriptIsolationPlan, isolationMode: scriptIsolationPlan ? scriptIsolationPlan.mode : 'none', turboJsBoundary: turboJsChunkPlan ? turboJsChunkPlan.mode : 'none', turboJsEngine: turboJsEnginePlan ? turboJsEnginePlan.mode : 'none' });
 }
 
-async function executeScriptsForRoute(route, jsBundle, scriptIsolationPlan = null, scriptPolicyPlan = null, quickJsChunkPlan = null, quickJsEnginePlan = null, scriptEnginePolicyPlan = null) {
+async function executeScriptsForRoute(route, jsBundle, scriptIsolationPlan = null, scriptPolicyPlan = null, turboJsChunkPlan = null, turboJsEnginePlan = null, scriptEnginePolicyPlan = null) {
   assertRuntimeIntegrity(activeRuntimeOpcodeMap);
   if (!jsBundle || !Array.isArray(jsBundle.chunks)) return [];
   const selected = jsBundle.chunks.filter((chunk) => ((chunk.route === route.route || chunk.route === '*' || chunk.route === '') && (chunk.flags & SCRIPT_FLAG.DEPENDENCY) === 0));
@@ -3890,7 +3898,7 @@ async function executeScriptsForRoute(route, jsBundle, scriptIsolationPlan = nul
   try {
     for (const chunk of selected) {
       // Keep script execution deterministic: execute in document order.
-      executed.push(await executeScriptChunk(chunk, route, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan, browserModuleLinker));
+      executed.push(await executeScriptChunk(chunk, route, scriptIsolationPlan, scriptPolicyPlan, turboJsChunkPlan, turboJsEnginePlan, scriptEnginePolicyPlan, browserModuleLinker));
     }
   } finally {
     browserModuleLinker.dispose();
@@ -4057,7 +4065,7 @@ function executeRoute(route, vm, strings, opcodeMap, root, assetManifest = new M
     executed++;
 
     if (op === undefined) throw new Error('unknown physical opcode: ' + physical);
-    if (op === LOGICAL.NOP || op === LOGICAL.LOAD_CONST || op === LOGICAL.CALL_QUICKJS) {
+    if (op === LOGICAL.NOP || op === LOGICAL.LOAD_CONST || op === LOGICAL.CALL_TURBOJS) {
       continue;
     }
     if (op === LOGICAL.CREATE_ELEMENT) {
@@ -4112,7 +4120,7 @@ function executeRoute(route, vm, strings, opcodeMap, root, assetManifest = new M
   root.setAttribute('data-venom-instructions', String(executed));
 }
 
-function installNavigation(routes, routeRuntimeLoader, strings, opcodeMap, root, assetManifest, assetBaseUrl, hostBridgePlan, scriptIsolationPlan = null, scriptPolicyPlan = null, quickJsChunkPlan = null, quickJsEnginePlan = null, scriptEnginePolicyPlan = null) {
+function installNavigation(routes, routeRuntimeLoader, strings, opcodeMap, root, assetManifest, assetBaseUrl, hostBridgePlan, scriptIsolationPlan = null, scriptPolicyPlan = null, turboJsChunkPlan = null, turboJsEnginePlan = null, scriptEnginePolicyPlan = null) {
   document.addEventListener('click', (event) => {
     const anchor = event.target && event.target.closest ? event.target.closest('a[href]') : null;
     if (!anchor) return;
@@ -4130,7 +4138,7 @@ function installNavigation(routes, routeRuntimeLoader, strings, opcodeMap, root,
       if (bridge && typeof bridge.activateRouteGeneration === 'function') bridge.activateRouteGeneration(runtime.routeGeneration);
       setActiveBrowserAssetRoute(runtime.route);
       executeRoute(runtime.route, runtime.vm, strings, opcodeMap, root, assetManifest, assetBaseUrl, hostBridgePlan);
-      executeScriptsForRoute(runtime.route, runtime.jsBundle, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan).catch((error) => console.error('[venom] route script failed', error));
+      executeScriptsForRoute(runtime.route, runtime.jsBundle, scriptIsolationPlan, scriptPolicyPlan, turboJsChunkPlan, turboJsEnginePlan, scriptEnginePolicyPlan).catch((error) => console.error('[venom] route script failed', error));
     } catch (error) {
       console.error('[venom] route load failed', error);
       throw error;
@@ -4146,7 +4154,7 @@ function installNavigation(routes, routeRuntimeLoader, strings, opcodeMap, root,
     if (bridge && typeof bridge.activateRouteGeneration === 'function') bridge.activateRouteGeneration(runtime.routeGeneration);
     setActiveBrowserAssetRoute(runtime.route);
     executeRoute(runtime.route, runtime.vm, strings, opcodeMap, root, assetManifest, assetBaseUrl, hostBridgePlan);
-    executeScriptsForRoute(runtime.route, runtime.jsBundle, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan).catch((error) => console.error('[venom] route script failed', error));
+    executeScriptsForRoute(runtime.route, runtime.jsBundle, scriptIsolationPlan, scriptPolicyPlan, turboJsChunkPlan, turboJsEnginePlan, scriptEnginePolicyPlan).catch((error) => console.error('[venom] route script failed', error));
   });
 }
 
@@ -4207,8 +4215,8 @@ async function verifyPackageBinding(pkg, options) {
   await verifyBoundAsset(binding, 'runtime', options && options.runtimeUrl ? options.runtimeUrl : import.meta.url);
   if (options && options.runtimeWasmUrl) await verifyBoundAsset(binding, 'runtime_wasm', options.runtimeWasmUrl);
   if (options && options.styleUrl) await verifyBoundAsset(binding, 'style', options.styleUrl);
-  if (options && options.quickJsEngineUrl) await verifyBoundAsset(binding, 'quickjs_engine', options.quickJsEngineUrl);
-  if (options && options.quickJsWasmUrl) await verifyBoundAsset(binding, 'quickjs_wasm', options.quickJsWasmUrl);
+  if (options && options.turboJsEngineUrl) await verifyBoundAsset(binding, 'turbojs_engine', options.turboJsEngineUrl);
+  if (options && options.turboJsWasmUrl) await verifyBoundAsset(binding, 'turbojs_wasm', options.turboJsWasmUrl);
   if (options && options.workerUrl) await verifyBoundAsset(binding, 'worker', options.workerUrl);
   return Object.freeze({ enabled: true, verified: true, assets: binding.assets.size });
 }
@@ -4243,7 +4251,7 @@ export async function bootVenom(options) {
   const packageBinding = await verifyPackageBinding(pkg, options);
   const runtimePolicy = enforceRuntimePolicy(pkg, parseRuntimePolicy(findOptionalSection(pkg, SECTION.INTEGRITY, 'runtime-policy.vhrd')), options);
   activeReleaseDiversification = parseReleaseDiversification(findOptionalSection(pkg, SECTION.INTEGRITY, 'release-diversification.vrd3'), runtimePolicy.releaseProfile);
-  activeQuickJsAbiFingerprint = parseQuickJsAbiFingerprint(findOptionalSection(pkg, SECTION.INTEGRITY, 'quickjs-abi-fingerprint.vqaf'), runtimePolicy.releaseProfile);
+  activeTurboJsAbiFingerprint = parseTurboJsAbiFingerprint(findOptionalSection(pkg, SECTION.INTEGRITY, 'turbojs-abi-fingerprint.vqaf'), runtimePolicy.releaseProfile);
   const strings = parseStringTable(findSection(pkg, SECTION.STRINGS, 'strings.vstr'));
   const routes = parseRouteTable(findSection(pkg, SECTION.ROUTES, 'routes.vbrt'), strings);
   const lazySectionsPlan = parseLazySectionsMetadata(findOptionalSection(pkg, SECTION.INTEGRITY, 'lazy-sections.vlazy'));
@@ -4257,84 +4265,84 @@ export async function bootVenom(options) {
   const fetchBridgePlan = parseFetchBridgeMetadata(findOptionalSection(pkg, SECTION.FETCH_BRIDGE, 'fetch-bridge.vfch'));
   const timerBridgePlan = parseTimerBridgeMetadata(findOptionalSection(pkg, SECTION.TIMER_BRIDGE, 'timer-bridge.vtmr'));
   const eventQueuePlan = parseEventQueueMetadata(findOptionalSection(pkg, SECTION.EVENT_QUEUE, 'event-queue.vevq'));
-  const quickJsBridgePlan = parseQuickJsBridgeMetadata(findOptionalSection(pkg, SECTION.QUICKJS_BRIDGE, 'quickjs-bridge.vqjs'));
+  const turboJsBridgePlan = parseTurboJsBridgeMetadata(findOptionalSection(pkg, SECTION.TURBOJS_BRIDGE, 'turbojs-bridge.vtjs'));
   const scriptIsolationPlan = parseScriptIsolationMetadata(findOptionalSection(pkg, SECTION.SCRIPT_ISOLATION, 'script-isolation.vsis'));
   const scriptPolicyPlan = parseScriptPolicyMetadata(findOptionalSection(pkg, SECTION.SCRIPT_POLICY, 'script-policy.vscp'));
-  const quickJsChunkPlan = parseQuickJsChunkMetadata(findOptionalSection(pkg, SECTION.QUICKJS_CHUNKS, 'quickjs-chunks.vqbc'));
-  const quickJsEnginePlan = parseQuickJsEngineMetadata(findOptionalSection(pkg, SECTION.QUICKJS_ENGINE, 'quickjs-engine.vqse'));
+  const turboJsChunkPlan = parseTurboJsChunkMetadata(findOptionalSection(pkg, SECTION.TURBOJS_CHUNKS, 'turbojs-chunks.vqbc'));
+  const turboJsEnginePlan = parseTurboJsEngineMetadata(findOptionalSection(pkg, SECTION.TURBOJS_ENGINE, 'turbojs-engine.vqse'));
   const scriptEnginePolicyPlan = parseScriptEnginePolicyMetadata(findOptionalSection(pkg, SECTION.SCRIPT_ENGINE_POLICY, 'script-engine-policy.vsep'));
-  const quickJsEngineModulePlan = parseQuickJsEngineModuleMetadata(findOptionalSection(pkg, SECTION.QUICKJS_ENGINE_MODULE, 'quickjs-engine-module.vqem'));
-  const quickJsContextLifecyclePlan = parseQuickJsContextLifecycleMetadata(findOptionalSection(pkg, SECTION.QUICKJS_CONTEXT_LIFECYCLE, 'quickjs-context-lifecycle.vqcl'));
+  const turboJsEngineModulePlan = parseTurboJsEngineModuleMetadata(findOptionalSection(pkg, SECTION.TURBOJS_ENGINE_MODULE, 'turbojs-engine-module.vqem'));
+  const turboJsContextLifecyclePlan = parseTurboJsContextLifecycleMetadata(findOptionalSection(pkg, SECTION.TURBOJS_CONTEXT_LIFECYCLE, 'turbojs-context-lifecycle.vqcl'));
   const hostCapabilitiesPlan = parseHostCapabilitiesMetadata(findOptionalSection(pkg, SECTION.HOST_CAPABILITIES, 'host-capabilities.vhcap'));
-  const quickJsAdapterDiagnosticsPlan = parseQuickJsAdapterDiagnosticsMetadata(findOptionalSection(pkg, SECTION.QUICKJS_ADAPTER_DIAGNOSTICS, 'quickjs-adapter-diagnostics.vqad'));
-  const quickJsWasmRuntimePlan = parseQuickJsWasmRuntimeMetadata(findOptionalSection(pkg, SECTION.QUICKJS_WASM_RUNTIME, 'quickjs-wasm-runtime.vqwr'));
-  const quickJsSourceTransferPlan = parseQuickJsSourceTransferMetadata(findOptionalSection(pkg, SECTION.QUICKJS_SOURCE_TRANSFER, 'quickjs-source-transfer.vqst'));
-  const quickJsConsoleBridgePlan = parseQuickJsConsoleBridgeMetadata(findOptionalSection(pkg, SECTION.QUICKJS_CONSOLE_BRIDGE, 'quickjs-console-bridge.vqcb'));
-  const quickJsExecutionRecordsPlan = parseQuickJsExecutionRecordsMetadata(findOptionalSection(pkg, SECTION.QUICKJS_EXECUTION_RECORDS, 'quickjs-execution-records.vqer'));
-  const quickJsResultBridgePlan = parseQuickJsResultBridgeMetadata(findOptionalSection(pkg, SECTION.QUICKJS_RESULT_BRIDGE, 'quickjs-result-bridge.vqrb'));
-  const quickJsFallbackPolicyPlan = parseQuickJsFallbackPolicyMetadata(findOptionalSection(pkg, SECTION.QUICKJS_FALLBACK_POLICY, 'quickjs-fallback-policy.vqfp'));
-  const quickJsRuntimeAbiPlan = parseQuickJsRuntimeAbiMetadata(findOptionalSection(pkg, SECTION.QUICKJS_RUNTIME_ABI, 'quickjs-runtime-abi.vqra'));
-  const quickJsHostImportsPlan = parseQuickJsHostImportsMetadata(findOptionalSection(pkg, SECTION.QUICKJS_HOST_IMPORTS, 'quickjs-host-imports.vqhi'));
-  const quickJsHeapLimitsPlan = parseQuickJsHeapLimitsMetadata(findOptionalSection(pkg, SECTION.QUICKJS_HEAP_LIMITS, 'quickjs-heap-limits.vqhl'));
-  const quickJsScriptBufferPlan = parseQuickJsScriptBufferMetadata(findOptionalSection(pkg, SECTION.QUICKJS_SCRIPT_BUFFER, 'quickjs-script-buffer.vqsb'));
-  const quickJsConsoleAbiPlan = parseQuickJsConsoleAbiMetadata(findOptionalSection(pkg, SECTION.QUICKJS_CONSOLE_ABI, 'quickjs-console-abi.vqca'));
-  const quickJsParityProbePlan = parseQuickJsParityProbeMetadata(findOptionalSection(pkg, SECTION.QUICKJS_PARITY_PROBE, 'quickjs-parity-probe.vqpp'));
-  const quickJsReleaseFallbackPlan = parseQuickJsReleaseFallbackMetadata(findOptionalSection(pkg, SECTION.QUICKJS_RELEASE_FALLBACK, 'quickjs-release-fallback.vqrf'));
-  const quickJsBytecodeManifestPlan = parseQuickJsBytecodeManifestMetadata(findOptionalSection(pkg, SECTION.QUICKJS_BYTECODE_MANIFEST, 'quickjs-bytecode-manifest.vqbm'));
-  const quickJsModuleResolverPlan = parseQuickJsModuleResolverMetadata(findOptionalSection(pkg, SECTION.QUICKJS_MODULE_RESOLVER, 'quickjs-module-resolver.vqmr'));
-  const quickJsExceptionAbiPlan = parseQuickJsExceptionAbiMetadata(findOptionalSection(pkg, SECTION.QUICKJS_EXCEPTION_ABI, 'quickjs-exception-abi.vqex'));
-  const quickJsHostTrapPolicyPlan = parseQuickJsHostTrapPolicyMetadata(findOptionalSection(pkg, SECTION.QUICKJS_HOST_TRAP_POLICY, 'quickjs-host-trap-policy.vqtp'));
-  const quickJsExecutionLifecyclePlan = parseQuickJsExecutionLifecycleMetadata(findOptionalSection(pkg, SECTION.QUICKJS_EXECUTION_LIFECYCLE, 'quickjs-execution-lifecycle.vqel'));
-  const quickJsScriptBufferPolicyPlan = parseQuickJsScriptBufferPolicyMetadata(findOptionalSection(pkg, SECTION.QUICKJS_SCRIPT_BUFFER_POLICY, 'quickjs-script-buffer-policy.vqsp'));
-  const quickJsContextLimitPolicyPlan = parseQuickJsContextLimitPolicyMetadata(findOptionalSection(pkg, SECTION.QUICKJS_CONTEXT_LIMIT_POLICY, 'quickjs-context-limit-policy.vqlp'));
-  const quickJsHostCallDispatchPlan = parseQuickJsHostCallDispatchMetadata(findOptionalSection(pkg, SECTION.QUICKJS_HOST_CALL_DISPATCH, 'quickjs-host-call-dispatch.vqhd'));
-  const quickJsParityContractPlan = parseQuickJsParityContractMetadata(findOptionalSection(pkg, SECTION.QUICKJS_PARITY_CONTRACT, 'quickjs-parity-contract.vqpc'));
-  const quickJsReleaseFailClosedPlan = parseQuickJsReleaseFailClosedMetadata(findOptionalSection(pkg, SECTION.QUICKJS_RELEASE_FAILCLOSED, 'quickjs-release-failclosed.vqfc'));
-  const quickJsModuleGraphPlan = parseQuickJsModuleGraphMetadata(findOptionalSection(pkg, SECTION.QUICKJS_MODULE_GRAPH, 'quickjs-module-graph.vqmg'));
-  const quickJsModuleExecutionPlan = parseQuickJsModuleExecutionMetadata(findOptionalSection(pkg, SECTION.QUICKJS_MODULE_EXECUTION, 'quickjs-module-execution.vqmx'));
-  const quickJsModuleCachePlan = parseQuickJsModuleCacheMetadata(findOptionalSection(pkg, SECTION.QUICKJS_MODULE_CACHE, 'quickjs-module-cache.vqmc'));
-  const quickJsResolverAuditPlan = parseQuickJsResolverAuditMetadata(findOptionalSection(pkg, SECTION.QUICKJS_RESOLVER_AUDIT, 'quickjs-resolver-audit.vqra'));
-  const quickJsInteropFallbackPlan = parseQuickJsInteropFallbackMetadata(findOptionalSection(pkg, SECTION.QUICKJS_INTEROP_FALLBACK, 'quickjs-interop-fallback.vqif'));
-  const quickJsExecutionPipelinePlan = parseQuickJsExecutionPipelineMetadata(findOptionalSection(pkg, SECTION.QUICKJS_EXECUTION_PIPELINE, 'quickjs-execution-pipeline.vqxp'));
-  const quickJsScriptRecordsPlan = parseQuickJsScriptRecordsMetadata(findOptionalSection(pkg, SECTION.QUICKJS_SCRIPT_RECORDS, 'quickjs-script-records.vqsr'));
-  const quickJsEvalResultsPlan = parseQuickJsEvalResultsMetadata(findOptionalSection(pkg, SECTION.QUICKJS_EVAL_RESULTS, 'quickjs-eval-results.vqev'));
-  const quickJsConsoleCapturePlan = parseQuickJsConsoleCaptureMetadata(findOptionalSection(pkg, SECTION.QUICKJS_CONSOLE_CAPTURE, 'quickjs-console-capture.vqcc'));
-  const quickJsFailureReportsPlan = parseQuickJsFailureReportsMetadata(findOptionalSection(pkg, SECTION.QUICKJS_FAILURE_REPORTS, 'quickjs-failure-reports.vqfr'));
-  const quickJsExecutionJournalPlan = parseQuickJsExecutionJournalMetadata(findOptionalSection(pkg, SECTION.QUICKJS_EXECUTION_JOURNAL, 'quickjs-execution-journal.vqxj'));
-  const quickJsCheckpointPolicyPlan = parseQuickJsCheckpointPolicyMetadata(findOptionalSection(pkg, SECTION.QUICKJS_CHECKPOINT_POLICY, 'quickjs-checkpoint-policy.vqcp'));
-  const quickJsReplayCursorPlan = parseQuickJsReplayCursorMetadata(findOptionalSection(pkg, SECTION.QUICKJS_REPLAY_CURSOR, 'quickjs-replay-cursor.vqrc'));
-  const quickJsResumeStatePlan = parseQuickJsResumeStateMetadata(findOptionalSection(pkg, SECTION.QUICKJS_RESUME_STATE, 'quickjs-resume-state.vqrs'));
-  const quickJsDeterminismAuditPlan = parseQuickJsDeterminismAuditMetadata(findOptionalSection(pkg, SECTION.QUICKJS_DETERMINISM_AUDIT, 'quickjs-determinism-audit.vqda'));
-  const quickJsSnapshotPolicyPlan = parseQuickJsSnapshotPolicyMetadata(findOptionalSection(pkg, SECTION.QUICKJS_SNAPSHOT_POLICY, 'quickjs-snapshot-policy.vqsk'));
-  const quickJsSnapshotRecordsPlan = parseQuickJsSnapshotRecordsMetadata(findOptionalSection(pkg, SECTION.QUICKJS_SNAPSHOT_RECORDS, 'quickjs-snapshot-records.vqsn'));
-  const quickJsReplayValidationPlan = parseQuickJsReplayValidationMetadata(findOptionalSection(pkg, SECTION.QUICKJS_REPLAY_VALIDATION, 'quickjs-replay-validation.vqrv'));
-  const quickJsDeterminismLedgerPlan = parseQuickJsDeterminismLedgerMetadata(findOptionalSection(pkg, SECTION.QUICKJS_DETERMINISM_LEDGER, 'quickjs-determinism-ledger.vqdl'));
-  const quickJsAuditSealPlan = parseQuickJsAuditSealMetadata(findOptionalSection(pkg, SECTION.QUICKJS_AUDIT_SEAL, 'quickjs-audit-seal.vqas'));
-  const quickJsExecutionCommitPlan = parseQuickJsExecutionCommitMetadata(findOptionalSection(pkg, SECTION.QUICKJS_EXECUTION_COMMIT, 'quickjs-execution-commit.vqxc'));
-  const quickJsRollbackPolicyPlan = parseQuickJsRollbackPolicyMetadata(findOptionalSection(pkg, SECTION.QUICKJS_ROLLBACK_POLICY, 'quickjs-rollback-policy.vqrp'));
-  const quickJsHostCallReceiptsPlan = parseQuickJsHostCallReceiptsMetadata(findOptionalSection(pkg, SECTION.QUICKJS_HOST_CALL_RECEIPTS, 'quickjs-host-call-receipts.vqhr'));
-  const quickJsReleaseAcceptancePlan = parseQuickJsReleaseAcceptanceMetadata(findOptionalSection(pkg, SECTION.QUICKJS_RELEASE_ACCEPTANCE, 'quickjs-release-acceptance.vqac'));
-  const quickJsCommitAuditPlan = parseQuickJsCommitAuditMetadata(findOptionalSection(pkg, SECTION.QUICKJS_COMMIT_AUDIT, 'quickjs-commit-audit.vqca'));
-  const quickJsCapabilityPolicyPlan = parseQuickJsCapabilityPolicyMetadata(findOptionalSection(pkg, SECTION.QUICKJS_CAPABILITY_POLICY, 'quickjs-capability-policy.vqcpol'));
-  const quickJsHostIoPolicyPlan = parseQuickJsHostIoPolicyMetadata(findOptionalSection(pkg, SECTION.QUICKJS_HOST_IO_POLICY, 'quickjs-host-io-policy.vqio'));
-  const quickJsPermissionSealPlan = parseQuickJsPermissionSealMetadata(findOptionalSection(pkg, SECTION.QUICKJS_PERMISSION_SEAL, 'quickjs-permission-seal.vqps'));
-  const quickJsPolicyReceiptsPlan = parseQuickJsPolicyReceiptsMetadata(findOptionalSection(pkg, SECTION.QUICKJS_POLICY_RECEIPTS, 'quickjs-policy-receipts.vqpr'));
-  const quickJsReleaseGatePlan = parseQuickJsReleaseGateMetadata(findOptionalSection(pkg, SECTION.QUICKJS_RELEASE_GATE, 'quickjs-release-gate.vqrg')); 
-  const quickJsHostIoDecisionPlan = parseQuickJsHostIoDecisionMetadata(findOptionalSection(pkg, SECTION.QUICKJS_HOST_IO_DECISION, 'quickjs-host-io-decision.vqid'));
-  const quickJsHostIoDenyTracePlan = parseQuickJsHostIoDenyTraceMetadata(findOptionalSection(pkg, SECTION.QUICKJS_HOST_IO_DENY_TRACE, 'quickjs-host-io-deny-trace.vqdt'));
-  const quickJsCapabilityLedgerPlan = parseQuickJsCapabilityLedgerMetadata(findOptionalSection(pkg, SECTION.QUICKJS_CAPABILITY_LEDGER, 'quickjs-capability-ledger.vqclg'));
-  const quickJsPolicySealAuditPlan = parseQuickJsPolicySealAuditMetadata(findOptionalSection(pkg, SECTION.QUICKJS_POLICY_SEAL_AUDIT, 'quickjs-policy-seal-audit.vqpsa'));
-  const quickJsRuntimeDenylistPlan = parseQuickJsRuntimeDenylistMetadata(findOptionalSection(pkg, SECTION.QUICKJS_RUNTIME_DENYLIST, 'quickjs-runtime-denylist.vqrd'));
+  const turboJsAdapterDiagnosticsPlan = parseTurboJsAdapterDiagnosticsMetadata(findOptionalSection(pkg, SECTION.TURBOJS_ADAPTER_DIAGNOSTICS, 'turbojs-adapter-diagnostics.vqad'));
+  const turboJsWasmRuntimePlan = parseTurboJsWasmRuntimeMetadata(findOptionalSection(pkg, SECTION.TURBOJS_WASM_RUNTIME, 'turbojs-wasm-runtime.vqwr'));
+  const turboJsSourceTransferPlan = parseTurboJsSourceTransferMetadata(findOptionalSection(pkg, SECTION.TURBOJS_SOURCE_TRANSFER, 'turbojs-source-transfer.vqst'));
+  const turboJsConsoleBridgePlan = parseTurboJsConsoleBridgeMetadata(findOptionalSection(pkg, SECTION.TURBOJS_CONSOLE_BRIDGE, 'turbojs-console-bridge.vqcb'));
+  const turboJsExecutionRecordsPlan = parseTurboJsExecutionRecordsMetadata(findOptionalSection(pkg, SECTION.TURBOJS_EXECUTION_RECORDS, 'turbojs-execution-records.vqer'));
+  const turboJsResultBridgePlan = parseTurboJsResultBridgeMetadata(findOptionalSection(pkg, SECTION.TURBOJS_RESULT_BRIDGE, 'turbojs-result-bridge.vqrb'));
+  const turboJsFallbackPolicyPlan = parseTurboJsFallbackPolicyMetadata(findOptionalSection(pkg, SECTION.TURBOJS_FALLBACK_POLICY, 'turbojs-fallback-policy.vqfp'));
+  const turboJsRuntimeAbiPlan = parseTurboJsRuntimeAbiMetadata(findOptionalSection(pkg, SECTION.TURBOJS_RUNTIME_ABI, 'turbojs-runtime-abi.vqra'));
+  const turboJsHostImportsPlan = parseTurboJsHostImportsMetadata(findOptionalSection(pkg, SECTION.TURBOJS_HOST_IMPORTS, 'turbojs-host-imports.vqhi'));
+  const turboJsHeapLimitsPlan = parseTurboJsHeapLimitsMetadata(findOptionalSection(pkg, SECTION.TURBOJS_HEAP_LIMITS, 'turbojs-heap-limits.vqhl'));
+  const turboJsScriptBufferPlan = parseTurboJsScriptBufferMetadata(findOptionalSection(pkg, SECTION.TURBOJS_SCRIPT_BUFFER, 'turbojs-script-buffer.vqsb'));
+  const turboJsConsoleAbiPlan = parseTurboJsConsoleAbiMetadata(findOptionalSection(pkg, SECTION.TURBOJS_CONSOLE_ABI, 'turbojs-console-abi.vqca'));
+  const turboJsParityProbePlan = parseTurboJsParityProbeMetadata(findOptionalSection(pkg, SECTION.TURBOJS_PARITY_PROBE, 'turbojs-parity-probe.vqpp'));
+  const turboJsReleaseFallbackPlan = parseTurboJsReleaseFallbackMetadata(findOptionalSection(pkg, SECTION.TURBOJS_RELEASE_FALLBACK, 'turbojs-release-fallback.vqrf'));
+  const turboJsBytecodeManifestPlan = parseTurboJsBytecodeManifestMetadata(findOptionalSection(pkg, SECTION.TURBOJS_BYTECODE_MANIFEST, 'turbojs-bytecode-manifest.vqbm'));
+  const turboJsModuleResolverPlan = parseTurboJsModuleResolverMetadata(findOptionalSection(pkg, SECTION.TURBOJS_MODULE_RESOLVER, 'turbojs-module-resolver.vqmr'));
+  const turboJsExceptionAbiPlan = parseTurboJsExceptionAbiMetadata(findOptionalSection(pkg, SECTION.TURBOJS_EXCEPTION_ABI, 'turbojs-exception-abi.vqex'));
+  const turboJsHostTrapPolicyPlan = parseTurboJsHostTrapPolicyMetadata(findOptionalSection(pkg, SECTION.TURBOJS_HOST_TRAP_POLICY, 'turbojs-host-trap-policy.vqtp'));
+  const turboJsExecutionLifecyclePlan = parseTurboJsExecutionLifecycleMetadata(findOptionalSection(pkg, SECTION.TURBOJS_EXECUTION_LIFECYCLE, 'turbojs-execution-lifecycle.vqel'));
+  const turboJsScriptBufferPolicyPlan = parseTurboJsScriptBufferPolicyMetadata(findOptionalSection(pkg, SECTION.TURBOJS_SCRIPT_BUFFER_POLICY, 'turbojs-script-buffer-policy.vqsp'));
+  const turboJsContextLimitPolicyPlan = parseTurboJsContextLimitPolicyMetadata(findOptionalSection(pkg, SECTION.TURBOJS_CONTEXT_LIMIT_POLICY, 'turbojs-context-limit-policy.vqlp'));
+  const turboJsHostCallDispatchPlan = parseTurboJsHostCallDispatchMetadata(findOptionalSection(pkg, SECTION.TURBOJS_HOST_CALL_DISPATCH, 'turbojs-host-call-dispatch.vqhd'));
+  const turboJsParityContractPlan = parseTurboJsParityContractMetadata(findOptionalSection(pkg, SECTION.TURBOJS_PARITY_CONTRACT, 'turbojs-parity-contract.vqpc'));
+  const turboJsReleaseFailClosedPlan = parseTurboJsReleaseFailClosedMetadata(findOptionalSection(pkg, SECTION.TURBOJS_RELEASE_FAILCLOSED, 'turbojs-release-failclosed.vqfc'));
+  const turboJsModuleGraphPlan = parseTurboJsModuleGraphMetadata(findOptionalSection(pkg, SECTION.TURBOJS_MODULE_GRAPH, 'turbojs-module-graph.vqmg'));
+  const turboJsModuleExecutionPlan = parseTurboJsModuleExecutionMetadata(findOptionalSection(pkg, SECTION.TURBOJS_MODULE_EXECUTION, 'turbojs-module-execution.vqmx'));
+  const turboJsModuleCachePlan = parseTurboJsModuleCacheMetadata(findOptionalSection(pkg, SECTION.TURBOJS_MODULE_CACHE, 'turbojs-module-cache.vqmc'));
+  const turboJsResolverAuditPlan = parseTurboJsResolverAuditMetadata(findOptionalSection(pkg, SECTION.TURBOJS_RESOLVER_AUDIT, 'turbojs-resolver-audit.vqra'));
+  const turboJsInteropFallbackPlan = parseTurboJsInteropFallbackMetadata(findOptionalSection(pkg, SECTION.TURBOJS_INTEROP_FALLBACK, 'turbojs-interop-fallback.vqif'));
+  const turboJsExecutionPipelinePlan = parseTurboJsExecutionPipelineMetadata(findOptionalSection(pkg, SECTION.TURBOJS_EXECUTION_PIPELINE, 'turbojs-execution-pipeline.vqxp'));
+  const turboJsScriptRecordsPlan = parseTurboJsScriptRecordsMetadata(findOptionalSection(pkg, SECTION.TURBOJS_SCRIPT_RECORDS, 'turbojs-script-records.vqsr'));
+  const turboJsEvalResultsPlan = parseTurboJsEvalResultsMetadata(findOptionalSection(pkg, SECTION.TURBOJS_EVAL_RESULTS, 'turbojs-eval-results.vqev'));
+  const turboJsConsoleCapturePlan = parseTurboJsConsoleCaptureMetadata(findOptionalSection(pkg, SECTION.TURBOJS_CONSOLE_CAPTURE, 'turbojs-console-capture.vqcc'));
+  const turboJsFailureReportsPlan = parseTurboJsFailureReportsMetadata(findOptionalSection(pkg, SECTION.TURBOJS_FAILURE_REPORTS, 'turbojs-failure-reports.vqfr'));
+  const turboJsExecutionJournalPlan = parseTurboJsExecutionJournalMetadata(findOptionalSection(pkg, SECTION.TURBOJS_EXECUTION_JOURNAL, 'turbojs-execution-journal.vqxj'));
+  const turboJsCheckpointPolicyPlan = parseTurboJsCheckpointPolicyMetadata(findOptionalSection(pkg, SECTION.TURBOJS_CHECKPOINT_POLICY, 'turbojs-checkpoint-policy.vqcp'));
+  const turboJsReplayCursorPlan = parseTurboJsReplayCursorMetadata(findOptionalSection(pkg, SECTION.TURBOJS_REPLAY_CURSOR, 'turbojs-replay-cursor.vqrc'));
+  const turboJsResumeStatePlan = parseTurboJsResumeStateMetadata(findOptionalSection(pkg, SECTION.TURBOJS_RESUME_STATE, 'turbojs-resume-state.vqrs'));
+  const turboJsDeterminismAuditPlan = parseTurboJsDeterminismAuditMetadata(findOptionalSection(pkg, SECTION.TURBOJS_DETERMINISM_AUDIT, 'turbojs-determinism-audit.vqda'));
+  const turboJsSnapshotPolicyPlan = parseTurboJsSnapshotPolicyMetadata(findOptionalSection(pkg, SECTION.TURBOJS_SNAPSHOT_POLICY, 'turbojs-snapshot-policy.vqsk'));
+  const turboJsSnapshotRecordsPlan = parseTurboJsSnapshotRecordsMetadata(findOptionalSection(pkg, SECTION.TURBOJS_SNAPSHOT_RECORDS, 'turbojs-snapshot-records.vqsn'));
+  const turboJsReplayValidationPlan = parseTurboJsReplayValidationMetadata(findOptionalSection(pkg, SECTION.TURBOJS_REPLAY_VALIDATION, 'turbojs-replay-validation.vqrv'));
+  const turboJsDeterminismLedgerPlan = parseTurboJsDeterminismLedgerMetadata(findOptionalSection(pkg, SECTION.TURBOJS_DETERMINISM_LEDGER, 'turbojs-determinism-ledger.vqdl'));
+  const turboJsAuditSealPlan = parseTurboJsAuditSealMetadata(findOptionalSection(pkg, SECTION.TURBOJS_AUDIT_SEAL, 'turbojs-audit-seal.vqas'));
+  const turboJsExecutionCommitPlan = parseTurboJsExecutionCommitMetadata(findOptionalSection(pkg, SECTION.TURBOJS_EXECUTION_COMMIT, 'turbojs-execution-commit.vqxc'));
+  const turboJsRollbackPolicyPlan = parseTurboJsRollbackPolicyMetadata(findOptionalSection(pkg, SECTION.TURBOJS_ROLLBACK_POLICY, 'turbojs-rollback-policy.vqrp'));
+  const turboJsHostCallReceiptsPlan = parseTurboJsHostCallReceiptsMetadata(findOptionalSection(pkg, SECTION.TURBOJS_HOST_CALL_RECEIPTS, 'turbojs-host-call-receipts.vqhr'));
+  const turboJsReleaseAcceptancePlan = parseTurboJsReleaseAcceptanceMetadata(findOptionalSection(pkg, SECTION.TURBOJS_RELEASE_ACCEPTANCE, 'turbojs-release-acceptance.vqac'));
+  const turboJsCommitAuditPlan = parseTurboJsCommitAuditMetadata(findOptionalSection(pkg, SECTION.TURBOJS_COMMIT_AUDIT, 'turbojs-commit-audit.vqca'));
+  const turboJsCapabilityPolicyPlan = parseTurboJsCapabilityPolicyMetadata(findOptionalSection(pkg, SECTION.TURBOJS_CAPABILITY_POLICY, 'turbojs-capability-policy.vqcpol'));
+  const turboJsHostIoPolicyPlan = parseTurboJsHostIoPolicyMetadata(findOptionalSection(pkg, SECTION.TURBOJS_HOST_IO_POLICY, 'turbojs-host-io-policy.vqio'));
+  const turboJsPermissionSealPlan = parseTurboJsPermissionSealMetadata(findOptionalSection(pkg, SECTION.TURBOJS_PERMISSION_SEAL, 'turbojs-permission-seal.vqps'));
+  const turboJsPolicyReceiptsPlan = parseTurboJsPolicyReceiptsMetadata(findOptionalSection(pkg, SECTION.TURBOJS_POLICY_RECEIPTS, 'turbojs-policy-receipts.vqpr'));
+  const turboJsReleaseGatePlan = parseTurboJsReleaseGateMetadata(findOptionalSection(pkg, SECTION.TURBOJS_RELEASE_GATE, 'turbojs-release-gate.vqrg')); 
+  const turboJsHostIoDecisionPlan = parseTurboJsHostIoDecisionMetadata(findOptionalSection(pkg, SECTION.TURBOJS_HOST_IO_DECISION, 'turbojs-host-io-decision.vqid'));
+  const turboJsHostIoDenyTracePlan = parseTurboJsHostIoDenyTraceMetadata(findOptionalSection(pkg, SECTION.TURBOJS_HOST_IO_DENY_TRACE, 'turbojs-host-io-deny-trace.vqdt'));
+  const turboJsCapabilityLedgerPlan = parseTurboJsCapabilityLedgerMetadata(findOptionalSection(pkg, SECTION.TURBOJS_CAPABILITY_LEDGER, 'turbojs-capability-ledger.vqclg'));
+  const turboJsPolicySealAuditPlan = parseTurboJsPolicySealAuditMetadata(findOptionalSection(pkg, SECTION.TURBOJS_POLICY_SEAL_AUDIT, 'turbojs-policy-seal-audit.vqpsa'));
+  const turboJsRuntimeDenylistPlan = parseTurboJsRuntimeDenylistMetadata(findOptionalSection(pkg, SECTION.TURBOJS_RUNTIME_DENYLIST, 'turbojs-runtime-denylist.vqrd'));
   const asyncQueuePlan = parseAsyncHostQueueMetadata(findOptionalSection(pkg, SECTION.ASYNC_HOST_QUEUE, 'async-host-queue.vahq'));
   const assetBaseUrl = options.assetBaseUrl || new URL('./', options.packageUrl || document.baseURI).href;
-  const quickJsEngineModuleUrl = options.quickJsEngineUrl || (quickJsEngineModulePlan && quickJsEngineModulePlan.assetName ? new URL(quickJsEngineModulePlan.assetName, assetBaseUrl).href : null);
-  const quickJsWasmUrl = options.quickJsWasmUrl || (quickJsWasmRuntimePlan && quickJsWasmRuntimePlan.assetName ? new URL(quickJsWasmRuntimePlan.assetName, assetBaseUrl).href : null);
+  const turboJsEngineModuleUrl = options.turboJsEngineUrl || (turboJsEngineModulePlan && turboJsEngineModulePlan.assetName ? new URL(turboJsEngineModulePlan.assetName, assetBaseUrl).href : null);
+  const turboJsWasmUrl = options.turboJsWasmUrl || (turboJsWasmRuntimePlan && turboJsWasmRuntimePlan.assetName ? new URL(turboJsWasmRuntimePlan.assetName, assetBaseUrl).href : null);
   const route = selectRoute(routes, location.pathname);
   finishPhase('package-policy', { route: route.route, runtimeAbi: pkg.runtimeAbi, failClosed: runtimePolicy.failClosed });
 
   startPhase('runtime-install');
-  installVenomHostBridge(root, pkg, routes, assetManifest, runtimePolicy, hostBridgePlan, fetchBridgePlan, asyncQueuePlan, timerBridgePlan, eventQueuePlan, quickJsBridgePlan, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan, quickJsEngineModulePlan, quickJsEngineModuleUrl, quickJsContextLifecyclePlan, hostCapabilitiesPlan, quickJsAdapterDiagnosticsPlan, quickJsWasmRuntimePlan, quickJsWasmUrl, quickJsSourceTransferPlan, quickJsConsoleBridgePlan, quickJsExecutionRecordsPlan, quickJsResultBridgePlan, quickJsFallbackPolicyPlan, quickJsRuntimeAbiPlan, quickJsHostImportsPlan, quickJsHeapLimitsPlan, quickJsScriptBufferPlan, quickJsConsoleAbiPlan, quickJsParityProbePlan, quickJsReleaseFallbackPlan, quickJsBytecodeManifestPlan, quickJsModuleResolverPlan, quickJsExceptionAbiPlan, quickJsHostTrapPolicyPlan, quickJsExecutionLifecyclePlan, quickJsScriptBufferPolicyPlan, quickJsContextLimitPolicyPlan, quickJsHostCallDispatchPlan, quickJsParityContractPlan, quickJsReleaseFailClosedPlan, quickJsModuleGraphPlan, quickJsModuleExecutionPlan, quickJsModuleCachePlan, quickJsResolverAuditPlan, quickJsInteropFallbackPlan, quickJsExecutionJournalPlan, quickJsCheckpointPolicyPlan, quickJsReplayCursorPlan, quickJsResumeStatePlan, quickJsDeterminismAuditPlan, quickJsSnapshotPolicyPlan, quickJsSnapshotRecordsPlan, quickJsReplayValidationPlan, quickJsDeterminismLedgerPlan, quickJsAuditSealPlan, quickJsExecutionCommitPlan, quickJsRollbackPolicyPlan, quickJsHostCallReceiptsPlan, quickJsReleaseAcceptancePlan, quickJsCommitAuditPlan, quickJsCapabilityPolicyPlan, quickJsHostIoPolicyPlan, quickJsPermissionSealPlan, quickJsPolicyReceiptsPlan, quickJsReleaseGatePlan, quickJsHostIoDecisionPlan, quickJsHostIoDenyTracePlan, quickJsCapabilityLedgerPlan, quickJsPolicySealAuditPlan, quickJsRuntimeDenylistPlan);
-  finishPhase('runtime-install', { protectedRuntime: quickJsWasmRuntimePlan.enabled, hostCapabilities: hostCapabilitiesPlan.capabilities.length });
+  installVenomHostBridge(root, pkg, routes, assetManifest, runtimePolicy, hostBridgePlan, fetchBridgePlan, asyncQueuePlan, timerBridgePlan, eventQueuePlan, turboJsBridgePlan, scriptIsolationPlan, scriptPolicyPlan, turboJsChunkPlan, turboJsEnginePlan, scriptEnginePolicyPlan, turboJsEngineModulePlan, turboJsEngineModuleUrl, turboJsContextLifecyclePlan, hostCapabilitiesPlan, turboJsAdapterDiagnosticsPlan, turboJsWasmRuntimePlan, turboJsWasmUrl, turboJsSourceTransferPlan, turboJsConsoleBridgePlan, turboJsExecutionRecordsPlan, turboJsResultBridgePlan, turboJsFallbackPolicyPlan, turboJsRuntimeAbiPlan, turboJsHostImportsPlan, turboJsHeapLimitsPlan, turboJsScriptBufferPlan, turboJsConsoleAbiPlan, turboJsParityProbePlan, turboJsReleaseFallbackPlan, turboJsBytecodeManifestPlan, turboJsModuleResolverPlan, turboJsExceptionAbiPlan, turboJsHostTrapPolicyPlan, turboJsExecutionLifecyclePlan, turboJsScriptBufferPolicyPlan, turboJsContextLimitPolicyPlan, turboJsHostCallDispatchPlan, turboJsParityContractPlan, turboJsReleaseFailClosedPlan, turboJsModuleGraphPlan, turboJsModuleExecutionPlan, turboJsModuleCachePlan, turboJsResolverAuditPlan, turboJsInteropFallbackPlan, turboJsExecutionJournalPlan, turboJsCheckpointPolicyPlan, turboJsReplayCursorPlan, turboJsResumeStatePlan, turboJsDeterminismAuditPlan, turboJsSnapshotPolicyPlan, turboJsSnapshotRecordsPlan, turboJsReplayValidationPlan, turboJsDeterminismLedgerPlan, turboJsAuditSealPlan, turboJsExecutionCommitPlan, turboJsRollbackPolicyPlan, turboJsHostCallReceiptsPlan, turboJsReleaseAcceptancePlan, turboJsCommitAuditPlan, turboJsCapabilityPolicyPlan, turboJsHostIoPolicyPlan, turboJsPermissionSealPlan, turboJsPolicyReceiptsPlan, turboJsReleaseGatePlan, turboJsHostIoDecisionPlan, turboJsHostIoDenyTracePlan, turboJsCapabilityLedgerPlan, turboJsPolicySealAuditPlan, turboJsRuntimeDenylistPlan);
+  finishPhase('runtime-install', { protectedRuntime: turboJsWasmRuntimePlan.enabled, hostCapabilities: hostCapabilitiesPlan.capabilities.length });
   installBrowserAssetResolver(route, assetManifest, assetBaseUrl);
   startPhase('route-decode');
   const initialRuntime = routeRuntimeLoader(route);
@@ -4345,10 +4353,10 @@ export async function bootVenom(options) {
   executeRoute(initialRuntime.route, initialRuntime.vm, strings, opcodeMap, root, assetManifest, assetBaseUrl, hostBridgePlan);
   finishPhase('route-render', { route: initialRuntime.route.route });
   startPhase('script-execution');
-  const executedScripts = await executeScriptsForRoute(initialRuntime.route, initialRuntime.jsBundle, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan);
+  const executedScripts = await executeScriptsForRoute(initialRuntime.route, initialRuntime.jsBundle, scriptIsolationPlan, scriptPolicyPlan, turboJsChunkPlan, turboJsEnginePlan, scriptEnginePolicyPlan);
   finishPhase('script-execution', { executedScripts: executedScripts.length });
   startPhase('navigation-install');
-  installNavigation(routes, routeRuntimeLoader, strings, opcodeMap, root, assetManifest, assetBaseUrl, hostBridgePlan, scriptIsolationPlan, scriptPolicyPlan, quickJsChunkPlan, quickJsEnginePlan, scriptEnginePolicyPlan);
+  installNavigation(routes, routeRuntimeLoader, strings, opcodeMap, root, assetManifest, assetBaseUrl, hostBridgePlan, scriptIsolationPlan, scriptPolicyPlan, turboJsChunkPlan, turboJsEnginePlan, scriptEnginePolicyPlan);
   finishPhase('navigation-install', { routes: routes.length });
 
   return {
@@ -4380,97 +4388,97 @@ export async function bootVenom(options) {
     timerBridgeMode: timerBridgePlan.enabled ? 'async-host-call' : 'none',
     eventQueueVersion: eventQueuePlan.version,
     eventQueueMode: eventQueuePlan.enabled ? 'enabled' : 'none',
-    quickJsBridgeVersion: quickJsBridgePlan.version,
-    quickJsBridgeMode: quickJsBridgePlan.mode,
+    turboJsBridgeVersion: turboJsBridgePlan.version,
+    turboJsBridgeMode: turboJsBridgePlan.mode,
     scriptIsolationVersion: scriptIsolationPlan.version,
     scriptIsolationMode: scriptIsolationPlan.mode,
     scriptPolicyVersion: scriptPolicyPlan.version,
     scriptPolicyMode: 'capability-metadata',
-    quickJsChunkVersion: quickJsChunkPlan.version,
-    quickJsChunkMode: quickJsChunkPlan.mode,
-    quickJsChunkCount: quickJsChunkPlan.chunkCount,
-    quickJsEngineVersion: quickJsEnginePlan.version,
-    quickJsEngineMode: quickJsEnginePlan.mode,
-    quickJsEngineEnabled: quickJsEnginePlan.enabled,
+    turboJsChunkVersion: turboJsChunkPlan.version,
+    turboJsChunkMode: turboJsChunkPlan.mode,
+    turboJsChunkCount: turboJsChunkPlan.chunkCount,
+    turboJsEngineVersion: turboJsEnginePlan.version,
+    turboJsEngineMode: turboJsEnginePlan.mode,
+    turboJsEngineEnabled: turboJsEnginePlan.enabled,
     scriptEnginePolicyVersion: scriptEnginePolicyPlan.version,
     scriptEngineFallback: scriptEnginePolicyPlan.fallback,
-    quickJsEngineModuleVersion: quickJsEngineModulePlan.version,
-    quickJsEngineModuleMode: quickJsEngineModulePlan.enabled ? quickJsEngineModulePlan.executionMode : 'none',
-    quickJsEngineModuleLoaded: !!quickJsEngineModuleUrl,
-    quickJsContextLifecycleVersion: quickJsContextLifecyclePlan.version,
-    quickJsContextLifecycleMode: quickJsContextLifecyclePlan.enabled ? quickJsContextLifecyclePlan.model : 'none',
+    turboJsEngineModuleVersion: turboJsEngineModulePlan.version,
+    turboJsEngineModuleMode: turboJsEngineModulePlan.enabled ? turboJsEngineModulePlan.executionMode : 'none',
+    turboJsEngineModuleLoaded: !!turboJsEngineModuleUrl,
+    turboJsContextLifecycleVersion: turboJsContextLifecyclePlan.version,
+    turboJsContextLifecycleMode: turboJsContextLifecyclePlan.enabled ? turboJsContextLifecyclePlan.model : 'none',
     hostCapabilitiesVersion: hostCapabilitiesPlan.version,
     hostCapabilityCount: hostCapabilitiesPlan.capabilities.length,
-    quickJsAdapterDiagnosticsVersion: quickJsAdapterDiagnosticsPlan.version,
-    quickJsAdapterDiagnosticsMode: quickJsAdapterDiagnosticsPlan.enabled ? 'enabled' : 'none',
-    quickJsSnapshotPolicyVersion: quickJsSnapshotPolicyPlan.version,
-    quickJsSnapshotRecordsVersion: quickJsSnapshotRecordsPlan.version,
-    quickJsReplayValidationVersion: quickJsReplayValidationPlan.version,
-    quickJsDeterminismLedgerVersion: quickJsDeterminismLedgerPlan.version,
-    quickJsAuditSealVersion: quickJsAuditSealPlan.version,
-    quickJsExecutionCommitVersion: quickJsExecutionCommitPlan.version,
-    quickJsRollbackPolicyVersion: quickJsRollbackPolicyPlan.version,
-    quickJsHostCallReceiptsVersion: quickJsHostCallReceiptsPlan.version,
-    quickJsReleaseAcceptanceVersion: quickJsReleaseAcceptancePlan.version,
-    quickJsCommitAuditVersion: quickJsCommitAuditPlan.version,
-    quickJsCapabilityPolicyVersion: quickJsCapabilityPolicyPlan.version,
-    quickJsHostIoPolicyVersion: quickJsHostIoPolicyPlan.version,
-    quickJsPermissionSealVersion: quickJsPermissionSealPlan.version,
-    quickJsPolicyReceiptsVersion: quickJsPolicyReceiptsPlan.version,
-    quickJsReleaseGateVersion: quickJsReleaseGatePlan.version,
-    quickJsHostIoDecisionVersion: quickJsHostIoDecisionPlan.version,
-    quickJsHostIoDenyTraceVersion: quickJsHostIoDenyTracePlan.version,
-    quickJsCapabilityLedgerVersion: quickJsCapabilityLedgerPlan.version,
-    quickJsPolicySealAuditVersion: quickJsPolicySealAuditPlan.version,
-    quickJsRuntimeDenylistVersion: quickJsRuntimeDenylistPlan.version,
-    quickJsWasmRuntimeVersion: quickJsWasmRuntimePlan.version,
-    quickJsWasmRuntimeMode: quickJsWasmRuntimePlan.enabled ? quickJsWasmRuntimePlan.executionMode : 'none',
-    quickJsWasmRuntimeLoaded: !!quickJsWasmUrl,
-    quickJsSourceTransferVersion: quickJsSourceTransferPlan.version,
-    quickJsSourceTransferMode: quickJsSourceTransferPlan.enabled ? 'enabled' : 'none',
-    quickJsConsoleBridgeVersion: quickJsConsoleBridgePlan.version,
-    quickJsConsoleBridgeMode: quickJsConsoleBridgePlan.enabled ? quickJsConsoleBridgePlan.mode : 'none',
-    quickJsExecutionRecordsVersion: quickJsExecutionRecordsPlan.version,
-    quickJsExecutionRecordsMode: quickJsExecutionRecordsPlan.enabled ? quickJsExecutionRecordsPlan.retention : 'none',
-    quickJsResultBridgeVersion: quickJsResultBridgePlan.version,
-    quickJsResultBridgeMode: quickJsResultBridgePlan.enabled ? quickJsResultBridgePlan.format : 'none',
-    quickJsFallbackPolicyVersion: quickJsFallbackPolicyPlan.version,
-    quickJsFallbackPolicyMode: quickJsFallbackPolicyPlan.enabled ? quickJsFallbackPolicyPlan.mode : 'none',
-    quickJsRuntimeAbi: quickJsRuntimeAbiPlan.abi,
-    quickJsHostImportCount: quickJsHostImportsPlan.importCount,
-    quickJsBytecodeManifestVersion: quickJsBytecodeManifestPlan.version,
-    quickJsBytecodeManifestMode: quickJsBytecodeManifestPlan.enabled ? quickJsBytecodeManifestPlan.format : 'none',
-    quickJsModuleResolverVersion: quickJsModuleResolverPlan.version,
-    quickJsModuleResolverMode: quickJsModuleResolverPlan.enabled ? quickJsModuleResolverPlan.mode : 'none',
-    quickJsExceptionAbi: quickJsExceptionAbiPlan.abi,
-    quickJsExceptionAbiVersion: quickJsExceptionAbiPlan.version,
-    quickJsHostTrapPolicy: quickJsHostTrapPolicyPlan.policy,
-    quickJsHostTrapPolicyVersion: quickJsHostTrapPolicyPlan.version,
-    quickJsExecutionLifecycleVersion: quickJsExecutionLifecyclePlan.version,
-    quickJsExecutionLifecycleStates: quickJsExecutionLifecyclePlan.states,
-    quickJsScriptBufferPolicyVersion: quickJsScriptBufferPolicyPlan.version,
-    quickJsContextLimitPolicyVersion: quickJsContextLimitPolicyPlan.version,
-    quickJsHostCallDispatchVersion: quickJsHostCallDispatchPlan.version,
-    quickJsHostCallDispatchCount: quickJsHostCallDispatchPlan.entryCount,
-    quickJsParityContractVersion: quickJsParityContractPlan.version,
-    quickJsReleaseFailClosedVersion: quickJsReleaseFailClosedPlan.version,
-    quickJsModuleGraphVersion: quickJsModuleGraphPlan.version,
-    quickJsModuleGraphCount: quickJsModuleGraphPlan.moduleCount,
-    quickJsModuleExecutionVersion: quickJsModuleExecutionPlan.version,
-    quickJsModuleExecutionMode: quickJsModuleExecutionPlan.enabled ? quickJsModuleExecutionPlan.mode : 'none',
-    quickJsModuleCacheVersion: quickJsModuleCachePlan.version,
-    quickJsResolverAuditVersion: quickJsResolverAuditPlan.version,
-    quickJsInteropFallbackVersion: quickJsInteropFallbackPlan.version,
-    quickJsExecutionPipelineVersion: quickJsExecutionPipelinePlan.version,
-    quickJsScriptRecordsVersion: quickJsScriptRecordsPlan.version,
-    quickJsEvalResultsVersion: quickJsEvalResultsPlan.version,
-    quickJsConsoleCaptureVersion: quickJsConsoleCapturePlan.version,
-    quickJsFailureReportsVersion: quickJsFailureReportsPlan.version,
-    quickJsExecutionJournalVersion: quickJsExecutionJournalPlan.version,
-    quickJsCheckpointPolicyVersion: quickJsCheckpointPolicyPlan.version,
-    quickJsReplayCursorVersion: quickJsReplayCursorPlan.version,
-    quickJsResumeStateVersion: quickJsResumeStatePlan.version,
-    quickJsDeterminismAuditVersion: quickJsDeterminismAuditPlan.version,
+    turboJsAdapterDiagnosticsVersion: turboJsAdapterDiagnosticsPlan.version,
+    turboJsAdapterDiagnosticsMode: turboJsAdapterDiagnosticsPlan.enabled ? 'enabled' : 'none',
+    turboJsSnapshotPolicyVersion: turboJsSnapshotPolicyPlan.version,
+    turboJsSnapshotRecordsVersion: turboJsSnapshotRecordsPlan.version,
+    turboJsReplayValidationVersion: turboJsReplayValidationPlan.version,
+    turboJsDeterminismLedgerVersion: turboJsDeterminismLedgerPlan.version,
+    turboJsAuditSealVersion: turboJsAuditSealPlan.version,
+    turboJsExecutionCommitVersion: turboJsExecutionCommitPlan.version,
+    turboJsRollbackPolicyVersion: turboJsRollbackPolicyPlan.version,
+    turboJsHostCallReceiptsVersion: turboJsHostCallReceiptsPlan.version,
+    turboJsReleaseAcceptanceVersion: turboJsReleaseAcceptancePlan.version,
+    turboJsCommitAuditVersion: turboJsCommitAuditPlan.version,
+    turboJsCapabilityPolicyVersion: turboJsCapabilityPolicyPlan.version,
+    turboJsHostIoPolicyVersion: turboJsHostIoPolicyPlan.version,
+    turboJsPermissionSealVersion: turboJsPermissionSealPlan.version,
+    turboJsPolicyReceiptsVersion: turboJsPolicyReceiptsPlan.version,
+    turboJsReleaseGateVersion: turboJsReleaseGatePlan.version,
+    turboJsHostIoDecisionVersion: turboJsHostIoDecisionPlan.version,
+    turboJsHostIoDenyTraceVersion: turboJsHostIoDenyTracePlan.version,
+    turboJsCapabilityLedgerVersion: turboJsCapabilityLedgerPlan.version,
+    turboJsPolicySealAuditVersion: turboJsPolicySealAuditPlan.version,
+    turboJsRuntimeDenylistVersion: turboJsRuntimeDenylistPlan.version,
+    turboJsWasmRuntimeVersion: turboJsWasmRuntimePlan.version,
+    turboJsWasmRuntimeMode: turboJsWasmRuntimePlan.enabled ? turboJsWasmRuntimePlan.executionMode : 'none',
+    turboJsWasmRuntimeLoaded: !!turboJsWasmUrl,
+    turboJsSourceTransferVersion: turboJsSourceTransferPlan.version,
+    turboJsSourceTransferMode: turboJsSourceTransferPlan.enabled ? 'enabled' : 'none',
+    turboJsConsoleBridgeVersion: turboJsConsoleBridgePlan.version,
+    turboJsConsoleBridgeMode: turboJsConsoleBridgePlan.enabled ? turboJsConsoleBridgePlan.mode : 'none',
+    turboJsExecutionRecordsVersion: turboJsExecutionRecordsPlan.version,
+    turboJsExecutionRecordsMode: turboJsExecutionRecordsPlan.enabled ? turboJsExecutionRecordsPlan.retention : 'none',
+    turboJsResultBridgeVersion: turboJsResultBridgePlan.version,
+    turboJsResultBridgeMode: turboJsResultBridgePlan.enabled ? turboJsResultBridgePlan.format : 'none',
+    turboJsFallbackPolicyVersion: turboJsFallbackPolicyPlan.version,
+    turboJsFallbackPolicyMode: turboJsFallbackPolicyPlan.enabled ? turboJsFallbackPolicyPlan.mode : 'none',
+    turboJsRuntimeAbi: turboJsRuntimeAbiPlan.abi,
+    turboJsHostImportCount: turboJsHostImportsPlan.importCount,
+    turboJsBytecodeManifestVersion: turboJsBytecodeManifestPlan.version,
+    turboJsBytecodeManifestMode: turboJsBytecodeManifestPlan.enabled ? turboJsBytecodeManifestPlan.format : 'none',
+    turboJsModuleResolverVersion: turboJsModuleResolverPlan.version,
+    turboJsModuleResolverMode: turboJsModuleResolverPlan.enabled ? turboJsModuleResolverPlan.mode : 'none',
+    turboJsExceptionAbi: turboJsExceptionAbiPlan.abi,
+    turboJsExceptionAbiVersion: turboJsExceptionAbiPlan.version,
+    turboJsHostTrapPolicy: turboJsHostTrapPolicyPlan.policy,
+    turboJsHostTrapPolicyVersion: turboJsHostTrapPolicyPlan.version,
+    turboJsExecutionLifecycleVersion: turboJsExecutionLifecyclePlan.version,
+    turboJsExecutionLifecycleStates: turboJsExecutionLifecyclePlan.states,
+    turboJsScriptBufferPolicyVersion: turboJsScriptBufferPolicyPlan.version,
+    turboJsContextLimitPolicyVersion: turboJsContextLimitPolicyPlan.version,
+    turboJsHostCallDispatchVersion: turboJsHostCallDispatchPlan.version,
+    turboJsHostCallDispatchCount: turboJsHostCallDispatchPlan.entryCount,
+    turboJsParityContractVersion: turboJsParityContractPlan.version,
+    turboJsReleaseFailClosedVersion: turboJsReleaseFailClosedPlan.version,
+    turboJsModuleGraphVersion: turboJsModuleGraphPlan.version,
+    turboJsModuleGraphCount: turboJsModuleGraphPlan.moduleCount,
+    turboJsModuleExecutionVersion: turboJsModuleExecutionPlan.version,
+    turboJsModuleExecutionMode: turboJsModuleExecutionPlan.enabled ? turboJsModuleExecutionPlan.mode : 'none',
+    turboJsModuleCacheVersion: turboJsModuleCachePlan.version,
+    turboJsResolverAuditVersion: turboJsResolverAuditPlan.version,
+    turboJsInteropFallbackVersion: turboJsInteropFallbackPlan.version,
+    turboJsExecutionPipelineVersion: turboJsExecutionPipelinePlan.version,
+    turboJsScriptRecordsVersion: turboJsScriptRecordsPlan.version,
+    turboJsEvalResultsVersion: turboJsEvalResultsPlan.version,
+    turboJsConsoleCaptureVersion: turboJsConsoleCapturePlan.version,
+    turboJsFailureReportsVersion: turboJsFailureReportsPlan.version,
+    turboJsExecutionJournalVersion: turboJsExecutionJournalPlan.version,
+    turboJsCheckpointPolicyVersion: turboJsCheckpointPolicyPlan.version,
+    turboJsReplayCursorVersion: turboJsReplayCursorPlan.version,
+    turboJsResumeStateVersion: turboJsResumeStatePlan.version,
+    turboJsDeterminismAuditVersion: turboJsDeterminismAuditPlan.version,
     routes: routes.map((item) => item.route),
   };
 }

@@ -1,9 +1,9 @@
-#include "venom/base/error.hpp"
-#include "venom/internal/pipeline/html.hpp"
+#include "base/error.hpp"
+#include "pipeline/html.hpp"
 
-#include "venom/core/site.hpp"
-#include "venom/vm/encoder.hpp"
-#include "venom/vm/opcode.hpp"
+#include "core/site.hpp"
+#include "vm/encoder.hpp"
+#include "vm/opcode.hpp"
 
 #include <algorithm>
 #include <cctype>

@@ -3,16 +3,16 @@
 Venom includes or builds against third-party software. Each component remains
 subject to its own license terms.
 
-## QuickJS
+## TurboJS
 
-Venom vendors selected QuickJS sources under `third_party/quickjs/`.
+Venom vendors selected TurboJS sources under `third_party/turbojs/`.
 
 Copyright (c) 2017-2025 Fabrice Bellard and Charlie Gordon.
 
-QuickJS is distributed under the MIT license. The complete license text is in:
+TurboJS is distributed under the MIT license. The complete license text is in:
 
-- `third_party/quickjs/LICENSE`
-- release packages: `licenses/QUICKJS-LICENSE`
+- `third_party/turbojs/LICENSE`
+- release packages: `licenses/TURBOJS-LICENSE`
 
 ## Build and validation tools
 

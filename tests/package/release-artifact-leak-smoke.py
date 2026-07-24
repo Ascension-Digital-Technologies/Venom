@@ -13,7 +13,7 @@ with tempfile.TemporaryDirectory(prefix='venom-release-leak-') as temp:
     forbidden = [
         b'bridge-rewrite-plan', b'function-extraction-plan', b'runtime-bridge-contract',
         b'js/ai-engine.js::', b'"source_root"', b'"config_file"',
-        b'venom_qjs_context_alloc', b'venom_qjs_bridge_invoke'
+        b'venom_tjs_context_alloc', b'venom_tjs_bridge_invoke'
     ]
     for marker in forbidden:
         assert marker not in blob, f'forbidden release marker leaked: {marker!r}'

@@ -2,8 +2,13 @@
 # Keep this file declarative so the root CMakeLists remains easy to audit.
 
 include(CTest)
-# Implementation headers use the explicit venom/internal namespace. Tests that
-# intentionally inspect an internal surface include that namespace directly.
+# Tests may inspect an owning domain's implementation surface without making
+# those headers part of the product API. Access is granted target-by-target.
+function(venom_test_private_headers target)
+  foreach(_domain IN LISTS ARGN)
+    target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/${_domain}")
+  endforeach()
+endfunction()
 
 if(BUILD_TESTING)
   add_executable(venom_diversification_rng_test tests/vm/diversification-rng.cpp)
@@ -12,6 +17,7 @@ if(BUILD_TESTING)
   add_test(NAME venom_diversification_rng COMMAND venom_diversification_rng_test)
   add_executable(venom_html_route_hydration_test tests/vm/html-route-hydration.cpp)
   target_link_libraries(venom_html_route_hydration_test PRIVATE venom_core)
+  venom_test_private_headers(venom_html_route_hydration_test pipeline)
   venom_apply_warnings(venom_html_route_hydration_test)
   add_test(NAME venom_html_route_hydration COMMAND venom_html_route_hydration_test)
 
@@ -21,16 +27,30 @@ if(BUILD_TESTING)
   endif()
   venom_apply_warnings(venom_fake_curl)
 
-  if(VENOM_ENABLE_FULL_QUICKJS)
-    add_executable(venom_native_bytecode_security tests/quickjs/native-bytecode-security.cpp)
+  if(VENOM_ENABLE_FULL_TURBOJS)
+    add_executable(venom_native_bytecode_security tests/turbojs/native-bytecode-security.cpp)
     target_link_libraries(venom_native_bytecode_security PRIVATE venom_core)
     venom_apply_warnings(venom_native_bytecode_security)
     add_test(NAME venom_native_bytecode_security COMMAND venom_native_bytecode_security)
 
-    add_executable(venom_quickjs_stack_overflow_safety tests/quickjs/stack-overflow-safety.cpp)
-    target_link_libraries(venom_quickjs_stack_overflow_safety PRIVATE venom_core)
-    venom_apply_warnings(venom_quickjs_stack_overflow_safety)
-    add_test(NAME venom_quickjs_stack_overflow_safety COMMAND venom_quickjs_stack_overflow_safety)
+    add_executable(venom_turbojs_stack_overflow_safety tests/turbojs/stack-overflow-safety.cpp)
+    target_link_libraries(venom_turbojs_stack_overflow_safety PRIVATE venom_core)
+    venom_apply_warnings(venom_turbojs_stack_overflow_safety)
+    add_test(NAME venom_turbojs_stack_overflow_safety COMMAND venom_turbojs_stack_overflow_safety)
+
+    add_executable(venom_turbojs_collection_benchmark tests/turbojs/map-set-benchmark.cpp)
+    target_link_libraries(venom_turbojs_collection_benchmark PRIVATE tjs)
+    venom_apply_warnings(venom_turbojs_collection_benchmark)
+
+    add_executable(venom_turbojs_numeric_collection_keys tests/turbojs/map-set-numeric-key.cpp)
+    target_link_libraries(venom_turbojs_numeric_collection_keys PRIVATE tjs)
+    venom_apply_warnings(venom_turbojs_numeric_collection_keys)
+    add_test(NAME venom_turbojs_numeric_collection_keys COMMAND venom_turbojs_numeric_collection_keys)
+
+    add_executable(venom_turbojs_string_collection_keys tests/turbojs/map-set-string-key.cpp)
+    target_link_libraries(venom_turbojs_string_collection_keys PRIVATE tjs)
+    venom_apply_warnings(venom_turbojs_string_collection_keys)
+    add_test(NAME venom_turbojs_string_collection_keys COMMAND venom_turbojs_string_collection_keys)
   endif()
 
   add_test(NAME venom_version COMMAND venom --version)
@@ -50,10 +70,10 @@ if(BUILD_TESTING)
       DEPENDS venom_build_production
       LABELS "integration;runtime")
 
-    add_test(NAME venom_quickjs_native_parity_probe
-      COMMAND $<TARGET_FILE:venom_qjs_native_probe>)
-    set_tests_properties(venom_quickjs_native_parity_probe PROPERTIES
-      LABELS "integration;quickjs;runtime")
+    add_test(NAME venom_turbojs_native_parity_probe
+      COMMAND $<TARGET_FILE:venom_tjs_native_probe>)
+    set_tests_properties(venom_turbojs_native_parity_probe PROPERTIES
+      LABELS "integration;turbojs;runtime")
   endif()
 
   find_package(Python3 COMPONENTS Interpreter)
@@ -76,6 +96,8 @@ if(BUILD_TESTING)
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/production-only-build-smoke.py $<TARGET_FILE:venom> ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/production-site ${CMAKE_BINARY_DIR}/dist-production-only-smoke)
     add_test(NAME venom_image_assets_layout_smoke
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/image-assets-layout-smoke.py $<TARGET_FILE:venom>)
+    add_test(NAME venom_planned_public_assets_only_smoke
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/planned-public-assets-only-smoke.py $<TARGET_FILE:venom>)
     add_test(NAME venom_runtime_surface_diversification_smoke
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/runtime-surface-diversification-smoke.py $<TARGET_FILE:venom>)
     add_test(NAME venom_production_artifact_layout_smoke
@@ -86,6 +108,8 @@ if(BUILD_TESTING)
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/build-scripts-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
     add_test(NAME venom_source_layout_smoke
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/source-layout-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
+    add_test(NAME venom_public_javascript_hardening_policy_smoke
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/public-javascript-hardening-policy-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
     add_test(NAME venom_source_domain_dependencies_smoke
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/architecture/check_domain_dependencies.py ${CMAKE_CURRENT_SOURCE_DIR})
     add_test(NAME venom_header_boundaries_smoke
@@ -98,12 +122,12 @@ if(BUILD_TESTING)
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_generated_artifacts.py ${CMAKE_CURRENT_SOURCE_DIR})
     add_test(NAME venom_dom_stack_balance_smoke
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/dom-stack-balance-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
-    add_test(NAME venom_quickjs_bytecode_manifest_v3_smoke
-      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/quickjs-bytecode-manifest-v3-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
-    add_test(NAME venom_quickjs_wasm_stack_safety_smoke
-      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/quickjs-wasm-stack-safety-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
-    add_test(NAME venom_quickjs_minimal_public_abi_smoke
-      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/quickjs-minimal-public-abi-smoke.py)
+    add_test(NAME venom_turbojs_bytecode_manifest_v3_smoke
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/turbojs-bytecode-manifest-v3-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
+    add_test(NAME venom_turbojs_wasm_stack_safety_smoke
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/turbojs-wasm-stack-safety-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
+    add_test(NAME venom_turbojs_minimal_public_abi_smoke
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/turbojs-minimal-public-abi-smoke.py)
     add_test(NAME venom_phase2_runtime_performance_smoke
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/phase2-runtime-performance-smoke.py)
     add_test(NAME venom_phase3_advanced_protection_smoke
@@ -118,20 +142,20 @@ if(BUILD_TESTING)
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/phase10-fuzzing-adversarial-smoke.py ${CMAKE_CURRENT_SOURCE_DIR})
     add_test(NAME venom_phase12_runtime_artifact_consistency_smoke
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/phase12-runtime-artifact-consistency-smoke.py ${CMAKE_CURRENT_SOURCE_DIR} $<TARGET_FILE:venom>)
-    add_test(NAME venom_quickjs_module_artifact_gate_smoke
-      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/quickjs-module-artifact-gate-smoke.py ${CMAKE_CURRENT_SOURCE_DIR} $<TARGET_FILE:venom> ${CMAKE_BINARY_DIR}/dist-quickjs-module-artifact-gate)
+    add_test(NAME venom_turbojs_module_artifact_gate_smoke
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/turbojs-module-artifact-gate-smoke.py ${CMAKE_CURRENT_SOURCE_DIR} $<TARGET_FILE:venom> ${CMAKE_BINARY_DIR}/dist-turbojs-module-artifact-gate)
     add_test(NAME venom_phase7_unified_runtime_smoke
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/phase7-unified-runtime-smoke.py)
-    add_test(NAME venom_quickjs_abi_fingerprint_canonicalization_smoke
-      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/quickjs-abi-fingerprint-canonicalization-smoke.py)
+    add_test(NAME venom_turbojs_abi_fingerprint_canonicalization_smoke
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/turbojs-abi-fingerprint-canonicalization-smoke.py)
     add_test(NAME venom_phase8_host_bridge_hardening_smoke
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/phase8-host-bridge-hardening-smoke.py)
     add_test(NAME venom_phase9_route_isolation_smoke
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/package/phase9-route-isolation-smoke.py)
-    add_test(NAME venom_quickjs_runtime_memory_lifecycle_smoke
-      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/quickjs/runtime-memory-lifecycle-smoke.py)
-    add_test(NAME venom_quickjs_release_build_hygiene_smoke
-      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/quickjs/release-build-hygiene-smoke.py)
+    add_test(NAME venom_turbojs_runtime_memory_lifecycle_smoke
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/turbojs/runtime-memory-lifecycle-smoke.py)
+    add_test(NAME venom_turbojs_release_build_hygiene_smoke
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/turbojs/release-build-hygiene-smoke.py)
     add_test(NAME venom_source_inventory_smoke
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_source_inventory.py ${CMAKE_CURRENT_SOURCE_DIR})
     add_test(NAME venom_remote_vendor_smoke
@@ -180,7 +204,7 @@ if(BUILD_TESTING)
           venom_production_site_boot_smoke
           venom_html_rendering_fidelity_smoke
           PROPERTIES
-            SKIP_REGULAR_EXPRESSION "QuickJS WASM interpreter unavailable; source-decode fallback denied"
+            SKIP_REGULAR_EXPRESSION "TurboJS WASM interpreter unavailable; source-decode fallback denied"
         )
       endif()
     endif()
@@ -244,14 +268,14 @@ add_test(NAME venom_runtime_module_specialization_smoke
 add_test(NAME venom_dom_compatibility_modules_smoke
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/dom-compatibility-modules-smoke.py $<TARGET_FILE:venom>)
 
-foreach(_venom_qjs_artifact_test IN ITEMS
+foreach(_venom_tjs_artifact_test IN ITEMS
     venom_release_package_metadata_redaction_smoke
     venom_browser_runtime_compat_smoke
     venom_production_loader_smoke
     venom_production_tamper_gate_smoke
     venom_runtime_module_specialization_smoke)
-  if(TEST ${_venom_qjs_artifact_test})
-    set_tests_properties(${_venom_qjs_artifact_test} PROPERTIES SKIP_RETURN_CODE 77)
+  if(TEST ${_venom_tjs_artifact_test})
+    set_tests_properties(${_venom_tjs_artifact_test} PROPERTIES SKIP_RETURN_CODE 77)
   endif()
 endforeach()
 
@@ -269,12 +293,12 @@ add_test(NAME venom_full_section_layout_diversification_smoke COMMAND ${Python3_
 add_test(NAME venom_release_artifact_leak_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/release-artifact-leak-smoke.py $<TARGET_FILE:venom>)
 add_test(NAME venom_function_dependency_lifting_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/function-dependency-lifting-smoke.py $<TARGET_FILE:venom>)
 add_test(NAME venom_runtime_bridge_worker_protocol_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/runtime-bridge-worker-protocol-smoke.py)
-add_test(NAME venom_runtime_bridge_quickjs_abi_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/runtime-bridge-quickjs-abi-smoke.py)
+add_test(NAME venom_runtime_bridge_turbojs_abi_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/runtime-bridge-turbojs-abi-smoke.py)
 add_test(NAME venom_browser_runtime_payload_smoke
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/browser-runtime-payload-smoke.py)
 
-add_test(NAME venom_quickjs_embedded_bridge_artifact_smoke
-  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/quickjs-embedded-bridge-artifact-smoke.py ${CMAKE_SOURCE_DIR})
+add_test(NAME venom_turbojs_embedded_bridge_artifact_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/turbojs-embedded-bridge-artifact-smoke.py ${CMAKE_SOURCE_DIR})
 
 add_test(NAME venom_browser_dynamic_asset_resolution_smoke
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/browser-dynamic-asset-resolution-smoke.py ${CMAKE_SOURCE_DIR} $<TARGET_FILE:venom>)
@@ -351,7 +375,7 @@ foreach(_venom_test IN LISTS _venom_all_tests)
   elseif(_venom_test MATCHES "production|release|publication|installation|update")
     set_property(TEST ${_venom_test} APPEND PROPERTY LABELS release integration)
     set_tests_properties(${_venom_test} PROPERTIES TIMEOUT 300)
-  elseif(_venom_test MATCHES "quickjs|wasm|route|runtime")
+  elseif(_venom_test MATCHES "turbojs|wasm|route|runtime")
     set_property(TEST ${_venom_test} APPEND PROPERTY LABELS runtime integration)
   elseif(_venom_test MATCHES "source|repository|contract|layout|inventory|build_scripts|registry|error_api|artifact_drift")
     set_property(TEST ${_venom_test} APPEND PROPERTY LABELS static unit)
@@ -380,13 +404,13 @@ add_test(NAME venom_split_trust_domain_smoke
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/split-trust-domain-smoke.py)
 set_tests_properties(venom_split_trust_domain_smoke PROPERTIES LABELS "security;static;runtime" TIMEOUT 60)
 
-add_test(NAME venom_quickjs_development_trust_domain_smoke
-  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/quickjs-development-trust-domain-smoke.py)
-set_tests_properties(venom_quickjs_development_trust_domain_smoke PROPERTIES LABELS "unit;security;static;runtime" TIMEOUT 30)
+add_test(NAME venom_turbojs_development_trust_domain_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/turbojs-development-trust-domain-smoke.py)
+set_tests_properties(venom_turbojs_development_trust_domain_smoke PROPERTIES LABELS "unit;security;static;runtime" TIMEOUT 30)
 
-add_test(NAME venom_quickjs_development_minimal_abi_smoke
-  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/quickjs-development-minimal-abi-smoke.py)
-set_tests_properties(venom_quickjs_development_minimal_abi_smoke PROPERTIES LABELS "unit;security;static;runtime" TIMEOUT 30)
+add_test(NAME venom_turbojs_development_minimal_abi_smoke
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/turbojs-development-minimal-abi-smoke.py)
+set_tests_properties(venom_turbojs_development_minimal_abi_smoke PROPERTIES LABELS "unit;security;static;runtime" TIMEOUT 30)
 
 add_test(NAME venom_release_entrypoint_policy_smoke
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/release-entrypoint-policy-smoke.py)
@@ -419,9 +443,9 @@ if(VENOM_ENABLE_NODE_ECOSYSTEM_TESTS)
   add_test(NAME runtime_module_bundle_smoke
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/runtime/runtime-module-bundle-smoke.py)
   set_tests_properties(runtime_module_bundle_smoke PROPERTIES LABELS "unit;smoke;runtime" TIMEOUT 30)
-  add_test(NAME quickjs_engine_module_bundle_smoke
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/runtime/quickjs-engine-module-bundle-smoke.py)
-  set_tests_properties(quickjs_engine_module_bundle_smoke PROPERTIES LABELS "unit;smoke;runtime" TIMEOUT 30)
+  add_test(NAME turbojs_engine_module_bundle_smoke
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/runtime/turbojs-engine-module-bundle-smoke.py)
+  set_tests_properties(turbojs_engine_module_bundle_smoke PROPERTIES LABELS "unit;smoke;runtime" TIMEOUT 30)
 endif()
 add_test(NAME runtime_module_ownership_smoke
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/runtime/runtime-module-ownership-smoke.py)
@@ -462,3 +486,7 @@ set_tests_properties(venom_release_certification_smoke PROPERTIES LABELS "releas
 add_test(NAME venom_aggregated_certification_smoke
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/package/aggregated-certification-smoke.py ${CMAKE_SOURCE_DIR})
 set_tests_properties(venom_aggregated_certification_smoke PROPERTIES LABELS "release;certification;static" TIMEOUT 60)
+
+add_test(NAME venom_toolchain_lock_smoke COMMAND node ${CMAKE_SOURCE_DIR}/tests/integration/venom-toolchain-lock-smoke.mjs)
+add_test(NAME venom_dev_smoke COMMAND node ${CMAKE_SOURCE_DIR}/tests/integration/venom-dev-smoke.mjs)
+set_tests_properties(venom_dev_smoke PROPERTIES LABELS "integration;node;developer-experience" TIMEOUT 60)

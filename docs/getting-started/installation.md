@@ -29,7 +29,7 @@ Install a C++17 compiler, CMake, and Python. Then run:
 
 ## Runtime contributors
 
-Ordinary users do not need to rebuild QuickJS/WASM. Contributors changing the embedded runtime must install the pinned Emscripten version and use the canonical controller documented in [QuickJS/WASM development](build-from-source.md).
+Ordinary users do not need to rebuild TurboJS/WASM. Contributors changing the embedded runtime must install the pinned Emscripten version and use the canonical controller documented in [TurboJS/WASM development](build-from-source.md).
 
 ## Verify the installation
 

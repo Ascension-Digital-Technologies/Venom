@@ -1,4 +1,4 @@
-#include "venom/internal/pipeline/css.hpp"
+#include "pipeline/css.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -341,13 +341,6 @@ std::string bundle_css(const SiteGraph& graph, const AssetPipeline& assets) {
 
   for (const auto* html_file : sorted_html_files(graph)) {
     collect_document_styles(graph, *html_file, assets, emitted_files, out, source_count);
-  }
-
-  for (const auto& file : graph.files) {
-    if (file.extension != ".css") continue;
-    const auto normalized = normalize_slashes(file.relative);
-    if (!emitted_files.insert(normalized).second) continue;
-    append_css(out, to_string(file.bytes), file.relative, file.relative, {}, assets, source_count);
   }
 
   if (source_count == 0) {

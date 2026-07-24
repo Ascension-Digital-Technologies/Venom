@@ -1,19 +1,24 @@
 {
   "manifest_version": 3,
   "name": "Velocity Chess Browser Engine",
-  "version": "0.4.5",
-  "description": "Local visual browser chess engine with protected Velocity search, selectable skill levels, playing styles, humanized pointer movement, automatic side detection, and match-speed presets.",
+  "version": "0.11.0",
+  "description": "Local visual browser chess engine with adaptive timing, recorded mouse-motion profiles, automatic side detection, and self-healing board tracking.",
   "minimum_chrome_version": "109",
   "permissions": [
     "activeTab",
     "scripting",
+    "storage",
     "offscreen"
   ],
   "action": {
     "default_title": "Velocity Chess Browser Engine",
     "default_popup": "popup.html"
   },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   }
 }

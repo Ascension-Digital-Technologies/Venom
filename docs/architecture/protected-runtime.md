@@ -2,7 +2,7 @@
 
 > **Applies to:** Venom 1.1.0
 
-The protected runtime executes compiled QuickJS bytecode inside WebAssembly hosted by a dedicated worker. The browser page communicates through a narrow asynchronous API rather than receiving direct access to protected modules or runtime memory.
+The protected runtime executes compiled TurboJS bytecode inside WebAssembly hosted by a dedicated worker. The browser page communicates through a narrow asynchronous API rather than receiving direct access to protected modules or runtime memory.
 
 ## Components
 
@@ -10,7 +10,7 @@ The protected runtime executes compiled QuickJS bytecode inside WebAssembly host
 - **Browser runtime** — coordinates route hydration, public API readiness, and browser-side execution.
 - **Dedicated worker** — owns protected-call dispatch and session state.
 - **Package WASM runtime** — receives package bytes, validates package structure, materializes sections, and resolves route data.
-- **QuickJS/WASM runtime** — loads and executes protected QuickJS records.
+- **TurboJS/WASM runtime** — loads and executes protected TurboJS records.
 - **Binary capability bridge** — transports bounded arguments, results, cancellation, and errors.
 
 ## Startup sequence
@@ -30,7 +30,7 @@ The protected runtime executes compiled QuickJS bytecode inside WebAssembly host
 3. the browser derives a session-bound, counter-bound capability lease;
 4. a transferable binary frame is sent over the private `MessagePort`;
 5. the worker validates generation, counter, operation, capability, size, and integrity;
-6. the QuickJS execution domain validates the bytecode handoff and executes the export;
+6. the TurboJS execution domain validates the bytecode handoff and executes the export;
 7. the result or sanitized error is returned in a bound response frame;
 8. temporary bridge and runtime buffers are cleared.
 

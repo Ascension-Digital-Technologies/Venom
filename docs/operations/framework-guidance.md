@@ -1,6 +1,6 @@
 # Framework integration guidance
 
-Venom supports framework applications through its **hybrid execution model**. Rendering, reconciliation, DOM ownership, router bootstrap, and framework internals normally stay browser-side. Application logic that accepts and returns JSON-safe values can be moved into protected QuickJS/WASM functions or modules.
+Venom supports framework applications through its **hybrid execution model**. Rendering, reconciliation, DOM ownership, router bootstrap, and framework internals normally stay browser-side. Application logic that accepts and returns JSON-safe values can be moved into protected TurboJS/WASM functions or modules.
 
 ## Recommended boundary
 

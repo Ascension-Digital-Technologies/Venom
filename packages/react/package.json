@@ -1,0 +1,30 @@
+{
+  "name": "@venom/react",
+  "version": "3.0.0",
+  "description": "React hooks for Venom protected TurboJS/WASM applications.",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.js",
+      "types": "./src/index.d.ts"
+    }
+  },
+  "sideEffects": false,
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "@venom/runtime": ">=3.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "venom",
+    "turbojs",
+    "wasm",
+    "react",
+    "hooks"
+  ],
+  "license": "MIT"
+}

@@ -1,7 +1,7 @@
-#include "venom/graph/module_graph.hpp"
+#include "graph/module_graph.hpp"
 
-#include "venom/frontends/javascript/frontend.hpp"
-#include "venom/package/hash.hpp"
+#include "frontends/javascript/frontend.hpp"
+#include "package/hash.hpp"
 
 #include <algorithm>
 #include <iomanip>

@@ -20,13 +20,13 @@ text = inspect.stdout
 required = [
     'version: 40',
     'package_features name="s.',
-    'quickjs_runtime_denylist name="s.',
+    'turbojs_runtime_denylist name="s.',
     'integrity name="s.',
 ]
 missing = [item for item in required if item not in text]
 if missing:
     raise SystemExit('missing expected package-feature inspect output: ' + ', '.join(missing))
-for forbidden in ('package-features.vfeat', 'quickjs-runtime-denylist.vqrd', 'integrity-auth.vsig'):
+for forbidden in ('package-features.vfeat', 'turbojs-runtime-denylist.vqrd', 'integrity-auth.vsig'):
     if forbidden in text:
         raise SystemExit('release inspect leaked canonical package-feature name: ' + forbidden)
 print('package features smoke passed')

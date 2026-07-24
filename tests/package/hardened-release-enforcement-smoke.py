@@ -15,10 +15,10 @@ subprocess.run([str(venom), 'build', str(site), '--out', str(out), '--profile', 
 release = subprocess.run([str(venom), 'verify', str(out), '--target', 'browser'], check=True, text=True, capture_output=True)
 text = release.stdout
 for marker in [
-    'quickjs_host_js_fallback_allowed: no',
-    'quickjs_release_fail_closed: yes',
-    'quickjs_runtime_full_upstream_quickjs: yes',
-    'quickjs_runtime_finish_blocker: none',
+    'turbojs_host_js_fallback_allowed: no',
+    'turbojs_release_fail_closed: yes',
+    'turbojs_runtime_full_upstream_turbojs: yes',
+    'turbojs_runtime_finish_blocker: none',
     'release_status: PASS',
 ]:
     if marker not in text:

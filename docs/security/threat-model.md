@@ -21,7 +21,7 @@ Venom is designed to raise the cost of:
 
 - recovering exact protected source from shipped files;
 - using generic JavaScript beautification or deobfuscation as the primary recovery path;
-- carving raw canonical QuickJS records from the package;
+- carving raw canonical TurboJS records from the package;
 - reusing fixed Route VM opcode tables across builds;
 - replaying captured protected-call frames across counters or sessions;
 - silently replacing one runtime asset or package section;

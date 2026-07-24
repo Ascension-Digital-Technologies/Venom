@@ -1,5 +1,5 @@
-#include "venom/internal/pipeline/build_package_metadata.hpp"
-#include "venom/pipeline/js.hpp"
+#include "build_package_metadata.hpp"
+#include "pipeline/js.hpp"
 
 #include <cstdint>
 #include <iostream>

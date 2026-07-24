@@ -36,7 +36,7 @@ def main() -> int:
     ap.add_argument('--dist', type=Path, help='generated Venom distribution directory')
     ap.add_argument('--venom', default='venom', help='path to venom executable')
     ap.add_argument('--format', choices=('text', 'json'), default='text')
-    ap.add_argument('--require-real-engine', action='store_true', help='require a production QuickJS/WASM runtime')
+    ap.add_argument('--require-real-engine', action='store_true', help='require a production TurboJS/WASM runtime')
     ap.add_argument('--strict', action='store_true', help='treat warnings as release blockers')
     ap.add_argument('--browser-report', type=Path, help='browser-validation JSON report for this distribution')
     ns = ap.parse_args()

@@ -2,7 +2,7 @@
 from pathlib import Path
 import sys
 root = Path(sys.argv[1] if len(sys.argv) > 1 else '.').resolve()
-worker = ((root/'src/generated/runtime/worker_runtime_js.cpp').read_text(encoding='utf-8') + (root/'include/venom/generated/runtime/worker_runtime_template.hpp').read_text(encoding='utf-8'))
+worker = ((root/'src/generated/runtime/worker_runtime_js.cpp').read_text(encoding='utf-8') + (root/'src/generated/runtime/worker_runtime_template.hpp').read_text(encoding='utf-8'))
 loader = (root/'src/pipeline/js.cpp').read_text(encoding='utf-8')
 planning = (root/'src/pipeline/js_planning.cpp').read_text(encoding='utf-8')
 required_worker = ['deriveLeaseCapability', 'rotateSessionOpcode', 'refreshSessionProtocol', 'sessionInvokeOp', 'sessionCancelOp', 'sessionResultOp', 'sessionErrorOp', 'counter <= bridgeCounter']

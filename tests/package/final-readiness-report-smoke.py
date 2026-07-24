@@ -8,7 +8,7 @@ with tempfile.TemporaryDirectory() as td:
     if p.returncode: raise SystemExit(p.stdout+p.stderr)
     data=json.loads(j.read_text(encoding='utf-8'))
     assert data['schema']=='VENOM_FINAL_READINESS_RESULT_V1'
-    assert data['version']=='2.0.0' and data['passed'] is True
+    assert data['version']=='3.0.0' and data['passed'] is True
     assert all(x['passed'] for x in data['checks'])
     assert all(x['passed'] for x in data['executions'])
     assert 'Final Readiness' in m.read_text(encoding='utf-8')

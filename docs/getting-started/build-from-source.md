@@ -21,7 +21,7 @@ Normal users may use a prebuilt release when one is available. Building from sou
 - Ninja or Make
 - Python 3.10 or newer
 
-The normal compiler build uses the verified QuickJS/WASM runtime embedded in the source package. Emscripten is not required unless intentionally rebuilding that embedded runtime artifact.
+The normal compiler build uses the verified TurboJS/WASM runtime embedded in the source package. Emscripten is not required unless intentionally rebuilding that embedded runtime artifact.
 
 ## Windows build
 
@@ -84,7 +84,7 @@ cmake --build build --config Release --parallel
 
 ## JavaScript hardener
 
-Production hardening is built directly into the native `venom` executable. The compiler runs pinned Terser 5.49.0 and `javascript-obfuscator` 5.4.7 bundles inside its linked QuickJS engine, so production builds do not require Node.js, npm, `node_modules`, temporary JavaScript files, or an external hardener process.
+Production hardening is built directly into the native `venom` executable. The compiler runs pinned Terser 5.49.0 and `javascript-obfuscator` 5.4.7 bundles inside its linked TurboJS engine, so production builds do not require Node.js, npm, `node_modules`, temporary JavaScript files, or an external hardener process.
 
 
 ## Build acceleration
@@ -120,9 +120,9 @@ Common causes include:
 
 For diagnosis, remove the build directory, run `doctor --profile production`, and rebuild using the platform script. See [Debugging](../guides/debugging.md) for runtime and distribution-specific failures.
 
-## Rebuilding the embedded QuickJS/WASM runtime
+## Rebuilding the embedded TurboJS/WASM runtime
 
-Normal users do not need Emscripten because the verified QuickJS/WASM runtime is embedded in the source package. Runtime contributors can rebuild it with the canonical controller:
+Normal users do not need Emscripten because the verified TurboJS/WASM runtime is embedded in the source package. Runtime contributors can rebuild it with the canonical controller:
 
 ### Windows
 
@@ -136,7 +136,7 @@ Normal users do not need Emscripten because the verified QuickJS/WASM runtime is
 bash scripts/linux/build-emsdk.sh --out-dir build/emscripten-build --clean --force
 ```
 
-The controller performs Emscripten setup, a strict QuickJS/WASM preflight, runtime compilation, ABI verification, embedding, native compiler rebuild, and protected-runtime smoke verification. The output directory is a controller workspace; the actual runtime artifact is written once under `quickjs-wasm/` without recursively nesting that directory.
+The controller performs Emscripten setup, a strict TurboJS/WASM preflight, runtime compilation, ABI verification, embedding, native compiler rebuild, and protected-runtime smoke verification. The output directory is a controller workspace; the actual runtime artifact is written once under `turbojs-wasm/` without recursively nesting that directory.
 
 ### Cutover rule
 
@@ -160,4 +160,4 @@ Use preflight-only mode to validate the pinned toolchain and repository inputs w
 ```
 
 
-> **Verified WASM toolchain:** Venom pins Emscripten 4.0.10 for reproducible release builds. The minimal QuickJS/WASM target excludes QuickJS POSIX libc helpers, allowing newer Emscripten releases to compile the web/worker runtime without `environ` or `sighandler_t` compatibility failures.
+> **Verified WASM toolchain:** Venom pins Emscripten 4.0.10 for reproducible release builds. The minimal TurboJS/WASM target excludes TurboJS POSIX libc helpers, allowing newer Emscripten releases to compile the web/worker runtime without `environ` or `sighandler_t` compatibility failures.

@@ -1,29 +1,29 @@
-#include "venom/base/error.hpp"
-#include "venom/internal/pipeline/runtime_modules.hpp"
-#include "venom/pipeline/build.hpp"
-#include "venom/core/version.hpp"
-#include "venom/generated/contracts/quickjs_wasm_abi.hpp"
-#include "venom/internal/pipeline/quickjs_wasm_contract.hpp"
+#include "base/error.hpp"
+#include "pipeline/runtime_modules.hpp"
+#include "pipeline/build.hpp"
+#include "core/version.hpp"
+#include "generated/contracts/turbojs_wasm_abi.hpp"
+#include "pipeline/turbojs_wasm_contract.hpp"
 
-#include "venom/internal/pipeline/assets.hpp"
-#include "venom/internal/pipeline/capability_analysis.hpp"
-#include "venom/internal/pipeline/css.hpp"
-#include "venom/internal/pipeline/html.hpp"
-#include "venom/pipeline/js.hpp"
-#include "venom/core/profile.hpp"
-#include "venom/core/process.hpp"
-#include "venom/pipeline/security.hpp"
-#include "venom/core/site.hpp"
-#include "venom/package/hash.hpp"
-#include "venom/package/crypto.hpp"
-#include "venom/package/reader.hpp"
-#include "venom/package/writer.hpp"
-#include "venom/quickjs/abi.hpp"
-#include "venom/quickjs/bytecode.hpp"
-#include "venom/quickjs/bridge.hpp"
-#include "venom/quickjs/engine.hpp"
-#include "venom/vm/polymorph.hpp"
-#include "venom/vm/encoder.hpp"
+#include "pipeline/assets.hpp"
+#include "pipeline/capability_analysis.hpp"
+#include "pipeline/css.hpp"
+#include "pipeline/html.hpp"
+#include "pipeline/js.hpp"
+#include "core/profile.hpp"
+#include "core/process.hpp"
+#include "pipeline/security.hpp"
+#include "core/site.hpp"
+#include "package/hash.hpp"
+#include "package/crypto.hpp"
+#include "package/reader.hpp"
+#include "package/writer.hpp"
+#include "turbojs/abi.hpp"
+#include "turbojs/bytecode.hpp"
+#include "turbojs/bridge.hpp"
+#include "turbojs/engine.hpp"
+#include "vm/polymorph.hpp"
+#include "vm/encoder.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -36,53 +36,17 @@
 #include <mutex>
 #include <atomic>
 #include <random>
+#include <thread>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
 #include <unordered_map>
 
-#include "venom/internal/pipeline/build_support.hpp"
-#include "venom/internal/pipeline/native_js_hardener.hpp"
+#include "pipeline/build_support.hpp"
+#include "pipeline/native_js_hardener.hpp"
 
 namespace venom::compiler::build_detail {
-namespace {
-std::mutex g_hardener_cache_mutex;
-bool g_hardener_cache_enabled = true;
-bool g_hardener_cache_verbose = false;
-std::filesystem::path g_hardener_cache_directory;
-std::atomic<std::size_t> g_hardener_cache_hits{0};
-std::atomic<std::size_t> g_hardener_cache_misses{0};
-std::atomic<std::size_t> g_hardener_cache_writes{0};
-
-
-std::string read_text_if_present(const std::filesystem::path& path) {
-  std::ifstream in(path, std::ios::binary);
-  if (!in) return {};
-  return std::string(std::istreambuf_iterator<char>(in), {});
-}
-
-void write_text_atomic(const std::filesystem::path& path, const std::string& content) {
-  std::filesystem::create_directories(path.parent_path());
-  const auto temporary = path.string() + ".tmp";
-  {
-    std::ofstream out(temporary, std::ios::binary | std::ios::trunc);
-    if (!out) raise_error("VENOM-E5000", "failed to write hardener cache entry " + temporary);
-    out.write(content.data(), static_cast<std::streamsize>(content.size()));
-  }
-  std::error_code error;
-  std::filesystem::rename(temporary, path, error);
-  if (error) {
-    std::filesystem::remove(path, error);
-    error.clear();
-    std::filesystem::rename(temporary, path, error);
-  }
-  if (error) {
-    std::filesystem::remove(temporary);
-    raise_error("VENOM-E5000", "failed to publish hardener cache entry " + path.string());
-  }
-}
-}
 std::string json_escape(const std::string& value) {
   std::string out;
   for (char c : value) {
@@ -139,23 +103,23 @@ std::string metadata_value_from_text(const std::string& text, const std::string&
 }
 
 std::string wasm_truth_value(const std::string& key, const std::string& fallback) {
-  const auto value = metadata_value_from_text(quickjs_runtime_wasm_provenance_text(), key);
+  const auto value = metadata_value_from_text(turbojs_runtime_wasm_provenance_text(), key);
   return value.empty() ? fallback : value;
 }
 
 bool wasm_truth_bool(const std::string& key, bool fallback) {
-  const auto value = metadata_value_from_text(quickjs_runtime_wasm_provenance_text(), key);
+  const auto value = metadata_value_from_text(turbojs_runtime_wasm_provenance_text(), key);
   if (value.empty()) return fallback;
   return value == "true" || value == "yes" || value == "1";
 }
 
-void require_real_embedded_quickjs_runtime() {
-  const auto provenance = quickjs_runtime_wasm_provenance_text();
+void require_real_embedded_turbojs_runtime() {
+  const auto provenance = turbojs_runtime_wasm_provenance_text();
   const auto require_value = [&](const std::string& key, const std::string& expected) {
     const auto actual = metadata_value_from_text(provenance, key);
     if (actual != expected) {
       raise_error("VENOM-E5000", 
-          "production browser build refused: embedded QuickJS/WASM provenance " + key +
+          "production browser build refused: embedded TurboJS/WASM provenance " + key +
           "=" + (actual.empty() ? std::string("<missing>") : actual) +
           ", expected " + expected +
           "; run scripts/linux/build-emsdk.sh or scripts/windows/build-emsdk.bat to build and embed the verified real runtime");
@@ -164,20 +128,20 @@ void require_real_embedded_quickjs_runtime() {
   require_value("contract_only", "false");
   require_value("scaffold_runtime", "false");
   require_value("real_engine_candidate", "true");
-  require_value("full_upstream_quickjs", "true");
+  require_value("full_upstream_turbojs", "true");
   require_value("required_exports_satisfied", "true");
   require_value("fallback_required", "false");
   require_value("source_materialization", "false");
   require_value("native_object_reader", "JS_ReadObject");
-  require_value("bytecode_format", "VQJSBC03");
-  require_value("required_export_count", std::to_string(venom::generated::quickjs_wasm_abi::required_exports.size() - 1u));
-  require_value("release_export_count", std::to_string(venom::generated::quickjs_wasm_abi::required_exports.size() - 1u));
-  require_value("bytecode_format", std::string(venom::generated::quickjs_wasm_abi::bytecode_format));
-  venom::compiler::verify_embedded_quickjs_wasm_contract();
+  require_value("bytecode_format", "VTJSBC03");
+  require_value("required_export_count", std::to_string(venom::generated::turbojs_wasm_abi::required_exports.size() - 1u));
+  require_value("release_export_count", std::to_string(venom::generated::turbojs_wasm_abi::required_exports.size() - 1u));
+  require_value("bytecode_format", std::string(venom::generated::turbojs_wasm_abi::bytecode_format));
+  venom::compiler::verify_embedded_turbojs_wasm_contract();
   const auto artifact_kind = metadata_value_from_text(provenance, "artifact_kind");
   if (artifact_kind.empty() || artifact_kind == "contract-scaffold") {
     raise_error("VENOM-E5000", 
-        "production browser build refused: embedded QuickJS/WASM is a scaffold; "
+        "production browser build refused: embedded TurboJS/WASM is a scaffold; "
         "run scripts/linux/build-emsdk.sh or scripts/windows/build-emsdk.bat before building a site");
   }
 }
@@ -194,15 +158,15 @@ std::uint32_t bridge_protocol_opcode(const std::string& salt, const std::string&
   value |= 0x100u;
   return value;
 }
-void require_embedded_quickjs_module_bundle_runtime(const JsBridge& bridge) {
+void require_embedded_turbojs_module_bundle_runtime(const JsBridge& bridge) {
   const bool needs_module_loader = !bridge.module_edges.empty();
   if (!needs_module_loader) return;
-  const auto provenance = quickjs_runtime_wasm_provenance_text();
+  const auto provenance = turbojs_runtime_wasm_provenance_text();
   const auto contract = metadata_value_from_text(provenance, "module_bundle_contract");
   const auto dynamic_import = metadata_value_from_text(provenance, "literal_dynamic_import");
-  if (contract != "VQJSMB04" || dynamic_import != "true") {
+  if (contract != "VTJSMB04" || dynamic_import != "true") {
     raise_error("VENOM-E5000", 
-        "protected module graph requires QuickJS/WASM module bundle contract VQJSMB04; "
+        "protected module graph requires TurboJS/WASM module bundle contract VTJSMB04; "
         "run scripts/linux/build-emsdk.sh or scripts/windows/build-emsdk.bat to rebuild and embed the current runtime");
   }
 }
@@ -259,30 +223,30 @@ std::string compact_wasm_export_alias(const std::string& name, std::size_t ordin
   return alias;
 }
 
-std::vector<std::pair<std::string, std::string>> compact_quickjs_wasm_exports(
+std::vector<std::pair<std::string, std::string>> compact_turbojs_wasm_exports(
     std::vector<unsigned char>& bytes, const std::string& salt) {
   std::vector<std::pair<std::string, std::string>> aliases;
   if (bytes.size() < 8u || bytes[0] != 0x00u || bytes[1] != 0x61u || bytes[2] != 0x73u || bytes[3] != 0x6du)
-    raise_error("VENOM-E5000", "invalid QuickJS WASM header");
+    raise_error("VENOM-E5000", "invalid TurboJS WASM header");
   std::size_t cursor = 8u;
   while (cursor < bytes.size()) {
     const auto section_id = bytes[cursor++];
     const auto section_size = read_wasm_uleb(bytes, cursor, bytes.size());
     const auto section_end = cursor + section_size;
-    if (section_end > bytes.size()) raise_error("VENOM-E5000", "truncated QuickJS WASM section");
+    if (section_end > bytes.size()) raise_error("VENOM-E5000", "truncated TurboJS WASM section");
     if (section_id != 7u) { cursor = section_end; continue; }
     const auto count = read_wasm_uleb(bytes, cursor, section_end);
     std::size_t ordinal = 0u;
     for (std::uint32_t i = 0; i < count; ++i) {
       const auto name_size = read_wasm_uleb(bytes, cursor, section_end);
-      if (cursor + name_size > section_end) raise_error("VENOM-E5000", "truncated QuickJS WASM export name");
+      if (cursor + name_size > section_end) raise_error("VENOM-E5000", "truncated TurboJS WASM export name");
       const auto name_offset = cursor;
       const std::string name(reinterpret_cast<const char*>(bytes.data() + cursor), name_size);
       cursor += name_size;
-      if (cursor >= section_end) raise_error("VENOM-E5000", "truncated QuickJS WASM export kind");
+      if (cursor >= section_end) raise_error("VENOM-E5000", "truncated TurboJS WASM export kind");
       ++cursor;
       (void)read_wasm_uleb(bytes, cursor, section_end);
-      if (name.rfind("venom_qjs_", 0) == 0) {
+      if (name.rfind("venom_tjs_", 0) == 0) {
         const auto alias = compact_wasm_export_alias(name, ordinal++, salt);
         std::copy(alias.begin(), alias.end(), bytes.begin() + static_cast<std::ptrdiff_t>(name_offset));
         aliases.emplace_back(name, alias);
@@ -290,17 +254,17 @@ std::vector<std::pair<std::string, std::string>> compact_quickjs_wasm_exports(
     }
     return aliases;
   }
-  raise_error("VENOM-E5000", "QuickJS WASM export section missing");
+  raise_error("VENOM-E5000", "TurboJS WASM export section missing");
 }
 
 void apply_wasm_export_aliases(std::string& js, const std::vector<std::pair<std::string, std::string>>& aliases) {
   for (const auto& [name, alias] : aliases) replace_all_inplace(js, name, alias);
 }
 
-void redact_unmapped_quickjs_symbols(std::string& js, const std::string& salt) {
+void redact_unmapped_turbojs_symbols(std::string& js, const std::string& salt) {
   std::size_t cursor = 0;
   std::size_t ordinal = 0;
-  while ((cursor = js.find("venom_qjs_", cursor)) != std::string::npos) {
+  while ((cursor = js.find("venom_tjs_", cursor)) != std::string::npos) {
     std::size_t end = cursor;
     while (end < js.size()) { const unsigned char c = static_cast<unsigned char>(js[end]); if (!(std::isalnum(c) != 0 || js[end] == '_' || js[end] == '$')) break; ++end; }
     const auto name = js.substr(cursor, end - cursor);
@@ -310,8 +274,8 @@ void redact_unmapped_quickjs_symbols(std::string& js, const std::string& salt) {
   }
 }
 
-void redact_quickjs_wasm_abi_table(std::vector<unsigned char>& bytes, const std::string& salt) {
-  static const std::string marker = "VENOM_QJS_RUNTIME_ABI_V12\n";
+void redact_turbojs_wasm_abi_table(std::vector<unsigned char>& bytes, const std::string& salt) {
+  static const std::string marker = "VENOM_TJS_RUNTIME_ABI_V12\n";
   const auto it = std::search(bytes.begin(), bytes.end(), marker.begin(), marker.end());
   if (it == bytes.end()) return;
   auto cursor = static_cast<std::size_t>(std::distance(bytes.begin(), it));
@@ -412,7 +376,7 @@ std::string minify_release_js(const std::string& input) {
 
 std::string harden_release_js_asset(std::string js) {
   replace_all_inplace(js, "sourceURL=venom://", "sourceURL=v://");
-  replace_all_inplace(js, "sourceURL=venom-qjs-module://", "sourceURL=vq://");
+  replace_all_inplace(js, "sourceURL=venom-tjs-module://", "sourceURL=vq://");
   replace_all_inplace(js, "host-js-fallback", "hjsf-denied");
   replace_all_inplace(js, "host-js-isolated-wrapper", "hjs-wrapper-denied");
   replace_all_inplace(js, "legacy-host-js-wrapper", "legacy-hjs-denied");
@@ -433,60 +397,6 @@ std::string harden_release_js_asset(std::string js) {
   return minify_release_js(js);
 }
 
-
-HardenerCacheStats hardener_cache_stats() { return {g_hardener_cache_hits.load(), g_hardener_cache_misses.load(), g_hardener_cache_writes.load()}; }
-void reset_hardener_cache_stats() { g_hardener_cache_hits = 0; g_hardener_cache_misses = 0; g_hardener_cache_writes = 0; }
-
-void configure_hardener_cache(bool enabled, const std::filesystem::path& directory, bool verbose) {
-  std::lock_guard<std::mutex> lock(g_hardener_cache_mutex);
-  g_hardener_cache_enabled = enabled;
-  g_hardener_cache_verbose = verbose;
-  g_hardener_cache_directory = directory;
-}
-
-std::string ast_harden_release_js(const std::string& kind, const std::string& js, const std::string& build_salt) {
-  const auto nonce = short_hash_hex(
-      venom::package::fnv1a64(bytes_from_string("hardener-v5|" + build_salt + "|" + kind + "|" + js)), 16);
-  const auto seed = static_cast<std::uint32_t>(
-      venom::package::fnv1a64(bytes_from_string("obfuscate|" + kind + "|" + nonce)) & 0xffffffffu);
-
-  std::filesystem::path cache_file;
-  bool cache_enabled = false;
-  bool cache_verbose = false;
-  {
-    std::lock_guard<std::mutex> lock(g_hardener_cache_mutex);
-    cache_enabled = g_hardener_cache_enabled && !g_hardener_cache_directory.empty();
-    cache_verbose = g_hardener_cache_verbose;
-    if (cache_enabled) {
-      const auto identity = std::string{"venom-hardener-cache-v5|"} + build_salt + "|" + + native_js_hardener::terser_version() + "|" +
-          native_js_hardener::obfuscator_version() + "|" + kind + "|" + std::to_string(seed) + "|" + js;
-      const auto digest = venom::package::sha256_hex(bytes_from_string(identity));
-      cache_file = g_hardener_cache_directory / digest.substr(0, 2) / (digest + ".js");
-    }
-  }
-
-  if (cache_enabled) {
-    const auto cached = read_text_if_present(cache_file);
-    if (!cached.empty()) {
-      ++g_hardener_cache_hits;
-      if (cache_verbose) std::cout << "[CACHE]    hardener hit: " << kind << " (" << cached.size() << " bytes)\n";
-      return cached;
-    }
-    ++g_hardener_cache_misses;
-    if (cache_verbose) std::cout << "[CACHE]    hardener miss: " << kind << " (" << js.size() << " bytes)\n" << std::flush;
-  }
-
-  const auto output = native_js_hardener::harden(kind, js, seed);
-  if (output.empty()) {
-    raise_error("VENOM-E5000", "embedded protected release JS hardener produced empty output for " + kind);
-  }
-  if (cache_enabled) {
-    std::lock_guard<std::mutex> lock(g_hardener_cache_mutex);
-    write_text_atomic(cache_file, output);
-    ++g_hardener_cache_writes;
-  }
-  return output;
-}
 
 bool redact_release_metadata(const Profile& profile) {
   return profile.kind == ProfileKind::Prod || profile.strip_debug_metadata;

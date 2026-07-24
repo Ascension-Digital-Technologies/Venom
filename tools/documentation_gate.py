@@ -19,7 +19,7 @@ REQUIRED = [
     "docs/operations/build-profiles.md", "docs/operations/release-verification.md",
     "docs/operations/release-packaging.md", "docs/operations/browser-equivalence.md",
     "docs/reference/cli.md", "docs/reference/javascript-api.md",
-    "examples/protected-chess/README.md", "examples/nova-trade/README.md", "examples/bot-detection/README.md", "examples/typescript-showcase/README.md", "examples/tsx-showcase/README.md", "examples/aegis-operations/README.md", "examples/javascript-playground/README.md", "examples/quickjs-benchmark/README.md", "examples/chrome-extension/README.md",
+    "examples/protected-chess/README.md", "examples/nova-trade/README.md", "examples/bot-detection/README.md", "examples/typescript-showcase/README.md", "examples/tsx-showcase/README.md", "examples/aegis-operations/README.md", "examples/javascript-playground/README.md", "examples/turbojs-benchmark/README.md", "examples/chrome-extension/README.md",
     "docs/assets/examples/protected-chess/application.png",
     "docs/assets/examples/nova-trade/terminal.png",
     "docs/assets/examples/bot-detection/overview.png",
@@ -125,7 +125,7 @@ def main() -> int:
         "## Why a Venom distribution is difficult to reverse",
         "exact original protected source is not present",
         "Polymorphic builds",
-        "VQJSE006",
+        "VTJSE006",
         "Private binary capability bridge",
         "WebAssembly memory remains inspectable",
     ]

@@ -30,26 +30,26 @@ def require_text(path: Path, token: str, label: str) -> None:
 
 def canonical_lock(root: Path) -> dict[str, object]:
     product_path = root / "contracts/product-contracts.json"
-    quickjs_path = root / "contracts/quickjs-wasm-abi.json"
+    turbojs_path = root / "contracts/turbojs-wasm-abi.json"
     runtime_path = root / "contracts/runtime-api.json"
     product = json.loads(product_path.read_text(encoding="utf-8"))
-    quickjs = json.loads(quickjs_path.read_text(encoding="utf-8"))
+    turbojs = json.loads(turbojs_path.read_text(encoding="utf-8"))
     runtime = json.loads(runtime_path.read_text(encoding="utf-8"))
     return {
         "schema": LOCK_SCHEMA,
         "packageFormatVersion": product["package_format_version"],
         "packageRuntimeAbi": product["package_runtime_abi"],
-        "quickJsRuntimeAbi": product["quickjs_runtime_abi"],
-        "quickJsWasmRuntimeAbi": quickjs["runtimeAbi"],
-        "quickJsWasmBridgeAbi": quickjs["bridgeAbi"],
+        "turboJsRuntimeAbi": product["turbojs_runtime_abi"],
+        "turboJsWasmRuntimeAbi": turbojs["runtimeAbi"],
+        "turboJsWasmBridgeAbi": turbojs["bridgeAbi"],
         "hostBridgeAbi": product["host_bridge_abi"],
-        "bytecodeFormat": quickjs["bytecodeFormat"],
-        "moduleBundleFormat": product["quickjs_module_bundle_contract"],
+        "bytecodeFormat": turbojs["bytecodeFormat"],
+        "moduleBundleFormat": product["turbojs_module_bundle_contract"],
         "routeVmContract": product["route_vm_contract"],
         "domCommandContract": product["dom_command_contract"],
         "contractDigests": {
             "product-contracts.json": sha256(product_path),
-            "quickjs-wasm-abi.json": sha256(quickjs_path),
+            "turbojs-wasm-abi.json": sha256(turbojs_path),
             "runtime-api.json": sha256(runtime_path),
         },
         "runtimeApiSchema": runtime.get("schema"),
@@ -64,30 +64,59 @@ def verify_generated_bindings(root: Path) -> None:
     )
     with tempfile.TemporaryDirectory(prefix="venom-abi-bindings-") as td:
         shadow = Path(td)
-        for rel in ("contracts/quickjs-wasm-abi.json",):
+        for rel in ("contracts/turbojs-wasm-abi.json",):
             target = shadow / rel
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes((root / rel).read_bytes())
         subprocess.run(
-            [sys.executable, str(root / "tools/generate_quickjs_wasm_abi.py"), "--repo-root", str(shadow)],
+            [sys.executable, str(root / "tools/generate_turbojs_wasm_abi.py"), "--repo-root", str(shadow)],
             cwd=root,
             check=True,
             stdout=subprocess.DEVNULL,
         )
         for rel in (
-            "include/venom/generated/contracts/quickjs_wasm_abi.hpp",
-            "src/generated/runtime/javascript/quickjs_wasm_abi.js",
-            "docs/generated/quickjs-wasm-abi.md",
+            "src/generated/contracts/turbojs_wasm_abi.hpp",
+            "src/generated/runtime/javascript/turbojs_wasm_abi.js",
+            "docs/generated/turbojs-wasm-abi.md",
         ):
             expected = shadow / rel
             actual = root / rel
             if not actual.is_file() or actual.read_bytes() != expected.read_bytes():
-                fail(f"stale generated QuickJS/WASM ABI binding: {rel}")
+                fail(f"stale generated TurboJS/WASM ABI binding: {rel}")
 
+
+
+def verify_export_ownership(root: Path) -> None:
+    """Reject stray source-tree ABI export manifests and legacy naming."""
+    stray = root / "-"
+    if stray.exists():
+        fail("stray root ABI export manifest '-' must not be committed")
+
+    contract = json.loads((root / "contracts/turbojs-wasm-abi.json").read_text(encoding="utf-8"))
+    required = contract["requiredExports"]
+    for name in required:
+        if name != "memory" and not name.startswith("venom_tjs_"):
+            fail(f"required ABI export is outside the TJS namespace: {name}")
+
+    approved = {
+        root / "contracts/turbojs-wasm-abi.json",
+        root / "src/generated/runtime/javascript/turbojs_wasm_abi.js",
+        root / "src/generated/contracts/turbojs_wasm_abi.hpp",
+        root / "docs/generated/turbojs-wasm-abi.md",
+    }
+    for path in root.iterdir():
+        if not path.is_file() or path in approved:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
+        if text.lstrip().startswith("[") and "_venom_tjs_" in text:
+            fail(f"stray top-level ABI export manifest: {path.name}")
 
 def verify_runtime_literals(root: Path, lock: dict[str, object]) -> None:
     package_abi = lock["packageRuntimeAbi"]
-    quickjs_abi = lock["quickJsRuntimeAbi"]
+    turbojs_abi = lock["turboJsRuntimeAbi"]
     bytecode = lock["bytecodeFormat"]
     module_bundle = lock["moduleBundleFormat"]
     package_version = lock["packageFormatVersion"]
@@ -96,7 +125,7 @@ def verify_runtime_literals(root: Path, lock: dict[str, object]) -> None:
         root / "src/generated/runtime/javascript/browser_runtime.js",
         root / "src/templates/browser/10-package-loader.js",
         root / "src/templates/browser/20-runtime-contracts.js",
-        root / "src/runtime/quickjs_runtime_scaffold.c",
+        root / "src/runtime/turbojs_runtime_scaffold.c",
         root / "src/pipeline/build.cpp",
         root / "src/pipeline/build_support.cpp",
     ]
@@ -106,10 +135,10 @@ def verify_runtime_literals(root: Path, lock: dict[str, object]) -> None:
 
     require_text(root / "src/generated/runtime/javascript/browser_runtime.js", f"pkg.runtimeAbi !== {package_abi}", "package runtime ABI")
     require_text(root / "src/templates/browser/10-package-loader.js", f"pkg.runtimeAbi !== {package_abi}", "browser package runtime ABI")
-    require_text(root / "src/templates/browser/20-runtime-contracts.js", f"runtimeAbi: {quickjs_abi}", "QuickJS runtime ABI")
-    require_text(root / "src/generated/runtime/javascript/browser_runtime.js", f"runtimeAbi: {quickjs_abi}", "runtime template QuickJS ABI")
+    require_text(root / "src/templates/browser/20-runtime-contracts.js", f"runtimeAbi: {turbojs_abi}", "TurboJS runtime ABI")
+    require_text(root / "src/generated/runtime/javascript/browser_runtime.js", f"runtimeAbi: {turbojs_abi}", "runtime template TurboJS ABI")
     require_text(root / "src/pipeline/build.cpp", f'bytecode_format != "{bytecode}"', "compiler bytecode format")
-    require_text(root / "src/runtime/quickjs_runtime_scaffold.c", f'"bytecode_format={bytecode}\\n"', "WASM bytecode format")
+    require_text(root / "src/runtime/turbojs_runtime_scaffold.c", f'"bytecode_format={bytecode}\\n"', "WASM bytecode format")
     require_text(root / "src/pipeline/build_runtime_module_metadata.cpp", f"{bytecode}|{module_bundle}", "module bundle envelope")
     require_text(root / "tools/product_contracts.py", f"'package_format_version': {package_version}", "generated package format")
 
@@ -118,10 +147,10 @@ def verify_runtime_literals(root: Path, lock: dict[str, object]) -> None:
     for path in (
         root / "src/templates/browser/20-runtime-contracts.js",
         root / "src/generated/runtime/javascript/browser_runtime.js",
-        root / "src/runtime/quickjs_runtime_scaffold.c",
+        root / "src/runtime/turbojs_runtime_scaffold.c",
     ):
         text = path.read_text(encoding="utf-8", errors="ignore")
-        for legacy in ("VQJSBC01", "VQJSBC02"):
+        for legacy in ("VTJSBC01", "VTJSBC02"):
             accepted_patterns = (
                 f"storedMagic === '{legacy}'",
                 f"bytecodeMagic === '{legacy}'",
@@ -129,7 +158,7 @@ def verify_runtime_literals(root: Path, lock: dict[str, object]) -> None:
             )
             if any(pattern in text for pattern in accepted_patterns):
                 fail(f"legacy bytecode format {legacy} is still accepted by {path.relative_to(root)}")
-        if path.suffix == ".js" and "source-preserving QuickJS bytecode record rejected" not in text:
+        if path.suffix == ".js" and "source-preserving TurboJS bytecode record rejected" not in text:
             fail(f"legacy bytecode rejection guard is missing from {path.relative_to(root)}")
 
 
@@ -153,15 +182,16 @@ def main() -> int:
     args = ap.parse_args()
     root = args.repo_root.resolve()
     lock = canonical_lock(root)
-    if lock["quickJsRuntimeAbi"] != lock["quickJsWasmRuntimeAbi"]:
-        fail("product QuickJS runtime ABI differs from QuickJS/WASM runtime ABI")
+    if lock["turboJsRuntimeAbi"] != lock["turboJsWasmRuntimeAbi"]:
+        fail("product TurboJS runtime ABI differs from TurboJS/WASM runtime ABI")
     verify_generated_bindings(root)
+    verify_export_ownership(root)
     verify_runtime_literals(root, lock)
     verify_lock_file(root, lock, args.update)
     print(
         "[PASS] ABI lock: "
         f"package={lock['packageFormatVersion']}/{lock['packageRuntimeAbi']} "
-        f"quickjs={lock['quickJsRuntimeAbi']} bridge={lock['quickJsWasmBridgeAbi']} "
+        f"turbojs={lock['turboJsRuntimeAbi']} bridge={lock['turboJsWasmBridgeAbi']} "
         f"bytecode={lock['bytecodeFormat']}"
     )
     return 0

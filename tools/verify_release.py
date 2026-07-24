@@ -268,6 +268,9 @@ def verify_release(path: Path, args: argparse.Namespace) -> int:
         manifest_text = manifest_path.read_text(encoding='utf-8')
         meta, entries = parse_manifest(manifest_text)
         failures = verify_manifest_files(release_root, entries)
+        helper_candidates = [release_root / 'bin' / 'venom_hardener_worker', release_root / 'bin' / 'venom_hardener_worker.exe']
+        if not any(candidate.is_file() for candidate in helper_candidates):
+            failures.append('release is missing bin/venom_hardener_worker executable')
         if args.require_supply_chain_metadata:
             failures.extend(verify_supply_chain_metadata(release_root, meta, entries))
 

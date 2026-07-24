@@ -10,15 +10,15 @@ subprocess.run([str(venom), 'build', str(site), '--out', str(out), '--profile', 
 check = subprocess.run([str(venom), 'verify-runtime', str(out), '--target', 'browser'], check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 for marker in (
     'Runtime verification report:',
-    'quickjs_runtime_implementation: quickjs-wasm-upstream-quickjs',
-    'quickjs_runtime_contract_only: no',
-    'quickjs_runtime_scaffold: no',
-    'quickjs_runtime_real_engine_candidate: yes',
-    'quickjs_runtime_full_upstream_quickjs: yes',
-    'quickjs_runtime_finish_blocker: none',
-    'quickjs_runtime_artifact_kind: upstream-quickjs-wasm',
-    'quickjs_runtime_required_exports_satisfied: yes',
-    'quickjs_runtime_package_version: 83',
+    'turbojs_runtime_implementation: turbojs-wasm-upstream-turbojs',
+    'turbojs_runtime_contract_only: no',
+    'turbojs_runtime_scaffold: no',
+    'turbojs_runtime_real_engine_candidate: yes',
+    'turbojs_runtime_full_upstream_turbojs: yes',
+    'turbojs_runtime_finish_blocker: none',
+    'turbojs_runtime_artifact_kind: upstream-turbojs-wasm',
+    'turbojs_runtime_required_exports_satisfied: yes',
+    'turbojs_runtime_package_version: 83',
     'release_status: PASS',
 ):
     if marker not in check.stdout:
@@ -26,7 +26,7 @@ for marker in (
 
 strict = subprocess.run([str(venom), 'verify-runtime', str(out), '--target', 'browser', '--require-real-engine'], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 if strict.returncode != 0:
-    raise SystemExit(f'verify-runtime --require-real-engine must pass for the checked-in real QuickJS WASM artifact\n{strict.stdout}')
-if 'release_status: PASS' not in strict.stdout or 'quickjs_runtime_full_upstream_quickjs: yes' not in strict.stdout:
+    raise SystemExit(f'verify-runtime --require-real-engine must pass for the checked-in real TurboJS WASM artifact\n{strict.stdout}')
+if 'release_status: PASS' not in strict.stdout or 'turbojs_runtime_full_upstream_turbojs: yes' not in strict.stdout:
     raise SystemExit(f'verify-runtime strict output is missing real-engine markers\n{strict.stdout}')
 print('verify-runtime smoke passed')

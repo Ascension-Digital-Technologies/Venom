@@ -1,5 +1,5 @@
-#include "venom/base/error.hpp"
-#include "venom/internal/package/compress.hpp"
+#include "base/error.hpp"
+#include "package/compress.hpp"
 
 #include <algorithm>
 #include <cstdint>

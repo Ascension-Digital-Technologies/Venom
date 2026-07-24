@@ -50,7 +50,7 @@ function validateTelemetryEnvelope(envelope) {
   if (!Number.isInteger(sequence) || sequence !== session.lastSequence + 1) throw telemetryError("replayed-or-out-of-order");
   var capturedAt = finite(envelope.capturedAtMs, -1);
   if (!Number.isInteger(capturedAt) || capturedAt <= 0) throw telemetryError("invalid-capture-time");
-  // Browser and protected QuickJS clocks are separate trust domains. Some WASM
+  // Browser and protected TurboJS clocks are separate trust domains. Some WASM
   // hosts expose a non-advancing wall clock, so absolute skew checks can reject
   // fresh telemetry after the page has been open for 30 seconds. Sequence, nonce,
   // and session binding already prevent replay; require capture time to advance

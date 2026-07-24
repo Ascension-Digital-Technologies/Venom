@@ -8,7 +8,7 @@ Venom compiles every first-party source domain independently before aggregating 
 base
  ├── package
  │    ├── core
- │    ├── quickjs
+ │    ├── turbojs
  │    └── vm
  ├── frontends
  │    └── graph
@@ -32,10 +32,9 @@ The diagram is intentionally simplified; `pipeline` coordinates most lower-level
 - Authored domains must remain acyclic.
 - Every cross-domain include must appear in the checked allowlist.
 - Every compiled domain has a dedicated API interface target and implementation object target.
-- Product targets must not expose the repository-wide `src/` directory.
-- Cross-domain includes use `venom/<domain>/...` and must resolve beneath the central `include/venom/<domain>/` tree.
-- Public headers may not include private implementation headers.
-- Private headers may only be included by their owning domain or an explicitly scoped internal test target.
+- Product targets use the repository-wide `src/` directory as the canonical header root.
+- Cross-domain includes use `<domain>/...` and must resolve directly beneath the owner domain's `src/<domain>/` tree.
+- Headers remain colocated with their implementations; the dependency allowlist controls cross-domain access.
 
 Run the checks directly with:
 

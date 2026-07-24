@@ -6,7 +6,7 @@ output = "dist-venom"
 profile = "prod"
 
 [runtime]
-engine = "quickjs-wasm"
+engine = "turbojs-wasm"
 fail_closed = true
 
 [security]
