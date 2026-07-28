@@ -1,5 +1,35 @@
 # Changelog
 
+## 3.0.0 — Protected TurboJS/WASM production release
+
+- Added the complete fail-closed TurboJS/WASM protected production pipeline with encrypted, compressed, integrity-bound VBC packages.
+- Added process-isolated JavaScript hardening through the mandatory `venom_hardener_worker` companion executable.
+- Added React, Vite, TypeScript, TSX, typed runtime SDK, and Manifest V3 extension integration.
+- Adopted anonymous content-addressed production assets and removed role-named public runtime directories.
+- Moved internal build diagnostics to sibling `.venom/<output-name>/` directories.
+- Closed the production asset-planning boundary so unreferenced and sensitive project files cannot be packaged.
+- Added package, runtime, ABI, leakage, browser, reproducibility, signing, and release-installation verification gates.
+- Fixed Vite compiled-output ingestion, CSS dependency handling, React external-store snapshots, browser-target-compatible async startup, Windows npm shim resolution, and hardener script parsing.
+- Published required two-binary Windows x86-64 and Linux x86-64 release layouts.
+
+See [RELEASE_NOTES_3.0.0.md](RELEASE_NOTES_3.0.0.md) for the complete user-facing release notes.
+
+## Private diagnostics migration
+
+- Moved provenance, execution plans, bridge reports, API contracts, and performance reports to `.venom/<output-name>/`.
+- Updated release tests and tooling to consume the private report tree.
+- Kept production distributions free of `build.json` and internal report files.
+## Release hardening audit pass
+
+- Fixed a production VBC security-boundary defect that packaged every non-code project file, bypassing the reachable public-asset plan.
+- Added defense-in-depth rejection for private, secret, repository, dependency, cache, build-output, key, database, backup, log, lock, and source-map paths in production assets.
+- Corrected the release installation fixture to include the mandatory `venom_hardener_worker` companion executable.
+- Updated active release gates for the current hash-only distribution layout, generated TurboJS artifact paths, compatibility matrix schema v3, and source capability-analysis command contract.
+
+
+- Fixed `vite-framework-showcase` production builds on Vite's default target by moving protected async startup out of top-level `await` and adding fail-visible startup handling.
+
+- Fixed React production error #185 by making `@venom/runtime` status snapshots referentially stable for `useSyncExternalStore`; unchanged runtime state now returns the same frozen object while real status changes still publish a new snapshot.
 ## 3.0.0 — Runtime include and example certification fix
 
 - Fixed `venom_runtime_native`, `venom_runtime_probe`, and `venom_tjs_native_probe` after header colocation by exposing the repository `src` root instead of the removed top-level `include` directory.
@@ -21,7 +51,6 @@
 - Updated example documentation and added a regression that rejects repository-root example distributions.
 
 
-## 3.0.0
 ### Colocated source headers
 
 - Removed the top-level `include/` tree and moved every first-party header beside its corresponding `.cpp` or `.c` implementation under `src/<domain>/`.
@@ -817,3 +846,6 @@ Venom follows [Semantic Versioning](docs/operations/versioning.md).
 - Added `venom setup --source <checkout>` to configure and build a project-local Venom compiler.
 - The setup command discovers the built executable and records a project-relative path in `venom.config.json`.
 - Added build-directory, CMake, and configuration overrides plus an end-to-end setup regression.
+
+- Completed private-report migration verification against the native Release build; JSON build output now identifies the sibling `.venom/<output>/build.json` report explicitly without restoring diagnostics to public distributions.
+- Updated runtime-specialization and protected-bridge regression gates for the current hash-only JavaScript asset layout and integrity-seal implementation.

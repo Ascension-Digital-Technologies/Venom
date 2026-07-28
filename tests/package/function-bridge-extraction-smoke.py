@@ -4,6 +4,7 @@ js = (root/'src/pipeline/js.cpp').read_text(encoding='utf-8') + (root/'src/pipel
 js += (root / 'src/pipeline/js_discovery.cpp').read_text(encoding='utf-8')
 js += (root / 'src/pipeline/js_rewriting.cpp').read_text(encoding='utf-8')
 worker = (root/'src/generated/runtime/worker_runtime_js.cpp').read_text(encoding='utf-8')
+template = (root/'src/generated/runtime/worker_runtime_template.hpp').read_text(encoding='utf-8')
 build = (root / 'src/pipeline/build.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_package_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_runtime_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_runtime_audit_metadata.cpp').read_text(encoding='utf-8') + (root / 'src/pipeline/build_runtime_module_metadata.cpp').read_text(encoding='utf-8')
 header = (root/'src/pipeline/js.hpp').read_text(encoding='utf-8')
 for marker in [
@@ -12,8 +13,11 @@ for marker in [
     'bridge-rewrite-plan.json', 'awaited-calls-plus-pure-dependency-lifting',
 ]:
     assert marker in js or marker in build, marker
-for marker in ['BRIDGE_REGISTRY_BYTECODE', 'fnv1a32', 'venom_tjs_execute_bytecode', 'protected bridge registry execution failed']:
+for marker in ['BRIDGE_REGISTRY_BYTECODE', 'BRIDGE_INTEGRITY_SEAL']:
     assert marker in worker, marker
+for marker in ['bridgeIntegritySeal', 'venom_tjs_execute_bytecode', 'protected bridge registry execution failed']:
+    assert marker in template, marker
 assert 'bridge_registry_bytecode' in header
-assert 'make_worker_runtime_js(js_bridge.bridge_candidate_ids, js_bridge.bridge_registry_bytecode' in build
+assert 'make_worker_runtime_js(js_bridge.bridge_candidate_ids' in build
+assert 'external_lazy_registry ? std::vector<unsigned char>{} : js_bridge.bridge_registry_bytecode' in build
 print('function bridge extraction smoke: PASS')

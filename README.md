@@ -27,7 +27,7 @@ Venom 3.0 expands the protected web compiler into a broader application toolchai
 - **Zero-config integration:** `@venom/venom` detects common project types, runs existing framework builds, discovers their output, and creates a protected distribution with the single `venom` command.
 - **Modern framework support:** first-party workflows cover React, Vite, Vue, Svelte, TypeScript, static websites, and Manifest V3 Chrome extensions without requiring an application rewrite.
 - **Chrome extension protection:** extension pages retain the normal Venom protected-site layout while generated Chrome adapters bridge DOM and `chrome.*` APIs to protected TurboJS exports.
-- **Developer workflow:** guided initialization, project-local compiler setup, toolchain locking, diagnostics, binary discovery, and `venom dev` provide reproducible local and continuous protected builds.
+- **Developer workflow:** guided initialization, project-local compiler setup, toolchain locking, diagnostics, binary discovery, and `venom dev` provide reproducible local watch-and-serve builds through the same production-grade compiler path used by `venom build`.
 - **Production hardening:** process-isolated JavaScript hardening, race-safe integrity-checked caches, polymorphic VBC packaging, protected-source leak scanning, package verification, and fail-closed runtime enforcement remain integrated into release builds.
 
 ## React and Vite
@@ -101,7 +101,7 @@ For the implementation-level review, see [Protection strengths and evidence](doc
 - [Architecture](#architecture)
 - [Quick start](#quick-start)
 - [Hybrid execution](#hybrid-execution)
-- [Build profiles](#build-profiles)
+- [Build profile](#build-profile)
 - [Production output](#production-output)
 - [Release verification](#release-verification)
 - [Browser-equivalence testing](#browser-equivalence-testing)
@@ -245,7 +245,7 @@ venom init path\to\site
 venom compatibility check path\to\site
 ```
 
-### 3. Develop against the real protected runtime
+### 3. Run the production-grade watch server
 
 ```powershell
 venom dev path\to\site --open
@@ -254,7 +254,7 @@ venom dev path\to\site --open
 ### 4. Build and verify a production distribution
 
 ```powershell
-venom build path\to\site --profile prod --out dist
+venom build path\to\site --out dist
 venom analyze dist
 venom verify dist
 ```
@@ -266,9 +266,9 @@ The generated application remains a static distribution and can be served by a c
 Protected builds print structured progress by default. Each phase identifies the work being performed and reports the elapsed time of the preceding phase, making long production builds easier to diagnose.
 
 ```powershell
-venom build . --profile prod --out dist
-venom build . --profile prod --out dist --verbose
-venom build . --profile prod --out dist --quiet
+venom build . --out dist
+venom build . --out dist --verbose
+venom build . --out dist --quiet
 ```
 
 - Default output shows major compiler phases, artifact counts, timings, and the final protection report.
@@ -318,16 +318,17 @@ Read the complete guides:
 - [Typed bridge contracts](docs/guides/typed-bridge-contracts.md)
 - [Browser bridge](docs/guides/browser-bridge.md)
 
-## Build profiles
+## Build profile
 
-Venom exposes two intentional build profiles.
+Venom 3.0 supports one build profile: `prod`. It is the default and the only accepted value for `venom build` and `build.profile` in `venom.toml`.
 
 | Profile | Intended use | Protected runtime | Generated output |
 |---|---|---|---|
-| `dev` | Local development and diagnostics | Real TurboJS/WASM | Readable generated runtime, stable names, and detailed diagnostics |
-| `prod` | Deployment and release qualification | Verified, fail-closed TurboJS/WASM | Hashed, hardened, polymorphic, and stripped assets |
+| `prod` | Local iteration, deployment, and release qualification | Verified, fail-closed TurboJS/WASM | Hashed, hardened, polymorphic, and stripped assets |
 
-Both profiles execute protected code through the real TurboJS/WASM path. Production builds do not silently fall back to host JavaScript.
+The former `dev` build profile was removed in Venom 2.0. `venom dev` is still the local watch-and-serve command, but it rebuilds through the same `prod` pipeline; it is a command, not a separate build profile. Venom never silently falls back to host JavaScript for protected code.
+
+`venom doctor` has separate environment-check modes named `development`, `production`, and `runtime-contributor`. Those modes control which tools are checked and must not be confused with build profiles.
 
 ## Production output
 
@@ -339,19 +340,28 @@ dist/
 └── assets/
     ├── app/
     │   ├── <hash>.vbc
+    │   ├── <hash>.vqc        # present when lazy protected chunks are emitted
     │   └── <hash>.css
-    ├── images/
     ├── javascript/
-    │   └── <hash>.js
-    └── wasm/
-        └── <hash>.wasm
+    │   └── <hash>.js         # loader, runtime bridge, engine, and worker assets
+    ├── wasm/
+    │   └── <hash>.wasm
+    └── images/
+        └── <name>.<hash>.<ext>
 ```
 
+The hardened production layout intentionally uses role-neutral, content-addressed
+file names. It does not create `assets/loader`, `assets/runtime`, `assets/style`, or
+`assets/workers` directories, and generated files are not named `loader.*`,
+`runtime.*`, or `worker.*`.
+
 Production output excludes source maps, human-readable extraction reports,
-browser-test manifests, internal engineering files, and every unreferenced input
-file. Public assets are selected from the reachable HTML, CSS, and planned
-JavaScript graph; the compiler rejects a distribution whose final file set differs
-from that plan.
+browser-test manifests, internal engineering files, build metadata, and every
+unreferenced input file. Provenance and protection reports are written to the
+private sibling `.venom/<output-directory>/` report directory rather than shipped
+inside the public distribution. Public assets are selected from the reachable HTML,
+CSS, and planned JavaScript graph; the compiler rejects a distribution whose final
+file set differs from that plan.
 
 See the [production output layout](docs/reference/output-layout.md) for the complete contract.
 
@@ -433,11 +443,32 @@ A browser-intelligence dashboard that collects browser-exposed fingerprint, capa
 
 ![TypeScript AST showcase](examples/typescript-showcase/screenshot.png)
 - `examples/tsx-showcase` — typed TSX UI calling protected TypeScript through TurboJS/WASM.
-- `examples/javascript-playground` — development-mode JavaScript compiler and execution playground powered directly by TurboJS/WASM.
+- `examples/javascript-playground` — interactive JavaScript compiler and execution playground powered directly by TurboJS/WASM.
 
 A complete typed application demonstrating AST-backed runtime planning, TypeScript erasure, symbol-level module closure, protected TurboJS/WASM execution, browser-module linking, and non-JavaScript `<script>` data handling.
 
 [Explore the TypeScript AST Showcase](examples/typescript-showcase/README.md)
+
+## Install a binary release
+
+Venom 3.0.0 binary releases contain two required executables. Extract the archive and keep both files together under `bin/`:
+
+```text
+bin/
+├── venom[.exe]
+└── venom_hardener_worker[.exe]
+```
+
+`venom` is the user-facing CLI. `venom_hardener_worker` is an internal companion process used to isolate heavy JavaScript hardening. Do not remove, rename, or relocate the worker independently of the main executable.
+
+Verify the installation with:
+
+```text
+venom --version
+venom doctor --profile production
+```
+
+See the [3.0.0 release notes](RELEASE_NOTES_3.0.0.md) and [installation guide](docs/getting-started/installation.md).
 
 ## Build from source
 
@@ -457,6 +488,7 @@ cd Venom
 
 .\build\Release\venom.exe doctor --profile production
 .\build\Release\venom.exe --version
+Get-Item .\build\Release\venom_hardener_worker.exe
 ```
 
 Windows `.bat` launchers remain open after both success and failure when double-clicked, so the final status is always visible. Set `VENOM_NO_PAUSE=1` for automation or terminal workflows that should return immediately.
@@ -471,6 +503,7 @@ bash scripts/linux/build.sh --config Release
 
 ./build/venom doctor --profile production
 ./build/venom --version
+test -x ./build/venom_hardener_worker
 ```
 
 Normal production builds use the embedded verified runtime and do not require Emscripten. The pinned Emscripten toolchain is needed only when rebuilding the bundled TurboJS/WASM artifact.
@@ -478,7 +511,7 @@ Normal production builds use the embedded verified runtime and do not require Em
 Detailed setup documentation:
 
 - [Building from source](docs/getting-started/build-from-source.md)
-- [Production build profiles](docs/operations/build-profiles.md)
+- [Production build profile](docs/operations/build-profiles.md)
 
 ## Documentation
 
@@ -531,7 +564,7 @@ Report suspected vulnerabilities privately through [SECURITY.md](SECURITY.md). D
 
 ## Versioning
 
-Venom follows [Semantic Versioning](docs/operations/versioning.md). The current public release is **1.2.3**. Internal commits and CI runs do not create new public version numbers.
+Venom follows [Semantic Versioning](docs/operations/versioning.md). The current public release is **3.0.0**. Internal commits and CI runs do not create new public version numbers.
 
 ## License
 

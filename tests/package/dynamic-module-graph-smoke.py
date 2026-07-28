@@ -7,7 +7,7 @@ with tempfile.TemporaryDirectory() as td:
     out=pathlib.Path(td)/'dist'
     r=subprocess.run([str(venom),'build',str(site),'--out',str(out),'--format','json'],text=True,capture_output=True)
     if r.returncode==0:
-        meta=json.loads((out/'assets'/'app'/'build.json').read_text())
+        meta=read_json(out)
         graph=meta['module_graph']
         assert graph['chunks']==3,graph
         assert graph['edges']>=4,graph

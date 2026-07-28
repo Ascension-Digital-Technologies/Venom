@@ -244,7 +244,7 @@ bool build_site(const BuildOptions& requested_options) {
 
   trace.phase("Process static assets and bundle stylesheets");
   const auto assets = build_asset_pipeline(graph, js_bridge.chunks, options.hashed_assets, production_hardening, chrome_extension_target);
-  const auto css = bundle_css(graph, assets);
+  const auto css = bundle_css(graph, assets, js_bridge.chunks);
   const bool wasm_runtime = options.runtime == "wasm";
   if (options.runtime != "js" && options.runtime != "wasm") {
     raise_error("VENOM-E5000", "unsupported runtime mode: " + options.runtime);
@@ -422,7 +422,9 @@ bool build_site(const BuildOptions& requested_options) {
   if (!chrome_extension::is_extension_target(options.project_target)) {
     startup_preloads.push_back({"assets/" + loader_name, "modulepreload", "script", "text/javascript", true});
     startup_preloads.push_back({"assets/" + runtime_name, "modulepreload", "script", "text/javascript", true});
-    startup_preloads.push_back({"assets/" + package_name, "preload", "fetch", "application/octet-stream", true});
+    // The protected package is fetched by the runtime worker. A document-level
+    // preload is not consumed by that worker request in Chromium and produces a
+    // misleading "preloaded but not used" warning, so let the worker fetch it.
     if (!turbojs_wasm_name.empty()) startup_preloads.push_back({"assets/" + turbojs_wasm_name, "preload", "fetch", "application/wasm", true});
     if (!worker_name.empty()) startup_preloads.push_back({"assets/" + worker_name, "modulepreload", "script", "text/javascript", true});
   }
@@ -558,12 +560,7 @@ bool build_site(const BuildOptions& requested_options) {
              << "}\n";
   const auto private_report_dir = std::filesystem::absolute(options.output).parent_path() /
       ".venom" / options.output.filename();
-  const auto build_metadata_ref = hardened_release_asset ? std::string{} : std::string{"assets/build.json"};
-  if (hardened_release_asset) {
-    write_text(private_report_dir / "build.json", provenance.str());
-  } else {
-    write_text(options.output / build_metadata_ref, provenance.str());
-  }
+  write_text(private_report_dir / "build.json", provenance.str());
   write_text(private_report_dir / "protection-intents.json", js_bridge.protection_intent_ledger_json);
   if (!js_bridge.protected_api_typescript.empty())
     write_text(private_report_dir / "api" / "venom-exports.d.ts", js_bridge.protected_api_typescript);
@@ -573,8 +570,8 @@ bool build_site(const BuildOptions& requested_options) {
     write_text(private_report_dir / "api" / "venom-client.d.ts", js_bridge.protected_api_client_typescript);
   if (!js_bridge.protected_contracts_json.empty())
     write_text(private_report_dir / "api" / "protected-contracts.json", js_bridge.protected_contracts_json);
-  if (false) {
-    const auto report_dir = options.output / "build" / "reports";
+  {
+    const auto report_dir = private_report_dir / "reports";
     write_text(report_dir / "execution-plan.txt", js_bridge.execution_plan_text);
     write_text(report_dir / "execution-plan.json", js_bridge.execution_plan_json);
     write_text(report_dir / "function-plan.txt", js_bridge.function_plan_text);
@@ -583,12 +580,6 @@ bool build_site(const BuildOptions& requested_options) {
     write_text(report_dir / "function-extraction-plan.json", js_bridge.extraction_plan_json);
     write_text(report_dir / "runtime-bridge-contract.json", js_bridge.runtime_bridge_contract_json);
     write_text(report_dir / "bridge-rewrite-plan.json", js_bridge.bridge_rewrite_report_json);
-    if (!js_bridge.protected_api_typescript.empty())
-      write_text(options.output / "assets" / "app" / "venom-exports.d.ts", js_bridge.protected_api_typescript);
-    if (!js_bridge.protected_api_client_javascript.empty())
-      write_text(options.output / "assets" / "app" / "venom-client.js", js_bridge.protected_api_client_javascript);
-    if (!js_bridge.protected_api_client_typescript.empty())
-      write_text(options.output / "assets" / "app" / "venom-client.d.ts", js_bridge.protected_api_client_typescript);
   }
 
   trace.info("Wrote reproducibility metadata, provenance records, and private build diagnostics");
@@ -621,7 +612,7 @@ bool build_site(const BuildOptions& requested_options) {
               << "\",\"output\":\"" << json_escape(options.output.generic_string())
               << "\",\"package\":\"assets/" << json_escape(package_name)
               << "\",\"package_sha256\":\"" << venom::package::sha256_hex(package_bytes)
-              << "\",\"build_metadata\":" << (build_metadata_ref.empty() ? "null" : "\"" + json_escape(build_metadata_ref) + "\"") << "}\n";
+              << "\",\"build_metadata\":\"" << json_escape((private_report_dir / "build.json").generic_string()) << "\"}\n";
     return true;
   }
 

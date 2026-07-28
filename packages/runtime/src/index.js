@@ -12,6 +12,7 @@ let localState = STATE.UNINITIALIZED;
 let initialization = null;
 let lastError = null;
 let disposedReason = "";
+let cachedStatus = null;
 
 export class VenomRuntimeError extends Error {
   constructor(code, message, options = {}) {
@@ -151,15 +152,35 @@ export function getRuntimeStatus() {
   const api = publicApi();
   const info = api && typeof api.info === "function" ? api.info() : null;
   const nativeStatus = api && typeof api.status === "function" ? api.status() : null;
-  return Object.freeze({
-    state: localState === STATE.DISPOSED ? STATE.DISPOSED : (nativeStatus?.state || localState),
-    apiVersion: Number(api?.apiVersion ?? info?.runtimeApiVersion ?? VENOM_RUNTIME_API_VERSION),
-    ready: !!api && localState === STATE.READY,
-    disposed: localState === STATE.DISPOSED,
-    exports: Object.freeze([...(info?.exports || [])]),
-    transport: info?.transport || null,
+  const state = localState === STATE.DISPOSED ? STATE.DISPOSED : (nativeStatus?.state || localState);
+  const apiVersion = Number(api?.apiVersion ?? info?.runtimeApiVersion ?? VENOM_RUNTIME_API_VERSION);
+  const ready = !!api && localState === STATE.READY;
+  const disposed = localState === STATE.DISPOSED;
+  const exportsList = [...(info?.exports || [])];
+  const transport = info?.transport || null;
+
+  if (cachedStatus
+      && cachedStatus.state === state
+      && cachedStatus.apiVersion === apiVersion
+      && cachedStatus.ready === ready
+      && cachedStatus.disposed === disposed
+      && cachedStatus.transport === transport
+      && cachedStatus.lastError === lastError
+      && cachedStatus.exports.length === exportsList.length
+      && cachedStatus.exports.every((name, index) => name === exportsList[index])) {
+    return cachedStatus;
+  }
+
+  cachedStatus = Object.freeze({
+    state,
+    apiVersion,
+    ready,
+    disposed,
+    exports: Object.freeze(exportsList),
+    transport,
     lastError
   });
+  return cachedStatus;
 }
 
 export async function disposeRuntime(reason = "SDK disposal") {

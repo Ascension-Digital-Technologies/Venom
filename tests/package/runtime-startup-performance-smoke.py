@@ -6,8 +6,9 @@ contract=json.loads((root/'contracts/runtime-performance.json').read_text())
 assert contract['schema']=='VENOM_RUNTIME_PERFORMANCE_V1'
 html=(root/'src/pipeline/html.cpp').read_text()
 build=(root/'src/pipeline/build.cpp').read_text()
-for token in ['HtmlPreloadHint','modulepreload','application/wasm','application/octet-stream']:
+for token in ['HtmlPreloadHint','modulepreload','application/wasm']:
     assert token in html+build, token
+assert 'package_name, "preload"' not in build
 assert contract['preloadPolicy']['persistentPlaintextCacheAllowed'] is False
 with tempfile.TemporaryDirectory() as td:
     td=Path(td); report=td/'browser.json'

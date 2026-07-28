@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
+from _private_reports import read_json, root_for
 import json, os, subprocess, sys, tempfile
 from pathlib import Path
 
@@ -16,7 +17,7 @@ def build(script: str, expect_success: bool = True):
                              text=True, capture_output=True, env=env)
         if expect_success:
             if run.returncode != 0: raise SystemExit(run.stdout + run.stderr)
-            return json.loads((out / 'build/reports/bridge-rewrite-plan.json').read_text(encoding='utf-8'))
+            return read_json(out, 'reports/bridge-rewrite-plan.json')
         if run.returncode == 0: raise SystemExit('expected AST scope rejection')
         return run.stdout + run.stderr
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from _private_reports import read_json, root_for
 import json, pathlib, subprocess, sys, tempfile
 root=pathlib.Path(__file__).resolve().parents[2]
 venom=pathlib.Path(sys.argv[1]) if len(sys.argv)>1 else root/'build'/'venom'
@@ -8,7 +9,7 @@ with tempfile.TemporaryDirectory() as td:
     p=subprocess.run([str(venom),'build',str(fixture),'--out',str(out),'--profile','prod'],text=True,capture_output=True)
     combined=p.stdout+p.stderr
     if p.returncode != 0: raise SystemExit('protected arrow function was not lowered\n'+combined)
-    build=json.loads((out/'assets/app/build.json').read_text(encoding='utf-8'))
+    build=read_json(out)
     closure=build.get('protection_closure',{})
     if closure.get('requested') != 1 or closure.get('resolved') != 1:
         raise SystemExit('protected arrow closure mismatch: '+repr(closure))

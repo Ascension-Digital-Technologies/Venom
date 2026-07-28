@@ -1,6 +1,6 @@
 # Build Venom from Source
 
-> **Applies to:** Venom 1.1.0  
+> **Applies to:** Venom 3.0.0  
 > **Purpose:** produce the production compiler from the released source package
 
 Normal users may use a prebuilt release when one is available. Building from source is supported for teams that require reproducible local binaries, internal qualification, or platform-specific packaging.
@@ -42,6 +42,7 @@ Verify the binary:
 ```powershell
 .\build\Release\venom.exe --version
 .\build\Release\venom.exe doctor --profile production
+Get-Item .\build\Release\venom_hardener_worker.exe
 ```
 
 For an explicit clean build:
@@ -62,6 +63,7 @@ Verify the binary:
 ```bash
 ./build/venom --version
 ./build/venom doctor --profile production
+test -x ./build/venom_hardener_worker
 ```
 
 Depending on the selected generator, the executable may be placed in a configuration-specific subdirectory. The build script reports the resolved path.
@@ -84,7 +86,7 @@ cmake --build build --config Release --parallel
 
 ## JavaScript hardener
 
-Production hardening is built directly into the native `venom` executable. The compiler runs pinned Terser 5.49.0 and `javascript-obfuscator` 5.4.7 bundles inside its linked TurboJS engine, so production builds do not require Node.js, npm, `node_modules`, temporary JavaScript files, or an external hardener process.
+Production hardening is built directly into the native `venom` executable. The compiler runs pinned Terser 5.49.0 and `javascript-obfuscator` 5.4.7 bundles through its linked TurboJS engine. Heavy hardening is executed by the separately built `venom_hardener_worker` companion process so a native hardener fault cannot terminate the main compiler. Production builds do not require Node.js, npm, `node_modules`, or temporary JavaScript source files. Both Venom executables must remain together in binary installations.
 
 
 ## Build acceleration

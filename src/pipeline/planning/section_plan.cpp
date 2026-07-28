@@ -355,19 +355,23 @@ Result make_plan(const Inputs& input) {
   }
   add_package_section(venom::package::SectionType::AssetManifest, "asset-manifest.txt", bytes_from_string(assets.manifest_text));
 
-  for (const auto& file : graph.files) {
-    const auto rel = file.relative;
-    const auto lower = [&]() {
-      std::string value = rel;
-      std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-      return value;
-    }();
-    const bool browser_manifest = rel == "venom.browser.json";
-    const bool notice = lower == "third_party_notices.txt" || lower == "third-party-notices.txt" ||
-                        (lower.size() >= 24 && lower.compare(lower.size() - 24, 24, "/third_party_notices.txt") == 0) ||
-                        (lower.size() >= 24 && lower.compare(lower.size() - 24, 24, "/third-party-notices.txt") == 0);
-    if (!is_code_or_markup(file) && (!production_hardening || (!browser_manifest && !notice))) {
-      add_package_section(venom::package::SectionType::Asset, file.relative, file.bytes);
+  if (production_hardening) {
+    // The production VBC container must use the same reachability-approved asset
+    // plan as the public distribution. Never re-scan graph.files here: doing so
+    // would bypass the planner and could package unrelated private project files.
+    for (const auto& asset : assets.records) {
+      if (asset.file == nullptr) {
+        raise_error("VENOM-E5000", "planned package asset is missing its source file: " + asset.source);
+      }
+      add_package_section(venom::package::SectionType::Asset, asset.source, asset.file->bytes);
+    }
+  } else {
+    // Development profiles retain the broad convenience behavior, but production
+    // remains strictly fail-closed and reachability-driven above.
+    for (const auto& file : graph.files) {
+      if (!is_code_or_markup(file)) {
+        add_package_section(venom::package::SectionType::Asset, file.relative, file.bytes);
+      }
     }
   }
 

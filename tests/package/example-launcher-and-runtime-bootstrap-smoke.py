@@ -32,9 +32,9 @@ for spec in registry.examples:
     linux_text = linux.read_text(encoding='utf-8')
     windows_text = windows.read_text(encoding='utf-8')
     if spec.launcher == 'react-vite-showcase':
-        if 'npm run build' not in linux_text or 'npm run build' not in windows_text:
-            raise SystemExit('React/Vite launcher must run the framework production build')
-        continue
+        for marker in ("if spec.requires_vite:", "['npm','run','build']", "VENOM_SKIP_VITE_PLUGIN", "build_input = site/'dist'", "[venom,'build',build_input"):
+            if marker not in launcher:
+                raise SystemExit(f'semantic launcher Vite pipeline missing marker: {marker}')
     if f'launch_example.py" {spec.launcher} ' not in linux_text:
         raise SystemExit(f'Linux launcher has wrong registry key: {linux.name}')
     if f'VENOM_EXAMPLE={spec.launcher}' not in windows_text:

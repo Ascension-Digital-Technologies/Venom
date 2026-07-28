@@ -10,8 +10,8 @@ with tempfile.TemporaryDirectory() as td:
     (root/'index.html').write_text('''<!doctype html><script>\n// eval("ignored")\nconst text = "WebSocket require( process.env";\nimport("./chunk.js");\nnew MutationObserver(()=>{});\nReactDOM.render(React.createElement("div"), document.body);\n</script>''', encoding='utf-8')
     (root/'umd.js').write_text('(function(g,f){typeof exports==="object"&&typeof module!=="undefined"?module.exports=f(require("react")):g.X=f(g.React)})(this,function(React){return React});', encoding='utf-8')
 
-    raw = subprocess.check_output([str(exe), 'analyze', str(root), '--format', 'json'], text=True)
-    graph = json.loads(raw)
+    raw = subprocess.check_output([str(exe), 'compatibility', 'check', str(root), '--format', 'json'], text=True)
+    graph = json.loads(raw)['capability_graph']
     assert graph['schema_version'] == 1
     assert graph['files_scanned'] == 2
     assert graph['module_features']['dynamic_import'] == 1

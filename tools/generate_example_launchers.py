@@ -29,7 +29,6 @@ set "VENOM_EXIT=%ERRORLEVEL%"
 endlocal & exit /b %VENOM_EXIT%
 '''
 
-
 def expected_files(root: Path) -> dict[Path, str]:
     registry = load_example_registry(root)
     files: dict[Path, str] = {}

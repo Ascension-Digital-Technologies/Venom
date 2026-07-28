@@ -91,7 +91,7 @@ def main() -> int:
         add(checks, 'dist.index', 'pass' if index.is_file() else 'fail', 'Generated index.html is present.' if index.is_file() else 'Generated index.html is missing.')
         add(checks, 'dist.assets', 'pass' if assets.is_dir() else 'fail', 'Generated assets directory is present.' if assets.is_dir() else 'Generated assets directory is missing.')
 
-        provenance = dist / 'assets' / 'app' / 'build.json'
+        provenance = dist.parent / '.venom' / dist.name / 'build.json'
         if provenance.is_file():
             try:
                 data = json.loads(provenance.read_text(encoding='utf-8'))
@@ -103,7 +103,7 @@ def main() -> int:
             except Exception as exc:
                 add(checks, 'dist.provenance', 'fail', 'Build provenance is not valid JSON.', str(exc))
         else:
-            add(checks, 'dist.provenance', 'fail', 'assets/app/build.json is missing.')
+            add(checks, 'dist.provenance', 'fail', f'Private build report is missing: {provenance}')
 
         wasm = sorted(assets.rglob('*.wasm')) if assets.is_dir() else []
         packages = sorted(assets.rglob('*.vbc')) if assets.is_dir() else []

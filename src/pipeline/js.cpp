@@ -298,8 +298,14 @@ JsBridge compile_js_bridge(const SiteGraph& graph, const RemoteVendorOptions& re
     bridge.lazy_protected_manifest_json = lazy.str();
   }
   if (!rewrite_result.registry_source.empty()) {
+    // Registry source is never emitted into the distribution. Compile the authored
+    // closure directly into stripped native bytecode instead of running the embedded
+    // JavaScript obfuscator first. This removes a redundant transformation and avoids
+    // an uncatchable Windows access violation observed on large protected registries.
     bridge.bridge_registry_bytecode = venom::turbojs::compile_native_turbojs_bytecode(
-        development ? rewrite_result.registry_source : build_detail::ast_harden_release_js("protected-registry", rewrite_result.registry_source, remote_options.bridge_id_salt), "v://" + opaque_js_bytecode_label(remote_options.bridge_id_salt, "registry", "root"), false, !development, nullptr);
+        rewrite_result.registry_source,
+        development ? "venom://protected-registry/root" : "v://" + opaque_js_bytecode_label(remote_options.bridge_id_salt, "registry", "root"),
+        false, !development, nullptr);
     const bool native_record = bridge.bridge_registry_bytecode.size() >= 8u &&
         (std::equal(bridge.bridge_registry_bytecode.begin(), bridge.bridge_registry_bytecode.begin() + 8,
                     reinterpret_cast<const unsigned char*>("VTJSBC03")) ||
@@ -314,7 +320,9 @@ JsBridge compile_js_bridge(const SiteGraph& graph, const RemoteVendorOptions& re
     compiled_chunk.id = source_chunk.id;
     compiled_chunk.candidates = source_chunk.candidates;
     compiled_chunk.bytecode = venom::turbojs::compile_native_turbojs_bytecode(
-        development ? source_chunk.source : build_detail::ast_harden_release_js("protected-registry-chunk", source_chunk.source, remote_options.bridge_id_salt), development ? ("venom://protected-registry/" + source_chunk.id) : ("v://" + opaque_js_bytecode_label(remote_options.bridge_id_salt, "registry-chunk", source_chunk.id)), false, !development, nullptr);
+        source_chunk.source,
+        development ? ("venom://protected-registry/" + source_chunk.id) : ("v://" + opaque_js_bytecode_label(remote_options.bridge_id_salt, "registry-chunk", source_chunk.id)),
+        false, !development, nullptr);
     if (compiled_chunk.bytecode.empty()) raise_error("VENOM-E5000", "protected registry chunk compilation failed: " + source_chunk.id);
     bridge.bridge_registry_chunks.push_back(std::move(compiled_chunk));
   }

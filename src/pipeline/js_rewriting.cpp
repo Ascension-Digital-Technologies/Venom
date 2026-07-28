@@ -789,21 +789,32 @@ BridgeRewriteResult apply_bridge_rewrites(std::vector<JsChunk>& chunks,
     auto dependency_declaration = extracted.declaration;
     try { dependency_declaration = std::regex_replace(dependency_declaration, std::regex(R"(^\s*export\s+(?:default\s+)?)"), ""); }
     catch (const std::regex_error& error) { raise_error("VENOM-E5000", std::string("dependency declaration regex: ") + error.what()); }
-    auto dependency_resolution = resolve_liftable_function_dependencies(
-        it->code, dependency_declaration, record.name, extracted.params, it->source,
-        (it->flags & JsChunkModule) != 0u);
-    // Large explicitly isolated compilation units may contain deeply nested
-    // scopes that the lightweight analyzer cannot fully resolve. They are
-    // accepted only after a separate runtime-safety verification rejects browser
-    // globals and unsupported dynamic semantics.
-    if (!dependency_resolution.success && record.isolated) {
+    FunctionDependencyResolution dependency_resolution;
+    // Large explicitly isolated compilation units intentionally bypass the
+    // lightweight whole-file lexical analyzer. Deep engine implementations can
+    // overflow or exhaust that analyzer before its isolated fallback is reached.
+    // The isolated verifier is purpose-built for these self-contained units and
+    // rejects browser globals and unsupported dynamic semantics directly.
+    if (record.isolated && dependency_declaration.size() >= 16384u) {
       std::string isolated_reason;
-      if (verify_isolated_protected_unit(dependency_declaration, isolated_reason)) {
-        dependency_resolution.success = true;
-        dependency_resolution.reason = isolated_reason;
-        dependency_resolution.dependencies.clear();
-      } else {
-        dependency_resolution.reason = "isolated verification failed: " + isolated_reason;
+      dependency_resolution.success = verify_isolated_protected_unit(
+          dependency_declaration, isolated_reason);
+      dependency_resolution.reason = dependency_resolution.success
+          ? isolated_reason
+          : "isolated verification failed: " + isolated_reason;
+    } else {
+      dependency_resolution = resolve_liftable_function_dependencies(
+          it->code, dependency_declaration, record.name, extracted.params, it->source,
+          (it->flags & JsChunkModule) != 0u);
+      if (!dependency_resolution.success && record.isolated) {
+        std::string isolated_reason;
+        if (verify_isolated_protected_unit(dependency_declaration, isolated_reason)) {
+          dependency_resolution.success = true;
+          dependency_resolution.reason = isolated_reason;
+          dependency_resolution.dependencies.clear();
+        } else {
+          dependency_resolution.reason = "isolated verification failed: " + isolated_reason;
+        }
       }
     }
     if (!dependency_resolution.success) {

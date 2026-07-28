@@ -6,7 +6,7 @@ import sys
 root = Path(sys.argv[1]).resolve()
 ps = (root / 'tools' / 'windows-scripts' / 'build-turbojs-wasm.ps1').read_text(encoding='utf-8')
 sh = (root / 'tools' / 'linux-scripts' / 'build-turbojs-wasm.sh').read_text(encoding='utf-8')
-abi = (root / 'src' / 'turbojs' / 'include' / 'venom' / 'turbojs' / 'abi.hpp').read_text(encoding='utf-8')
+abi = (root / 'src' / 'turbojs' / 'abi.hpp').read_text(encoding='utf-8')
 scaffold = (root / 'src' / 'runtime' / 'turbojs_runtime_scaffold.c').read_text(encoding='utf-8')
 engine = (root / 'src' / 'generated' / 'runtime' / 'turbojs_engine_module.cpp').read_text(encoding='utf-8')
 windows_entry = (root / 'scripts' / 'windows' / 'build-emsdk.bat').read_text(encoding='utf-8')

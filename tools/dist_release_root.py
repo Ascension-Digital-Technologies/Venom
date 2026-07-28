@@ -22,10 +22,10 @@ def canonical_bytes(obj: dict) -> bytes:
     return (json.dumps(obj, sort_keys=True, separators=(',',':'), ensure_ascii=False)+'\n').encode('utf-8')
 
 def locate_build_json(dist: Path) -> Path:
-    candidates=[dist/'assets/app/build.json', dist/'assets/build.json']
-    found=[p for p in candidates if p.is_file()]
-    if len(found)!=1: raise SystemExit('expected exactly one assets/app/build.json or assets/build.json')
-    return found[0]
+    path = dist.resolve().parent / '.venom' / dist.name / 'build.json'
+    if not path.is_file():
+        raise SystemExit(f'missing private Venom build report: {path}')
+    return path
 
 def safe_files(dist: Path):
     for p in sorted(dist.rglob('*')):
@@ -49,7 +49,7 @@ def make_root(dist: Path) -> dict:
             'venom_version':build.get('venom_version','unknown'),
             'profile':build.get('profile','unknown'),
             'security_target':build.get('security_target','unknown'),
-            'build_metadata_path':build_path.relative_to(dist).as_posix(),
+            'build_metadata_path':'.venom/'+dist.name+'/build.json',
             'build_metadata_sha256':sha256_file(build_path),
             'package_sha256':build.get('package_sha256',''),
             'package_asset':build.get('package_asset',''),

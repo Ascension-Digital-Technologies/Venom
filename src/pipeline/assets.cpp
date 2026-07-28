@@ -56,13 +56,36 @@ bool is_third_party_notice(const SiteFile& file) {
          has_suffix("/third-party-notices.txt");
 }
 
+bool has_sensitive_asset_path(const SiteFile& file) {
+  auto relative = normalize_slashes(file.relative);
+  std::transform(relative.begin(), relative.end(), relative.begin(), [](unsigned char c) {
+    return static_cast<char>(std::tolower(c));
+  });
+  const std::string padded = "/" + relative + "/";
+  constexpr std::string_view denied_segments[] = {
+      "/.git/", "/.venom/", "/private/", "/secrets/", "/node_modules/",
+      "/dist/", "/dist-venom/", "/build/", "/coverage/", "/.cache/"};
+  for (const auto segment : denied_segments) {
+    if (padded.find(segment) != std::string::npos) return true;
+  }
+  const auto filename = std::filesystem::path(relative).filename().generic_string();
+  if (filename == ".env" || filename.rfind(".env.", 0) == 0) return true;
+  constexpr std::string_view denied_extensions[] = {
+      ".pem", ".key", ".p12", ".pfx", ".crt", ".cer", ".csr", ".db", ".sqlite",
+      ".sqlite3", ".bak", ".tmp", ".log", ".lock", ".map"};
+  for (const auto ext : denied_extensions) {
+    if (file.extension == ext) return true;
+  }
+  return false;
+}
+
 bool is_public_asset(const SiteFile& file, bool production, bool standard_layout_only) {
   // Chrome-extension distributions intentionally contain only Venom's generated
   // production assets. Extension-owned loose files are emitted separately by the
   // extension target using a strict runtime allowlist, so repository metadata and
   // arbitrary project files never become hashed assets.
   if (standard_layout_only) return false;
-  if (production && (is_deployment_metadata(file) || is_third_party_notice(file))) return false;
+  if (production && (is_deployment_metadata(file) || is_third_party_notice(file) || has_sensitive_asset_path(file))) return false;
   return
          file.extension != ".html" && file.extension != ".htm" &&
          file.extension != ".css" &&

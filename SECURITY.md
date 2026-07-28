@@ -28,3 +28,7 @@ logic, but it cannot make browser-delivered code or data absolutely secret. A
 hostile client controls its browser, storage, network stack, and debugging
 environment. See [docs/security/threat-model.md](docs/security/threat-model.md) and
 [docs/security/security-model.md](docs/security/security-model.md) before deploying.
+
+## Hardener worker trust boundary
+
+Venom 3.0.0 executes heavy native JavaScript hardening in the companion `venom_hardener_worker` process. Official binary releases require both executables to remain together. The main compiler validates the worker protocol and fails closed when the helper is missing, malformed, or unable to complete safe hardening. Replacing the worker independently of the main binary creates an unsupported and unverified installation.

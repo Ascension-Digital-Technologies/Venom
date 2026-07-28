@@ -1,4 +1,5 @@
 from __future__ import annotations
+from _private_reports import read_json, root_for
 
 import json
 import subprocess
@@ -46,7 +47,7 @@ if venom is not None:
             stderr=subprocess.PIPE,
             text=True,
         )
-        report = json.loads((dist / 'build/reports/bridge-rewrite-plan.json').read_text(encoding='utf-8'))
+        report = read_json(dist, 'reports/bridge-rewrite-plan.json')
         record = next(item for item in report['functions'] if item['function'] == 'evaluate')
         assert record['status'] == 'extracted', record
         assert set(record['lifted_dependencies']) == {'SCALE', 'square', 'score'}, record

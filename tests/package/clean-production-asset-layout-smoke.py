@@ -1,4 +1,5 @@
 from __future__ import annotations
+from _private_reports import root_for
 
 import subprocess
 import sys
@@ -35,6 +36,8 @@ with tempfile.TemporaryDirectory(prefix="venom-clean-assets-") as temp:
     assert not any(name.lower().endswith(".json") for name in root_files), root_files
 
     assert not any(path.name.lower() in {"third-party-notices.txt", "third_party_notices.txt"} for path in dist.rglob("*"))
-    assert (assets / "app" / "build.json").is_file()
+    assert not any(path.name == "build.json" for path in dist.rglob("*"))
+    assert (root_for(dist) / "build.json").is_file()
+    assert (root_for(dist) / "reports" / "bridge-rewrite-plan.json").is_file()
 
 print("clean production asset layout smoke: PASS")

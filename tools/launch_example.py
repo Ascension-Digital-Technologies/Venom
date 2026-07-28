@@ -128,9 +128,9 @@ class QuietHandler(SimpleHTTPRequestHandler):
             self.playground_compile_slots.release()
 
 
-def run(cmd, cwd, label, visible=False):
+def run(cmd, cwd, label, visible=False, env=None):
     info(f'{label}...')
-    result = run_command(cmd, cwd=Path(cwd), stream=visible)
+    result = run_command(cmd, cwd=Path(cwd), stream=visible, env=env)
     if not result.passed:
         if not visible and result.output:
             print(result.output.rstrip(), file=sys.stderr)
@@ -164,7 +164,18 @@ def main():
     if venom is None: raise SystemExit(f'venom executable not found under {build}')
     if dist.exists(): shutil.rmtree(dist)
 
-    run([venom,'build',site,'--out',dist,'--profile',profile], root, f'Build {name}', visible=True)
+    build_input = site
+    if spec.requires_vite:
+        if not (site/'node_modules').is_dir():
+            run(['npm','install','--no-audit','--no-fund'], site, f'Install {name} dependencies', visible=True)
+        vite_env = os.environ.copy()
+        vite_env['VENOM_SKIP_VITE_PLUGIN'] = '1'
+        run(['npm','run','build'], site, f'Build {name} frontend', visible=True, env=vite_env)
+        build_input = site/'dist'
+        if not (build_input/'index.html').is_file():
+            raise RuntimeError(f'{name} frontend build did not produce dist/index.html')
+
+    run([venom,'build',build_input,'--out',dist,'--profile',profile], root, f'Build {name}', visible=True)
     if profile=='prod':
         run([sys.executable,root/'tools/check_production_leaks.py',dist], root, 'Production leak scan')
         run([venom,'verify',dist,'--target','browser'], root, 'Package integrity verification')

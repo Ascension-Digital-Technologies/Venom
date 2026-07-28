@@ -1,4 +1,5 @@
 from __future__ import annotations
+from _private_reports import read_json, root_for
 import json
 import subprocess
 import sys
@@ -17,13 +18,13 @@ with tempfile.TemporaryDirectory(prefix='venomed-module-') as temp:
         '--profile', 'prod', '--seed', '1400001'
     ], check=True, stdout=subprocess.DEVNULL)
 
-    report = json.loads((out / 'build/reports/bridge-rewrite-plan.json').read_text())
+    report = read_json(out, 'reports/bridge-rewrite-plan.json')
     funcs = {item['function']: item for item in report['functions']}
     assert funcs['calculate']['status'] == 'extracted'
     assert funcs['calculateAsync']['status'] == 'extracted'
     assert 'score' not in funcs, 'private dependency exports must not become browser-callable bridge exports'
 
-    plan = json.loads((out / 'build/reports/execution-plan.json').read_text())
+    plan = read_json(out, 'reports/execution-plan.json')
     reasons = {item['source']: item['reason'] for item in plan['scripts']}
     assert reasons['engine.js'] == 'generated browser facade for isolated protected module graph'
     assert reasons['core.js'] == 'generated browser facade for isolated protected module graph'

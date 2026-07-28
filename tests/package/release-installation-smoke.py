@@ -19,6 +19,12 @@ with tempfile.TemporaryDirectory() as td:
     else:
         binary.write_text('#!/bin/sh\necho venom 1.13.0\n',encoding='utf-8')
         binary.chmod(binary.stat().st_mode|stat.S_IXUSR)
+    helper=release/('venom_hardener_worker.exe' if os.name=='nt' else 'venom_hardener_worker')
+    if os.name=='nt':
+        helper.write_bytes(b'MZ-fake-helper')
+    else:
+        helper.write_text('#!/bin/sh\nexit 0\n',encoding='utf-8')
+        helper.chmod(helper.stat().st_mode|stat.S_IXUSR)
     (release/'VERSION.txt').write_text('venom 1.13.0\n',encoding='utf-8')
     (release/'RELEASE_MANIFEST.txt').write_text('fixture\n',encoding='utf-8')
     verifier=t/'verify.py'; verifier.write_text('import sys\nraise SystemExit(0)\n',encoding='utf-8')

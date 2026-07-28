@@ -453,6 +453,30 @@ std::vector<ImportReference> scan_module_references(const std::string& source, c
   return refs;
 }
 
+
+bool is_stylesheet_specifier(const std::string& specifier) {
+  auto path = specifier;
+  if (const auto suffix = path.find_first_of("?#"); suffix != std::string::npos) path.resize(suffix);
+  const auto dot = path.find_last_of('.');
+  if (dot == std::string::npos) return false;
+  return lower_ascii(path.substr(dot)) == ".css";
+}
+
+void lower_stylesheet_side_effect_imports(std::string& source, const frontend::ParseSummary& parsed,
+                                         const std::string& filename) {
+  for (auto it = parsed.module_imports.rbegin(); it != parsed.module_imports.rend(); ++it) {
+    if (!is_stylesheet_specifier(it->specifier)) continue;
+    if (!it->side_effect_only) {
+      raise_error("VENOM-E5000", "stylesheet imports must be side-effect-only in " + filename +
+                               ": " + it->specifier);
+    }
+    if (it->begin > it->end || it->end > source.size()) {
+      raise_error("VENOM-E5000", "invalid stylesheet import range in " + filename);
+    }
+    source.replace(it->begin, it->end - it->begin, "void \"" + it->specifier + "\";");
+  }
+}
+
 bool is_local_module_specifier(const std::string& specifier) {
   return specifier.rfind("./",0)==0 || specifier.rfind("../",0)==0 || (!specifier.empty() && specifier[0]=='/');
 }
@@ -638,7 +662,9 @@ std::vector<JsChunk> collect_script_chunks(const SiteGraph& graph, const RemoteV
     chunks[index].ast_top_level_declaration_count = static_cast<std::uint32_t>(parsed.top_level_declaration_count);
     chunks[index].ast_lexical_scope_count = static_cast<std::uint32_t>(parsed.lexical_scope_count);
     chunks[index].ast_global_reference_count = static_cast<std::uint32_t>(parsed.global_reference_count);
+    lower_stylesheet_side_effect_imports(chunks[index].code, parsed, parent.source);
     for (const auto& ref : parsed.module_references) {
+      if (is_stylesheet_specifier(ref.specifier)) continue;
       if (!is_local_module_specifier(ref.specifier)) continue;
       const auto resolved = normalize_slashes(ref.specifier[0] == '/' ? ref.specifier.substr(1) : dirname_of(parent.source) + ref.specifier);
       module_edges.push_back({parent.route, parent.source, ref.specifier, resolved, ref.dynamic, false});
@@ -661,10 +687,15 @@ std::vector<JsChunk> collect_script_chunks(const SiteGraph& graph, const RemoteV
     }
   }
 
-  // Parse classic scripts as well so syntax validation and frontend metrics cover
-  // the complete project, not only ES modules. Module chunks were parsed above.
+  // Parse classic protected scripts so extraction and frontend metrics cover all
+  // code owned by the protected runtime. Explicit browser scripts, especially
+  // minified third-party vendor bundles, are intentionally excluded: they are
+  // preserved by the browser asset pipeline and do not participate in protected
+  // function planning. Feeding large minified bundles through the protected
+  // frontend can exhaust its parser and caused a native access violation on Windows.
   for (auto& chunk : chunks) {
-    if ((chunk.flags & JsChunkModule) != 0u || chunk.ast_node_count != 0u) continue;
+    if ((chunk.flags & JsChunkModule) != 0u || chunk.ast_node_count != 0u ||
+        (chunk.flags & JsChunkBrowser) != 0u) continue;
     const auto parsed = frontend::parse(chunk.code, chunk.source, false);
     chunk.ast_node_count = static_cast<std::uint32_t>(parsed.node_count);
     chunk.ast_function_count = static_cast<std::uint32_t>(parsed.function_count);

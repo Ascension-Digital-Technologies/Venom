@@ -62,8 +62,37 @@ def certify_example(root: Path, venom: Path, dist_root: Path, spec: ExampleSpec,
     started = time.perf_counter()
     steps: list[tuple[str, dict]] = []
 
+    build_input = site
+    if spec.requires_vite:
+        if not (site / "node_modules").is_dir():
+            install = result_dict(run_command(
+                ["npm", "install", "--no-audit", "--no-fund"], cwd=site, timeout=900, env=env))
+            steps.append(("frontendInstall", install))
+            if not install["passed"]:
+                return {
+                    "id": spec.id, "displayName": spec.display_name, "path": spec.path,
+                    "passed": False, "buildPassed": False, "verifyPassed": False,
+                    "runtimePassed": False, "leakScanPassed": False,
+                    "durationMs": round((time.perf_counter() - started) * 1000),
+                    "steps": dict(steps), "failureOutput": f"[frontendInstall]\n{install['output']}",
+                }
+        vite_env = dict(env)
+        vite_env["VENOM_SKIP_VITE_PLUGIN"] = "1"
+        frontend = result_dict(run_command(["npm", "run", "build"], cwd=site, timeout=900, env=vite_env))
+        steps.append(("frontendBuild", frontend))
+        build_input = site / "dist"
+        if not frontend["passed"] or not (build_input / "index.html").is_file():
+            output = frontend["output"] or "frontend build did not produce dist/index.html"
+            return {
+                "id": spec.id, "displayName": spec.display_name, "path": spec.path,
+                "passed": False, "buildPassed": False, "verifyPassed": False,
+                "runtimePassed": False, "leakScanPassed": False,
+                "durationMs": round((time.perf_counter() - started) * 1000),
+                "steps": dict(steps), "failureOutput": f"[frontendBuild]\n{output}",
+            }
+
     build_result = result_dict(run_command(
-        [venom, "build", site, "--out", dist, "--profile", "prod", "--seed", str(seed)],
+        [venom, "build", build_input, "--out", dist, "--profile", "prod", "--seed", str(seed)],
         cwd=root,
         timeout=600,
         env=env,

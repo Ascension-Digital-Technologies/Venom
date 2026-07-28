@@ -75,6 +75,7 @@ Internal implementation history and engineering-process records are intentionall
 | Verify a production release | [Release verification](operations/release-verification.md) |
 | Package signed releases | [Release packaging](operations/release-packaging.md) |
 | Understand release numbers and prerelease stages | [Versioning policy](operations/versioning.md) |
+| Venom 3.0.0 release notes | [Release notes](../RELEASE_NOTES_3.0.0.md) |
 | Historical release evidence | [Release evidence](operations/release-evidence.md) |
 | Deploy and manage runtime versions | [Runtime management](operations/runtime-management.md) |
 | Update and rollback installed releases | [Update management](operations/update-management.md) |

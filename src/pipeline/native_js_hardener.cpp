@@ -122,7 +122,12 @@ const char kRunHardener[] = R"JS(
     });
     if (!minified.code) throw new Error('terser produced no output');
     let hardened = minified.code;
-    {
+    if (!bytecodeKind) {
+      // Protected registry sources are never emitted as JavaScript: they are immediately
+      // compiled into source-free TurboJS bytecode. Terser's minification and toplevel
+      // mangling provide the required pre-bytecode hardening without routing these large,
+      // closure-heavy records through javascript-obfuscator, whose embedded runtime can
+      // terminate with an uncatchable native access violation on Windows.
       // Worker, loader, and very large runtime assets put substantially more pressure on
       // the embedded compiler realm. Use the deterministic conservative profile
       // directly for those inputs so a native engine fault cannot occur before

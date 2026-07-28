@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from _private_reports import read_json, root_for
 import json, pathlib, subprocess, sys, tempfile
 
 if len(sys.argv) != 2:
@@ -16,7 +17,7 @@ for name in ['MutationObserver', 'FormData', 'requestAnimationFrame', 'addEventL
 with tempfile.TemporaryDirectory(prefix='venom-dom-compat-') as td:
     out = pathlib.Path(td) / 'dist'
     subprocess.run([str(venom), 'build', str(site), '--out', str(out), '--format', 'json'], check=True, stdout=subprocess.PIPE, text=True)
-    meta = json.loads((out / 'assets' / 'app' / 'build.json').read_text())
+    meta = read_json(out)
     modules = set(meta.get('runtime_modules', []))
     required = {'core', 'route', 'dom', 'turbojs', 'events', 'forms', 'observers', 'animation'}
     missing = required - modules
