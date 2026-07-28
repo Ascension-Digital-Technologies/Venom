@@ -572,15 +572,6 @@ See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md) for licensing terms and third-
 
 > **Verified WASM toolchain:** Venom pins Emscripten 4.0.10 for reproducible release builds. The minimal TurboJS/WASM target excludes TurboJS POSIX libc helpers, allowing newer Emscripten releases to compile the web/worker runtime without `environ` or `sighandler_t` compatibility failures.
 
-### Aegis Operations enterprise stress test
-
-A 40-file TypeScript/TSX operations dashboard with five protected TurboJS/WASM analytics services, deep browser module linking, interactive views, and production verification. Run `./scripts/linux/build-and-launch-aegis-operations.sh` or `.\scripts\windows\build-and-launch-aegis-operations.bat`.
-
-
-## Aegis Operations Screenshot
-
-![Aegis Operations](docs/assets/examples/aegis-operations/application.png)
-
 ## Runtime ABI qualification
 
 Venom's embedded TurboJS/WASM runtime is governed by `contracts/turbojs-wasm-abi.json`. Native builds parse the actual embedded WebAssembly export section before packaging. The generated browser engine consumes the same required-export and toolchain-export sets. Playwright qualification covers the JavaScript Playground and Aegis Operations in Chromium on normal CI runs and Chromium, Firefox, and WebKit during nightly qualification.
