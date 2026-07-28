@@ -449,15 +449,6 @@ A complete typed application demonstrating AST-backed runtime planning, TypeScri
 
 [Explore the TypeScript AST Showcase](examples/typescript-showcase/README.md)
 
-### Aegis Operations enterprise stress test
-
-A 40-file TypeScript/TSX operations dashboard with five protected TurboJS/WASM analytics services, deep browser module linking, interactive views, and production verification. Run `./scripts/linux/build-and-launch-aegis-operations.sh` or `.\scripts\windows\build-and-launch-aegis-operations.bat`.
-
-
-## Aegis Operations Screenshot
-
-![Aegis Operations](docs/assets/examples/aegis-operations/application.png)
-
 ## Install a binary release
 
 Venom 3.0.0 binary releases contain two required executables. Extract the archive and keep both files together under `bin/`:
