@@ -8,7 +8,7 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "^4.4.1",
+    "@vitejs/plugin-react": "^6.0.4",
     "@venom/vite": "file:../../packages/vite",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
