@@ -1,0 +1,14 @@
+changelog:
+  exclude:
+    labels: [skip-changelog]
+  categories:
+    - title: Security and hardening
+      labels: [security, hardening]
+    - title: Compiler and runtime
+      labels: [compiler, runtime]
+    - title: Integrations
+      labels: [integration, javascript]
+    - title: Documentation and tooling
+      labels: [documentation, tooling]
+    - title: Other changes
+      labels: ['*']

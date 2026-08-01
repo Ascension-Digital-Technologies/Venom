@@ -16,6 +16,21 @@ PUBLIC_METADATA = {
     "changelog.md", "contributing", "contributing.md", "security", "security.md",
 }
 TEXT_EXTENSIONS = {".js", ".json", ".html", ".css", ".txt", ".md", ".map"}
+BYTECODE_EXTENSIONS = {".vqc", ".vbc", ".vqbc"}
+# Production package sections must carry the permuted VTJSE006 envelope, never a
+# bare canonical record (docs/security/protection-strengths.md, "TurboJS bytecode
+# storage"). Any of these appearing un-enveloped in a shipped artifact means a
+# delivery path bypassed that envelope step -- exactly how the loose .vqc asset
+# in examples/protected-chess's browser build shipped a raw VTJSBC03 record.
+UNENVELOPED_BYTECODE_MAGICS = (b"VTJSBC03", b"VTJSMB04")
+BYTECODE_CONTAINER_MAGICS = (b"VTJSBC03", b"VTJSMB04", b"VENOMVBC", b"VTJSE006")
+# Three-or-more-word lowerCamelCase identifiers (generatePseudoLegal,
+# buildPrincipalVariation, computeHash, ...). Legitimate compiled bytecode/package
+# records should carry none of these once source identifiers have been mangled;
+# a cluster of them is the direct signature of the registry-hardening bug this
+# scan exists to catch a regression of.
+CAMEL_IDENTIFIER = re.compile(rb"\b[a-z][a-z0-9]{2,}(?:[A-Z][a-z0-9]{2,}){2,}\b")
+CAMEL_IDENTIFIER_THRESHOLD = 12
 FORBIDDEN_TEXT = (
     re.compile(rb"(?:^|[/'\"\\])(?:js|src)/[A-Za-z0-9_.\-/]+\.js"),
     re.compile(rb"function-extraction-plan|runtime-bridge-contract|bridge-rewrite-plan"),
@@ -23,6 +38,11 @@ FORBIDDEN_TEXT = (
     re.compile(rb"venom_tjs_[A-Za-z0-9_]+"),
     re.compile(rb"bridge-result|bridge-error|type:[\'\"](?:invoke|cancel)[\'\"]"),
 )
+
+def is_bytecode_artifact(path: Path, data: bytes) -> bool:
+    if path.suffix.lower() in BYTECODE_EXTENSIONS:
+        return True
+    return any(data.startswith(magic) for magic in BYTECODE_CONTAINER_MAGICS)
 
 def main() -> int:
     ap = argparse.ArgumentParser()
@@ -41,6 +61,7 @@ def main() -> int:
         if "/" not in rel and low in PUBLIC_METADATA:
             problems.append(f"root project metadata copied into distribution: {rel}")
         # Public assets should not contain descriptive bridge/WASM ABI or original source paths.
+        data = None
         if path.suffix.lower() in TEXT_EXTENSIONS or path.suffix.lower() == ".wasm":
             data = path.read_bytes()
             for pattern in FORBIDDEN_TEXT:
@@ -54,6 +75,27 @@ def main() -> int:
                     if marker in data:
                         problems.append(f"browser package decoder leak in {rel}: {marker.decode('ascii')}")
                         break
+        # A shipped bytecode/package artifact must never expose a bare
+        # VTJSBC03/VTJSMB04 magic (production sections carry VTJSE006 instead),
+        # and must not carry a dense cluster of readable multi-word identifiers --
+        # the direct fingerprint of unmangled source reaching compiled output.
+        # Scoped to files that are themselves bytecode-shaped artifacts, not any
+        # file that merely mentions the magic string: the runtime loader and the
+        # WASM interpreter legitimately contain "VTJSBC03" as a literal they
+        # validate incoming records against.
+        if data is None:
+            data = path.read_bytes()
+        if is_bytecode_artifact(path, data):
+            for magic in UNENVELOPED_BYTECODE_MAGICS:
+                if data.startswith(magic):
+                    problems.append(f"unenveloped bytecode record in {rel}: {magic.decode('ascii')}")
+                    break
+            identifiers = sorted(set(CAMEL_IDENTIFIER.findall(data)))
+            if len(identifiers) >= CAMEL_IDENTIFIER_THRESHOLD:
+                sample = ", ".join(m.decode("ascii", "replace") for m in identifiers[:6])
+                problems.append(
+                    f"readable identifier cluster in {rel}: {len(identifiers)} distinct names, e.g. {sample}"
+                )
     if problems:
         print("production leak scan: FAIL", file=sys.stderr)
         for problem in problems:

@@ -1,11 +1,11 @@
 # Installation
 
 > **Audience:** users installing or building Venom  
-> **Applies to:** Venom 3.0.0
+> **Applies to:** Venom 3.5.0
 
 ## Binary release layout
 
-Every Venom 3.0.0 binary release contains two required executables:
+Every Venom 3.5.0 binary release contains two required executables:
 
 ```text
 bin/
@@ -17,7 +17,7 @@ The `venom` executable is the public CLI. `venom_hardener_worker` is an internal
 
 ## Windows x86-64
 
-1. Extract `venom-3.0.0-windows-x86_64.zip`.
+1. Extract `venom-3.5.0-windows-x86_64.zip`.
 2. Keep `venom.exe` and `venom_hardener_worker.exe` together in the extracted `bin` directory.
 3. Add that `bin` directory to `PATH`, or invoke `venom.exe` by its full path.
 
@@ -30,13 +30,13 @@ venom doctor --profile production
 
 ## Linux x86-64
 
-1. Extract `venom-3.0.0-linux-x86_64.tar.gz`.
+1. Extract `venom-3.5.0-linux-x86_64.tar.gz`.
 2. Keep `venom` and `venom_hardener_worker` together in `bin/`.
 3. Add that directory to `PATH`, or invoke the binary directly.
 
 ```bash
-tar -xzf venom-3.0.0-linux-x86_64.tar.gz
-cd venom-3.0.0-linux-x86_64
+tar -xzf venom-3.5.0-linux-x86_64.tar.gz
+cd venom-3.5.0-linux-x86_64
 chmod +x bin/venom bin/venom_hardener_worker
 ./bin/venom --version
 ./bin/venom doctor --profile production

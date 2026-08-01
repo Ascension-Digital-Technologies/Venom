@@ -146,6 +146,62 @@ function decodeBridgeFrame(raw) {
   return { op: view.getUint16(6, true) >>> 0, counter: view.getUint32(12, true) >>> 0, capability: view.getUint32(16, true) >>> 0, requestId, value: decodeBridgePayload(payload) };
 }
 function sendBridgeFrame(op, counter, capability, requestId, value) { if (!bridgePort) return; const frame = encodeBridgeFrame(op, counter, capability, requestId, value); bridgePort.postMessage(frame, [frame]); }
+function asciiOf(bytes) { if (!bytes) return ''; let out = ''; for (let i = 0; i < bytes.length; ++i) out += String.fromCharCode(bytes[i]); return out; }
+function readU32(view, offset) { if (offset + 4 > view.byteLength) throw new Error('truncated TurboJS envelope while reading u32'); return view.getUint32(offset, true); }
+function readHash64(view, offset) { const lo = BigInt(view.getUint32(offset, true)); const hi = BigInt(view.getUint32(offset + 4, true)); return (hi << 32n) | lo; }
+function fnv1a64(bytes) { let hash = 1469598103934665603n; const prime = 0x100000001b3n; for (let i = 0; i < bytes.length; ++i) { hash ^= BigInt(bytes[i]); hash = BigInt.asUintN(64, hash * prime); } return hash; }
+function turboJsEnvelopeLaneMap(seed) {
+  const map = new Uint8Array(16);
+  for (let i = 0; i < map.length; ++i) map[i] = i;
+  let state = (seed ^ 0xC6EF3720) >>> 0;
+  for (let i = map.length - 1; i > 0; --i) {
+    state ^= (state << 13) >>> 0; state ^= state >>> 17; state ^= (state << 5) >>> 0; state >>>= 0;
+    const j = state % (i + 1);
+    const tmp = map[i]; map[i] = map[j]; map[j] = tmp;
+  }
+  return map;
+}
+function turboJsEnvelopeLaneFingerprint(map) { let h = 2166136261 >>> 0; for (const value of map) { h ^= value; h = Math.imul(h, 16777619) >>> 0; } return h >>> 0; }
+// Lazy protected registry chunks (.vqc assets) are wrapped in the same
+// per-build VTJSE006 permutation envelope as inline TurboJS records embedded
+// in the VBC package (see wrap_turbojs_record in js_bundle_encoding.cpp).
+// The main-thread bundle loader decodes this envelope before validating
+// bytecode; the worker must do the same for chunks it fetches independently,
+// or venom_tjs_bytecode_validate rejects the still-permuted bytes.
+function decodeTurboJsEnvelope(bytes, sourceName) {
+  if (!bytes || bytes.length < 48) throw new Error('TurboJS bytecode envelope is truncated for ' + (sourceName || '<chunk>'));
+  if (asciiOf(bytes.slice(0, 8)) !== 'VTJSE006') return bytes;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const version = readU32(view, 8);
+  const payloadSize = readU32(view, 12);
+  const seed = readU32(view, 16) >>> 0;
+  const bytecodeAbi = readU32(view, 20);
+  const expectedHash = readHash64(view, 24);
+  const payloadOffset = readU32(view, 32);
+  const laneWidth = readU32(view, 40);
+  const expectedLaneFingerprint = readU32(view, 44);
+  if (version !== 2 || bytecodeAbi !== 0x01000300 || payloadOffset !== 48 || laneWidth !== 16 || payloadOffset + payloadSize !== bytes.length) {
+    throw new Error('TurboJS bytecode envelope contract mismatch for ' + (sourceName || '<chunk>'));
+  }
+  const laneMap = turboJsEnvelopeLaneMap(seed);
+  if (turboJsEnvelopeLaneFingerprint(laneMap) !== expectedLaneFingerprint) {
+    throw new Error('TurboJS bytecode envelope lane map mismatch for ' + (sourceName || '<chunk>'));
+  }
+  const decoded = new Uint8Array(payloadSize);
+  let stream = (seed ^ 0x9E3779B9) >>> 0;
+  for (let block = 0; block < payloadSize; block += laneWidth) {
+    const blockSize = Math.min(laneWidth, payloadSize - block);
+    const blockMap = Array.from(laneMap).filter(lane => lane < blockSize);
+    for (let storedLane = 0; storedLane < blockSize; ++storedLane) {
+      if (((block + storedLane) & 3) === 0) { stream ^= (stream << 13) >>> 0; stream ^= stream >>> 17; stream ^= (stream << 5) >>> 0; stream >>>= 0; }
+      const value = bytes[payloadOffset + block + storedLane] ^ ((stream >>> (((block + storedLane) & 3) * 8)) & 0xff);
+      decoded[block + blockMap[storedLane]] = value;
+    }
+  }
+  laneMap.fill(0);
+  if (fnv1a64(decoded) !== expectedHash) { decoded.fill(0); throw new Error('TurboJS bytecode envelope integrity mismatch for ' + (sourceName || '<chunk>')); }
+  return decoded;
+}
 function prepareTurboJsRecordForExecution(e, context, view) {
   e.venom_tjs_script_buffer_set_expected_hash(context, fnv1a32(view));
   let status = typeof e.venom_tjs_bytecode_validate === 'function' ? (e.venom_tjs_bytecode_validate(context, view.byteLength >>> 0) >>> 0) : 0;
@@ -163,7 +219,10 @@ async function activateLazyRegistryChunk(chunk) {
   const promise = (async () => {
     const buffer = await boundedFetch(chunk.url, 16777216, 'protected registry chunk');
     if (chunk.sha256 && await sha256Hex(buffer) !== chunk.sha256) throw new Error('protected registry chunk digest mismatch');
-    const bytes = new Uint8Array(buffer);
+    // The fetched asset is still wrapped in the build's VTJSE006 permutation
+    // envelope (see wrap_turbojs_record_for_registry_chunk); decode it to the
+    // raw VTJSBC03/VTJSMB04 record before validation/execution.
+    const bytes = decodeTurboJsEnvelope(new Uint8Array(buffer), chunk.id);
     const e = turboJsInstance && turboJsInstance.exports;
     if (!e || !turboJsContext) throw new Error('protected registry executor is not ready');
     const ptr = e.venom_tjs_script_buffer_alloc(turboJsContext, bytes.byteLength >>> 0) >>> 0;

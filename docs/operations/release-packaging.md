@@ -1,4 +1,4 @@
-# Release Packaging — Venom 3.0.0
+# Release Packaging — Venom 3.5.0
 
 Venom binary releases are platform-specific, integrity-manifested packages. Each package must include the main compiler and its mandatory hardener worker.
 
@@ -15,8 +15,8 @@ The packager and verifier must fail when either executable is missing. The worke
 ## Canonical package names
 
 ```text
-venom-3.0.0-windows-x86_64.zip
-venom-3.0.0-linux-x86_64.tar.gz
+venom-3.5.0-windows-x86_64.zip
+venom-3.5.0-linux-x86_64.tar.gz
 ```
 
 Additional target packages should follow the same `<product>-<version>-<platform>-<architecture>` pattern.
@@ -24,7 +24,7 @@ Additional target packages should follow the same `<product>-<version>-<platform
 ## Package contents
 
 ```text
-venom-3.0.0-<target>/
+venom-3.5.0-<target>/
 ├── bin/
 │   ├── venom[.exe]
 │   └── venom_hardener_worker[.exe]

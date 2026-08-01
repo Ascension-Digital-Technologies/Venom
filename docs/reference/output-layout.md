@@ -1,6 +1,6 @@
 # Production Output Layout
 
-> **Applies to:** Venom 3.0.0 hardened production builds
+> **Applies to:** Venom 3.5.0 hardened production builds
 
 A production build emits a static distribution with stable entry documents and anonymous, content-addressed protected assets.
 

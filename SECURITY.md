@@ -31,4 +31,4 @@ environment. See [docs/security/threat-model.md](docs/security/threat-model.md) 
 
 ## Hardener worker trust boundary
 
-Venom 3.0.0 executes heavy native JavaScript hardening in the companion `venom_hardener_worker` process. Official binary releases require both executables to remain together. The main compiler validates the worker protocol and fails closed when the helper is missing, malformed, or unable to complete safe hardening. Replacing the worker independently of the main binary creates an unsupported and unverified installation.
+Venom 3.5.0 executes heavy native JavaScript hardening in the companion `venom_hardener_worker` process. Official binary releases require both executables to remain together. The main compiler validates the worker protocol and fails closed when the helper is missing, malformed, or unable to complete safe hardening. Replacing the worker independently of the main binary creates an unsupported and unverified installation.

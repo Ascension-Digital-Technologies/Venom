@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.5.0 — Hardening isolation, protected-route integrity, and repository modernization
+
+- Isolated heavy JavaScript hardening in dedicated worker processes and fresh TurboJS realms, with conservative no-eval profiles for loader, worker, runtime, engine, and very large assets.
+- Made hardener-cache publication safe across concurrent builds while preserving atomic cache installation and integrity validation.
+- Fixed Manifest V3 protected-route SRI discovery and extension host emission for popup, options, side-panel, and related stable routes.
+- Added build-specific TurboJS envelope, runtime integrity, package boundary, archive safety, and public-leakage enforcement improvements.
+- Improved repeated string-key Map and Set performance with stable cached content hashes and expanded native regression coverage.
+- Completed source-domain, colocated-header, generated-artifact, semantic-launcher, and dependency-boundary cleanup.
+- Added GitHub Actions CI, issue forms, pull-request guidance, Dependabot configuration, and a current 3.5.0 release template.
+
+See [RELEASE_NOTES_3.5.0.md](RELEASE_NOTES_3.5.0.md) for the user-facing release notes.
+
 ## 3.0.0 — Protected TurboJS/WASM production release
 
 - Added the complete fail-closed TurboJS/WASM protected production pipeline with encrypted, compressed, integrity-bound VBC packages.

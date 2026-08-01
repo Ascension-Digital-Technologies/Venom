@@ -17,6 +17,7 @@
 #include "pipeline/css.hpp"
 #include "pipeline/html.hpp"
 #include "pipeline/js.hpp"
+#include "pipeline/js_bundle_encoding.hpp"
 #include "pipeline/native_js_hardener.hpp"
 #include "frontends/typescript/frontend.hpp"
 #include "core/profile.hpp"
@@ -292,9 +293,17 @@ bool build_site(const BuildOptions& requested_options) {
     for (const auto& chunk : js_bridge.bridge_registry_chunks) {
       WorkerLazyRegistryChunk runtime_chunk;
       runtime_chunk.id = chunk.id;
-      const auto file_name = named_output("", ".vqc", chunk.bytecode, options.hashed_assets);
+      // External .vqc assets are fetched over the network like any other public
+      // asset, so they get the same per-build VTJSE006 permutation envelope as
+      // bytecode embedded directly in the VBC package (wrap_turbojs_record_for_bundle,
+      // used a few lines below for the non-lazy bridge_registry_bytecode path).
+      // The worker (worker_runtime_template.hpp, activateLazyRegistryChunk) decodes
+      // this envelope before validating/executing the record.
+      const auto wrapped_bytecode = wrap_turbojs_record_for_registry_chunk(
+          chunk.bytecode, remote_vendor_options.bridge_id_salt, "registry-chunk", chunk.id);
+      const auto file_name = named_output("", ".vqc", wrapped_bytecode, options.hashed_assets);
       runtime_chunk.asset = "../app/" + file_name;
-      runtime_chunk.sha256 = venom::package::sha256_hex(chunk.bytecode);
+      runtime_chunk.sha256 = venom::package::sha256_hex(wrapped_bytecode);
       runtime_chunk.candidates = chunk.candidates;
       for (const auto& preload_name : options.lazy_preload) {
         const auto export_it = std::find_if(js_bridge.protected_exports.begin(), js_bridge.protected_exports.end(),
@@ -454,8 +463,10 @@ bool build_site(const BuildOptions& requested_options) {
       const auto relative = runtime_chunk.asset.substr(3u); // remove ../ prefix used by worker
       std::ofstream lazy_out(assets_dir / relative, std::ios::binary);
       if (!lazy_out) raise_error("VENOM-E5000", "failed to write lazy protected registry chunk: " + compiled_chunk.id);
-      lazy_out.write(reinterpret_cast<const char*>(compiled_chunk.bytecode.data()),
-                     static_cast<std::streamsize>(compiled_chunk.bytecode.size()));
+      const auto wrapped_bytecode = wrap_turbojs_record_for_registry_chunk(
+          compiled_chunk.bytecode, remote_vendor_options.bridge_id_salt, "registry-chunk", compiled_chunk.id);
+      lazy_out.write(reinterpret_cast<const char*>(wrapped_bytecode.data()),
+                     static_cast<std::streamsize>(wrapped_bytecode.size()));
       lazy_out.flush();
       if (!lazy_out) raise_error("VENOM-E5000", "failed to finalize lazy protected registry chunk: " + compiled_chunk.id);
     }

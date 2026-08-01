@@ -6,7 +6,7 @@ build=(root/'src/pipeline/build.cpp').read_text(encoding='utf-8')
 checks=[
  ('candidate activation','ensureLazyRegistry(candidate)' in worker),
  ('sha256 attestation','protected registry chunk digest mismatch' in worker),
- ('hashed external assets','named_output("", ".vqc", chunk.bytecode, options.hashed_assets)' in build),
+ ('hashed external assets','named_output("", ".vqc", wrapped_bytecode, options.hashed_assets)' in build and 'wrap_turbojs_record_for_registry_chunk(' in build),
  ('package exclusion','external_lazy_registry ? std::vector<unsigned char>{} : js_bridge.bridge_registry_bytecode' in build),
  ('selective preload','preloadLazyRegistries' in worker and 'filter((chunk) => chunk.preload)' in worker),
  ('ir v13','compiler-v13' in build),

@@ -214,6 +214,55 @@ std::string js_flags_summary(std::uint32_t flags) {
   return out.str();
 }
 
+// Same FNV-1a 32-bit construction as encode_js_bundle's per-chunk envelope_seed
+// (js_bundle_encoding.cpp), specialized for registry source that has no JsChunk.
+// Keeping the algorithm identical means registry bytecode participates in the
+// same per-build seed diversification as every other hardened asset.
+std::uint32_t registry_envelope_seed(const std::string& salt, const std::string& domain, const std::string& id) {
+  std::uint32_t h = 2166136261u;
+  const auto mix = [&](unsigned char value) { h ^= value; h *= 16777619u; };
+  for (const char raw_c : salt) mix(static_cast<unsigned char>(raw_c));
+  for (const char raw_c : domain) mix(static_cast<unsigned char>(raw_c));
+  for (const char raw_c : id) mix(static_cast<unsigned char>(raw_c));
+  return h;
+}
+
+// Protected registry source carries the author's original identifiers (function
+// names, locals, property-like names) straight from extraction. Terser's
+// toplevel mangle pass removes the top-level ones, and native_js_hardener::harden()
+// also runs "protected-module"/"protected-script" kinds through a
+// javascript-obfuscator identifier-renaming pass (hex names, plus cheap
+// numbersToExpressions/simplify/transformObjectKeys transforms) so
+// closure-local identifiers get the same coverage (see native_js_hardener.cpp's
+// protectedKind handling). The more expensive per-access transforms --
+// string array encoding, control flow flattening, dead code injection,
+// self-defending -- are deliberately NOT applied to protected-* content:
+// they protect JavaScript *source text* from a human reader, a threat model
+// that mostly does not apply here since this output is immediately compiled
+// to source-free TurboJS bytecode, and they measured a 5x-35x runtime
+// slowdown against real deeply-recursive protected functions (e.g. a chess
+// engine's search), which is a worse regression than the atom-table leak
+// they would have addressed. harden() still unconditionally routes
+// "protected-script"/"protected-module" through the crash-isolated
+// subprocess worker regardless of size (see requires_worker_isolation() in
+// native_js_hardener.cpp), since the underlying embedded-compiler crash risk
+// is about input size/shape, independent of which transforms run. Skipping
+// this call entirely -- as the registry path previously did -- ships
+// bytecode whose atom table is fully readable with `strings`.
+std::string harden_registry_source(bool development, const std::string& salt,
+                                    const std::string& domain, const std::string& id,
+                                    const std::string& source) {
+  if (development || source.empty()) return source;
+  const std::uint32_t seed = registry_envelope_seed(salt, domain, id);
+  // Registry source is assembled as global-script IIFEs
+  // (globalThis.__venomProtectedBridge[...] = (function(){...})();), never
+  // ESM import/export, so "protected-script" is the correct kind here --
+  // native_js_hardener resolves it to the same hardening treatment as
+  // "protected-module" (both start with "protected-"), it just tells Terser
+  // not to assume module scoping.
+  return venom::compiler::native_js_hardener::harden("protected-script", source, seed);
+}
+
 JsBridge compile_js_bridge(const SiteGraph& graph, const RemoteVendorOptions& remote_options, bool development, bool harden_public_javascript) {
   JsBridge bridge;
   bridge.chunks = detail::collect_script_chunks(graph, remote_options, bridge.remote_vendors, bridge.module_edges);
@@ -298,12 +347,20 @@ JsBridge compile_js_bridge(const SiteGraph& graph, const RemoteVendorOptions& re
     bridge.lazy_protected_manifest_json = lazy.str();
   }
   if (!rewrite_result.registry_source.empty()) {
-    // Registry source is never emitted into the distribution. Compile the authored
-    // closure directly into stripped native bytecode instead of running the embedded
-    // JavaScript obfuscator first. This removes a redundant transformation and avoids
-    // an uncatchable Windows access violation observed on large protected registries.
+    // Registry source is never emitted into the distribution as JavaScript text,
+    // but the record TurboJS produces still stores an atom table of the source's
+    // own identifiers (locals, function names, property-like names) -- stripping
+    // source/debug info at the bytecode layer does not rename those. Route the
+    // authored closure through harden_registry_source() first: it uses the same
+    // "protected-*" kind family as encode_js_bundle's whole-file protected chunks,
+    // which native_js_hardener.cpp already resolves to Terser-only toplevel
+    // mangling (no javascript-obfuscator control/string-array transforms) for
+    // exactly this asset class, so the historical Windows access-violation risk
+    // from routing large registries through the full obfuscator is not reintroduced.
+    const std::string hardened_registry_source = harden_registry_source(
+        development, remote_options.bridge_id_salt, "registry", "root", rewrite_result.registry_source);
     bridge.bridge_registry_bytecode = venom::turbojs::compile_native_turbojs_bytecode(
-        rewrite_result.registry_source,
+        hardened_registry_source,
         development ? "venom://protected-registry/root" : "v://" + opaque_js_bytecode_label(remote_options.bridge_id_salt, "registry", "root"),
         false, !development, nullptr);
     const bool native_record = bridge.bridge_registry_bytecode.size() >= 8u &&
@@ -319,8 +376,10 @@ JsBridge compile_js_bridge(const SiteGraph& graph, const RemoteVendorOptions& re
     ProtectedRegistryChunk compiled_chunk;
     compiled_chunk.id = source_chunk.id;
     compiled_chunk.candidates = source_chunk.candidates;
+    const std::string hardened_chunk_source = harden_registry_source(
+        development, remote_options.bridge_id_salt, "registry-chunk", source_chunk.id, source_chunk.source);
     compiled_chunk.bytecode = venom::turbojs::compile_native_turbojs_bytecode(
-        source_chunk.source,
+        hardened_chunk_source,
         development ? ("venom://protected-registry/" + source_chunk.id) : ("v://" + opaque_js_bytecode_label(remote_options.bridge_id_salt, "registry-chunk", source_chunk.id)),
         false, !development, nullptr);
     if (compiled_chunk.bytecode.empty()) raise_error("VENOM-E5000", "protected registry chunk compilation failed: " + source_chunk.id);

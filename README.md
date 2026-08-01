@@ -13,22 +13,24 @@
 </p>
 
 <p align="center">
-  <strong>Version 3.0.0</strong> · <strong>Static-host compatible</strong>
+  <strong>Version 3.5.0</strong> · <strong>Static-host compatible</strong>
 </p>
 
 ---
 
-## Venom 3.0
+## Venom 3.5
 
-Venom 3.0 expands the protected web compiler into a broader application toolchain while keeping the same static-host-friendly, fail-closed deployment model.
+Venom 3.5 strengthens the production compiler, hardener, runtime, and repository architecture while preserving the static-host-compatible deployment model.
 
-- **TurboJS integration:** protected JavaScript and TypeScript compile into TurboJS bytecode and execute through the embedded TurboJS/WebAssembly runtime, with synchronized ABI contracts, runtime verification, protected package fingerprints, and optimized Map/Set execution.
-- **React compatibility:** React and TSX projects are supported through production Vite-output ingestion, the `@venom/react` hooks package, protected export calls, runtime readiness handling, and a tested React + Vite showcase.
-- **Zero-config integration:** `@venom/venom` detects common project types, runs existing framework builds, discovers their output, and creates a protected distribution with the single `venom` command.
-- **Modern framework support:** first-party workflows cover React, Vite, Vue, Svelte, TypeScript, static websites, and Manifest V3 Chrome extensions without requiring an application rewrite.
-- **Chrome extension protection:** extension pages retain the normal Venom protected-site layout while generated Chrome adapters bridge DOM and `chrome.*` APIs to protected TurboJS exports.
-- **Developer workflow:** guided initialization, project-local compiler setup, toolchain locking, diagnostics, binary discovery, and `venom dev` provide reproducible local watch-and-serve builds through the same production-grade compiler path used by `venom build`.
-- **Production hardening:** process-isolated JavaScript hardening, race-safe integrity-checked caches, polymorphic VBC packaging, protected-source leak scanning, package verification, and fail-closed runtime enforcement remain integrated into release builds.
+- **Safer hardening isolation:** loader, worker, runtime, engine, and very large JavaScript assets are hardened in fresh isolated TurboJS realms through the companion worker, with deterministic conservative profiles and retry-safe protocol validation.
+- **Concurrent hardener cache:** cache publication is race-safe across simultaneous Venom processes, uses unique temporary files, preserves atomic installation, and records private cache telemetry.
+- **Protected Chrome routes:** Manifest V3 integrity discovery now supports stable protected routes such as popup, options, and side-panel pages without restoring readable role-named asset paths.
+- **Stronger package boundaries:** release verification rejects unsafe archive entries, non-portable manifest paths, malformed VBC section names, sensitive project files, stale ABI metadata, and public diagnostic leakage.
+- **TurboJS collection performance:** stable string keys cache their content hashes for repeated Map and Set operations, backed by native benchmark and semantic regression coverage.
+- **Cleaner source architecture:** first-party source domains, colocated headers, generated-code ownership, semantic example launchers, and dependency checks are enforced by CMake and CI gates.
+- **Release-ready GitHub workflow:** the repository now includes pull-request checks, issue forms, contribution templates, dependency updates, and release-note guidance for repeatable public development.
+
+See [RELEASE_NOTES_3.5.0.md](RELEASE_NOTES_3.5.0.md) for upgrade notes and the complete release summary.
 
 ## React and Vite
 
@@ -451,7 +453,7 @@ A complete typed application demonstrating AST-backed runtime planning, TypeScri
 
 ## Install a binary release
 
-Venom 3.0.0 binary releases contain two required executables. Extract the archive and keep both files together under `bin/`:
+Venom 3.5.0 binary releases contain two required executables. Extract the archive and keep both files together under `bin/`:
 
 ```text
 bin/
@@ -468,7 +470,7 @@ venom --version
 venom doctor --profile production
 ```
 
-See the [3.0.0 release notes](RELEASE_NOTES_3.0.0.md) and [installation guide](docs/getting-started/installation.md).
+See the [3.5.0 release notes](RELEASE_NOTES_3.5.0.md) and [installation guide](docs/getting-started/installation.md).
 
 ## Build from source
 
@@ -564,7 +566,7 @@ Report suspected vulnerabilities privately through [SECURITY.md](SECURITY.md). D
 
 ## Versioning
 
-Venom follows [Semantic Versioning](docs/operations/versioning.md). The current public release is **3.0.0**. Internal commits and CI runs do not create new public version numbers.
+Venom follows [Semantic Versioning](docs/operations/versioning.md). The current public release is **3.5.0**. Internal commits and CI runs do not create new public version numbers.
 
 ## License
 

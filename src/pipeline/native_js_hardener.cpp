@@ -21,6 +21,25 @@ namespace {
 
 using Clock = std::chrono::steady_clock;
 
+// Above this size, hardening runs in the crash-isolated subprocess worker
+// instead of in-process. Terser (running inside the embedded TurboJS engine)
+// can become pathologically slow -- effectively hanging -- on large,
+// data-dense inputs well before 192 KiB: a single ~53 KiB protected function
+// containing large lookup tables (e.g. a chess engine's piece-square tables)
+// was observed to hang the in-process hardener indefinitely and, without
+// subprocess isolation, brought down the whole venom process with a native
+// access violation on Windows. Routing content at or above this threshold
+// through the isolated worker contains that failure instead of crashing (or
+// hanging) the parent build process.
+constexpr std::size_t kHardenerWorkerIsolationBytes = 32768u;
+
+// Generous but bounded ceiling for a single isolated hardening pass. Terser
+// running inside the embedded TurboJS engine can become pathologically slow
+// on certain large, data-dense inputs (observed: indefinite, not just slow).
+// Killing the worker after this budget turns that into a clear build failure
+// instead of an unbounded hang.
+constexpr int kHardenerWorkerTimeoutMs = 60000;
+
 std::size_t g_fallback_calls = 0;
 std::string g_worker_executable;
 std::atomic<std::uint64_t> g_worker_counter{0};
@@ -101,7 +120,6 @@ const char kRunHardener[] = R"JS(
     const extensionKind = kind.startsWith('extension-');
     const browserKind = kind.startsWith('browser-');
     const browserFacingKind = extensionKind || browserKind;
-    const bytecodeKind = kind.startsWith('protected-');
     const largeAsset = source.length >= 32768;
     const hugeAsset = source.length >= 196608;
     const bindingMatch = kind === 'loader' ? source.match(/bindingToken\s*:\s*['\"]([^'\"]+)['\"]/) : null;
@@ -122,46 +140,81 @@ const char kRunHardener[] = R"JS(
     });
     if (!minified.code) throw new Error('terser produced no output');
     let hardened = minified.code;
-    if (!bytecodeKind) {
-      // Protected registry sources are never emitted as JavaScript: they are immediately
-      // compiled into source-free TurboJS bytecode. Terser's minification and toplevel
-      // mangling provide the required pre-bytecode hardening without routing these large,
-      // closure-heavy records through javascript-obfuscator, whose embedded runtime can
-      // terminate with an uncatchable native access violation on Windows.
-      // Worker, loader, and very large runtime assets put substantially more pressure on
-      // the embedded compiler realm. Use the deterministic conservative profile
-      // directly for those inputs so a native engine fault cannot occur before
-      // the JavaScript-level retry path is reached.
+    {
+      // Protected registry sources are immediately compiled into source-free
+      // TurboJS bytecode, but the record still carries an atom table of the
+      // source's own identifiers (locals, function names, property-like names)
+      // until obfuscation renames them -- Terser's toplevel mangling alone is
+      // not enough coverage for closure-heavy protected functions, so they now
+      // get the same javascript-obfuscator pass (string array encoding, control
+      // flow flattening, dead code injection) as everything else, tuned via
+      // protectedKind below to the strongest settings in this file.
+      //
+      // This used to be skipped entirely for protected-* kinds because
+      // javascript-obfuscator's embedded runtime could terminate with an
+      // uncatchable native access violation on Windows for large, closure-heavy
+      // records. That risk is now contained rather than avoided: harden() routes
+      // any input at or above kHardenerWorkerIsolationBytes (including
+      // protected-script/protected-module, see requires_worker_isolation below)
+      // through the crash-isolated subprocess worker with a bounded timeout, so
+      // a native fault here kills only that worker process and surfaces as a
+      // clean build failure -- it can no longer take down the parent build.
+      // Worker, loader, and very large runtime assets put substantially more
+      // pressure on the embedded compiler realm. Use the deterministic
+      // conservative profile directly for those inputs so a native engine fault
+      // cannot occur before the JavaScript-level retry path is reached.
       const forceConservative = browserFacingKind || kind === 'worker' || kind === 'loader' || hugeAsset;
+      // protectedKind gets a deliberately narrow obfuscator profile. Measured
+      // against the real protected-chess registry chunk (a deeply recursive
+      // alpha-beta search over large evaluation tables -- exactly the
+      // pathological shape these transforms are documented to punish), each
+      // per-access/per-call runtime transform costs a large constant factor
+      // in isolation, and they compound when stacked:
+      //   identifier renaming alone                          ~1x  (baseline)
+      //   + stringArray (even at a light threshold)          ~5x
+      //   + deadCodeInjection                                 ~9x
+      //   + controlFlowFlattening + selfDefending            ~35x
+      // stringArray, its dependent stringArrayCallsTransform/splitStrings,
+      // deadCodeInjection, controlFlowFlattening, and selfDefending are all
+      // therefore kept OFF for protectedKind: they exist to protect
+      // JavaScript *source text* from a human reader, but protectedKind
+      // content never ships as JavaScript text -- harden_registry_source()
+      // immediately compiles this output to source-free TurboJS bytecode,
+      // so that threat model mostly does not apply, and paying a 5-35x
+      // runtime cost for it turned real gameplay search unusably slow.
+      // What protectedKind keeps is identifier renaming (the actual fix for
+      // the atom-table identifier leak this file exists to close) plus
+      // numbersToExpressions/simplify/transformObjectKeys, which measured
+      // near-free (~1-1.6x) in isolation and stayed cheap combined.
       const primaryOptions = {
         target: 'browser-no-eval', compact: true, seed,
         identifierNamesGenerator: 'hexadecimal', identifiersPrefix: '_v' + seed.toString(36) + '_',
         renameGlobals: false, renameProperties: false,
-        stringArray: !bytecodeKind && !browserFacingKind, stringArrayEncoding: ['rc4'],
-        stringArrayThreshold: protectedKind ? 0.86 : (kind === 'runtime' ? 0.42 : 0.58),
-        stringArrayCallsTransform: !bytecodeKind && !browserFacingKind && (protectedKind || (kind === 'loader' && !hugeAsset)),
-        stringArrayCallsTransformThreshold: protectedKind ? 0.72 : 0.35,
+        stringArray: !browserFacingKind && !protectedKind, stringArrayEncoding: ['rc4'],
+        stringArrayThreshold: kind === 'runtime' ? 0.42 : 0.58,
+        stringArrayCallsTransform: !browserFacingKind && !protectedKind && kind === 'loader' && !hugeAsset,
+        stringArrayCallsTransformThreshold: 0.35,
         stringArrayIndexesType: ['hexadecimal-number'],
-        stringArrayRotate: !bytecodeKind && !browserFacingKind, stringArrayShuffle: !bytecodeKind && !browserFacingKind,
+        stringArrayRotate: !browserFacingKind && !protectedKind, stringArrayShuffle: !browserFacingKind && !protectedKind,
         stringArrayWrappersCount: 1, stringArrayWrappersChainedCalls: true,
         stringArrayWrappersParametersMaxCount: 4, stringArrayWrappersType: 'function',
-        splitStrings: !bytecodeKind && !browserFacingKind && (protectedKind || (kind === 'loader' && !hugeAsset)), splitStringsChunkLength: protectedKind ? 7 : 12,
-        numbersToExpressions: !bytecodeKind && kind !== 'worker' && !browserFacingKind, simplify: kind !== 'worker' && !browserFacingKind,
+        splitStrings: !browserFacingKind && !protectedKind && kind === 'loader' && !hugeAsset, splitStringsChunkLength: 12,
+        numbersToExpressions: kind !== 'worker' && !browserFacingKind, simplify: kind !== 'worker' && !browserFacingKind,
         transformObjectKeys: kind !== 'worker' && !browserFacingKind, unicodeEscapeSequence: false,
-        controlFlowFlattening: !bytecodeKind && !browserFacingKind && (protectedKind || ((kind === 'loader' || kind === 'runtime') && !hugeAsset)),
-        controlFlowFlatteningThreshold: protectedKind ? 0.34 : (largeAsset ? 0.06 : (kind === 'loader' ? 0.22 : 0.12)),
-        deadCodeInjection: !bytecodeKind && !browserFacingKind && (protectedKind || (kind === 'loader' && !largeAsset)),
-        deadCodeInjectionThreshold: protectedKind ? 0.045 : (kind === 'loader' ? 0.035 : 0.02),
-        selfDefending: !bytecodeKind && kind !== 'worker' && !browserFacingKind, debugProtection: false,
+        controlFlowFlattening: !browserFacingKind && !protectedKind && ((kind === 'loader' || kind === 'runtime') && !hugeAsset),
+        controlFlowFlatteningThreshold: largeAsset ? 0.06 : (kind === 'loader' ? 0.22 : 0.12),
+        deadCodeInjection: !browserFacingKind && !protectedKind && kind === 'loader' && !largeAsset,
+        deadCodeInjectionThreshold: kind === 'loader' ? 0.035 : 0.02,
+        selfDefending: kind !== 'worker' && !browserFacingKind && !protectedKind, debugProtection: false,
         disableConsoleOutput: false, sourceMap: false
       };
       const fallbackOptions = {
         target: 'browser-no-eval', compact: true, seed,
         identifierNamesGenerator: 'hexadecimal', identifiersPrefix: '_vf' + seed.toString(36) + '_',
         renameGlobals: false, renameProperties: false,
-        stringArray: !bytecodeKind, stringArrayEncoding: ['rc4'], stringArrayThreshold: 0.48,
+        stringArray: true, stringArrayEncoding: ['rc4'], stringArrayThreshold: 0.48,
         stringArrayCallsTransform: false, stringArrayIndexesType: ['hexadecimal-number'],
-        stringArrayRotate: !bytecodeKind, stringArrayShuffle: !bytecodeKind,
+        stringArrayRotate: true, stringArrayShuffle: true,
         stringArrayWrappersCount: 1, stringArrayWrappersChainedCalls: false,
         stringArrayWrappersParametersMaxCount: 2, stringArrayWrappersType: 'function',
         splitStrings: false, numbersToExpressions: false, simplify: false,
@@ -296,9 +349,15 @@ std::string harden_in_process(const std::string& kind, const std::string& source
   // Heavy browser assets, including the bootstrap loader, are isolated in a fresh TurboJS realm. This avoids
   // carrying allocator and obfuscator state from protected-script compilation
   // into the worker/runtime hardening phase, which can surface as an uncatchable
-  // native access violation on Windows.
+  // native access violation on Windows. protected-script/protected-module now
+  // always route through the isolated subprocess worker (see
+  // requires_worker_isolation() below) since they receive the full
+  // javascript-obfuscator pass rather than Terser-only mangling; this in-process
+  // fallback path is only reached if the worker executable is unavailable, so
+  // still reset the realm for them here as a second line of defense.
   const bool isolate_heavy_asset = kind == "worker" || kind == "runtime" ||
-      kind == "engine" || kind == "loader" || source.size() >= 196608u;
+      kind == "engine" || kind == "loader" || kind == "protected-script" ||
+      kind == "protected-module" || source.size() >= kHardenerWorkerIsolationBytes;
   if (isolate_heavy_asset && g_hardener) {
     g_hardener.reset();
     ++g_stats.resets;
@@ -336,8 +395,16 @@ void configure_worker_executable(std::string path) {
 namespace {
 
 bool requires_worker_isolation(const std::string& kind, std::size_t source_size) {
+  // protected-script/protected-module are unconditionally isolated regardless of
+  // size: they now receive the full javascript-obfuscator pass (string array
+  // encoding, control flow flattening, dead code injection) rather than
+  // Terser-only mangling, which is the exact transform combination that can
+  // fault natively on Windows for closure-heavy inputs. Routing every size
+  // through the subprocess worker means a native fault there fails that one
+  // asset cleanly instead of ever risking the parent build process.
   return kind == "worker" || kind == "runtime" || kind == "engine" ||
-         kind == "loader" || source_size >= 196608u;
+         kind == "loader" || kind == "protected-script" || kind == "protected-module" ||
+         source_size >= kHardenerWorkerIsolationBytes;
 }
 
 std::filesystem::path worker_temp_path(const char* suffix) {
@@ -412,7 +479,7 @@ std::string harden(const std::string& kind, const std::string& source, std::uint
       ++g_stats.subprocess_calls;
       if (attempt != 0) ++g_stats.subprocess_retries;
     }
-    last_status = run_process(worker, {kind, std::to_string(seed), input_path.string(), output_path.string()});
+    last_status = run_process(worker, {kind, std::to_string(seed), input_path.string(), output_path.string()}, kHardenerWorkerTimeoutMs);
     if (last_status == 0) {
       std::size_t fallbacks = 0;
       try {

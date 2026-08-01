@@ -1,6 +1,6 @@
 {
   "name": "@venom/vite",
-  "version": "3.0.0",
+  "version": "3.5.0",
   "description": "First-class Vite integration for the Venom protected JavaScript/TypeScript compiler.",
   "type": "module",
   "main": "./src/index.js",
@@ -15,7 +15,7 @@
   },
   "peerDependencies": {
     "vite": ">=5 <8",
-    "@venom/runtime": ">=3.0.0"
+    "@venom/runtime": ">=3.5.0"
   },
   "keywords": [
     "venom",

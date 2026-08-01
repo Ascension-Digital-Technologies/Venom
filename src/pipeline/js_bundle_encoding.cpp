@@ -126,6 +126,24 @@ std::vector<unsigned char> wrap_turbojs_record_for_bundle(const std::vector<unsi
   return wrap_turbojs_record(raw, diversification_salt, chunk);
 }
 
+std::vector<unsigned char> wrap_turbojs_record_for_registry_chunk(const std::vector<unsigned char>& raw,
+                                                                   const std::string& diversification_salt,
+                                                                   const std::string& domain,
+                                                                   const std::string& id) {
+  // Lazy protected registry chunks have no JsChunk of their own (they are
+  // fetched as external .vqc assets keyed by domain/id), so synthesize one
+  // whose route/source embed the domain and id. This keeps the envelope seed
+  // unique per chunk while reusing the exact same wrap_turbojs_record path as
+  // every other TurboJS record (see wrap_turbojs_record_for_bundle above).
+  JsChunk synthetic;
+  synthetic.route = "venom://protected-" + domain;
+  synthetic.source = "venom://protected-" + domain + "/" + id;
+  synthetic.order = 0u;
+  synthetic.flags = JsChunkBytecodeEncoded;
+  synthetic.kind = 0u;
+  return wrap_turbojs_record(raw, diversification_salt, synthetic);
+}
+
 std::string opaque_js_bytecode_label(const std::string& salt,
                                      const std::string& domain,
                                      const std::string& value) {

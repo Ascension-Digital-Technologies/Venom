@@ -1,0 +1,39 @@
+# Build output
+/build/
+/out/
+/dist/
+/dist-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+CTestTestfile.cmake
+Testing/
+
+# Venom private state and generated distributions
+.venom/
+**/dist-venom/
+*.vbc
+
+# Tooling and dependencies
+node_modules/
+.npm/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs, local secrets, and signing material
+*.log
+*.key
+*.pem
+*.p12
+*.pfx
+.env
+.env.*
+!.env.example

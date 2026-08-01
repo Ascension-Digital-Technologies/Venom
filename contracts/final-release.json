@@ -1,6 +1,6 @@
 {
   "schema": "VENOM_FINAL_RELEASE_CONTRACT_V1",
-  "version": "3.0.0",
+  "version": "3.5.0",
   "buildProfile": "prod",
   "requiredExampleCount": 8,
   "requiredBrowserEngines": [

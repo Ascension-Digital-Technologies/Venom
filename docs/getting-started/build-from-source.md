@@ -1,6 +1,6 @@
 # Build Venom from Source
 
-> **Applies to:** Venom 3.0.0  
+> **Applies to:** Venom 3.5.0  
 > **Purpose:** produce the production compiler from the released source package
 
 Normal users may use a prebuilt release when one is available. Building from source is supported for teams that require reproducible local binaries, internal qualification, or platform-specific packaging.
