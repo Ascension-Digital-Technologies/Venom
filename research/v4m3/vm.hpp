@@ -9,7 +9,7 @@
 namespace venom::v4m3 {
 
 // Research ISA. These opcodes are semantic identities, never stored on wire.
-enum class Op : std::uint8_t { Const, Move, Add, Sub, Xor, Jnz, Halt, HostCall, Count };
+enum class Op : std::uint8_t { Const, Move, Add, Sub, Xor, Jnz, Halt, HostCall, AddChecked, SubChecked, MulChecked, Equal, Less, LessEqual, Greater, GreaterEqual, Count };
 
 // Const: dst <- b; Move: dst <- reg[a]; Add/Sub/Xor: dst <- reg[a] op reg[b]
 // Jnz: if (reg[a] != 0) pc <- b; Halt: return reg[a].
@@ -35,7 +35,7 @@ struct Plan {
 // relies on this seed remaining secret on an attacker-controlled client.
 Plan make_plan(std::uint64_t build_seed);
 
-// V4-M4 format revision 4 is incompatible with V4-M3: HostCall adds an ISA opcode.
+// V4-M5 format revision 5 adds checked JS integer arithmetic and comparison opcodes.
 // Versioned, build-bound, SHA-256 checked bytecode envelope.
 // Both encoder and decoder validate all register, opcode and branch operands.
 std::vector<std::uint8_t> encode(const Program& program, const Plan& plan);

@@ -5,6 +5,7 @@ on:
     paths:
       - "research/v4m3/**"
       - "research/v4m4/**"
+      - "research/v4m5/**"
       - "src/package/hash.cpp"
       - "src/package/hash.hpp"
       - ".github/workflows/v4-research.yml"
@@ -12,6 +13,7 @@ on:
     paths:
       - "research/v4m3/**"
       - "research/v4m4/**"
+      - "research/v4m5/**"
       - "src/package/hash.cpp"
       - "src/package/hash.hpp"
       - ".github/workflows/v4-research.yml"
@@ -46,3 +48,24 @@ jobs:
         run: cmake --build build/v4m4 --config Release --parallel 2
       - name: Test V4-M4
         run: ctest --test-dir build/v4m4 -C Release --output-on-failure
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Configure V4-M5
+        run: cmake -S research/v4m5 -B build/v4m5 -DCMAKE_BUILD_TYPE=Release
+      - name: Build V4-M5
+        run: cmake --build build/v4m5 --config Release --parallel 2
+      - name: Test V4-M5
+        run: ctest --test-dir build/v4m5 -C Release --output-on-failure
+      - name: Node.js differential V4-M5
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            EXE="build/v4m5/Release/venom_v4m5_js.exe"
+          else
+            EXE="build/v4m5/venom_v4m5_js"
+          fi
+          python research/v4m5/node_differential.py "$EXE"
