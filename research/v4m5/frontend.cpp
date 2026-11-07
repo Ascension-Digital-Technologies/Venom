@@ -119,7 +119,18 @@ class Parser {
     if (here().text.empty() || here().text == "<eof>" ||
         !(std::isalpha(static_cast<unsigned char>(here().text[0])) || here().text[0] == '_'))
       fail("identifier expected", here().pos);
-    return tokens_[index_++];
+    const Token id = tokens_[index_++];
+    // Reject JavaScript keywords rather than accepting code that Node rejects.
+    static const std::array<const char*, 32> keywords{{
+      "let", "const", "var", "if", "else", "while", "for", "do",
+      "return", "function", "class", "new", "import", "export", "default", "switch",
+      "case", "break", "continue", "try", "catch", "finally", "throw", "typeof",
+      "void", "delete", "this", "super", "yield", "await", "with", "debugger"
+    }};
+    for (const auto* word : keywords) {
+      if (id.text == word) fail("reserved identifier '" + id.text + "'", id.pos);
+    }
+    return id;
   }
   std::uint32_t number() {
     if (!here().number) fail("integer literal expected", here().pos);
