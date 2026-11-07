@@ -25,7 +25,7 @@ Module diamond(std::uint32_t cond, std::uint32_t yes,
   m.blocks[1].end = {T::Kind::Jump, 0, 3, 0};
   m.blocks[2].values.push_back({3, Kind::Literal, 0, 0, no});
   m.blocks[2].end = {T::Kind::Jump, 0, 3, 0};
-  m.blocks[3].phis.push_back({4, {{1,2},{2,3}}});
+  m.blocks[3].phis.push_back({4, {{std::size_t{1},std::uint8_t{2}},{std::size_t{2},std::uint8_t{3}}}});
   m.blocks[3].values.push_back({5, Kind::Literal, 0, 0, bonus});
   m.blocks[3].values.push_back({6, Kind::Add, 4, 5, 0});
   m.blocks[3].end = {T::Kind::Return, 6, 0, 0};
@@ -45,7 +45,7 @@ Module masked_promotion(std::uint32_t user_id, std::uint32_t flags) {
   m.blocks[2].values = {{6,Kind::Literal,0,0,20},
                         {7,Kind::Sub,1,6,0}};
   m.blocks[2].end = {T::Kind::Jump, 0, 3, 0};
-  m.blocks[3].phis = {{8,{{1,5},{2,7}}}};
+  m.blocks[3].phis = {{8,{{std::size_t{1},std::uint8_t{5}},{std::size_t{2},std::uint8_t{7}}}}};
   m.blocks[3].end = {T::Kind::Return, 8, 0, 0};
   return m;
 }
