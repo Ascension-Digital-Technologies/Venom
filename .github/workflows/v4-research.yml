@@ -8,6 +8,7 @@ on:
       - "research/v4m5/**"
       - "research/v4m6/**"
       - "research/v4m7/**"
+      - "research/v4m8/**"
       - "src/package/hash.cpp"
       - "src/package/hash.hpp"
       - ".github/workflows/v4-research.yml"
@@ -18,6 +19,7 @@ on:
       - "research/v4m5/**"
       - "research/v4m6/**"
       - "research/v4m7/**"
+      - "research/v4m8/**"
       - "src/package/hash.cpp"
       - "src/package/hash.hpp"
       - ".github/workflows/v4-research.yml"
@@ -76,6 +78,21 @@ jobs:
         run: cmake --build build/v4m7 --config Release --parallel 2
       - name: Test V4-M7
         run: ctest --test-dir build/v4m7 -C Release --output-on-failure
+      - name: Configure V4-M8
+        run: cmake -S research/v4m8 -B build/v4m8 -DCMAKE_BUILD_TYPE=Release
+      - name: Build V4-M8
+        run: cmake --build build/v4m8 --config Release --parallel 2
+      - name: Test V4-M8
+        run: ctest --test-dir build/v4m8 -C Release --output-on-failure
+      - name: Node.js differential V4-M8
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            EXE="build/v4m8/Release/venom_v4m8_js.exe"
+          else
+            EXE="build/v4m8/venom_v4m8_js"
+          fi
+          python research/v4m8/node_differential.py "$EXE"
       - name: Node.js differential V4-M5
         shell: bash
         run: |
