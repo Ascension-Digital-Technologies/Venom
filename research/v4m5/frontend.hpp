@@ -12,6 +12,9 @@ namespace venom::v4m5 {
 // No calls other than host, objects, coercions, closures, general JS numbers,
 // floating point, string literals, general JavaScript coercions or DOM.
 // The compiler rejects unsupported syntax or static type mismatches.
+// Control path: source -> checked VM -> SSA bridge -> verified VM.
 v4m3::Program compile_source(const std::string& source);
+// Direct emitter retained solely as the differential reference for V4 research.
+v4m3::Program compile_source_direct(const std::string& source);
 
 } // namespace venom::v4m5

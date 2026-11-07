@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 enable_testing()
 add_executable(venom_v4m6_tests
-  tests.cpp cfg.cpp ../v4m4/ir.cpp ../v4m5/frontend.cpp
+  tests.cpp cfg.cpp ../v4m4/ir.cpp ../v4m5/frontend.cpp ../v4m7/ssa.cpp
   ../v4m3/vm.cpp ../../src/package/hash.cpp)
 target_include_directories(venom_v4m6_tests PRIVATE ../../src)
 if(MSVC)
