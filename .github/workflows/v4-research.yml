@@ -4,12 +4,14 @@ on:
   push:
     paths:
       - "research/v4m3/**"
+      - "research/v4m4/**"
       - "src/package/hash.cpp"
       - "src/package/hash.hpp"
       - ".github/workflows/v4-research.yml"
   pull_request:
     paths:
       - "research/v4m3/**"
+      - "research/v4m4/**"
       - "src/package/hash.cpp"
       - "src/package/hash.hpp"
       - ".github/workflows/v4-research.yml"
@@ -38,3 +40,9 @@ jobs:
         run: cmake --build build/v4m3 --config Release --parallel 2
       - name: Test
         run: ctest --test-dir build/v4m3 -C Release --output-on-failure
+      - name: Configure V4-M4
+        run: cmake -S research/v4m4 -B build/v4m4 -DCMAKE_BUILD_TYPE=Release
+      - name: Build V4-M4
+        run: cmake --build build/v4m4 --config Release --parallel 2
+      - name: Test V4-M4
+        run: ctest --test-dir build/v4m4 -C Release --output-on-failure

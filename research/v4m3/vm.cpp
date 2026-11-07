@@ -11,10 +11,10 @@
 namespace venom::v4m3 {
 namespace {
 constexpr std::size_t kHeaderSize = 64;
-constexpr std::uint32_t kVersion = 3;
+constexpr std::uint32_t kVersion = 4;
 constexpr std::size_t kMaxInstructions = 65536;
 constexpr std::uint32_t kRegisterCount = 16;
-constexpr std::array<std::uint8_t, 8> kMagic{{'V','4','V','M','B','C','0','3'}};
+constexpr std::array<std::uint8_t, 8> kMagic{{'V','4','V','M','B','C','0','4'}};
 
 void check(bool ok, const char* message) {
   if (!ok) throw std::runtime_error(message);
@@ -51,6 +51,8 @@ void validate(const Program& p) {
         check(ins.dst == 0 && ins.a < kRegisterCount && ins.b < p.size(), "invalid branch operands"); break;
       case Op::Halt:
         check(ins.dst == 0 && ins.a < kRegisterCount && ins.b == 0, "invalid Halt operands"); break;
+      case Op::HostCall:
+        check(ins.dst < kRegisterCount && ins.a < kRegisterCount && ins.b != 0, "invalid HostCall operands"); break;
       default: throw std::runtime_error("unsupported opcode");
     }
   }
@@ -67,9 +69,9 @@ void validate_plan(const Plan& p) {
 
 Plan make_plan(std::uint64_t seed) {
   Plan plan;
-  const auto id = package::sha256(domain_seed("venom-v4m3-build-id-v1|", seed));
+  const auto id = package::sha256(domain_seed("venom-v4m4-build-id-v1|", seed));
   std::copy_n(id.begin(), 16, plan.build_id.begin());
-  const auto material = package::sha256(domain_seed("venom-v4m3-mapping-v1|", seed));
+  const auto material = package::sha256(domain_seed("venom-v4m4-mapping-v1|", seed));
   std::uint32_t state = get32(material.data());
   if (state == 0) state = 0x6d2b79f5u;
   for (std::size_t i = 0; i < plan.opcodes.size(); ++i) plan.opcodes[i] = 0x101u + static_cast<std::uint32_t>(i) * 0x102u;
@@ -136,10 +138,11 @@ Program decode(const std::vector<std::uint8_t>& bytes, const Plan& plan) {
   return p;
 }
 
-std::uint32_t run(const Program& p, std::uint64_t fuel) {
+std::uint32_t run(const Program& p, std::uint64_t fuel, const HostPolicy& host) {
   validate(p);
   std::array<std::uint32_t, kRegisterCount> regs{};
   std::size_t pc = 0;
+  std::uint64_t remaining_host_calls = host.max_calls;
   for (;;) {
     check(fuel-- != 0, "execution fuel exhausted");
     check(pc < p.size(), "program counter out of range");
@@ -154,13 +157,20 @@ std::uint32_t run(const Program& p, std::uint64_t fuel) {
         if (regs[ins.a] != 0) { pc = ins.b; continue; }
         break;
       case Op::Halt: return regs[ins.a];
+      case Op::HostCall:
+        check(std::find(host.allowed.begin(), host.allowed.end(), ins.b) != host.allowed.end(), "host capability denied");
+        check(static_cast<bool>(host.invoke), "no host callback registered");
+        check(remaining_host_calls != 0, "host call budget exhausted");
+        --remaining_host_calls;
+        regs[ins.dst] = host.invoke(ins.b, regs[ins.a]);
+        break;
       default: throw std::runtime_error("unsupported opcode");
     }
     ++pc;
   }
 }
 
-std::uint32_t run_package(const std::vector<std::uint8_t>& bytes, const Plan& plan, std::uint64_t fuel) {
-  return run(decode(bytes, plan), fuel);
+std::uint32_t run_package(const std::vector<std::uint8_t>& bytes, const Plan& plan, std::uint64_t fuel, const HostPolicy& host) {
+  return run(decode(bytes, plan), fuel, host);
 }
 } // namespace venom::v4m3
