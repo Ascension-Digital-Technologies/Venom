@@ -1,0 +1,40 @@
+name: V4 Research VM
+
+on:
+  push:
+    paths:
+      - "research/v4m3/**"
+      - "src/package/hash.cpp"
+      - "src/package/hash.hpp"
+      - ".github/workflows/v4-research.yml"
+  pull_request:
+    paths:
+      - "research/v4m3/**"
+      - "src/package/hash.cpp"
+      - "src/package/hash.hpp"
+      - ".github/workflows/v4-research.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            name: Linux-Clang
+          - os: windows-2025
+            name: Windows-MSVC
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S research/v4m3 -B build/v4m3 -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build/v4m3 --config Release --parallel 2
+      - name: Test
+        run: ctest --test-dir build/v4m3 -C Release --output-on-failure
