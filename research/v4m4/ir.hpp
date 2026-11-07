@@ -8,8 +8,8 @@
 namespace venom::v4m4 {
 
 // Research subset: explicit uint32 effects, not full JavaScript semantics.
-// Each SSA value 1..15 is globally single-assignment and directly maps to a
-// VM register; there is not yet a register allocator.
+// Each SSA value 1..14 is globally single-assignment and directly maps to a
+// VM register (r15 is reserved for loop phi copy cycles). There is no register allocator.
 enum class Kind : std::uint8_t { Literal, Add, Sub, Xor, HostCall };
 
 struct Value {
@@ -36,7 +36,7 @@ struct Block {
 };
 struct Module { std::vector<Block> blocks; };
 
-// Reachability, forward-only CFG, predecessor-complete phi, definition,
+// Reachability, cyclic CFG fixed-point dominance, predecessor-complete phi, definition,
 // dominance, and operand/effect validation. Rejects before code generation.
 void verify(const Module& module);
 
