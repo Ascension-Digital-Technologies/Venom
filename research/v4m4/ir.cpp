@@ -8,7 +8,7 @@
 namespace venom::v4m4 {
 namespace {
 constexpr std::size_t kMaxBlocks = 32;
-constexpr std::size_t kMaxValues = 15;
+constexpr std::size_t kMaxValues = 14; // r15 reserved for parallel phi copies
 constexpr std::size_t kMaxNodes = 4096;
 
 void check(bool condition, const char* error) {
@@ -33,7 +33,7 @@ Verified analyze(const Module& mod) {
     nodes += block.phis.size() + block.values.size();
     check(nodes <= kMaxNodes, "IR node limit exceeded");
     auto add_target = [&](std::size_t to) {
-      check(to > bi && to < count, "IR requires forward, acyclic CFG targets");
+      check(to < count && to != 0, "IR CFG target invalid or entry backedge");
       check(std::find(a.preds[to].begin(), a.preds[to].end(), bi) == a.preds[to].end(),
             "duplicate IR CFG edge");
       a.preds[to].push_back(bi);
@@ -63,12 +63,37 @@ Verified analyze(const Module& mod) {
       define(block.values[j].id, static_cast<int>(j));
   }
   check(a.preds[0].empty(), "IR entry has predecessors");
+  // Reject detached cycles: every block must be reachable from entry.
+  std::vector<bool> reachable(count, false);
+  reachable[0] = true;
+  std::vector<std::size_t> queue{0};
+  for (std::size_t q = 0; q < queue.size(); ++q) {
+    const std::size_t from = queue[q];
+    for (std::size_t to = 1; to < count; ++to) {
+      if (std::find(a.preds[to].begin(), a.preds[to].end(), from) != a.preds[to].end() && !reachable[to]) {
+        reachable[to] = true;
+        queue.push_back(to);
+      }
+    }
+  }
+  for (const bool yes : reachable) check(yes, "unreachable IR block");
+
+  // Fixed-point dominators work with loop backedges.
+  const std::uint32_t all = count == 32 ? 0xffffffffu : (std::uint32_t{1} << count) - 1u;
   a.dominance[0] = 1u;
-  for (std::size_t bi = 1; bi < count; ++bi) {
-    check(!a.preds[bi].empty(), "unreachable IR block");
-    std::uint32_t mask = 0xffffffffu;
-    for (const auto pred : a.preds[bi]) mask &= a.dominance[pred];
-    a.dominance[bi] = mask | (1u << bi);
+  for (std::size_t bi = 1; bi < count; ++bi) a.dominance[bi] = all;
+  bool changed = true;
+  while (changed) {
+    changed = false;
+    for (std::size_t bi = 1; bi < count; ++bi) {
+      std::uint32_t mask = all;
+      for (const auto pred : a.preds[bi]) mask &= a.dominance[pred];
+      const std::uint32_t next = mask | (std::uint32_t{1} << bi);
+      if (a.dominance[bi] != next) {
+        a.dominance[bi] = next;
+        changed = true;
+      }
+    }
   }
   auto use = [&](std::uint8_t id, std::size_t at, int order) {
     check(id > 0 && id <= kMaxValues, "invalid IR operand ID");
@@ -176,11 +201,36 @@ v4m3::Program lower(const Module& mod) {
     }
   }
   for (const auto& edge : edges) {
-    // Edge stubs resolve phis before jumping into target block.
-    // Unique SSA registers make phi copies non-overlapping.
+    // Execute phi assignments in parallel; a loop backedge may need a
+    // two-register swap. Register 15 is reserved as the cycle scratch.
     program[edge.patch].b = static_cast<std::uint32_t>(program.size());
-    for (const auto& phi : mod.blocks[edge.to].phis)
-      program.push_back({Op::Move, phi.id, phi_source(phi, edge.from), 0});
+    struct Copy { std::uint8_t dst; std::uint8_t src; };
+    std::vector<Copy> pending;
+    for (const auto& phi : mod.blocks[edge.to].phis) {
+      const auto src = phi_source(phi, edge.from);
+      if (phi.id != src) pending.push_back({phi.id, src});
+    }
+    while (!pending.empty()) {
+      bool progressed = false;
+      for (std::size_t i = 0; i < pending.size(); ++i) {
+        const auto dst = pending[i].dst;
+        bool will_read = false;
+        for (const auto& other : pending) {
+          if (other.src == dst) { will_read = true; break; }
+        }
+        if (!will_read) {
+          program.push_back({Op::Move, dst, pending[i].src, 0});
+          pending.erase(pending.begin() + static_cast<std::ptrdiff_t>(i));
+          progressed = true;
+          break;
+        }
+      }
+      if (progressed) continue;
+      // Break a cycle: preserve one old destination and rewrite reads.
+      const auto saved = pending.front().dst;
+      program.push_back({Op::Move, 15, saved, 0});
+      for (auto& copy : pending) if (copy.src == saved) copy.src = 15;
+    }
     program.push_back({Op::Jnz, 0, 0,
                        static_cast<std::uint32_t>(block_pc[edge.to])});
   }
