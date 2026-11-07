@@ -36,7 +36,7 @@ int main() {
     rejects([&] { decode(corrupted, a); }, "tampered payload accepted");
     corrupted = bytes_a; corrupted[0] ^= 0x01;
     rejects([&] { decode(corrupted, a); }, "invalid magic accepted");
-    corrupted = bytes_a; set32(corrupted, 8, 4);
+    corrupted = bytes_a; set32(corrupted, 8, 5);
     rejects([&] { decode(corrupted, a); }, "wrong version accepted");
     corrupted = bytes_a; set32(corrupted, 12, 0xffffffffu);
     rejects([&] { decode(corrupted, a); }, "oversized program accepted");
