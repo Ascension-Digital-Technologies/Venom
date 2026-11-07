@@ -173,8 +173,10 @@ class Parser {
     if (!here().number) syntax("integer literal required", here().pos);
     std::uint64_t value = 0;
     for (const char c : here().text) {
-      value = value * 10 + static_cast<unsigned>(c - '0');
-      if (value > 2147483647ull) syntax("integer literal over int32 range", here().pos);
+      const auto digit = static_cast<unsigned>(c - '0');
+      if (value > (2147483647ull - digit) / 10ull)
+        syntax("integer literal over int32 range", here().pos);
+      value = value * 10ull + digit;
     }
     ++pos_;
     return static_cast<std::uint32_t>(value);
