@@ -24,13 +24,13 @@ def cases():
         "function main(){ let n=3; while(n>0) { n=n-1; } return n; }",
         "function main(){ let n=3; while(n>0) { if(n>1){n=n-1;} else {n=n-1;} } return n; }",
     ]
-    for n in range(720):
+    for n in range(960):
         a = rng.randrange(-200, 201)
         b = rng.randrange(-200, 201)
         c = rng.randrange(0, 41)
         d = rng.randrange(0, 41)
         op = rng.choice(["+", "-", "*", "^", "<", "<=", ">", ">=", "===", "!=="])
-        form = n % 6
+        form = n % 8
         if form == 0:
             src = f"function main(){{ let a={lit(a)};let b={lit(b)};return a {op} b; }}"
         elif form == 1:
@@ -41,8 +41,12 @@ def cases():
             src = f"function main(){{let n={c};let s=0;while(n>0){{s=s+n;n=n-1;}}return s;}}"
         elif form == 4:
             src = f"function main(){{ let a={lit(a)}; let b={lit(b)};let q=a^b; if(q<0){{q=q+13;}}else{{q=q-11;}}return q;}}"
-        else:
+        elif form == 5:
             src = f"function main(){{ const a={lit(a)};let q={lit(b)};if((a===q)===false){{q=q+12;}}else{{q=q-12;}}return q;}}"
+        elif form == 6:
+            src = f"function main(){{let a={lit(a)};let b={lit(b)};return (a < b) && (a !== b);}}"
+        else:
+            src = f"function main(){{let a={lit(a)};let b={lit(b)};return (a === b) || (a > b && b < a);}}"
         examples.append(src)
     return examples
 
