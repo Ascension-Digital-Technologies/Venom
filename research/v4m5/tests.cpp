@@ -86,6 +86,10 @@ int main() {
             "const mutation accepted");
     rejects([&] { run("function main(){let x=x;return x;}"); },
             "uninitialized use accepted");
+    rejects([&] { run("function main(){let while=3;return while;}"); },
+            "JavaScript reserved binding accepted");
+    rejects([&] { run("function main(){let x=1;return let;}"); },
+            "JavaScript reserved operand accepted");
     rejects([&] { run("function main(){while(0){let y=3;}return y;}"); },
             "escaped lexical scope accepted");
     rejects([&] { run("function main(){if(1){return 1;}}"); },
