@@ -11,10 +11,10 @@
 namespace venom::v4m3 {
 namespace {
 constexpr std::size_t kHeaderSize = 64;
-constexpr std::uint32_t kVersion = 4;
+constexpr std::uint32_t kVersion = 5;
 constexpr std::size_t kMaxInstructions = 65536;
 constexpr std::uint32_t kRegisterCount = 16;
-constexpr std::array<std::uint8_t, 8> kMagic{{'V','4','V','M','B','C','0','4'}};
+constexpr std::array<std::uint8_t, 8> kMagic{{'V','4','V','M','B','C','0','5'}};
 
 void check(bool ok, const char* message) {
   if (!ok) throw std::runtime_error(message);
@@ -36,6 +36,13 @@ std::vector<std::uint8_t> domain_seed(const char* label, std::uint64_t seed) {
   for (unsigned i = 0; i < 8; ++i) bytes.push_back(static_cast<std::uint8_t>(seed >> (i * 8)));
   return bytes;
 }
+std::int64_t signed_value(std::uint32_t raw) {
+  return raw <= 0x7fffffffu ? std::int64_t(raw) : std::int64_t(raw) - 0x100000000ll;
+}
+std::uint32_t checked_i32(std::int64_t value) {
+  check(value >= -0x80000000ll && value <= 0x7fffffffll, "JS int32 subset overflow");
+  return static_cast<std::uint32_t>(value);
+}
 void validate(const Program& p) {
   check(!p.empty() && p.size() <= kMaxInstructions, "invalid instruction count");
   check(p.back().op == Op::Halt, "program must end in Halt");
@@ -46,6 +53,9 @@ void validate(const Program& p) {
       case Op::Move:
         check(ins.dst < kRegisterCount && ins.a < kRegisterCount && ins.b == 0, "invalid Move operands"); break;
       case Op::Add: case Op::Sub: case Op::Xor:
+      case Op::AddChecked: case Op::SubChecked: case Op::MulChecked:
+      case Op::Equal: case Op::Less: case Op::LessEqual:
+      case Op::Greater: case Op::GreaterEqual:
         check(ins.dst < kRegisterCount && ins.a < kRegisterCount && ins.b < kRegisterCount, "invalid arithmetic operands"); break;
       case Op::Jnz:
         check(ins.dst == 0 && ins.a < kRegisterCount && ins.b < p.size(), "invalid branch operands"); break;
@@ -69,9 +79,9 @@ void validate_plan(const Plan& p) {
 
 Plan make_plan(std::uint64_t seed) {
   Plan plan;
-  const auto id = package::sha256(domain_seed("venom-v4m4-build-id-v1|", seed));
+  const auto id = package::sha256(domain_seed("venom-v4m5-build-id-v1|", seed));
   std::copy_n(id.begin(), 16, plan.build_id.begin());
-  const auto material = package::sha256(domain_seed("venom-v4m4-mapping-v1|", seed));
+  const auto material = package::sha256(domain_seed("venom-v4m5-mapping-v1|", seed));
   std::uint32_t state = get32(material.data());
   if (state == 0) state = 0x6d2b79f5u;
   for (std::size_t i = 0; i < plan.opcodes.size(); ++i) plan.opcodes[i] = 0x101u + static_cast<std::uint32_t>(i) * 0x102u;
@@ -153,6 +163,14 @@ std::uint32_t run(const Program& p, std::uint64_t fuel, const HostPolicy& host) 
       case Op::Add: regs[ins.dst] = regs[ins.a] + regs[ins.b]; break;
       case Op::Sub: regs[ins.dst] = regs[ins.a] - regs[ins.b]; break;
       case Op::Xor: regs[ins.dst] = regs[ins.a] ^ regs[ins.b]; break;
+      case Op::AddChecked: regs[ins.dst] = checked_i32(signed_value(regs[ins.a]) + signed_value(regs[ins.b])); break;
+      case Op::SubChecked: regs[ins.dst] = checked_i32(signed_value(regs[ins.a]) - signed_value(regs[ins.b])); break;
+      case Op::MulChecked: regs[ins.dst] = checked_i32(signed_value(regs[ins.a]) * signed_value(regs[ins.b])); break;
+      case Op::Equal: regs[ins.dst] = regs[ins.a] == regs[ins.b] ? 1u : 0u; break;
+      case Op::Less: regs[ins.dst] = signed_value(regs[ins.a]) < signed_value(regs[ins.b]) ? 1u : 0u; break;
+      case Op::LessEqual: regs[ins.dst] = signed_value(regs[ins.a]) <= signed_value(regs[ins.b]) ? 1u : 0u; break;
+      case Op::Greater: regs[ins.dst] = signed_value(regs[ins.a]) > signed_value(regs[ins.b]) ? 1u : 0u; break;
+      case Op::GreaterEqual: regs[ins.dst] = signed_value(regs[ins.a]) >= signed_value(regs[ins.b]) ? 1u : 0u; break;
       case Op::Jnz:
         if (regs[ins.a] != 0) { pc = ins.b; continue; }
         break;
