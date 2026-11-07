@@ -109,7 +109,7 @@ Module lift(const Program& code) {
                         static_cast<std::uint8_t>(tail.a), 0};
     } else if (tail.op == Op::Jnz) {
       const std::size_t target = pc_block[tail.b];
-      if (tail.a == 0 || target == pc_block[tail_pc + 1]) {
+      if (tail.a == 0 || (tail_pc + 1 < n && target == pc_block[tail_pc + 1])) {
         seg.terminator = {End::Kind::Jump, target, 0, 0, 0};
       } else {
         require(tail_pc + 1 < n, "SSA branch missing false edge");
@@ -363,17 +363,22 @@ std::uint32_t interpret(const Module& module, std::uint64_t fuel,
   for (;;) {
     const auto& block = module.blocks[current];
     if (current != 0) {
+      // Phi reads must observe the predecessor's *entire* register state.
+      // Stage results first: loop-carried phis can swap values across an edge.
+      std::vector<std::pair<std::uint32_t, std::uint32_t>> staged;
+      staged.reserve(block.phis.size());
       for (const auto& phi : block.phis) {
         bool found = false;
         for (const auto& incoming : phi.incoming) {
           if (incoming.first == previous) {
-            values[phi.result] = values[incoming.second];
+            staged.push_back({phi.result, values[incoming.second]});
             found = true;
             break;
           }
         }
         require(found, "SSA runtime missing incoming edge");
       }
+      for (const auto& item : staged) values[item.first] = item.second;
     }
     for (const auto& step : block.steps) {
       consume();
