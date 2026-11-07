@@ -96,11 +96,6 @@ bool is_reserved(const std::string& name) {
 bool binary(Kind kind) {
   return kind != Kind::Literal && kind != Kind::HostCall;
 }
-bool number_op(Kind kind) {
-  return kind == Kind::Add || kind == Kind::Sub || kind == Kind::Mul ||
-         kind == Kind::Xor || kind == Kind::Less || kind == Kind::LessEqual ||
-         kind == Kind::Greater || kind == Kind::GreaterEqual;
-}
 Type output_type(Kind kind) {
   switch (kind) {
     case Kind::Literal: case Kind::Add: case Kind::Sub:
