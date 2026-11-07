@@ -1,4 +1,5 @@
 #include "frontend.hpp"
+#include "../v4m6/cfg.hpp"
 
 #include <algorithm>
 #include <array>
@@ -104,6 +105,7 @@ class Parser {
     if (here().text != "<eof>") fail("only one main() function is supported", here().pos);
     code_.push_back({Op::Halt, 0, 0, 0}); // Unreachable verifier sentinel.
     if (code_.size() > 65536) fail("VM instruction limit exceeded", here().pos);
+    v4m6::verify_compiled_cfg(code_);
     return code_;
   }
  private:
@@ -278,12 +280,48 @@ class Parser {
     }
     return lhs;
   }
-  Temporary expression() {
-    if (++expression_depth_ > 64) fail("expression nesting limit exceeded", here().pos);
+  Temporary bitwise_xor() {
     auto lhs = equality();
     while (here().text == "^") {
       const auto op = tokens_[index_++]; lhs = binary(lhs, equality(), op.text, op.pos);
     }
+    return lhs;
+  }
+  Temporary logical_and() {
+    auto lhs = bitwise_xor();
+    while (here().text == "&&") {
+      const auto op = tokens_[index_++];
+      need(lhs.type, Type::Boolean, op.pos);
+      // False lhs must skip the RHS including all host effects.
+      const auto rhs_start = emit({Op::Jnz, 0, lhs.reg, 0});
+      const auto skip_rhs = emit({Op::Jnz, 0, 0, 0});
+      patch(rhs_start, code_.size());
+      auto rhs = bitwise_xor();
+      need(rhs.type, Type::Boolean, op.pos);
+      emit({Op::Move, lhs.reg, rhs.reg, 0});
+      release(rhs.reg);
+      patch(skip_rhs, code_.size());
+    }
+    return lhs;
+  }
+  Temporary logical_or() {
+    auto lhs = logical_and();
+    while (here().text == "||") {
+      const auto op = tokens_[index_++];
+      need(lhs.type, Type::Boolean, op.pos);
+      // True lhs skips evaluation of RHS.
+      const auto skip_rhs = emit({Op::Jnz, 0, lhs.reg, 0});
+      auto rhs = logical_and();
+      need(rhs.type, Type::Boolean, op.pos);
+      emit({Op::Move, lhs.reg, rhs.reg, 0});
+      release(rhs.reg);
+      patch(skip_rhs, code_.size());
+    }
+    return lhs;
+  }
+  Temporary expression() {
+    if (++expression_depth_ > 64) fail("expression nesting limit exceeded", here().pos);
+    auto lhs = logical_or();
     --expression_depth_;
     return lhs;
   }
