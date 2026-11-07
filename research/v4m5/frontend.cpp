@@ -1,5 +1,6 @@
 #include "frontend.hpp"
 #include "../v4m6/cfg.hpp"
+#include "../v4m7/ssa.hpp"
 
 #include <algorithm>
 #include <array>
@@ -404,8 +405,15 @@ class Parser {
 };
 } // namespace
 
-v4m3::Program compile_source(const std::string& source) {
+v4m3::Program compile_source_direct(const std::string& source) {
   Parser parser(source);
   return parser.compile();
+}
+
+v4m3::Program compile_source(const std::string& source) {
+  // V4-M7 bridge: source -> checked logical VM -> register-state SSA graph
+  // -> independent graph verification -> canonical VM lowering.
+  // The direct compiler remains available for differential testing.
+  return v4m7::lower(v4m7::lift(compile_source_direct(source)));
 }
 } // namespace venom::v4m5
